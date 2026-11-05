@@ -9,3 +9,5 @@
 | 2026-11-05 | Phase 2 Edge Functions (staff-login, request-access, claim-account, admin-users) | yes | type-checked with Deno; shared logic unit tested | not yet run against a live project | deploy to staging and run SETUP.md step 9 |
 | 2026-11-05 | Not done in Phase 2 | — | — | — | offline outbox (Phases 6/7), Sentry, daily Drive backup workflow (needed before Phase 3 data), Playwright login test |
 | 2026-11-05 | Pushed Phase 2 to GitHub main; Supabase integration applied 0001_core to DuaPharmaPlus | yes | live check: 11 tables, 0 without RLS, 25 permissions, anon has 0 grants | — | functions, auth settings, first admin |
+| 2026-11-05 | Phase 2 accepted by owner | yes | owner ran request, approve, PIN, login, lockout on staging; DB log matches | — | — |
+| 2026-11-05 | Phase 3 study: old Sales app mapped; backup of 2,379 days checked against formula | yes | 8 unit tests for the checker; real-data run: 2,378/2,379 totals reproduce with signed rule | 111 mismatches under old formula, explained | owner decisions D-24, April 2022, 25 Sep 2026 |
