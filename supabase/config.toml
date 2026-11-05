@@ -1,0 +1,21 @@
+# Local-dev settings. For the hosted project set the same values in the dashboard (see docs/SETUP.md).
+[auth]
+enable_signup = false
+minimum_password_length = 6
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+# Public entry points authenticate themselves (lockout / one-time code), so JWT verification is off.
+[functions.staff-login]
+verify_jwt = false
+[functions.request-access]
+verify_jwt = false
+[functions.claim-account]
+verify_jwt = false
+# admin-users checks the caller's JWT and users.manage itself.
+[functions.admin-users]
+verify_jwt = false

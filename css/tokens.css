@@ -1,0 +1,60 @@
+/* Design tokens: navy + teal, light and dark. Components use only these variables. */
+:root {
+  --navy-900: #0b1f3a;
+  --navy-700: #14325c;
+  --teal-600: #0d9488;
+  --teal-500: #14b8a6;
+  --bg: #f4f7fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f6;
+  --text: #0f1b2d;
+  --text-muted: #5a6b80;
+  --border: #d5dde6;
+  --primary: var(--teal-600);
+  --primary-text: #ffffff;
+  --sidebar-bg: var(--navy-900);
+  --sidebar-text: #dce6f2;
+  --danger: #b42318;
+  --ok: #067647;
+  --focus: #1d6fe0;
+  --radius: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --shadow: 0 1px 2px rgb(11 31 58 / 8%), 0 2px 8px rgb(11 31 58 / 6%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0a1424;
+    --surface: #101e33;
+    --surface-2: #17283f;
+    --text: #e6edf6;
+    --text-muted: #94a6bd;
+    --border: #243650;
+    --primary: var(--teal-500);
+    --primary-text: #04201d;
+    --sidebar-bg: #07101e;
+    --danger: #f97066;
+    --ok: #47cd89;
+    --focus: #6aa8ff;
+    --shadow: none;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0a1424;
+  --surface: #101e33;
+  --surface-2: #17283f;
+  --text: #e6edf6;
+  --text-muted: #94a6bd;
+  --border: #243650;
+  --primary: var(--teal-500);
+  --primary-text: #04201d;
+  --sidebar-bg: #07101e;
+  --danger: #f97066;
+  --ok: #47cd89;
+  --focus: #6aa8ff;
+  --shadow: none;
+}
