@@ -1,8 +1,10 @@
 // Public configuration. The publishable (anon) key is designed to be public; it is safe in Git.
 // NEVER put a service-role key, secret key or any password here (CI blocks it).
+const STAGING = { url: 'https://sdsynzsflubdxnelgthh.supabase.co', publishableKey: 'sb_publishable_F5kuTbAAFbn6hbCGBrv7LQ_yhKicdkX' };
 const ENVIRONMENTS = {
-  staging: { url: '', publishableKey: '' },
-  production: { url: '', publishableKey: '' },
+  staging: STAGING,
+  // TEMPORARY: no production project exists yet, so the live site uses staging. Replace before launch (Phase 10).
+  production: STAGING,
 };
 
 export function environmentName(loc = globalThis.location) {

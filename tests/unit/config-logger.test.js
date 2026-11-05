@@ -8,8 +8,12 @@ describe('environment selection', () => {
     expect(environmentName({ hostname: 'sysalmanyasin.github.io', pathname: '/Dua-staging/' })).toBe('staging');
     expect(environmentName({ hostname: 'sysalmanyasin.github.io', pathname: '/Dua/' })).toBe('production');
   });
-  it('reports "not configured" until URL and key are set', () => {
-    expect(getConfig({ hostname: 'localhost', pathname: '/' }).configured).toBe(false);
+  it('is configured with a Supabase URL and a publishable (never secret) key', () => {
+    const cfg = getConfig({ hostname: 'localhost', pathname: '/' });
+    expect(cfg.configured).toBe(true);
+    expect(cfg.url).toMatch(/^https:\/\/[a-z0-9]+\.supabase\.co$/);
+    expect(cfg.publishableKey).toMatch(/^sb_publishable_/);
+    expect(cfg.functionsUrl).toBe(`${cfg.url}/functions/v1`);
   });
 });
 
