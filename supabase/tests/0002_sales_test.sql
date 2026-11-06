@@ -127,4 +127,21 @@ do $t$ declare n int; m numeric; begin
   reset role;
 end $t$;
 
+-- 7. the report view (cash sale / cash returns per day) follows permissions
+do $t$ declare r record; n int; begin
+  perform pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
+  select * into r from public.v_daily_report where business_date = (now() at time zone 'Asia/Karachi')::date - 1;
+  perform pg_temp.ok(r.cash_sale = 120000 and r.cash_returns = 0, 'report view: yesterday''s cash sale is 120,000');
+  perform public.sales_save_day((now() at time zone 'Asia/Karachi')::date - 3, '{"fdpp_pos": 40}',
+    '[{"method":"cash_sale","amount":1000},{"method":"cash_returns","amount":-250},{"method":"pso","amount":-10}]', null, gen_random_uuid());
+  select * into r from public.v_daily_report where business_date = (now() at time zone 'Asia/Karachi')::date - 3;
+  perform pg_temp.ok(r.cash_sale = 1000 and r.cash_returns = 250 and r.fdpp_pos = 40, 'report view: returns come out positive, one row per day');
+  select count(*) into n from public.v_daily_report; select count(*) into r.cash_sale from public.daily_sales;
+  perform pg_temp.ok(n = (select count(*) from public.daily_sales), 'report view has exactly one row per day');
+  reset role;
+  perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
+  select count(*) into n from public.v_daily_report; perform pg_temp.ok(n = 0, 'a person without history access sees nothing in the report view');
+  reset role;
+end $t$;
+
 rollback;

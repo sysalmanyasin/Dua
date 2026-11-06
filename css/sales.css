@@ -1,0 +1,301 @@
+/* Sales pages: totals, amount fields, month accordions, tables, dialog, toast, thermal print. */
+.total-card {
+  display: flex;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  background: var(--navy-900);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 0;
+}
+.card.total-card {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.total-card > div {
+  display: grid;
+  gap: 2px;
+}
+.total-card .label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+}
+.total-card strong {
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+.pos {
+  color: var(--ok);
+}
+.neg {
+  color: var(--danger);
+}
+.total-card .pos {
+  color: #5fe3a1;
+}
+.total-card .neg {
+  color: #ff9b94;
+}
+.date-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+.grow {
+  flex: 1;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+.span-all {
+  grid-column: 1 / -1;
+}
+.amount input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+}
+.amount.bad input {
+  border-color: var(--danger);
+}
+.field em {
+  font-style: normal;
+  font-size: 0.8em;
+  color: var(--amber);
+}
+.err {
+  color: var(--danger);
+}
+.chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.78rem;
+}
+.chip-warn {
+  background: rgb(242 184 75 / 22%);
+}
+.actions-bar {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin: var(--space-4) 0;
+  position: sticky;
+  bottom: var(--space-3);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.table th {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.table tr[data-day] {
+  cursor: pointer;
+}
+.table tr[data-day]:hover {
+  background: var(--surface-2);
+}
+.table .sum td {
+  font-weight: 700;
+  border-top: 2px solid var(--border);
+}
+details.month,
+details.year {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-2);
+}
+details > summary {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  list-style: none;
+  min-height: 48px;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+.m-name {
+  font-weight: 600;
+}
+.m-total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.m-sub,
+.m-days {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+.month-body {
+  padding: 0 var(--space-3) var(--space-3);
+  overflow-x: auto;
+}
+.month-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+  gap: var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
+}
+.month-card {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.month-card:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.mc-name {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mc-total {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.mc-line {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.mc-line.pos {
+  color: var(--ok);
+}
+.mc-line.neg {
+  color: var(--danger);
+}
+.sticky-sum {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.sticky-sum > div {
+  display: grid;
+}
+.sticky-sum .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+}
+.sticky-sum strong {
+  font-size: 1.25rem;
+}
+.dlg {
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0;
+  width: min(560px, 94vw);
+  max-height: 90dvh;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 35%);
+}
+.dlg::backdrop {
+  background: rgb(8 14 26 / 60%);
+}
+.dlg-body {
+  padding: var(--space-4);
+  overflow-y: auto;
+  max-height: 88dvh;
+}
+.dlg-body h3 {
+  font-size: 0.9rem;
+  color: var(--amber);
+  margin: var(--space-4) 0 var(--space-1);
+  letter-spacing: 0.04em;
+}
+#toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: grid;
+  gap: var(--space-2);
+  z-index: 50;
+  width: min(92vw, 420px);
+}
+.toast {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--navy-900);
+  color: #fff;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 30%);
+}
+.toast-error {
+  background: var(--danger);
+}
+#print-root {
+  display: none;
+}
+@page thermal {
+  size: 72mm auto;
+  margin: 2mm;
+}
+@media print {
+  body.printing-thermal > *:not(#print-root) {
+    display: none !important;
+  }
+  body.printing-thermal #print-root {
+    display: block;
+    page: thermal;
+    width: 68mm;
+    color: #000;
+    background: #fff;
+    font: 12px/1.35 monospace;
+  }
+  .rc-title {
+    text-align: center;
+    font-weight: 700;
+  }
+  .rc-sub {
+    text-align: center;
+  }
+  .rc-line {
+    display: flex;
+    justify-content: space-between;
+  }
+  #print-root hr {
+    border: 0;
+    border-top: 1px dashed #000;
+  }
+}

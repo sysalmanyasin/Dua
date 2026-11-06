@@ -12,6 +12,7 @@ export const ICONS = {
   ),
   logout: svg('<path d="M9 4H5v16h4"/><path d="M16 8l4 4-4 4M20 12H9"/>'),
   shield: svg('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>'),
+  chart: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
   menu: svg('<path d="M4 6h16M4 12h16M4 18h16"/>'),
 };
 export const icon = (name) => ICONS[name] ?? ICONS.shield;

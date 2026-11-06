@@ -29,6 +29,35 @@ describe('module visibility', () => {
   });
 });
 
+describe('page-level permissions', () => {
+  const sales = {
+    id: 'sales',
+    title: 'Sales',
+    nav: { order: 10 },
+    permission: null,
+    routes: [
+      { path: '/sales', title: 'Index', permission: 'sales.view_history' },
+      { path: '/sales/entry', title: 'Add Entry', anyOf: ['sales.enter', 'sales.edit'] },
+      { path: '/sales/yesterday', title: 'Last Day', permission: 'sales.view_last_day' },
+    ],
+  };
+  const pages = (perms) =>
+    resolveModules([home, sales], { permissions: perms })
+      .find((m) => m.id === 'sales')
+      ?.routes.map((r) => r.path);
+  it('shows only the pages a person may use, and hides the module when none apply', () => {
+    expect(pages(['sales.view_last_day'])).toEqual(['/sales/yesterday']);
+    expect(pages(['sales.enter'])).toEqual(['/sales/entry']);
+    expect(pages(['sales.edit', 'sales.view_history'])).toEqual(['/sales', '/sales/entry']);
+    expect(pages([])).toBeUndefined();
+  });
+  it('a page that is not allowed is not routable', () => {
+    const routes = routesFor(resolveModules([home, sales], { permissions: ['sales.view_last_day'] })).map((r) => r.path);
+    expect(routes).not.toContain('/sales');
+    expect(routes).toContain('/sales/yesterday');
+  });
+});
+
 describe('manifest loading', () => {
   it('one module failing to load does not stop the others', async () => {
     const broken = [];
