@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { analyze, buildMethods, computeTotal, parseLegacyDate, parseMonthYear } from '../../tools/import/sales-lib.mjs';
+import {
+  analyze,
+  buildMethods,
+  computeTotal,
+  parseLegacyDate,
+  parseMonthYear,
+} from '../../supabase/functions/_shared/sales-import-lib.mjs';
 
 // Synthetic data only: no real figures are ever stored in the repo.
 const methods = buildMethods({ custom: [{ id: 'custom_X', label: 'X Client', section: 'Credit Clients', calcType: 'add' }] });
@@ -58,5 +64,29 @@ describe('analysis', () => {
   it('never invents DIFF when COMP SALE is empty', () => {
     const r = analyze({ daily: [row('01/Mar/2024', 'March 2024', { 'COMP SALE': null })], monthly: [] });
     expect(r.anomalies.map((a) => a.type)).not.toContain('diff_missing_in_old_data');
+  });
+});
+
+describe('database payload', () => {
+  it('sends only custom methods, all days, and monthly-only months with their lines', async () => {
+    const { buildImportPayload } = await import('../../supabase/functions/_shared/sales-import-lib.mjs');
+    const backup = {
+      colConfig: { custom: [{ id: 'custom_X', label: 'X Client', section: 'Credit Clients', calcType: 'add' }] },
+      daily: [
+        { Date: '02/Mar/2024', Month_Year: 'March 2024', 'Cash Sale': 100, custom_X: 5, Customers: '40.0', 'COMP SALE': 90, TOTAL: '105' },
+      ],
+      monthly: [{ Month_Year: 'March 2024' }, { Month_Year: 'May 2023', TOTAL: '5000', 'Cash Sale': 5000, Customers: '900' }],
+    };
+    const p = buildImportPayload(analyze(backup));
+    expect(p.methods.map((x) => x.code)).toEqual(['c_x']);
+    expect(p.days).toHaveLength(1);
+    expect(p.days[0].customers).toBe(40);
+    expect(p.days[0].lines).toEqual([
+      { method: 'cash_sale', amount: 100 },
+      { method: 'c_x', amount: 5 },
+    ]);
+    expect(p.months).toEqual([
+      { month: '2023-05-01', total: 5000, comp_sale: null, customers: 900, lines: [{ method: 'cash_sale', amount: 5000 }] },
+    ]);
   });
 });

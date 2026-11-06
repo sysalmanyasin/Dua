@@ -3,7 +3,7 @@
 // It never contacts a database. The backup contains real business data: keep it out of Git (tools/import/out is ignored).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { analyze, summarize } from './sales-lib.mjs';
+import { analyze, summarize } from '../../supabase/functions/_shared/sales-import-lib.mjs';
 
 const args = process.argv.slice(2);
 const file = args.find((a) => !a.startsWith('--'));

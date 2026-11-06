@@ -199,3 +199,42 @@ export function summarize(result) {
     anomalyCounts: count,
   };
 }
+
+// A month that exists only as monthly figures (no daily detail).
+export function normalizeMonth(row, methods) {
+  const my = parseMonthYear(row.Month_Year);
+  if (!my) return null;
+  const lines = [];
+  for (const meth of methods) {
+    const v = num(row[meth.legacyKey]);
+    if (v !== 0) lines.push({ method: meth.code, amount: v });
+  }
+  return {
+    month: `${my.year}-${String(my.month).padStart(2, '0')}-01`,
+    total: num(row.TOTAL),
+    comp_sale: row['COMP SALE'] === null || row['COMP SALE'] === undefined || row['COMP SALE'] === '' ? null : num(row['COMP SALE']),
+    customers: row.Customers === null || row.Customers === undefined || row.Customers === '' ? null : Math.round(num(row.Customers)),
+    lines,
+  };
+}
+
+// Everything the database needs, in the exact shape import_sales_batch() expects.
+export function buildImportPayload(result) {
+  const builtin = new Set(BUILTIN_METHODS.map((x) => x.code));
+  return {
+    methods: result.methods.filter((x) => !builtin.has(x.code)).map((x, i) => ({ code: x.code, label: x.label, section: x.section, sign: x.sign, sort: 400 + i })),
+    days: result.days.map((d) => ({
+      business_date: d.business_date,
+      comp_sale: d.comp_sale,
+      customers: d.customers === null ? null : Math.round(d.customers),
+      fdpp_pos: d.fdpp_pos,
+      fdpp_consumer: d.fdpp_consumer,
+      amount_received: d.amount_received,
+      load_sale: d.load_sale,
+      cash_to_deposit: d.cash_to_deposit,
+      low_sale_reason: d.low_sale_reason,
+      lines: d.lines,
+    })),
+    months: result.monthlyOnly.map((r) => normalizeMonth(r, result.methods)).filter(Boolean),
+  };
+}

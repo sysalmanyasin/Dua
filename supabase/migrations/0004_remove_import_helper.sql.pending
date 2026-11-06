@@ -1,0 +1,5 @@
+-- RENAME to 0004_remove_import_helper.sql ONLY after the import has been verified.
+drop function if exists public.import_sales_batch(jsonb, jsonb, jsonb);
+drop function if exists public.import_check_token(text, boolean);
+drop table if exists public.import_tokens;
+drop extension if exists pg_net;

@@ -13,3 +13,6 @@ create or replace function auth.uid() returns uuid language sql stable as
 grant usage on schema auth to anon, authenticated, service_role;
 grant select on auth.users to authenticated, service_role;
 grant execute on function auth.jwt(), auth.uid() to anon, authenticated, service_role;
+
+create schema if not exists extensions;
+-- pg_net is not available locally; the migration's create extension is satisfied by a stub:

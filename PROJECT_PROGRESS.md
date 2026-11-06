@@ -12,3 +12,4 @@
 | 2026-11-05 | Phase 2 accepted by owner | yes | owner ran request, approve, PIN, login, lockout on staging; DB log matches | — | — |
 | 2026-11-05 | Phase 3 study: old Sales app mapped; backup of 2,379 days checked against formula | yes | 8 unit tests for the checker; real-data run: 2,378/2,379 totals reproduce with signed rule | 111 mismatches under old formula, explained | owner decisions D-24, April 2022, 25 Sep 2026 |
 | 2026-11-05 | Phase 3a database: payment methods, daily sales, revisions, save/last-day functions, monthly view | yes | 91 DB checks (incl. shared formula cases vs browser), mutation check on sales.edit rule | — | live apply, then Entry/Data pages |
+| 2026-11-05 | One-time sales import tooling: 0003 helper (token + batch insert), import-sales function, shared lib, payload builder | yes | 109 DB checks, 66 unit tests, Deno type-check | not yet run live | owner uploads backup to private bucket; dry run; confirm decisions; apply; remove helper |
