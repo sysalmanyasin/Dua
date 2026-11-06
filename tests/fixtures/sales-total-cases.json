@@ -1,0 +1,65 @@
+[
+  { "name": "empty day", "lines": [], "total": 0 },
+  { "name": "cash only", "lines": [{ "method": "cash_sale", "amount": 250000 }], "total": 250000 },
+  {
+    "name": "cash less cash returns (positive typed)",
+    "lines": [
+      { "method": "cash_sale", "amount": 250000 },
+      { "method": "cash_returns", "amount": 30197 }
+    ],
+    "total": 219803
+  },
+  {
+    "name": "cash returns typed negative still subtract",
+    "lines": [
+      { "method": "cash_sale", "amount": 250000 },
+      { "method": "cash_returns", "amount": -30197 }
+    ],
+    "total": 219803
+  },
+  {
+    "name": "negative client value reduces the day",
+    "lines": [
+      { "method": "cash_sale", "amount": 100000 },
+      { "method": "pso", "amount": -5000 }
+    ],
+    "total": 95000
+  },
+  {
+    "name": "banks and clients add",
+    "lines": [
+      { "method": "cash_sale", "amount": 100000 },
+      { "method": "bank_alfalah", "amount": 50000.5 },
+      { "method": "pso", "amount": 2000 },
+      { "method": "f_issue", "amount": 1000 }
+    ],
+    "total": 153001
+  },
+  { "name": "half rupee rounds up", "lines": [{ "method": "cash_sale", "amount": 10.5 }], "total": 11 },
+  { "name": "negative half rounds toward zero like Math.round", "lines": [{ "method": "cash_returns", "amount": 10.5 }], "total": -10 },
+  {
+    "name": "client returns column always subtracts",
+    "lines": [
+      { "method": "cash_sale", "amount": 1000 },
+      { "method": "lda_returns", "amount": -250 },
+      { "method": "askari_returns", "amount": 100 }
+    ],
+    "total": 650
+  },
+  {
+    "name": "decimals sum before rounding",
+    "lines": [
+      { "method": "cash_sale", "amount": 0.4 },
+      { "method": "hbl", "amount": 0.4 }
+    ],
+    "total": 1
+  },
+  {
+    "name": "unknown method is ignored",
+    "lines": [
+      { "method": "cash_sale", "amount": 500 },
+      { "method": "not_a_method", "amount": 999 }
+    ],
+    "total": 500
+  }
+]
