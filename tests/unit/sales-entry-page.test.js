@@ -10,7 +10,7 @@ const METHODS = [
 const api = {
   listMethods: vi.fn(async () => METHODS),
   getDay: vi.fn(async () => ({ day: null, lines: [] })),
-  saveDay: vi.fn(async (date, header, lines) => ({ data: { business_date: date, total: 1, diff: 1, revision: 1 }, error: null })),
+  saveDay: vi.fn(async (date) => ({ data: { business_date: date, total: 1, diff: 1, revision: 1 }, error: null })),
 };
 vi.mock('../../js/modules/sales/data/api.js', () => api);
 
