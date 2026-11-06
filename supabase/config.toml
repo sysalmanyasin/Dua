@@ -19,7 +19,3 @@ verify_jwt = false
 # admin-users checks the caller's JWT and users.manage itself.
 [functions.admin-users]
 verify_jwt = false
-
-# TEMPORARY (one-time sales import); removed after the import.
-[functions.import-sales]
-verify_jwt = false
