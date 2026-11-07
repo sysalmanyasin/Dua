@@ -1,5 +1,6 @@
 // Daily Data: every day, grouped by month. Tap a day for its payment lines and correction history.
 import { html, render } from '../../../shared/html.js';
+import { hero } from '../../../shared/ui.js';
 import { longDate, money, monthLabel, shortDate, signed, weekday } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { groupDaysByMonth } from '../domain/months.js';
@@ -52,21 +53,17 @@ export async function mount(el, { ctx }) {
 
   render(
     el,
-    html` <section class="card">
-        <h2>Daily Data</h2>
-        <p class="muted small">${days.length.toLocaleString('en-US')} days. Tap a month to open it, tap a day for details.</p>
-      </section>
-      ${groups.map(
-        (g, i) =>
-          html`<details class="month" data-month="${g.month}" ${g.month === focus || (!focus && i === 0) ? 'open' : ''}>
-            <summary>
-              <span class="m-name">${monthLabel(`${g.month}-01`)}</span><span class="m-total">${money(g.total)}</span>
-              <span class="m-sub ${diffClass(g.diff)}">${g.comp_sale ? signed(g.diff) : ''}</span
-              ><span class="m-days">${g.count} days</span>
-            </summary>
-            <div class="month-body" data-filled="0"></div>
-          </details>`,
-      )}`,
+    html`${hero({ label: 'Sales', title: 'Daily Data', sub: `${days.length.toLocaleString('en-US')} days. Tap a month to open it, tap a day for details.` })}
+    ${groups.map(
+      (g, i) =>
+        html`<details class="month" data-month="${g.month}" ${g.month === focus || (!focus && i === 0) ? 'open' : ''}>
+          <summary>
+            <span class="m-name">${monthLabel(`${g.month}-01`)}</span><span class="m-total">${money(g.total)}</span>
+            <span class="m-sub ${diffClass(g.diff)}">${g.comp_sale ? signed(g.diff) : ''}</span><span class="m-days">${g.count} days</span>
+          </summary>
+          <div class="month-body" data-filled="0"></div>
+        </details>`,
+    )}`,
   );
 
   function fill(detail) {

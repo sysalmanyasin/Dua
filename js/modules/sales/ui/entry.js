@@ -1,5 +1,6 @@
 // Add Entry: enter or correct one day of sales. The preview uses the same rule as the database.
 import { html, render } from '../../../shared/html.js';
+import { hero } from '../../../shared/ui.js';
 import { longDate, money, signed, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { HEADER_FIELDS, emptyForm, formFromDay, friendlyError, parseForm, preview } from '../domain/entry.js';
@@ -68,7 +69,8 @@ export async function mount(el, { ctx }) {
     const ex = state.existing;
     render(
       el,
-      html` <section class="card">
+      html`${hero({ label: 'Data entry', title: 'Add Daily Record', sub: 'Pick a date and enter the amounts. Total and diff work themselves out.' })}
+        <section class="card">
           <div class="date-row">
             <button class="icon-btn" data-act="prev" aria-label="Previous day">‹</button>
             <label class="field grow"><span>Date</span><input type="date" id="date" value="${state.date}" max="${today}" /></label>

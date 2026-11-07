@@ -44,3 +44,10 @@ Repo → Settings → Pages → deploy from `main`. For a separate staging site 
 3. Staff: "I have a setup code" → set a 6-digit PIN → sign in → sees Home only (no Users & Access).
 4. Try 5 wrong PINs → locked 15 minutes. Disable the user → they cannot sign in, and an open session loses access immediately.
 5. Confirm the hidden address style `username@staff.dua.invalid` was accepted when the first staff was approved. If Supabase rejects it, set `STAFF_EMAIL_DOMAIN` to another domain you do not own mail on and redeploy.
+
+## Private defaults (not in Git)
+The check list content is in the migration, but a few values are personal or private and are applied by SQL after the migration (never committed):
+- the `prepared_by`, `designation` and `contact` shown on a new day (they carry over from the last saved day after the first save),
+- the doctor name in the "Doctor visits" dropdown,
+- the competitor names and figures (`checklist_competitor_defaults`).
+Use `supabase/seed/private-checklist-defaults.example.sql` as the template, fill in the values, and run it in the SQL editor.

@@ -1,6 +1,7 @@
 // Cash to be Deposited: Cash Sale − Cash Returns + FDPP POS + FDPP Consumer, for every day.
 // Tick days to see a combined total, a breakdown, and a 72 mm receipt.
 import { html, render } from '../../../shared/html.js';
+import { hero } from '../../../shared/ui.js';
 import { longDate, money, shortDate, todayPkt, weekday } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { depositRows, summarizeSelection } from '../domain/deposit.js';
@@ -34,13 +35,7 @@ export async function mount(el) {
   function draw() {
     render(
       el,
-      html` <section class="card">
-          <h2>Cash to be Deposited</h2>
-          <p class="muted small">
-            Cash Sale − Cash Returns + FDPP POS + FDPP Consumer. Worked out fresh for every day; it is separate from the figure typed on the
-            entry page.
-          </p>
-        </section>
+      html`${hero({ label: 'Sales', title: 'Cash to be Deposited', sub: 'Cash Sale − Cash Returns + FDPP POS + FDPP Consumer. Worked out fresh for every day; separate from the figure typed on the entry page.' })}
         <section class="card sticky-sum">${summaryHtml()}</section>
         <section class="card">
           <table class="table">

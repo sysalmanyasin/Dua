@@ -7,3 +7,5 @@ Third-party code copied into the repo so nothing is downloaded from another site
 | 591.supabase.js | same package, lazy chunk | see `tools/check-vendor.mjs` |
 
 To upgrade: pack the new version, replace the files, update the hashes in `tools/check-vendor.mjs`, run the tests. CI fails if a file differs from its recorded hash.
+
+| fonts/*.woff2 | `@fontsource/inter@5` and `@fontsource/ibm-plex-mono@5` (latin subset) | listed in `tools/check-vendor.mjs` |

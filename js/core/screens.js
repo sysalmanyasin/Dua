@@ -20,7 +20,7 @@ function field(label, name, attrs = '') {
 }
 
 export function showLogin(root, { onDone, tab = 'staff', message = '', kind = 'error' } = {}) {
-  const tabs = html`<div class="tabs" role="tablist">
+  const tabs = html`<div class="tabs-seg" role="tablist">
     <button type="button" role="tab" class="tab" aria-selected="${tab === 'staff'}" data-go="staff">Staff</button>
     <button type="button" role="tab" class="tab" aria-selected="${tab === 'admin'}" data-go="admin">Owner / Manager</button>
   </div>`;

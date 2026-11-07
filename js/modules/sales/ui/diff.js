@@ -1,5 +1,6 @@
 // Diff Report: Total Sale minus COMP SALE, by month with a running total. Tap a month for its days.
 import { html, render } from '../../../shared/html.js';
+import { hero } from '../../../shared/ui.js';
 import { longDate, money, monthLabel, signed } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { buildDiffReport } from '../domain/diff.js';
@@ -18,11 +19,8 @@ export async function mount(el) {
 
   render(
     el,
-    html` <section class="card">
-        <h2>Diff Report</h2>
-        <p class="muted small">
-          DIFF = Total Sale − COMP SALE. The running total adds up month by month; inside a month it starts again at 0.
-        </p>
+    html`${hero({ label: 'Sales', title: 'Diff Report', sub: 'DIFF = Total Sale − COMP SALE. The running total adds up month by month; inside a month it starts again at 0.' })}
+      <section class="card">
         <div class="total-card">
           <div>
             <span class="label">CUMULATIVE DIFF</span

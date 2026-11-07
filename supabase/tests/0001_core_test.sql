@@ -104,7 +104,7 @@ do $t$ declare c jsonb; n int; begin
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
   perform pg_temp.ok(public.has_perm('users.manage') and public.has_perm('mgmt.salary'), 'admin at aal2 has permissions');
   select count(*) into n from public.profiles; perform pg_temp.ok(n = 5, 'admin at aal2 sees all profiles');
-  c := public.my_context(); perform pg_temp.ok(jsonb_array_length(c -> 'permissions') = 25, 'admin context lists all 25 permissions');
+  c := public.my_context(); perform pg_temp.ok(jsonb_array_length(c -> 'permissions') = (select count(*) from public.permissions), 'admin context lists every permission');
   reset role;
 end $t$;
 

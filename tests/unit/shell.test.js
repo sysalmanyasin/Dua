@@ -119,10 +119,36 @@ describe('app shell', () => {
     expect(root.querySelector('#content').textContent).toBe('page:home');
   });
 
+  it('each page gets its own container, so old handlers cannot run on the next page', async () => {
+    const hosts = [];
+    const m = [
+      {
+        id: 'a',
+        title: 'A',
+        icon: 'home',
+        core: true,
+        nav: { order: 0 },
+        permission: null,
+        routes: [
+          { path: '/home', load: async () => ({ mount: (el) => hosts.push(el) }) },
+          { path: '/other', load: async () => ({ mount: (el) => hosts.push(el) }) },
+        ],
+      },
+    ];
+    stop = startShell(root, junior, m);
+    await tick();
+    location.hash = '#/other';
+    await tick();
+    expect(hosts.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(hosts).size).toBe(hosts.length); // never the same container twice
+    expect(hosts.at(-1).isConnected).toBe(true);
+    for (const old of hosts.slice(0, -1)) expect(old.isConnected).toBe(false);
+  });
+
   it('user-supplied names are escaped in the shell', async () => {
     stop = startShell(root, { ...junior, full_name: '<img src=x onerror=alert(1)>' }, manifests);
     await tick();
-    expect(root.querySelector('img')).toBeNull();
+    expect(root.querySelector('img:not(.hdr-logo)')).toBeNull();
     expect(root.querySelector('.who strong').textContent).toBe('<img src=x onerror=alert(1)>');
   });
 });

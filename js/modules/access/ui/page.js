@@ -1,4 +1,5 @@
 import { html, render } from '../../../shared/html.js';
+import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { effectiveAccess } from '../domain/permissions.js';
 
@@ -12,7 +13,8 @@ export async function mount(el, { ctx }) {
 
     render(
       el,
-      html` ${state.error ? html`<p class="note note-error" role="alert">${state.error}</p>` : ''}
+      html`${hero({ label: 'Admin', title: 'Users & Access', sub: 'Approve requests, reset PINs and set what each person may do.' })}
+        ${state.error ? html`<p class="note note-error" role="alert">${state.error}</p>` : ''}
         ${
           state.notice
             ? html`<div class="card note-box" role="status">

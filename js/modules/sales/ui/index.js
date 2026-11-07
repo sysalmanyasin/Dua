@@ -1,5 +1,6 @@
 // Index: every month as a card, grouped by year, with growth against the same month a year earlier.
 import { html, render } from '../../../shared/html.js';
+import { hero } from '../../../shared/ui.js';
 import { money, monthName, signed } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { buildIndex, groupMonthsByYear } from '../domain/months.js';
@@ -20,20 +21,17 @@ export async function mount(el) {
 
   render(
     el,
-    html` <section class="card">
-        <h2>Index</h2>
-        <p class="muted small">Monthly sales since ${years.at(-1)?.year ?? '–'}. Tap a month to see its days.</p>
-      </section>
-      ${years.map(
-        (y, i) =>
-          html`<details class="year" ${i === 0 ? 'open' : ''}>
-            <summary>
-              <span class="m-name">${y.year}</span><span class="m-total">${money(y.total)}</span
-              ><span class="m-days">${y.months.length} months</span>
-            </summary>
-            <div class="month-cards">${y.months.map(card)}</div>
-          </details>`,
-      )}`,
+    html`${hero({ label: 'Sales', title: 'Index', sub: `Monthly sales since ${years.at(-1)?.year ?? '–'}. Tap a month to see its days.` })}
+    ${years.map(
+      (y, i) =>
+        html`<details class="year" ${i === 0 ? 'open' : ''}>
+          <summary>
+            <span class="m-name">${y.year}</span><span class="m-total">${money(y.total)}</span
+            ><span class="m-days">${y.months.length} months</span>
+          </summary>
+          <div class="month-cards">${y.months.map(card)}</div>
+        </details>`,
+    )}`,
   );
 
   function card(m) {
