@@ -4,5 +4,5 @@ export default {
   icon: 'users',
   nav: { order: 90 },
   permission: 'users.manage',
-  routes: [{ path: '/access', load: () => import('./ui/page.js') }],
+  routes: [{ path: '/access', title: 'Users & Access', desc: 'People, roles and permissions', load: () => import('./ui/page.js') }],
 };

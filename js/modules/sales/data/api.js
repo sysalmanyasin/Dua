@@ -52,3 +52,27 @@ export const listMonthlyHistory = () => one(db().from('monthly_history').select(
 export const saveDay = (date, header, lines, reason, key) =>
   db().rpc('sales_save_day', { p_date: date, p_header: header, p_lines: lines, p_reason: reason || null, p_key: key });
 export const lastClosedDay = () => one(db().rpc('sales_last_closed_day'));
+
+// ── Sale Report support ──
+export const latestDay = () =>
+  one(db().from('daily_sales').select('business_date').order('business_date', { ascending: false }).limit(1).maybeSingle());
+export async function monthTotal(monthIso) {
+  const first = `${monthIso.slice(0, 7)}-01`;
+  const live = await one(db().from('v_monthly').select('total').eq('month', first).maybeSingle());
+  if (live) return Number(live.total);
+  const hist = await one(db().from('monthly_history').select('total').eq('month', first).maybeSingle());
+  return hist ? Number(hist.total) : 0;
+}
+export const getTarget = async (monthIso) => {
+  const r = await one(
+    db()
+      .from('sales_targets')
+      .select('target')
+      .eq('month', `${monthIso.slice(0, 7)}-01`)
+      .maybeSingle(),
+  );
+  return r ? Number(r.target) : null;
+};
+export const setTarget = (monthIso, target) => db().rpc('sales_set_target', { p_month: `${monthIso.slice(0, 7)}-01`, p_target: target });
+export const getPref = async (key) => (await one(db().from('user_prefs').select('value').eq('key', key).maybeSingle()))?.value ?? null;
+export const setPref = (key, value) => db().rpc('prefs_set', { p_key: key, p_value: value });

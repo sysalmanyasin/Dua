@@ -76,7 +76,7 @@ export function startShell(root, ctx, manifests) {
         const host = document.createElement('div');
         host.className = 'page';
         content.replaceChildren(host);
-        await page.mount(host, { ctx, route });
+        await page.mount(host, { ctx, route, modules });
       } catch (err) {
         // One broken module never takes the app down.
         log.error('module failed', { module: mod.id, message: String(err?.message ?? err) });
