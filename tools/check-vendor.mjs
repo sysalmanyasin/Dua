@@ -12,6 +12,7 @@ const EXPECTED = {
   'vendor/fonts/inter-latin-600-normal.woff2': 'f9a06e79cd3a2a20951c0f0e28f66dd0e6d3fda73911d640a2125c8fcb78f21a',
   'vendor/fonts/inter-latin-700-normal.woff2': '6f56409fd3d64bb85f7d070bce20749db2d66b6d63cec586cc22d1c761be2491',
   'vendor/fonts/inter-latin-800-normal.woff2': 'a7d0a50f15d389cad679238466bdb5fc9787aa0715719064ce25abaff042820d',
+  'vendor/chart-4.4.7.umd.js': '2812cb8825fdc57469eb2f7bb055e9429244e599920511ee477e828499b632cb',
   'vendor/591.supabase.js': '9c305b77dab63dd79eb96efab9069366fb2255bd8731d6b862287558d2560406',
 };
 let bad = 0;

@@ -7,6 +7,13 @@ export default {
   status: { anyOf: ['sales.view_last_day', 'sales.view_history'], load: () => import('./status.js') },
   routes: [
     {
+      path: '/sales/dashboard',
+      title: 'Dashboard',
+      desc: 'Key numbers, charts and trends',
+      permission: 'sales.view_history',
+      load: () => import('./ui/dashboard.js'),
+    },
+    {
       path: '/sales',
       desc: 'Monthly sales, year by year',
       title: 'Index',

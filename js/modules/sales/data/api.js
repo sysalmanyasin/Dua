@@ -76,3 +76,9 @@ export const getTarget = async (monthIso) => {
 export const setTarget = (monthIso, target) => db().rpc('sales_set_target', { p_month: `${monthIso.slice(0, 7)}-01`, p_target: target });
 export const getPref = async (key) => (await one(db().from('user_prefs').select('value').eq('key', key).maybeSingle()))?.value ?? null;
 export const setPref = (key, value) => db().rpc('prefs_set', { p_key: key, p_value: value });
+
+// ── Dashboard ──
+export const listMonthlyFull = () => one(db().from('v_monthly_full').select('*').order('month'));
+export const listDailyFull = () => fetchAll(() => db().from('v_daily_full').select('*').order('business_date'));
+export const listTargets = () => one(db().from('sales_targets').select('month, target'));
+export const listClientTotals = () => one(db().from('v_client_totals').select('label, total'));

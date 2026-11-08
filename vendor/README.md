@@ -9,3 +9,4 @@ Third-party code copied into the repo so nothing is downloaded from another site
 To upgrade: pack the new version, replace the files, update the hashes in `tools/check-vendor.mjs`, run the tests. CI fails if a file differs from its recorded hash.
 
 | fonts/*.woff2 | `@fontsource/inter@5` and `@fontsource/ibm-plex-mono@5` (latin subset) | listed in `tools/check-vendor.mjs` |
+| chart-4.4.7.umd.js | `npm pack chart.js@4.4.7` → `dist/chart.umd.js` (MIT), loaded only when the Dashboard opens | `2812cb8825fdc57469eb2f7bb055e9429244e599920511ee477e828499b632cb` |
