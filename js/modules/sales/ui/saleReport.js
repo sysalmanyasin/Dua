@@ -3,9 +3,18 @@ import { html, render } from '../../../shared/html.js';
 import { monthLabel, money, todayPkt } from '../../../shared/format.js';
 import { BRAND } from '../../../core/config.js';
 import { hero } from '../../../shared/ui.js';
+import { openMailDialog } from '../../../shared/mailDialog.js';
 import * as api from '../data/api.js';
 import { parseAmount } from '../../../shared/format.js';
-import { ROW_CATALOG, buildEmailHtml, buildPlainText, buildReport, dayFigures, targetProgress } from '../domain/saleReport.js';
+import {
+  ROW_CATALOG,
+  buildEmailHtml,
+  buildPlainText,
+  buildReport,
+  dayFigures,
+  reportSubject,
+  targetProgress,
+} from '../domain/saleReport.js';
 import { errorCard, loadingCard, openDialog, toast } from './parts.js';
 import { printSaleReport, saleReportView } from './saleReportView.js';
 
@@ -93,7 +102,7 @@ export async function mount(el, { ctx }) {
               <div class="sr-buttons">
                 <button class="btn btn-primary" data-act="print" ${have ? '' : 'disabled'}>🖶 Print Report</button>
                 <button class="btn" data-act="copy" ${have ? '' : 'disabled'}>⧉ Copy</button>
-                <button class="btn" data-act="gmail" disabled title="Coming next">✉ Send via Gmail</button>
+                <button class="btn" data-act="gmail" ${have ? '' : 'disabled'}>✉ Send via Gmail</button>
                 <button class="btn" data-act="rows">⚙ Customize Rows</button>
               </div>
             </section>
@@ -106,6 +115,17 @@ export async function mount(el, { ctx }) {
     );
     // The page's security policy blocks inline style attributes, so the bar widths are set from here.
     el.querySelectorAll('.kpfill[data-w]').forEach((b) => (b.style.width = `${b.dataset.w}%`));
+  }
+
+  function sendReport() {
+    const rep = report();
+    openMailDialog({
+      subject: reportSubject(BRAND.branch, state.date),
+      html: buildEmailHtml(rep, rctx()),
+      text: buildPlainText(rep, rctx()),
+      openDialog,
+      toast,
+    });
   }
 
   async function copyReport() {
@@ -224,6 +244,7 @@ export async function mount(el, { ctx }) {
     if (!b) return;
     if (b.dataset.act === 'print') printSaleReport(report(), rctx());
     else if (b.dataset.act === 'copy') copyReport();
+    else if (b.dataset.act === 'gmail') sendReport();
     else if (b.dataset.act === 'rows') rowManager();
     else if (b.dataset.act === 'target') targetDialog();
   });

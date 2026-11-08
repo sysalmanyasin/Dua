@@ -51,3 +51,11 @@ The check list content is in the migration, but a few values are personal or pri
 - the doctor name in the "Doctor visits" dropdown,
 - the competitor names and figures (`checklist_competitor_defaults`).
 Use `supabase/seed/private-checklist-defaults.example.sql` as the template, fill in the values, and run it in the SQL editor.
+
+## Gmail sending (Sale Report and Daily Check List)
+The app sends from the owner's own Gmail through Google sign-in. It asks only for the "send" permission, so it can never read mail. The Google client ID is in `js/core/config.js` (a client ID is public by design). One-time Google Cloud steps:
+1. Google Cloud Console → the project that owns the client → **APIs & Services → Library → Gmail API → Enable**.
+2. **OAuth consent screen**: add the scope `https://www.googleapis.com/auth/gmail.send`. If the app is in "Testing", add the sending Gmail address under **Test users**.
+3. **Credentials → the OAuth client (Web application)** → **Authorized JavaScript origins** → add `https://sysalmanyasin.github.io` (no path, no trailing slash).
+4. In the app press **Send via Gmail**: Google opens a small window the first time to allow sending.
+If Google shows "origin_mismatch", step 3 is missing; "access blocked", step 2.

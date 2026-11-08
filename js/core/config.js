@@ -21,3 +21,8 @@ export function getConfig(loc = globalThis.location) {
 
 // Names shown in the header.
 export const BRAND = { title: "Fazal Din's Pharma Plus", branch: 'Bahria Town' };
+
+// Google sign-in is used only to send e-mail from the owner's own Gmail (never to log in to the app).
+// A Google client ID is public by design. The site address must be listed under "Authorized JavaScript origins" for this client in Google Cloud.
+export const GOOGLE_CLIENT_ID = '36704237826-gvmjoohqqjrg0gdd8vdg00ko1vnv5tsj.apps.googleusercontent.com';
+export const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send';

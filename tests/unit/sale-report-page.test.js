@@ -22,6 +22,7 @@ const LINES = [
 ].map(([method_code, amount]) => ({ method_code, amount }));
 const DAY = { business_date: '2026-11-04', total: 614758, comp_sale: 589781, fdpp_pos: 477, fdpp_consumer: 162, customers: 639 };
 
+vi.mock('../../js/shared/mailDialog.js', () => ({ openMailDialog: (...a) => globalThis.__mail(...a) }));
 const api = {
   listMethods: vi.fn(async () => METHODS),
   latestDay: vi.fn(async () => ({ business_date: '2026-11-04' })),
@@ -68,6 +69,17 @@ beforeEach(() => {
 });
 
 describe('Sale Report page', () => {
+  it('Send via Gmail opens the mail dialog with the day report in HTML and text', async () => {
+    globalThis.__mail = vi.fn();
+    await open();
+    q('[data-act="gmail"]').click();
+    await tick();
+    const a = globalThis.__mail.mock.calls[0][0];
+    expect(a.subject).toBe('Bahria Town Sale Report — 04/Nov/2026');
+    expect(a.html).toContain('₨614,758');
+    expect(a.text).toContain('Grand Total: ₨614,758');
+  });
+
   it('opens the latest day and shows the same figures as the original report', async () => {
     await open();
     expect(q('#sr-date').value).toBe('2026-11-04');
@@ -133,7 +145,7 @@ describe('Sale Report page', () => {
     expect(txt()).not.toContain('FDPP POS Sale');
   });
 
-  it('copy writes formatted and plain text; the Gmail button is not live yet', async () => {
+  it('copy writes formatted and plain text', async () => {
     const write = vi.fn(async () => {});
     Object.defineProperty(navigator, 'clipboard', { value: { write, writeText: vi.fn() }, configurable: true });
     globalThis.ClipboardItem = class {
@@ -145,7 +157,7 @@ describe('Sale Report page', () => {
     q('[data-act="copy"]').click();
     await tick();
     expect(Object.keys(write.mock.calls[0][0][0].items).sort()).toEqual(['text/html', 'text/plain']);
-    expect(q('[data-act="gmail"]').disabled).toBe(true);
+    expect(q('[data-act="gmail"]').disabled).toBe(false);
   });
 
   it('only people who manage targets can set one', async () => {

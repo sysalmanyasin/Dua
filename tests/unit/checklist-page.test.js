@@ -61,6 +61,7 @@ const api = {
   setDropdown: vi.fn(async () => ({ error: null })),
 };
 vi.mock('../../js/modules/sales/data/checklistApi.js', () => api);
+vi.mock('../../js/shared/mailDialog.js', () => ({ openMailDialog: (...a) => globalThis.__mail(...a) }));
 
 let el;
 const FILL = ['checklist.fill', 'checklist.view'];
@@ -217,6 +218,21 @@ describe('Daily Check List page', () => {
     q('[data-f="notes"]').dispatchEvent(new Event('input', { bubbles: true }));
     await flushAll(2000);
     expect(api.saveDay).not.toHaveBeenCalled();
+  });
+
+  it('Send via Gmail opens the mail dialog with the report, and logs the send only once it has gone', async () => {
+    globalThis.__mail = vi.fn();
+    api.getDay.mockImplementation(async () => ({ day: { version: 3, branch: 'Bahria Town' }, answers: {}, competitors: [] }));
+    await open();
+    q('[data-act="gmail"]').click();
+    await flushAll(100);
+    const a = globalThis.__mail.mock.calls[0][0];
+    expect(a.subject).toMatch(/^Daily Check List — Bahria Town — \d{4}-\d{2}-\d{2}$/);
+    expect(a.html).toContain('24 Stocks Report');
+    expect(a.text).toContain('Checklist');
+    expect(api.logSend).not.toHaveBeenCalled();
+    a.onSent();
+    expect(api.logSend).toHaveBeenCalledWith(expect.any(String), 'gmail');
   });
 
   it('only people who may manage see the dropdown editor', async () => {
