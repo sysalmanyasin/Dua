@@ -17,7 +17,7 @@ create table public.inventory_products (
   code                        text not null default '',
   name                        text not null,
   qty                         numeric not null default 0,
-  price                       numeric not null default 0,   -- cost vs sale price is open question INV-5
+  price                       numeric not null default 0,   -- retail price (INV-5)
   company                     text not null default 'Unassigned Manufacturer',
   generic                     text not null default '',
   supplier                    text not null default 'Unassigned Supplier',
