@@ -46,7 +46,15 @@ async function dropboxAccessToken(): Promise<string> {
       client_secret: Deno.env.get('DROPBOX_APP_SECRET')!,
     }),
   });
-  if (!res.ok) throw new Error(`Dropbox token refresh failed (${res.status})`);
+  if (!res.ok) {
+    // Dropbox's error body names the problem (e.g. invalid_grant, invalid_client) and contains no secrets.
+    const detail = (await res.text()).slice(0, 200);
+    // Shape only, never the values: lengths and obvious paste mistakes help find a wrong secret.
+    const t = Deno.env.get('DROPBOX_REFRESH_TOKEN') ?? '';
+    const shape = `refresh_token len=${t.length} starts_sl=${t.startsWith('sl.')} bad_chars=${/[\s"'{}:,]/.test(t)}; ` +
+      `app_key len=${(Deno.env.get('DROPBOX_APP_KEY') ?? '').length}; app_secret len=${(Deno.env.get('DROPBOX_APP_SECRET') ?? '').length}`;
+    throw new Error(`Dropbox token refresh failed (${res.status}): ${detail} [${shape}]`);
+  }
   return (await res.json()).access_token as string;
 }
 
