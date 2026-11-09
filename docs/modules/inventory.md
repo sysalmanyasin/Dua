@@ -46,8 +46,8 @@ Out of scope: STR (its own module), the standalone Inventory Search PWA with AI 
 | I7 | "Not sold in N days" must have **one shared definition** (old `inventory-metrics.js`); do not duplicate it per screen | KEEP |
 | I8 | Cost/price visibility is gated by `inventory.view_cost` | KEEP |
 | I9 | The old Health page kept a small per-device "reorder value over time" trend in the browser. With latest-only data it has no server history | **ASK:** drop it, or keep per device |
-| I10 | How the sync is triggered today (scheduled? by hand from the Audit Hub's Tools tab?) is not in the repos | **ASK** (read the deployed function and ask the owner) |
-| I11 | Which of `price` is cost vs sale price | **ASK** (check the live table and Candela export) |
+| I10 | Sync runs every hour, scheduled | Decided (INV-4) |
+| I11 | `price` is the retail price | Decided (INV-5) |
 
 ## 4. Structure
 
@@ -95,8 +95,9 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 | INV-1 | Inventory is latest-only; no dated snapshots | Accepted (owner, 9 Nov 2026) |
 | INV-2 | Candela → Dropbox → Edge Function pipeline stays the same, moved into the Dua project | Accepted (owner, 9 Nov 2026) |
 | INV-3 | Reorder-value trend (I9) | **Open** |
-| INV-4 | Sync trigger and schedule (I10) | **Open** |
-| INV-5 | Meaning of `price` (I11) | **Open** |
+| INV-4 | Sync trigger and schedule (I10): scheduled every hour (pg_cron → Edge Function with the shared secret); manual "Sync now" needs `inventory.sync` | Accepted (owner, 9 Nov 2026) |
+| INV-5 | Meaning of `price` (I11): it is the **retail** price, so it is not gated by `inventory.view_cost` | Accepted (owner, 9 Nov 2026) |
+| INV-6 | The feed also lands Candela sales summaries and STR headers/lines (`0009_inventory_feed.sql`); screens for them belong to the Sales and STR modules | Accepted (owner, 9 Nov 2026) |
 
 ## 9. Slices
 
