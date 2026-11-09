@@ -19,3 +19,6 @@ verify_jwt = false
 # admin-users checks the caller's JWT and users.manage itself.
 [functions.admin-users]
 verify_jwt = false
+# sync-inventory-from-dropbox accepts a scheduler secret OR a user JWT with inventory.sync, and checks both itself.
+[functions.sync-inventory-from-dropbox]
+verify_jwt = false
