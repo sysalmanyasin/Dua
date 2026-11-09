@@ -82,3 +82,33 @@ export const listMonthlyFull = () => one(db().from('v_monthly_full').select('*')
 export const listDailyFull = () => fetchAll(() => db().from('v_daily_full').select('*').order('business_date'));
 export const listTargets = () => one(db().from('sales_targets').select('month, target'));
 export const listClientTotals = () => one(db().from('v_client_totals').select('label, total'));
+
+// ── Reports and Manage Fields ──
+export const listAllMethods = () =>
+  one(db().from('payment_methods').select('code, label, section, sign, sort, show_in_entry, active').order('sort'));
+export const listDaysBetween = (from, to) =>
+  one(
+    db()
+      .from('daily_sales')
+      .select('business_date, total, comp_sale, customers')
+      .gte('business_date', from)
+      .lte('business_date', to)
+      .order('business_date'),
+  );
+export const listLinesBetween = (from, to) =>
+  fetchAll(() =>
+    db()
+      .from('daily_sale_lines')
+      .select('business_date, method_code, amount')
+      .gte('business_date', from)
+      .lte('business_date', to)
+      .order('business_date')
+      .order('method_code'),
+  );
+export const listMonthlyMethods = () =>
+  fetchAll(() => db().from('v_monthly_methods').select('month, method_code, amount').order('month').order('method_code'));
+export const saveField = (code, label, section, sign, show, active) =>
+  db().rpc('payment_method_save', { p_code: code, p_label: label, p_section: section, p_sign: sign, p_show: show, p_active: active });
+export const reorderFields = (codes) => db().rpc('payment_methods_reorder', { p_codes: codes });
+export const recentDays = (count = 7) =>
+  one(db().from('daily_sales').select('business_date, total, customers').order('business_date', { ascending: false }).limit(count));

@@ -793,3 +793,124 @@ a.kpi:hover {
 .heat-key .hm {
   display: inline-block;
 }
+
+/* ── Reports and Sale Book (screen and landscape A4) ── */
+.rp-controls {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+.rp-controls .field {
+  margin: 0;
+  min-width: 180px;
+}
+.bk-preview {
+  overflow-x: auto;
+  background: #fff;
+  color: #000;
+}
+.bk-page {
+  margin-bottom: var(--space-4);
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+}
+.bk-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+.bk-sub {
+  font-size: 13px;
+  color: #444;
+  margin-bottom: 12px;
+}
+.bk-kvs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 24px;
+  max-width: 760px;
+}
+.bk-kv {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #ddd;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.bk-kv b {
+  font-family: var(--mono);
+}
+.bk-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.bk-table th {
+  background: #123d25;
+  color: #fff;
+  padding: 5px 6px;
+  text-align: left;
+  white-space: nowrap;
+}
+.bk-table td {
+  border-bottom: 1px solid #ddd;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.bk-table .num {
+  text-align: right;
+}
+.bk-table .b {
+  font-weight: 700;
+}
+.bk-sum td {
+  background: #e3eee8;
+  font-weight: 700;
+  border-top: 2px solid #123d25;
+}
+.bk-grand td {
+  background: #cfe3d8;
+}
+.bk-foot {
+  font-size: 10px;
+  color: #666;
+  margin-top: 6px;
+  text-align: right;
+}
+@page book {
+  size: A4 landscape;
+  margin: 8mm;
+}
+@media print {
+  body.printing-report #print-root.book {
+    page: book;
+    display: block;
+  }
+  body.printing-report #print-root.book .bk-page {
+    break-after: page;
+    margin: 0;
+  }
+  body.printing-report #print-root.book .bk-table th {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing-report #print-root.book .bk-sum td {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+.row.off {
+  opacity: 0.6;
+}
+.rm-row.inline {
+  border: 0;
+  padding: 0;
+  gap: var(--space-2);
+}
+.tg-in {
+  max-width: 160px;
+  text-align: right;
+  font-family: var(--mono);
+}

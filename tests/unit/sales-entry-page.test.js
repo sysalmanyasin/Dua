@@ -10,6 +10,7 @@ const METHODS = [
 const api = {
   listMethods: vi.fn(async () => METHODS),
   getDay: vi.fn(async () => ({ day: null, lines: [] })),
+  recentDays: vi.fn(async () => []),
   saveDay: vi.fn(async (date) => ({ data: { business_date: date, total: 1, diff: 1, revision: 1 }, error: null })),
 };
 vi.mock('../../js/modules/sales/data/api.js', () => api);
@@ -37,6 +38,23 @@ async function open(perms = ['sales.enter', 'sales.view_history']) {
 }
 
 describe('Add Entry page', () => {
+  it('opens on the next day with no record and lists recent entries to reopen', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-10T08:00:00Z'));
+    api.recentDays.mockImplementationOnce(async () => [
+      { business_date: '2026-11-07', total: '614758', customers: 639 },
+      { business_date: '2026-11-06', total: '500000', customers: 500 },
+    ]);
+    await open();
+    expect(el.querySelector('#date').value).toBe('2026-11-08');
+    expect(el.textContent).toContain('next day with no record');
+    expect(el.querySelectorAll('[data-act="open"]')).toHaveLength(2);
+    el.querySelector('[data-act="open"][data-date="2026-11-06"]').click();
+    await tick();
+    expect(el.querySelector('#date').value).toBe('2026-11-06');
+    vi.useRealTimers();
+  });
+
   it('shows the live total and diff as numbers are typed, using the deduct rule for returns', async () => {
     await open();
     type(el.querySelector('[data-code="cash_sale"]'), '250,000');
