@@ -1,120 +1,134 @@
 # Inventory sync and reads: change-only design (egress-safe)
 
-Status: **Proposed, awaiting owner approval. Nothing here is built yet.**
+Status: **Proposed (revision 2), awaiting owner approval. Nothing here is built yet.**
 Applies to: Foundation F3 follow-up (migration `0010`) and Inventory Part B (screens).
-Why: the old app downloaded and re-synced everything every time. On the Supabase **Free plan** (about 5 GB egress a month, 500 MB database) that does not survive real use.
+Revision 2 replaces revision 1 after reading the old BT-Sale-Data2 inventory code, the Android widgets, the briefing function and the reports.
 
-## 1. The numbers that drive the design
+## 1. What the old app taught us
 
-Measured on the live Dua project (9 Nov 2026):
+Every Inventory screen, report and widget in BT-Sale-Data2 works from the **whole product table on the device**, and all the report maths runs in the browser. That is fast and works at the counter, but it caused the egress trouble:
+
+| # | Old flaw (found in the code) | Where |
+|---|---|---|
+| F1 | Whole table downloaded with `select('*')` in 6 pages (about 4.2 MB) whenever the version changed | `inventory-bridge.js`, `stockledger.js`, `inventory-search/app.js` |
+| F2 | The "version" was `inventory_sync_log.synced_at`, which moves **every hourly sync even if nothing changed**, so every active device re-downloaded about once an hour | same files |
+| F3 | Five separate copies of the same data (Bridge, Stock Ledger, Search app, Android widgets, STR lookups), each downloading on its own | see list |
+| F4 | The cache lived in `localStorage` (about 5 MB limit; failures were silently ignored) | `inventory-bridge.js` |
+| F5 | The only egress control was a **manual Pause/Resume switch**; every launch started paused | `hub-gate.js` |
+| F6 | Business rules re-implemented in several places (browser, Android Kotlin, the briefing function), which produced mismatches such as 815 vs 838 slow items | `inventory-metrics.js` header |
+| F7 | Inventory table readable by the anonymous role | stock ledger header notes |
+
+What the old app got right, and we keep: the engine is proven JavaScript with a tested single "not sold in N days" definition; windows end yesterday and "today" is separate (so 30/60/90 values are stable all day); Emergency Billing works from a local copy; widgets use small limited lookups.
+
+## 2. Measured numbers (live Dua data, 9 Nov 2026)
 
 | Fact | Value |
 |---|---|
 | Products | 5,858 (all codes unique, none blank) |
-| Whole product table as JSON, all columns | about 4.2 MB |
-| Slim row (code, name, qty, price, company) | about 120 bytes; a 50-row page is about 6 KB |
-| Rows that moved in the last 30 days | 3,755 (64%). Rolling windows shift every day |
-| Sold today (at mid-afternoon) | 504 (9%) |
+| Old style: objects, all columns | about 4.2 MB |
+| Compact arrays, all columns | about 1.4 MB (stock columns 0.96 MB, sales columns 0.46 MB) |
+| Rows whose 30/60/90-day numbers can change at the daily roll-over | up to 4,923 (84%), **sales columns only** |
+| Rows whose stock columns change on a normal hour | about 10% (589 had a sale or receipt date of today) |
 
-If every screen open downloaded the product table: 4.2 MB × 10 users × 20 opens a day × 30 days is about **25 GB a month, five times the Free limit.** That is the flaw to design out.
+## 3. Decision: one shared local copy, changed rows only, plus small server lookups
 
-## 2. Where egress really happens
+This is a hybrid, chosen because it keeps the old app's proven maths and counter speed while removing every flaw above.
 
-| Hop | Billed as egress? | Plan |
+| Who reads | How | Why |
 |---|---|---|
-| Dropbox → Edge Function | No (data coming in) | Still skip it when the file is unchanged (saves time and Dropbox calls) |
-| Edge Function → database | No (inside Supabase) | Still write only what changed (less bloat, less WAL) |
-| pg_cron → Edge Function | Tiny | Unchanged |
-| **Database → phones and browsers** | **Yes, the only one that matters** | Server-side search, server-side report maths, version-stamp caching (section 5) |
+| Overview, Stock Ledger, Excess Working, Reorder, Health, Emergency Billing | **One shared local copy** (IndexedDB) kept current by a **delta feed**; the existing rules run locally in `domain/` | Instant and works offline; the maths stays in tested JavaScript (no second copy in SQL, so no F6) |
+| STR, Audit, Closing, other modules | Small server lookups with hard limits: `inventory_search`, `inventory_balances`, `inventory_products_for_scope` | Never load a 1.4 MB copy to look up three codes |
+| Emergency Billing at invoice time | Server `inventory_balances(codes)` verifies stock | Replaces the old "client says what the stock was" trust gap |
+| Daily briefing, notifications, AI tools | Run inside the database or Edge Function (service role) | Inside Supabase, not billed as egress |
 
-So "sync only changes" helps the database and Dropbox side, but **the egress saving comes from how the app reads.** Both are designed below.
+Rejected: server-side reports only (revision 1). It would duplicate every rule in SQL and let numbers drift between screens, which is the exact trouble the old app had.
 
-## 3. Rules
+## 4. Rules
 
-1. **No screen reads the whole product table.** Every list is paginated or limited on the server. Hard cap 200 rows per call, enforced inside the SQL function, not trusted to the client.
-2. **No `select *` on inventory tables from the app.** Named columns only.
-3. **A tiny version check decides whether to refetch.** `inventory_latest_sync()` returns a `data_version` (a number, about 100 bytes). If it has not changed, the app reuses what it already has in memory.
-4. **Reports are computed in the database** and return only the rows on screen (top N, a page, or one small summary object).
-5. **No Realtime, no `setInterval` polling.** Version check runs on screen open, and on tab focus at most once every 5 minutes.
-6. **Sales-value columns never go to staff phones as a bulk copy** (MODULES rule 9). `sale_value_*` is served only by report functions that need it, to users who may see sales data.
-7. **A sync that changes nothing writes nothing** (beyond one "last checked" timestamp).
+1. **One local copy per device**, owned by one module (`inventory/data/mirror.js`). No screen and no other module downloads inventory on its own. A repo test fails the build if one does.
+2. **Version = what really changed.** Two counters, `seq_stock` and `seq_sales`, increase only when row content changes. A sync that finds nothing new changes nothing, so devices do nothing.
+3. **Delta only.** A device asks for rows changed after its last seen counter. First install loads everything once; after that, only changes.
+4. **Two column groups, fetched separately.** Stock columns (code, name, qty, price, company, generic, supplier, pack size, three dates) go to everyone with `inventory.search`. Sales columns (net quantities, sale values, tax) go only to users with `inventory.view` (INV-8). The daily roll-over then costs a device about 0.4 MB, not a re-send of names.
+5. **No timers, no Pause switch.** The version check runs when an inventory screen opens, when the tab regains focus after 5 minutes or more, and on manual refresh. No `setInterval`, no Realtime.
+6. **Never `select *`; every list call has a limit** (cap 2,000 rows per delta page, 50 per search page, 200 codes per balance lookup, enforced inside SQL).
+7. **Self-healing.** If anything looks inconsistent, the device wipes its copy and reloads. Correctness always beats saving bytes.
+8. **The copy is wiped on logout** and when permission is lost (MODULES rule 9).
 
-## 4. Server side: change detection in three layers
+## 5. Server design
 
-### Layer 1: skip the whole sync if the Dropbox file has not changed
-Before downloading, the function asks Dropbox for the file's metadata (`/files/get_metadata`, about 1 KB) and reads its `content_hash`. If it equals the stored hash: update `last_checked_at`, return `{unchanged: true}`, stop. No download, no parsing, no database writes.
-Caveat to verify in practice: if Candela writes a fresh timestamp inside the JSON every hour, the hash changes every hour and layer 1 never skips. Layer 2 still protects the database. After 3 days the log will show which case we are in.
+### 5.1 Sync (Edge Function and database)
+**Layer 1, file unchanged:** ask Dropbox for the file's `content_hash` (about 1 KB). Same as stored: record "checked", stop. No download, no writes.
+**Layer 2, row delta:** `inventory_apply_sync` stages the payload, computes two row hashes in SQL (stock columns, sales columns), and upserts by `code` **only where a hash differs**. Changed rows get the new counter value for their group. Products missing from the payload become `active = false` (a "tombstone") with counters bumped. All in one transaction; failure keeps old data (as today).
+**Layer 3, counters** live in a one-row `inventory_sync_state`: `seq_stock`, `seq_sales`, `active_count`, `content_hash`, `last_checked_at`, `last_changed_at`, `schema_version`, and the oldest counter still covered by tombstones.
 
-### Layer 2: row-level delta (only changed rows are written)
-`inventory_apply_sync` stops doing "delete everything, insert everything". It becomes:
+Caveat to verify with real runs: if Candela writes a timestamp inside the JSON every hour, layer 1 never skips. Layers 2 and 3 still prevent churn. After two days the log shows which case it is.
 
-1. Stage the payload (deduplicate by `code`, keep the last; skip blank codes and count them).
-2. Compute a `row_hash` for each staged row in SQL (md5 of all business columns), so the hash is defined in one place.
-3. `INSERT ... ON CONFLICT (code) DO UPDATE ... WHERE inventory_products.row_hash IS DISTINCT FROM excluded.row_hash`. Unchanged rows are not touched at all.
-4. Products absent from the payload are **soft-removed**: `active = false`, `changed_seq` bumped. A product that comes back is reactivated.
-5. Everything is in one transaction. Failure keeps the old data (same guarantee as today).
-6. Returns counts: added, changed, removed, unchanged.
+### 5.2 Data model (migration `0010_inventory_delta.sql`)
+- `inventory_products`: add `active`, `row_hash_stock`, `row_hash_sales`, `seq_stock`, `seq_sales`; unique constraint on `code` (the plain index goes). RLS: `active` and `inventory.search`.
+- `inventory_sync_state` (new, no direct client access).
+- `inventory_sync_log`: add counts (added, changed, removed, unchanged) and result `changed` / `unchanged` / `failed`. No-change checks are not logged row by row. Last 200 rows kept (daily prune).
+- Daily cron: delete tombstones older than 30 days and record the new "oldest covered" counter. A device older than that gets `reset` and reloads fully.
+- Small tables (sales summary, credit, STR) keep replace-in-one-transaction, only when the file hash changed. Sales summary and credit are **never** put in the device copy (MODULES rule 9).
 
-### Layer 3: data version
-A single-row table `inventory_sync_state` holds `data_version` (bigint, increased only when a sync really changed something), `content_hash`, `last_checked_at`, `last_changed_at`. This is what the app polls.
-
-### Data model (migration `0010_inventory_delta.sql`)
-- `inventory_products`: add `active boolean not null default true`, `row_hash text`, `changed_seq bigint`. Replace the plain `code` index with a **unique** constraint on `code`. Backfill hashes. RLS policy gains `and active`.
-- New `inventory_sync_state` (one row, no client write access, readable only through `inventory_latest_sync()`).
-- `inventory_sync_log`: add `added`, `changed`, `removed`, `unchanged` counts and a `result` of `changed` / `unchanged` / `failed`. Successful no-change checks are **not** logged row by row. The log keeps the last 200 rows (daily prune).
-- Daily cron: delete products inactive for more than 30 days.
-- Small tables (sales summary, credit, STR) keep replace-in-one-transaction, but only run when the file hash changed. They are small (4, 7, 157 and 1,847 rows).
-
-### Safety guards (each one has a test)
-- **Mass-removal guard:** if a payload would deactivate more than 20% of active products (a truncated or empty export), refuse, keep the old data, log the failure. Manual override flag for real catalogue clean-ups.
-- **No concurrent syncs:** an advisory lock; a second run returns `busy`.
-- **Empty or tiny products array is refused** (already so today).
-- **Duplicate or blank codes** are handled and counted, never crash the sync.
-- Client deltas use `changed_seq`, not timestamps, so phone clocks cannot cause missed changes.
-
-## 5. Client side: how the app reads
-
-| Screen | How it reads | Typical size per use |
+### 5.3 Functions (all clamp limits inside SQL)
+| Function | Who | Returns |
 |---|---|---|
-| Overview and search | `inventory_search(text, limit ≤ 50, offset)` returning slim columns | about 6 KB a page |
-| Product lookups from other modules | `inventory_balances(codes[])`, `inventory_search` | under 5 KB |
-| Stock Ledger, Excess, Reorder | one SQL function per report; returns the visible page or top N | 15 to 60 KB |
-| Health dashboard | one function returning a small summary object (counts and sums), no rows | under 3 KB |
-| "Last synced" pill | `inventory_latest_sync()` | about 0.1 KB |
+| `inventory_latest_sync()` | `inventory.search` | `synced_at`, both counters, `active_count`, `schema_version`, reset flags (about 0.2 KB) |
+| `inventory_changes_stock(p_since, p_limit ≤ 2000)` | `inventory.search` | compact rows, removed codes, next counter, done flag |
+| `inventory_changes_sales(p_since, p_limit ≤ 2000)` | `inventory.view` | compact rows (code + sales columns), next counter, done flag |
+| `inventory_search(text, limit ≤ 50, offset)` | `inventory.search` | slim rows |
+| `inventory_balances(codes[] ≤ 200)` | `inventory.search` | code, qty |
+| `inventory_products_for_scope(scope)` | Audit | product list, capped |
+| `inventory_cover_summary()` (later) | `inventory.view` | the four Home numbers, with a parity test against the JavaScript engine |
 
-Caching: results are cached **in memory** keyed by `(report, parameters, data_version)`. Switching tabs, going back, or reopening a report costs nothing until `data_version` changes. Nothing is stored on the device that the security model forbids.
+### 5.4 Safety guards (each has a test)
+Mass-removal guard (refuse if a sync would deactivate more than 20% of active products); advisory lock so two syncs cannot overlap; duplicate and blank codes deduplicated and counted; counters instead of timestamps so phone clocks cannot cause missed rows.
 
-Estimated usage: 10 users × 20 opens a day × about 20 KB is roughly **120 MB a month**, about 2% of the Free limit, leaving room for the Sales, Closing and Audit modules.
+## 6. Client design
 
-### Guard against regressions (the old app's flaw)
-- A repo test fails the build if app code calls `.from('inventory_*')` with `select('*')`, or calls an inventory function without a limit.
-- Every list function clamps `p_limit` to 200 inside SQL.
-- The app logs response sizes to the console in development; any response over 100 KB is flagged.
-- After launch: check the Supabase Usage page weekly for the first month; alert threshold 60% of the egress limit.
+`js/modules/inventory/data/` holds the only code that talks to inventory tables.
 
-## 6. Considered and not chosen
+- **Store:** IndexedDB, three stores: `stock` (key `code`), `sales` (key `code`), `meta` (counters, `synced_at`, `schema_version`). No `localStorage` (fixes F4). No new library needed; a small wrapper is enough.
+- **`ensureFresh(reason)`:** deduplicated (one request in flight, shared by all callers) and remembered for 60 s. Steps: 1) `inventory_latest_sync()`; 2) counters equal to ours: stop (cost 0.2 KB); 3) otherwise page through `inventory_changes_*` from our counter, applying each page and saving the counter **only after that page is stored** (a crash or lost connection resumes cleanly); 4) when finished, check our row count equals `active_count`; mismatch means wipe and reload; 5) `reset`, a different `schema_version` or any error in step 4 means wipe and reload.
+- **Offline or error:** keep using the local copy and show "as of 14:00" (from `meta.synced_at`). Never blank the screen.
+- **Domain maths** in `domain/` as pure functions, ported from `stockledger.js`, `excess-working.js`, `reorder-data.js`, `inventory-health-dashboard.js`, `inventory-metrics.js`, with the old unit tests brought across plus new golden tests with invented rows. One definition of each metric, used by every screen.
+- **Rules to carry over exactly** (from the old code, checked against BUSINESS_RULES): pack down-rounding with fallback 1; Never Sold and Dead Stock mutually exclusive, both needing a valid pack size; Excess = stock − net90 ÷ 90 × 100 when net90 > 0 and stock ≥ 4, then age and stock-days filters; Reorder windows 30/60/90 that add today's live sales and divide by the window plus the fraction of today elapsed; STR in-transit stub.
 
-- **Full on-device copy with delta updates (IndexedDB):** works offline, but the daily rolling-window shift changes about two thirds of rows, so each phone pulls roughly 2.5 MB a day, and caching sales-value columns conflicts with MODULES rule 9. Revisit only if offline stock lookup is required.
-- **Supabase Realtime for stock changes:** adds message volume and egress for no benefit at hourly refresh.
-- **Per-row `updated_at` instead of `changed_seq`:** vulnerable to clock skew and ties; a counter is simpler and exact.
+## 7. Egress budget (Free plan: 5 GB a month)
 
-## 7. Tests (written before the code)
+| Event | Size (compact, uncompressed, worst case) |
+|---|---|
+| Version check | about 0.2 KB |
+| First install, everyone | stock 0.96 MB |
+| First install, reports users | plus sales 0.46 MB |
+| Normal hour, a device that opened the app | about 0.1 MB |
+| Daily roll-over, reports users | about 0.4 MB |
+| Search, balance or scope lookup | under 10 KB |
 
-Database (`supabase/tests/0010_*`): first sync loads all rows; identical second sync changes zero rows and does not bump `data_version`; one changed product changes exactly one row; a product missing from the payload becomes inactive and disappears for users; it returns when it reappears; mass-removal guard refuses and keeps data; duplicate and blank codes handled; two concurrent syncs, the second gets `busy`; limit clamp at 200; user without `inventory.search` sees nothing; failed sync leaves `data_version` untouched.
-Function: unchanged Dropbox hash returns early with no download; changed hash runs the full path; Dropbox errors are logged.
-App (later): no `select('*')` on inventory tables; every inventory call carries a limit.
+Per device per month: about 15 MB for a reports user, about 3 MB for a counter user. Twenty devices: roughly **0.3 GB, about 6% of the limit** (old app: up to 4.2 MB per hour per active device). Compression, if applied, only lowers this.
 
-## 8. Build order
+## 8. Tests (written first)
 
-1. **S1** Migration `0010` and tests (delta RPC, state table, guards).
-2. **S2** Edge Function: hash check, new RPC call, new log fields; redeploy; watch two days of real hourly runs and record the unchanged/changed numbers here.
-3. **S3** Read interfaces from the inventory brief section 7 (`inventory_latest_sync` with `data_version`, `inventory_search`, `inventory_balances`, `inventory_products_for_scope`) with limits and tests.
-4. **S4** Screens (Part B) using only those functions, plus the egress regression test.
+- **Database:** first sync loads all; identical second sync changes zero rows and leaves counters alone; one changed price moves only that row's stock counter; a sales-only change moves only the sales counter; a missing product becomes a tombstone and disappears from users' views; it returns when it reappears; mass-removal guard keeps data; duplicate and blank codes; second concurrent sync gets `busy`; limit clamps; user without `inventory.search` gets nothing; user without `inventory.view` gets no sales rows; failed sync leaves counters untouched; tombstone purge triggers `reset`.
+- **Client mirror:** equal counters mean zero data calls; delta applies correctly (add, change, remove); interrupted page resumes; count mismatch triggers a reload; reset and schema change trigger a reload; logout wipes; offline keeps serving the local copy; two simultaneous callers share one request.
+- **Repo guards:** no inventory table access outside `inventory/data/`; no `select('*')`; no `setInterval` in inventory code; every inventory RPC call carries a limit.
+- **Domain:** the old tests ported, plus golden fixtures for each report.
 
-## 9. Open decisions
+## 9. Build order
 
-| ID | Question | Recommendation |
+1. **S1** Migration `0010` and its database tests.
+2. **S2** Edge Function (hash check, delta RPC, new log fields); redeploy; watch two days of real hourly runs and record the changed/unchanged numbers here.
+3. **S3** Read functions (section 5.3) with limits and tests.
+4. **S4** Client mirror with its tests.
+5. **S5** Domain maths ported with tests; then screens in the brief's order (overview, ledger, excess, reorder, health).
+6. **S6** `inventory_cover_summary()` with parity tests, for the Home cards and notifications.
+
+## 10. Decisions
+
+| ID | Decision | Status |
 |---|---|---|
-| INV-7 | Reports computed on the server (as above) or a full cached copy on each phone? | Server side. Revisit only if offline stock lookup is needed |
-| INV-8 | Keep `sale_value_*` off the bulk path, served only through report functions to users allowed to see sales data? | Yes |
-| INV-9 | Mass-removal guard at 20%? | Yes |
+| INV-7 | Hybrid: shared local copy with delta feed for the screens, server lookups for other modules (this document) | **Proposed** |
+| INV-8 | Sales columns (net quantities, sale values, tax) only for `inventory.view`; stock columns for `inventory.search` | **Proposed** |
+| INV-9 | Mass-removal guard at 20% | **Proposed** |
+| INV-10 | Default window for Never Sold and Dead Stock: 60 days (BUSINESS_RULES §8). The old Stock Ledger tab defaulted Never Sold to 90 (adjustable); the old Home card used 60 | **Ask owner** |
+| INV-11 | No Pause/Resume switch; no timers; refresh on open, focus (5 min) and manual | **Proposed** |
