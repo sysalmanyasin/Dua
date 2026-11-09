@@ -126,12 +126,12 @@ create index str_line_items_str_idx on public.str_line_items (str_id);
 create index str_line_items_code_idx on public.str_line_items (product_code);
 
 -- ───────── RLS: on everywhere; anon has nothing; writes only via the service role ─────────
-alter table public.inventory_products       enable row level security;
-alter table public.inventory_sync_log       enable row level security;
-alter table public.sales_payment_summary    enable row level security;
+alter table public.inventory_products enable row level security;
+alter table public.inventory_sync_log enable row level security;
+alter table public.sales_payment_summary enable row level security;
 alter table public.sales_credit_by_customer enable row level security;
-alter table public.str_headers              enable row level security;
-alter table public.str_line_items           enable row level security;
+alter table public.str_headers enable row level security;
+alter table public.str_line_items enable row level security;
 
 create policy inv_products_read on public.inventory_products for select to authenticated
   using (public.has_perm('inventory.search'));
