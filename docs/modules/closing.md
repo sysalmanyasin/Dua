@@ -94,9 +94,16 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 | CLS-3 | Submit rules checked in the database; notifications never block | Accepted (BUSINESS_RULES §7) |
 | CLS-4 | Per-shift credit lines vs running balances (C9) | Accepted (owner, 9 Nov 2026): **new amounts for that shift**; verified in the old code |
 | CLS-5 | Does the 3" thermal receipt print stay in v1? | Accepted (owner, 9 Nov 2026): **yes, keep it** (Credit Ledger snapshot print, 3" thermal). Needs a print helper: reuse Sales' `print.js` through a Foundation request, or build a small one inside the module |
-| CLS-6 | If the slot just before was never closed (e.g. Morning skipped), what does the next closing carry? | **Open, built as:** carry from the latest earlier *submitted* closing (the old app carried zeros there). Easy to change in `closing_previous` (0202) |
-| CLS-7 | When an earlier closing is corrected, do later *submitted* closings change? | **Open, built as:** no. They keep the figures they were submitted with (D-12); only later *drafts* pick up the corrected figures on their next save. Owner decides if a re-check report is wanted |
-| CLS-8 | `closing.require_inventory_audit` (setting, ships **on**) | Submit is refused until the audit card is verified, as the brief says. Until Inventory (F3) and the audit screen exist nobody can submit, so the owner may switch it off with a reason in Settings during rollout |
+| CLS-6 | Skipped slots | **Accepted (owner, 11 Nov 2026):** a slot may not be skipped. Starting or submitting a closing is refused until the slot before it is submitted. Exception: a **Final** closing after a gap carries credit, card and open misc from the last submitted closing and zeroes only cash and deposits (builder's reading of CLS-6 + CLS-11; owner said "your choice") |
+| CLS-7 | Correcting an earlier closing | **Accepted (owner, 11 Nov 2026):** later *submitted* closings never change. The owner wants to **reopen the original and edit it**. Built as: "Edit" opens the original's figures as a new draft revision (reason required); on resubmit it replaces the original, which is kept as superseded (D-12, MODULES rule 5 forbid overwriting a submitted row). Later drafts pick up the corrected figures on next save |
+| CLS-8 | `closing.require_inventory_audit` ships on | **Accepted (owner, 11 Nov 2026):** keep on in code; may be switched off with a logged reason in Settings during rollout |
+| CLS-9 | Closing Book PDF | **Accepted (owner, 11 Nov 2026):** print layout, browser Save as PDF, no new library. Same answer for Manager MGR-11 |
+| CLS-10 | Opening balances | **Accepted (owner, 11 Nov 2026):** the first closing is an **opening Final closing** entered by owner/admin, not a separate fake. Cash and deposits **may be typed** for this opening closing only. Carry reads it like any submitted Final |
+| CLS-11 | Final | **Accepted (owner, 11 Nov 2026):** any slot may be Final; Final starts cash and deposits at 0, keeps credit, card and open misc |
+| CLS-12 | Carried figures changed before submit | **Accepted (owner, 11 Nov 2026):** refuse: "opening figures changed, review and submit again" |
+| CLS-13 | Two devices on one draft | **Accepted (owner, 11 Nov 2026):** refuse the older save with a conflict message and reload, like the Daily Check List |
+| CLS-14 | Responsible person | **Accepted (owner, 11 Nov 2026):** any active staff member by name, via a small function (juniors read only their own `staff` row) |
+| CLS-15 | Look and feel | **Accepted (owner, 11 Nov 2026):** keep the original Closing app's layout, design and colours (teal `#0D8C78`, navy `#0E241F`, amber = carried-forward values, red = deficits only, shift dots Night/Morning/Evening, 14-section guided flow). Scoped in `css/closing.css`; vendored Inter and IBM Plex Mono replace the original's Google fonts |
 
 ## 9. Slices
 
