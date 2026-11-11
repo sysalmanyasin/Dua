@@ -3,6 +3,8 @@
 Status: **Briefed** (awaiting owner approval) · Owner approval: no
 Branch: `module/manager` · Migration range: `0100–0199` · Prefix: `mgmt_` · Permissions: `mgmt.*`, `credit.*` · Route prefix: `/manager` · Nav order: 20
 
+> **Work order for the next session:** `docs/modules/manager.next-session.md` (coordination of all sessions: `docs/SESSIONS.md`).
+>
 > Read `docs/MODULES.md` first. This brief only adds what is specific to Manager.
 
 ## 1. Scope
