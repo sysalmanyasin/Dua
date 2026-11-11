@@ -113,4 +113,8 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 
 ## 10. Handoff
 
-_(empty — the session fills this in at the end)_
+**Read `docs/modules/closing.next-session.md` first: it is the work order (state, owner questions, review gaps, slice plan, payload and function reference, start prompt).**
+
+- Done: pure maths (`domain/compute.js`), tables and RLS (`0201`), draft / submit / correct and carry-forward in the database (`0202`). No screens, not registered as a module, not applied to the live project.
+- Most important gaps: shift closings store a wrong "since last Final" figure until `closing_period_agg` exists (permanent once submitted, so fix before any real submit); submit can silently change carried-in figures; no opening balances; draft saves are last-write-wins.
+- `main` has moved on (F3 feed live, inventory interfaces and `notify_owner` still missing, migration registry problem D-35). Merge `main` first; it merges cleanly.
