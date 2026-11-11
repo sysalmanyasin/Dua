@@ -22,8 +22,20 @@ export async function mount(el, { ctx }) {
   const handoff = sessionStorage.getItem('sales.entry.date');
   sessionStorage.removeItem('sales.entry.date');
   const today = todayPkt();
+  // Like the original: open on the next day that has no record yet (people with history access only).
+  let recent = [];
+  let autoDate = null;
+  if (perms.has('sales.view_history')) {
+    try {
+      recent = await api.recentDays(7);
+      const last = recent[0]?.business_date;
+      if (last) autoDate = last >= today ? today : shiftDate(last, 1);
+    } catch {
+      recent = [];
+    }
+  }
   const state = {
-    date: handoff || today,
+    date: handoff || autoDate || today,
     form: emptyForm(),
     existing: null,
     showAll: false,
@@ -69,7 +81,7 @@ export async function mount(el, { ctx }) {
     const ex = state.existing;
     render(
       el,
-      html`${hero({ label: 'Data entry', title: 'Add Daily Record', sub: 'Pick a date and enter the amounts. Total and diff work themselves out.' })}
+      html`${hero({ label: 'Data entry', title: 'Add Daily Record', sub: handoff ? 'Opened for the day you chose.' : autoDate ? `Opened on ${longDate(autoDate)}, the next day with no record. Total and diff work themselves out.` : 'Pick a date and enter the amounts. Total and diff work themselves out.' })}
         <section class="card">
           <div class="date-row">
             <button class="icon-btn" data-act="prev" aria-label="Previous day">‹</button>
@@ -132,6 +144,24 @@ export async function mount(el, { ctx }) {
               </section>`
             : ''
         }
+        ${
+          recent.length
+            ? html`<section class="card">
+                <h2>Recent entries</h2>
+                ${recent.map(
+                  (r) =>
+                    html`<div class="row">
+                      <div>
+                        <strong>${longDate(r.business_date)}</strong><br /><span class="muted small"
+                          >₨ ${money(r.total)} · ${money(r.customers)} customers</span
+                        >
+                      </div>
+                      <button class="btn btn-sm" data-act="open" data-date="${r.business_date}">Open</button>
+                    </div>`,
+                )}
+              </section>`
+            : ''
+        }
         <div class="actions-bar">
           <button class="btn btn-primary" data-act="save" ${state.busy || !canSave() ? 'disabled' : ''}>
             ${ex ? 'Save correction' : 'Save day'}
@@ -170,6 +200,10 @@ export async function mount(el, { ctx }) {
     if (b.dataset.act === 'prev' || b.dataset.act === 'next') {
       state.date = shiftDate(state.date, b.dataset.act === 'prev' ? -1 : 1);
       if (state.date > today) state.date = today;
+      return loadDay();
+    }
+    if (b.dataset.act === 'open') {
+      state.date = b.dataset.date;
       return loadDay();
     }
     if (b.dataset.act === 'showall') {

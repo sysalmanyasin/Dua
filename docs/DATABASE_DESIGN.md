@@ -1,50 +1,108 @@
-# Database Design (Phase 1) — PostgreSQL, schema `public` unless noted
+# Database (as built)
 
-Conventions: `id uuid` PK · money `numeric(14,2)` · `created_at/updated_at timestamptz` UTC · `business_date date` (Asia/Karachi) wherever the day matters · soft-delete via `deleted_at` · every table RLS on · `created_by` references `staff`. Posted rows are never overwritten: corrections are new revision/reversal rows.
+PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
 
-## core
-- `staff` (id, full_name, phone, joined_on, active, notes) — persists forever.
-- `profiles` (user_id → auth.users, staff_id, username, role_template admin|senior|junior, disabled_at, expires_at).
-- `permissions` (key, description); `role_permissions` (role, key); `user_permissions` (user_id, key, effect grant|deny).
-- `access_requests` (id, full_name, username, status pending|approved|rejected, requested_at, decided_by, decided_at); `setup_codes` (user, code_hash, expires_at, used_at).
-- `settings` (key, value, version) + `settings_history` (restorable). Includes `till_float` (Rs 45,000 extra cash in hand), `per_customer_charge` (Rs 1), alert thresholds, retention.
-- `activity_log` (id, at, user_id, action, entity, entity_id, old, new, reason, device) — append-only.
-- `notifications` (id, to_user, kind, payload, read_at).
+## Rules that hold everywhere
+1. **Every table has row-level security on, and the browser has no direct write access** to business tables. Reads follow permission checks (`has_perm`); writes go through functions that check the permission, validate, and log. `anon` has no table or function access at all.
+2. **Money is `numeric(14,2)`.** A day's TOTAL is rounded to a whole rupee exactly like JavaScript `Math.round` so the screen and database agree.
+3. **Nothing posted is overwritten.** A corrected day keeps its old version (`daily_sales_revisions`) with the reason and who. The activity log cannot be updated or deleted.
+4. **Dates:** business dates are Pakistan dates (`Asia/Karachi`); the day changes at 00:00. Timestamps are UTC.
+5. **Retried saves are safe:** a client-made idempotency key means a day is saved once.
+6. **Admins must be at MFA level 2** for any permission to count (enforced in `has_perm`).
 
-## sales
-- `payment_methods` (id, code, label, section Cash|Banks|Credit Clients|Summary, sign add|sub|none, sort, active) — seeded with the 24 add + 7 subtract fields from BUSINESS_RULES §2; admin can add more.
-- `daily_sales` (business_date PK, comp_sale, customers, fdpp_pos, fdpp_consumer, amount_received, load_sale, cash_to_deposit, low_sale_reason, **total**, **diff**, status, revision). `total`/`diff` written only by function `sales_save_day()`.
-- `daily_sale_lines` (business_date, method_id, amount).
-- `sales_targets` (month, target); view `monthly_sales` (sum of dailies).
-- `cash_deposits` (business_date, amount, bank, slip_ref).
-- `daily_checklist_items`, `daily_checklist_ticks`.
-- Function `sales_last_closed_day()` → one row for staff (D-09).
+## Tables (33; all with RLS, 31 policies)
+| Table | Columns | Purpose |
+|---|---|---|
+| `access_requests` | 8 | Pending/approved/rejected sign-up requests |
+| `activity_log` | 9 | Append-only record of sensitive actions |
+| `checklist_answers` | 3 | Answers per item per day |
+| `checklist_competitor_defaults` | 5 | Competitor rows copied onto a new day (private values) |
+| `checklist_competitors` | 6 | Competitor rows per day |
+| `checklist_days` | 31 | One row per check-list day (header, stock figures, notes, version) |
+| `checklist_dropdown_options` | 3 | Shared dropdown lists |
+| `checklist_items` | 9 | Check List questions and defaults |
+| `checklist_sections` | 7 | Daily Check List sections (carried over from the original) |
+| `daily_sale_lines` | 3 | Amount per payment field per day |
+| `daily_sales_revisions` | 8 | Frozen earlier versions of a corrected day, with reason |
+| `daily_sales` | 16 | One row per day: figures, total, diff, revision |
+| `inventory_products` | 26 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
+| `inventory_sync_log` | 7 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
+| `login_attempts` | 5 | Failed/successful staff logins (lockout) |
+| `monthly_history_lines` | 3 | Per-field figures of those months |
+| `monthly_history` | 6 | Months known only as monthly totals |
+| `payment_methods` | 8 | Payment fields (cash, banks, client columns): type, section, order, visibility |
+| `permissions` | 2 | The list of permission keys |
+| `profiles` | 8 | Login ↔ person link, username, role template, disabled/expiry |
+| `role_permissions` | 2 | What each role template grants |
+| `sales_credit_by_customer` | 6 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
+| `sales_payment_summary` | 7 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
+| `sales_save_keys` | 4 | Idempotency keys (a retried save is saved once) |
+| `sales_targets` | 4 | Monthly sales targets |
+| `settings_history` | 7 | Every settings change (value, reason, who) |
+| `settings` | 6 | Business settings (till float, customer charge, module switches…) |
+| `setup_codes` | 9 | One-time PIN setup codes (hashed, expiring) |
+| `staff` | 8 | People (kept even if their login is removed) |
+| `str_headers` | 26 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
+| `str_line_items` | 13 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
+| `user_permissions` | 5 | Per-person allow/deny overrides |
+| `user_prefs` | 4 | A person’s own small settings (hidden report rows, mail recipients) |
 
-## closing
-- `closing_slots` (business_date, kind night|morning|evening|handover, seq, UNIQUE(business_date, kind, seq)).
-- `closings` (id, slot_id, mode shift|final, status draft|submitted|superseded, revision, supersedes_id, responsible_staff_id, entered_by, idempotency_key UNIQUE, submitted_at, correction_reason).
-  Inputs as real columns: `sys_cash, last_bill_no, comp_sale, alfalah, keenu, ret_manual_1..3, ret_system, book_bill_1, book_bill_2, extra_cash, credit_adj, prev_mediq, final_sys_returns` plus override flags for shift_sale, customers, curr_cc, prev_cash.
-  Opening (carried) values stored with their source closing: `prev_cc, prev_credit, prev_deposits, prev_cash, source_closing_id`.
-- Child tables (each with `deleted_at` for struck rows): `closing_hs_rows`, `closing_strip_lines` (strip_id, qty, price), `closing_cash_counts` (area till|vault, denomination, qty), `closing_credit_lines` (kind named|tier|free, account_id, label, amount), `closing_deposits`, `closing_mediq_orders` (bill_no, collected, pharmacy_bill; extra generated = collected − pharmacy_bill), `closing_misc_rows` (charge_id stable, label, amount), `closing_inventory_audit` (item_code, qty, verified).
-- `closing_results` (closing_id PK, customers_charge, hs_total, strips_a, total_returns, mediq_extra, shift_sale, customers, net_sale, cc_curr, cc_total, till_c, vault_d, debt_e, deposits_f, misc_g, grand, liquid, net_cash, shift_variance, final_net_sale, final_net_cash, final_variance) — computed by `closing_compute()` at submit; formulas per BUSINESS_RULES §4–6.
-- Lookup/config: `strips` (groups, price), `credit_accounts` (named accounts, tiers), `inventory_audit_items` (the 31 codes).
-- Ledgers as views: `credit_ledger` (from closing_credit_lines per submitted closing), `misc_ledger` (by charge_id, with aging), `closing_book`, `register_book`, `cc_history`, `mediq_history`.
-- RPCs: `closing_save_draft`, `closing_submit(key)` (checks audit verified, responsible staff, locks), `closing_correct(id, reason, changes)`.
+## Views (all `security_invoker`: they obey the caller's permissions)
+| View | Purpose |
+|---|---|
+| `v_client_totals` | All-time sales per credit client (Dashboard chart) |
+| `v_daily_full` | Per day: total and cash / banks / credit split (Dashboard) |
+| `v_daily_report` | Per day: cash sale, cash returns, FDPP (Cash to Deposit) |
+| `v_monthly` | Per month totals from days (Index) |
+| `v_monthly_full` | Per month: from days, or from monthly-only figures (Dashboard, Reports) |
+| `v_monthly_methods` | Per month and field (Sale Book) |
 
-## management
-`salary_structures`, `payslips`, `petty_cash` (entry, kind, amount, business_date), `expenses`, `staff_credit`, `incentives`. Visible only with `mgmt.*`.
+## Functions
+| Function | Who may call | What it does |
+|---|---|---|
+| `activity_log_immutable` | signed-in users (checked inside) | Trigger: the log cannot be changed |
+| `bootstrap_first_admin` | database owner only | Make the first owner (once, from the SQL editor) |
+| `checklist_get_day` | signed-in users (checked inside) | Read one check-list day |
+| `checklist_log_send` | signed-in users (checked inside) | Log a copy/print/email/gmail send |
+| `checklist_reset_day` | signed-in users (checked inside) | Clear a check-list day (logged) |
+| `checklist_save_day` | signed-in users (checked inside) | Autosave a check-list day (version-checked) |
+| `checklist_set_dropdown` | signed-in users (checked inside) | Replace a dropdown list (3–30 options, logged) |
+| `cover_summary` | signed-in users (checked inside) | Everything the Cover shows, limited to what the caller may see |
+| `has_perm` | signed-in users (checked inside) | Does the caller hold this permission now? (admins need MFA) |
+| `inventory_apply_sync` | service role only | Inventory feed helper |
+| `inventory_latest_sync` | signed-in users (checked inside) | Inventory feed helper |
+| `inventory_log_sync_failure` | service role only | Inventory feed helper |
+| `log_activity` | service role only | Write to the activity log (internal) |
+| `my_context` | signed-in users (checked inside) | Who am I, my permissions, switched-off modules |
+| `payment_method_save` | signed-in users (checked inside) | Add or change a payment field (type locked once it has figures) |
+| `payment_methods_reorder` | signed-in users (checked inside) | Set the order of payment fields |
+| `prefs_set` | signed-in users (checked inside) | Store a personal setting |
+| `sales_compute_total` | signed-in users (checked inside) | The one TOTAL formula |
+| `sales_last_closed_day` | signed-in users (checked inside) | Latest closed day total only (what staff may see) |
+| `sales_save_day` | signed-in users (checked inside) | Create or correct a day (permissions, validation, revision, idempotent) |
+| `sales_set_target` | signed-in users (checked inside) | Set or clear a month’s target (logged) |
+| `set_updated_at` | signed-in users (checked inside) | Trigger helper |
+| `set_user_permission` | signed-in users (checked inside) | Allow/deny/clear one permission for one person (logged) |
+| `set_user_role` | signed-in users (checked inside) | Change a person’s role template (logged) |
+| `settings_set` | signed-in users (checked inside) | Change a setting with a reason (logged, versioned) |
 
-## audit (module Phase 7)
-`audit_templates`, `engagements`, `rounds` (state draft|locked|counting|compiled|final), `assignments` (round, item/company, staff), `submissions` (assignment, counted_qty, method manual|barcode, idempotency_key), `variances`, `recounts`, `final_snapshots`, plus `racks`, `rack_assignments`, `expiry_entries`, `barcodes`. Counts immutable once submitted; recount = new row.
+## Migrations
+| File | Content |
+|---|---|
+| `0001_core` | people, roles, permissions, settings, activity log, `has_perm`, `my_context`, logged admin functions |
+| `0002_sales` | payment methods (31 built in), daily sales, lines, revisions, monthly-only history, the TOTAL formula, `sales_save_day`, `sales_last_closed_day` |
+| `0003_import_helper` / `0004_remove_import_helper` | temporary one-time import helper, added then removed (history import done 5 Nov 2026) |
+| `0005_sales_reports` | `v_daily_report` for Cash to Deposit |
+| `0006_checklist` | Daily Check List (13 sections, 52 items, dropdowns, autosave functions) + 3 permissions |
+| `0007_targets_prefs_cover` | targets, personal preferences, `cover_summary` |
+| `0008_dashboard_views` | `v_daily_full`, `v_monthly_full`, `v_client_totals` |
+| `0009_inventory_feed` | inventory feed tables and sync (Foundation F3, built in a separate session) |
+| `0010_manage_fields` | field management functions, Sale Book view |
 
-## inventory / str / pos — Candela is source of truth (D-07, confirmed)
- `inventory_snapshots` (as_of, product_code, name, qty, price, conversion_factor, last_receive_date, last_sale_date, net_qty_90d), `str_snapshots` (as_of, str_no, from/to, qty, dispatch_qty, status), import logs. V2 adds only: `stock_adjustments` (audit-driven, with reason), `emergency_bills` (+ items, payments, refunds with over-refund guard, idempotency key), held bills, and V2-originated STR requests with lifecycle events.
+**Registry warning:** see `docs/DECISIONS.md` D-35 and `docs/RUNBOOK.md` §4: the live project's migration list does not yet match the repo's file names for the inventory feed, so new migrations are applied by hand until that is reconciled.
 
-## documents / reports
-`notes`, `sheets`, `files` (Storage), saved report definitions.
+## Seed and private data
+Reference data (permissions, payment methods, check-list content, settings) is in migrations. **Private values are not in Git:** the owner's contact details, the doctor name, competitor figures (applied by SQL) and every real sales figure (imported once, never committed).
 
-## History import (D-11)
-Not part of the app. A separate `tools/import/` script loads old daily sales into `daily_sales` and `daily_sale_lines` through the same `sales_save_day()` function, tagged `source='import'`, idempotent by business_date.
-
-## Indexes and growth
-Index by `business_date`, `(slot_id)`, foreign keys, `(user_id)`. Seven years of daily sales ≈ 2,600 days × ~35 lines ≈ 90k rows — small. Closing child tables are the largest; partition not needed. Monitor against Free-tier storage.
+## Original Phase 1 plan (superseded)
+The Phase 1 design grouped tables as core, sales, pos, inventory, str, audit, closing, management, documents. Those later groups are still the plan for the modules listed in `docs/MODULES.md`; the sections above are what exists today.

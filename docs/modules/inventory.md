@@ -46,8 +46,8 @@ Out of scope: STR (its own module), the standalone Inventory Search PWA with AI 
 | I7 | "Not sold in N days" must have **one shared definition** (old `inventory-metrics.js`); do not duplicate it per screen | KEEP |
 | I8 | Cost/price visibility is gated by `inventory.view_cost` | KEEP |
 | I9 | The old Health page kept a small per-device "reorder value over time" trend in the browser. With latest-only data it has no server history | **ASK:** drop it, or keep per device |
-| I10 | How the sync is triggered today (scheduled? by hand from the Audit Hub's Tools tab?) is not in the repos | **ASK** (read the deployed function and ask the owner) |
-| I11 | Which of `price` is cost vs sale price | **ASK** (check the live table and Candela export) |
+| I10 | Sync runs every hour, scheduled | Decided (INV-4) |
+| I11 | `price` is the retail price | Decided (INV-5) |
 
 ## 4. Structure
 
@@ -95,8 +95,9 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 | INV-1 | Inventory is latest-only; no dated snapshots | Accepted (owner, 9 Nov 2026) |
 | INV-2 | Candela → Dropbox → Edge Function pipeline stays the same, moved into the Dua project | Accepted (owner, 9 Nov 2026) |
 | INV-3 | Reorder-value trend (I9) | **Open** |
-| INV-4 | Sync trigger and schedule (I10) | **Open** |
-| INV-5 | Meaning of `price` (I11) | **Open** |
+| INV-4 | Sync trigger and schedule (I10): scheduled every hour (pg_cron → Edge Function with the shared secret); manual "Sync now" needs `inventory.sync` | Accepted (owner, 9 Nov 2026) |
+| INV-5 | Meaning of `price` (I11): it is the **retail** price, so it is not gated by `inventory.view_cost` | Accepted (owner, 9 Nov 2026) |
+| INV-6 | The feed also lands Candela sales summaries and STR headers/lines (`0009_inventory_feed.sql`); screens for them belong to the Sales and STR modules | Accepted (owner, 9 Nov 2026) |
 
 ## 9. Slices
 
@@ -117,4 +118,9 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 
 ## 10. Handoff
 
-_(empty — the session fills this in at the end)_
+**Part A (feed) is live in the Dua project** (9 Nov 2026).
+- Migration `0009_inventory_feed.sql` applied; `sync-inventory-from-dropbox` deployed; hourly pg_cron job `inventory-hourly-sync` calls it with the shared secret kept in Supabase Vault (the SQL holds the secret, so it is not in Git).
+- First real sync: 5,857 products (about 2 MB), 4 sales-summary days, 7 credit rows, 157 STR headers, 1,847 STR lines. Same counts as the old project.
+- Secrets live only in Edge Function secrets: DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN, INVENTORY_SYNC_SECRET, ALLOWED_ORIGIN. The refresh token must be the `refresh_token` field, not the `access_token`.
+- The deployed copy inlines `_shared/clients.ts` and `_shared/http.ts` into one file; the repo copy imports them.
+- Next: slices I4 (interfaces `inventory_balances`, `inventory_search`, `inventory_products_for_scope`) and the Part B screens. Not yet built: the "Sync now" button (needs `inventory.sync`).

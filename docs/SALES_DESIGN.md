@@ -1,4 +1,17 @@
-# Phase 3 — Sales: design (for approval)
+# Phase 3 — Sales: design (built; status below)
+
+## Status on 10 Nov 2026
+| Area | Status |
+|---|---|
+| Dashboard, Index, Add Entry, Daily Data, Sale Report (+ target card), Daily Check List, Diff Report, Cash to Deposit, Reports / Sale Book, Targets, Manage Fields, Last Day, Cover | **Built and tested** (owner try-out of the newest pages pending) |
+| Send via Gmail | **Built**; needs the Google Cloud origin step |
+| History import (2,379 days) | **Done and verified** |
+| Payments page, Check List auto-fill, "Total Credit" pill | Waiting for Candela feed screens / credit ledger |
+| Bar Race, "since you last looked", alert e-mail briefing | Not ported (owner decision) |
+| Print to PDF | Through the browser's *Save as PDF* (no PDF library) |
+
+The original design text follows.
+
 
 Source studied: BT-Sale-Data2 `js/sales/*` (21 files, ~6,900 lines), its README, and your real backup of 5 Nov 2026 (2,379 days, 80 months, Apr 2020 → 4 Nov 2026).
 
