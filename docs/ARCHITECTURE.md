@@ -1,46 +1,58 @@
-# Architecture (Phase 1)
+# Architecture (as built)
 
-## Shape
-One static web app (GitHub Pages) + one Supabase project. No build step. Each business area is a **module** loaded on demand.
+One static web app on GitHub Pages plus one Supabase project. No build step: the browser loads the same JavaScript files that are in the repository. `npm` is used only for development tools (lint, tests).
 
 ```
-Browser (phone/shop PC)
-  index.html → js/core (router, registry, auth, supabase client, logger, outbox)
-             → js/modules/<name>/ (lazy-loaded when route opens)
-  IndexedDB (Dexie): outbox + cached assignments (closing drafts, audit counts)
-        │ HTTPS, publishable key only, user JWT
-Supabase: Postgres (RLS on every table) · Auth · Storage · Edge Functions
-  Edge: staff-login (lockout), request-access, approve-access, reset-pin, drive-backup
-GitHub Actions: lint, tests, migration checks, daily db export → Google Drive
+Phone / shop PC (browser)
+  index.html ─ css/ ─ js/core ─ js/shared ─ js/modules/<name>/        vendor/ (Supabase client, Chart.js, fonts)
+      │  HTTPS, publishable key only, the signed-in user's token
+      ▼
+Supabase project "DuaPharmaPlus"
+  Postgres: tables + views + functions, row-level security on everything
+  Auth:     owner (email + password + MFA), staff (hidden email + 6-digit PIN)
+  Edge Functions: staff-login · request-access · claim-account · admin-users · (inventory sync, separate session)
+      ▲
+GitHub: repository → Actions (lint, tests, database tests, function type-checks) → Pages (the site)
+Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
 ```
 
-## Module contract
-Each folder `js/modules/<name>/` has:
-- `manifest.js` → `{ id, title, icon, routes[], nav: {section, order}, permissions: [keys needed], enabled }`
-- `domain/` pure functions, no DOM, no database. All money maths here. Unit tested.
-- `data/` the only place that calls Supabase (table reads via views, writes via RPC).
-- `ui/` pages and components. `tests/`.
-Rules: modules never read another module's tables; they call its exported functions. The registry hides modules the user lacks permission for **and** the database refuses them anyway. A module can be switched off (settings flag) without breaking others.
+## Layers of the front end
+| Folder | Role |
+|---|---|
+| `index.html` | Page shell and the **Content Security Policy** (scripts only from this site and Google's sign-in file; no inline scripts or styles; connections only to this site, Supabase, Gmail). |
+| `js/core/` | `app.js` (start-up, sign-in state), `auth.js`, `screens.js` (sign-in/MFA/request/claim screens), `shell.js` (status bar, header, tabs, page loading), `registry.js` (which modules and pages a person may open), `router.js`, `statusbar.js`, `config.js`, `supabase.js`, `gmail.js`, `prefs.js`, `logger.js` |
+| `js/shared/` | `html.js` (escaping templates), `format.js`, `icons.js`, `ui.js` (hero banner), `chartjs.js` (lazy Chart.js), `mailDialog.js` |
+| `js/modules/home/` | The Cover |
+| `js/modules/access/` | Users & Access |
+| `js/modules/sales/` | Dashboard, Index, Add Entry, Daily Data, Sale Report, Daily Check List, Diff Report, Cash to Deposit, Reports, Targets, Fields, Last Day |
+| `css/` | `tokens.css` (the original brand colours, light and dark), `fonts.css`, `base.css`, `components.css`, `sales.css`, `checklist.css` |
+| `vendor/` | Third-party code copied into the repo and hash-checked: Supabase client 2.45.4, Chart.js 4.4.7, Inter and IBM Plex Mono fonts. Nothing third-party is fetched at run time except Google's sign-in script when Gmail is used. |
+| `supabase/` | `migrations/`, `functions/`, `tests/`, `seed/` (templates only) |
+| `tools/` | `check-secrets.mjs`, `check-vendor.mjs`, `import/` (the check-only history importer) |
+| `tests/unit/` | front-end tests |
+| `docs/` | this documentation; `docs/MODULES.md` is the shared contract for module builders |
 
-## Single source of truth for calculations
-Closing and daily-sales maths exist twice by design: JS `domain/` for live preview, SQL function for the saved result. A **parity test suite** feeds identical sample shifts (taken from your real data) to both and to the legacy formulas; build fails if any total differs by even 1 paisa.
+## A module
+Each folder under `js/modules/<name>/` has `manifest.js` (id, title, icon, status pill, and its pages: path, title, description, who may open it), `domain/` (pure calculations: no screen, no database), `data/` (the only place that calls Supabase), `ui/` (pages), and tests in `tests/unit`. A module never reads another module's tables; the home page and the status bar ask each module through its manifest.
 
-## Writes
-Critical writes (sale entry, closing submit, transfer, refund, audit submit) are Postgres functions (RPC) in one transaction with an idempotency key (client UUID). Reads use RLS-protected tables/views; sensitive aggregates (e.g. "yesterday's sale") only via functions.
+- **Page-level permissions:** a page lists `permission` or `anyOf`; people only get tabs for pages they may open, and a page they may not open is not routable. This is convenience: the database refuses the data regardless.
+- **Lazy loading:** a module's page code is downloaded only when its tab is opened. Chart.js loads only on the Dashboard. Google's script loads only when Send via Gmail is pressed.
+- **Isolation:** every page is mounted in a fresh container, so one page's handlers cannot run on the next page; a page that crashes shows a message and the app keeps working.
 
-## Offline
-- Closing: draft stored locally and autosaved; submit only online (D-14).
-- Audit: counts, including barcode scans, queue in an IndexedDB outbox, sent when online, idempotent.
-- Outbox holds only the signed-in user's own work; cleared on logout.
+## Data flow for one action (saving a day)
+Add Entry page → `domain/entry.js` parses what was typed → `data/api.js` calls `sales_save_day(date, header, lines, reason, key)` → the database function checks the permission, validates, keeps the old version if it is a correction, computes the total with the same rule the screen previewed, writes the day and its lines, logs it, and remembers the key so a retry is harmless → the page reloads the saved day.
 
-## Performance (free-tier aware)
-Egress and database size are limited on Free. Pull deltas (`updated_at > last_sync`), paginate, never fetch whole history, cache static lists, lazy-load module JS. Targets: first screen < 2.5 s, navigation < 1 s.
+## Safety rules that are enforced by tooling
+- No `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `eval`, `new Function`, `document.write` in app code (ESLint fails the build). All text goes through `html\`...\``, which escapes everything unless wrapped in `raw()`.
+- No secrets in Git: `tools/check-secrets.mjs` fails on private keys, GitHub tokens, database URLs with passwords and any JWT that is not the public `anon` key.
+- Vendored files must match their recorded SHA-256.
+- Because the policy blocks inline styles, widths and positions are set from script (`style.width = …`), never as `style="…"` attributes.
 
-## Data jobs vs app code
-One-time jobs (history import) and scheduled jobs (Candela snapshot import, backups) live outside `js/`, in `tools/` and `.github/workflows/`. The app contains only app code.
+## Offline behaviour
+Only the Daily Check List keeps working through a dropped connection: it saves a copy on the phone and retries. Everything else needs a connection and says so. The copy is removed at sign-out. A general offline queue for closing and audit counting is planned (see the roadmap).
 
 ## Environments
-`staging` and `production` Supabase projects; one repo, config chosen by hostname/branch. All schema changes are reviewed migration files; no manual production edits.
+There is **one** Supabase project today, used as staging and as the live site (`production` in `js/core/config.js` points at the same project, marked TEMPORARY). A separate production project is planned before launch.
 
-## Module build order (owner priority: Sales, Manager/admin, Closing)
-Foundation → Sales + Dashboard → Closing → Management (staff, salary, petty cash) → Audit → Inventory/STR (per D-07) → POS (emergency) → Reports → Intelligence → Android widgets.
+## Continuous checks (GitHub Actions)
+`app` (lint, formatting, 242 tests, secret scan, vendor hashes) · `database` (all migrations on an empty Postgres, then the security tests) · `functions` (Edge Functions type-checked with Deno). A push to `main` also publishes the site to GitHub Pages.

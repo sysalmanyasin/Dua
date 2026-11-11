@@ -1,45 +1,47 @@
-# Security Model (Phase 1)
+# Security Model (as built)
 
 ## Identity
-- Admin (owner/manager): real email + password + **MFA required**.
-- Staff: username + 6-digit PIN → hidden internal email (`username@staff.dua.invalid`, configurable) → Supabase Auth. Repeated and sequential PINs (111111, 123456) are refused. Login goes through Edge Function `staff-login`: 5 wrong PINs → locked 15 min (admin can unlock); every attempt logged.
-- No public sign-up in Supabase Auth. Self-registration writes a row in `access_requests` through Edge Function `request-access` (rate-limited, no PIN stored). Admin approves → one-time setup code (hashed, 24 h expiry) → staff sets own PIN. Forgot PIN uses the same path.
-- Each login links to a `staff` record; deleting/disabling a login never deletes the record.
+| Who | Sign-in | Notes |
+|---|---|---|
+| Owner / manager | email + password + **authenticator code (MFA)** | Without MFA the database grants **no** permission (`has_perm` requires aal2). Created only in the Supabase dashboard, then made owner once. |
+| Staff | **username + 6-digit PIN** | Supabase needs an e-mail, so a hidden address `username@staff.dua.invalid` is used. Repeated/sequence PINs are refused. Login runs through the `staff-login` function: 5 wrong PINs lock the account 15 minutes (30 per address). |
+| New people | request → owner approves → **one-time setup code** | Codes: 10 characters, hashed with a salt, 5 tries, 24 h, single use. Requests are rate-limited (5 per address per hour, 30 pending) and answer the same whether or not a username exists. |
+No public sign-up exists. A disabled person loses access immediately (database check) and cannot refresh a session.
 
-## Authorisation: per-user permissions
-Roles (admin / senior / junior) are templates. Effective permission = role template + per-user grants − per-user denies. Admin = all. Checked by SQL function `has_perm(key)` inside every RLS policy and RPC. Menus hiding is cosmetic only.
+## Authorisation
+Roles are **templates**; real access is a set of named permissions with per-person *Allow* / *Deny* (deny wins). `has_perm(key)` is used inside every row-level-security policy and every function, so hiding a menu is only a convenience. The list of 29 permissions is in `docs/ADMIN_GUIDE.md`.
 
-Initial keys (extend as modules land):
-`sales.view_last_day` · `sales.view_history` · `sales.enter` · `sales.edit` · `targets.manage` ·
-`closing.enter_own` · `closing.view_all` · `closing.review` · `closing.correct` · `closing.settings` ·
-`audit.count` · `audit.manage` · `audit.review` · `inventory.search` · `inventory.view_cost` ·
-`str.create` · `str.approve` · `credit.view` · `mgmt.salary` · `mgmt.petty_cash` · `reports.view` ·
-`users.manage` · `settings.manage` · `activity.view` · `backup.run`
-
-Starting presets: Junior = `closing.enter_own`, `audit.count`, `inventory.search`, `sales.view_last_day`, `str.create`. Senior = Junior (to be differentiated later). Both editable per person.
+What a **basic staff member** can reach, by design: their own sign-in, the Last Day total (one function that returns only the latest *closed* day), and whatever the owner explicitly grants. They cannot read sales history, targets, credit, salaries or other people's data; the tests prove each of those is refused.
 
 ## Database rules
-1. RLS enabled on every table; default deny; `anon` has no grants (revoked). The old apps' `anon_all` policies are not carried over.
-2. Staff can only read/write their own drafts, their own assignments and submissions. Submitted rows are locked by trigger; corrections via `closing_correct()` (needs `closing.correct`, reason mandatory, original kept).
-3. Sensitive reads (sales totals, history, credit balances, salaries) are functions/views that check permissions; staff never get raw table access to them. "Last day sale" = function returning only the latest *closed* business date.
-4. `security definer` functions: reviewed individually, `search_path` fixed, execute revoked from public/anon and granted to `authenticated` only.
-5. Every sensitive action → `activity_log` (user, action, record, old/new, reason, device, time). Log is append-only.
-6. Idempotency keys unique per write.
+1. RLS on every table; `anon` has no table or function grants; browsers have no direct write access to business tables.
+2. Writes go through functions that check the permission, validate, and log. Corrections keep the old version and a reason. The activity log is append-only (a trigger refuses changes, even for the owner of the database).
+3. `security definer` functions have a fixed `search_path` and execute only for the roles that need them.
+4. Idempotency keys make retried saves safe.
+5. Views run with the caller's permissions (`security_invoker`).
+
+## Browser
+Strict Content Security Policy (see `index.html`), vendored libraries with recorded hashes, escaped templates, no inline handlers or styles, only the public publishable key in the code, the service-role key only inside Edge Function secrets. Sign-out removes unsent drafts and page hand-offs from the phone.
+
+## Gmail
+Google sign-in is used **only to send mail from the owner's own Gmail** (scope `gmail.send`: it cannot read mail). The access token is kept in memory only and never stored. Message headers cannot be injected (line breaks in subjects/addresses are removed; addresses are validated; up to 10 recipients).
 
 ## Own-phone (BYOD) controls
-Admin can revoke any user's sessions instantly (ban + sign out). Access tokens short-lived; refresh tokens revoked on disable. Offline cache holds only that user's own work and is wiped on logout. No sales totals, credit or salary data are ever cached on staff devices. Optional per-user expiry date (kept from Audit Hub).
+The owner can disable any person at once. Check-list drafts on a phone are cleared at sign-out. No sales totals, credit or salary data are cached on a staff phone.
 
-## Frontend and repo
-Publishable key only; service-role key only in Edge Function secrets. Strict CSP (self + pinned CDNs + Supabase host). No secrets, keystores, tokens or notification topics in Git (secret scanning + pre-commit check in CI). Public repo ⇒ no staff names, phone numbers or amounts in code or seed data.
+## What is tested to fail
+Anonymous reads nothing · a basic staff member cannot read sales history, salaries, credit, targets, monthly or client summaries, or another person's preferences · cannot enter, correct or set targets without the permission · cannot forge the activity log · cannot promote themselves · an owner without MFA has no permissions · disabled and expired logins stop · second use of an idempotency key by another person is refused · the check-list and field functions refuse people without the matching permission. (195 database checks; see `docs/TESTING.md`.)
 
-## Backups
-Daily export by GitHub Actions: `pg_dump` → encrypted with `age` → Google Drive (service-account credentials held as GitHub secrets, never logged). Keep 30 daily + 12 weekly. Restore drill into a throw-away project before launch and every quarter.
-
-## Required automated security tests (must fail access)
-anon reads nothing · junior cannot read sales history, salaries, credit, others' closings · junior cannot edit a submitted closing · self-registered user has no access until approved · disabled user's token stops working · duplicate submit with same idempotency key creates one row · locked-out account cannot log in · direct table write bypassing RPC is refused.
-
-## Risks accepted / watch list
-Free plan: no automatic backups, project may pause after a week of inactivity, limits on storage and egress (monitor). 6-digit PIN is weaker than a password; mitigated by lockout, rate limits and revocation. Public repo exposes business rules.
-
-## Implemented in Phase 2
-Admin MFA is enforced in `has_perm()` (no aal2 = no permissions). Setup codes: 10 characters, hashed with a per-code salt, 5 attempts, 24 h expiry, single use. Request-access is rate-limited (5 per address per hour, 30 pending in total) and answers the same whether or not a username exists. Admin role and permission changes are logged with old and new values. 48 database security checks and 42 front-end checks run in CI.
+## Known gaps and accepted risks
+| Item | Status |
+|---|---|
+| **Automatic backups** | **Not built.** The free plan does not guarantee them. Highest open risk (roadmap item 1). |
+| Separate production project | Not yet; staging and live share one project. |
+| Error monitoring (Sentry) | Not yet. |
+| End-to-end browser tests (Playwright) | Not yet; checked in a simulated browser and by the owner by hand. |
+| Real-device and real-Google verification of the newest pages | Owner try-out pending. |
+| 6-digit PIN | Weaker than a password; mitigated by lockout, rate limits and instant disable. |
+| Public repository | Business rules are visible to anyone; no secrets or real figures are in it. |
+| Free-plan limits | Storage, egress and a pause after a week of inactivity; the app reads small summaries to stay within them. |
+| Staff sign-in shares Supabase's per-address limit | Fine for one shop; a flood of bad attempts could briefly block logins. |
+| GitHub tokens pasted in chat | Treated as exposed; **revoke after each session**. |

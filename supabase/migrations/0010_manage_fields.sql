@@ -1,4 +1,4 @@
--- 20261110090000: managing payment fields (add your own bank or client column, rename, hide, reorder, switch off).
+-- 0010: managing payment fields (add your own bank or client column, rename, hide, reorder, switch off).
 -- A field that already has saved figures can be renamed, hidden or switched off, but never changed from add to subtract
 -- (or moved between sections), because that would silently change old totals.
 

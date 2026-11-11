@@ -1,7 +1,7 @@
 # Business Rules (Phase 0) — Fazal Din's Pharma Plus
 
 Source: read directly from the old code (Closing `actions.js` calc(), `state.js`; BT-Sale-Data2 `platform/config.js`, `shared/summary-calc.js`; READMEs; Audit Hub blueprint).
-Status: DRAFT for owner approval. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
+Status: approved and built for Sales (see §11 for the rules as they now run); closing and audit rules remain the plan for their phases. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
 Tags: KEEP / IMPROVE / DROP / ASK.
 
 ## 1. Time and dates
@@ -84,3 +84,14 @@ Cart search by name/generic/code; add blocked if stock cannot be verified. Disco
 | Email briefing (Gmail read) | ASK |
 | Android widgets (22) | LAST phase, repoint to V2 |
 | Browser-held AI provider keys, anon-open tables, committed keystores, ntfy topics in repo | DROP |
+
+## 11. Rules as built (Sales), confirmed by the owner
+- **TOTAL (decided 5 Nov):** adds every *add* field **with its sign** (a negative amount in a client or bank column reduces the day) and subtracts every *deduct* field whatever sign was typed; info-only fields are ignored; rounded to a whole rupee like JavaScript `Math.round`. This reproduces 2,378 of the 2,379 stored totals. DIFF = TOTAL − COMP SALE, always computed.
+- **Cash to be Deposited** = Cash Sale − Cash Returns + FDPP POS + FDPP Consumer, worked out fresh for each day.
+- **Customers charge:** Rs 1 per customer is added to Net Sale in the closing (setting `per_customer_charge`); **till float:** Rs 45,000 extra cash in hand (setting `till_float`). Used by the Closing phase.
+- **Sale Report:** Net Cash Sale = cash and bank fields (and your own non-credit fields) with returns negative; Net Credit Sale likewise for Credit Clients; Grand Total = both, equal to the TOTAL rule. "COMP SALE" and "Difference" rows appear only when a COMP SALE figure exists. Till Short and Patty Cash are typed by hand. Row visibility never changes totals.
+- **Daily Check List:** opening stock = (closing + cash sale + credit sale) − receive; returns are shown negative; net total = cash sale + credit sale; total customers = cash + panel; a section is complete when every required box is filled (optional boxes, dates, notes and sign-off do not count); 19 sections.
+- **Dashboard:** the running month is compared with the previous month's and last year's **same days**; year to date against last year to the same point; forecast = daily average × days in month; branch score = average of target achievement, growth against last year (50 + 2.5 × % change, limited to 0–100) and customer growth; CAGR = first 12 months to latest 12 months per year (needs 24 months); cumulative difference counts only months with a COMP SALE. Heat map shades each day by quartile among that year's own sale days.
+- **Months and years:** a month belongs to the date of its days; two old April months were corrected (30 days typed with the wrong year); April 2021 exists only as a monthly figure (11,182,353).
+- **Corrections:** a saved day is never deleted or silently overwritten; a correction needs a reason and keeps the earlier version.
+- **Staff view:** a basic staff member sees only the latest closed day's total.

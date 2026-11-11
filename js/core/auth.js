@@ -52,6 +52,16 @@ export async function loadContext() {
   return data;
 }
 
+// Work kept on this phone (unsent check-list drafts, page hand-offs) is removed when someone signs out,
+// so the next person using the same phone cannot see it.
+export function clearLocalWork(storages = [globalThis.localStorage, globalThis.sessionStorage]) {
+  for (const st of storages) {
+    if (!st) continue;
+    for (const key of Object.keys(st)) if (key.startsWith('dua.') || key.startsWith('sales.')) st.removeItem(key);
+  }
+}
+
 export async function signOut() {
+  clearLocalWork();
   await db().auth.signOut();
 }
