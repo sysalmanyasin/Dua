@@ -1,6 +1,10 @@
 # F6 — Migration registry reconciliation (D-35)
 
-Status: **plan, nothing applied.** Live facts were read (read-only) on 12 Nov 2026 from project `sdsynzsflubdxnelgthh`.
+Status: **executed on 12 Nov 2026 (about 03:15 UTC, owner-approved).** Registry backed up to `supabase_migrations.schema_migrations_backup_20261112` (12 rows),
+`20261109102531` renamed to `0009`, `20261109104257` removed, `0011` and `0012` applied by hand and registered under their repo numbers.
+Registry afterwards: `0001`–`0012`, `0301`. Cron job `inventory-hourly-sync` unchanged (id 1, `0 * * * *`, active). `notify-ntfy` deployed (`verify_jwt` off; it authenticates with its own secret).
+Facts below were read (read-only) from project `sdsynzsflubdxnelgthh` before the change.
+**Drop the backup table after one clean week (about 19 Nov 2026).**
 This file holds SQL that is **not** a migration. It must never go into `supabase/migrations/`.
 
 ## What was found
