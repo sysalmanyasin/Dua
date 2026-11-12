@@ -1,7 +1,7 @@
 # Roadmap: what is left, in order
 
 ## A. Before relying on the system
-1. **Automatic backups.** Daily encrypted database export to Google Drive (30 daily + 12 weekly kept), and a tested restore into a spare project. *Not built; highest risk.* Interim: manual weekly dump (`RUNBOOK.md` §6). Needs a Google service account and a shared Drive folder.
+1. **Automatic backups.** Built and tested locally (12 Nov 2026, D-38). **Owner setup remaining** (RUNBOOK §6): age key, Google refresh token, GitHub `backup` environment, merge to `main`, first run, then the restore drill. Interim: manual weekly dump.
 2. **Owner try-out on a real phone** of the newest pages (Dashboard, Reports, Fields, Targets, Gmail, Cover) and fixes.
 3. **Google Cloud origin step** for Gmail (`SETUP.md`).
 4. **Revoke GitHub tokens** used in chat.

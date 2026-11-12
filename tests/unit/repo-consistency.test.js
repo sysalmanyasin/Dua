@@ -5,7 +5,7 @@ import { MODULE_IDS } from '../../js/modules/index.js';
 const migrations = readdirSync('supabase/migrations')
   .map((f) => readFileSync(`supabase/migrations/${f}`, 'utf8'))
   .join('\n');
-const dbPermissions = new Set([...migrations.matchAll(/^ \('([a-z_]+\.[a-z_]+)',/gm)].map((m) => m[1]));
+const dbPermissions = new Set([...migrations.matchAll(/^\s*\('([a-z_]+\.[a-z_]+)',/gm)].map((m) => m[1]));
 
 describe('modules match the database', () => {
   it('finds the seeded permission list', () => {

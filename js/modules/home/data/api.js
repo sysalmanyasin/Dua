@@ -5,3 +5,10 @@ export async function coverSummary() {
   if (error) throw error;
   return data;
 }
+
+// Owner alerts for "Needs attention" (null for anyone without notifications.view). Never breaks the Cover.
+export async function notificationsAttention() {
+  const { data, error } = await db().rpc('notifications_attention');
+  if (error) throw error;
+  return data;
+}
