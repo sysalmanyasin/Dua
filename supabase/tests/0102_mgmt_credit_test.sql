@@ -218,4 +218,18 @@ begin
   perform pg_temp.fails(format($q$select public.mgmt_credit_add(%L, %L, 'x', 5, %L)$q$, pa, today, k), 'another person cannot reuse a key', '42501');
   reset role;
 end $t$;
+-- 11. exposure guard: no Manager function may be callable by anon, and authenticated may call ONLY this whitelist.
+-- (Every future Manager migration that adds a callable function must add it here on purpose.)
+do $t$ declare bad text; begin
+  select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');
+  perform pg_temp.ok(bad is null, 'no Manager function is executable by anon' || coalesce(' (found: ' || bad || ')', ''));
+  select string_agg(p.proname, ', ' order by p.proname) into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('authenticated', p.oid, 'execute')
+     and p.proname not in ('mgmt_staff_list','mgmt_staff_get','mgmt_staff_save','mgmt_note_add','mgmt_note_remove',
+                           'mgmt_credit_add','mgmt_credit_reverse','mgmt_credit_set_deduction','mgmt_credit_set_opening','mgmt_credit_month');
+  perform pg_temp.ok(bad is null, 'authenticated can execute only the whitelisted Manager functions' || coalesce(' (found: ' || bad || ')', ''));
+  perform pg_temp.ok((select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('authenticated', p.oid, 'execute')) = 10,
+    'all ten whitelisted functions exist and are callable');
+end $t$;
 rollback;

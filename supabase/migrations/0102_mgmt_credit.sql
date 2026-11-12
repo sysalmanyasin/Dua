@@ -240,6 +240,11 @@ end $$;
 grant all on all tables in schema public to service_role;
 grant usage, select on all sequences in schema public to service_role;
 
+-- Hardening found while applying 0101 to the live project: trigger functions created without an explicit revoke keep
+-- Postgres's default public execute there. They cannot be called directly (only fired as triggers), but nobody except the
+-- table owner needs them, so close them. (0101 is already applied and is never edited.)
+revoke all on function public.mgmt_append_only(), public.mgmt_notes_guard() from public, anon, authenticated;
+
 revoke all on function public.mgmt_credit_add(uuid, date, text, numeric, uuid), public.mgmt_credit_reverse(uuid, text, uuid),
   public.mgmt_credit_set_deduction(uuid, date, text, numeric, text, uuid), public.mgmt_credit_set_opening(uuid, date, numeric, text, uuid),
   public.mgmt_credit_month(date) from public, anon, authenticated;
