@@ -1,0 +1,445 @@
+[
+  {
+    "name": "P1: nothing before this closing gives an all-zero roll-up",
+    "comment": "Hand-worked: no earlier closing, no Final.",
+    "timeline": [],
+    "current": {
+      "day": 1,
+      "seq": 10
+    },
+    "expect": {
+      "same_date_shift_sale": 0,
+      "lf_same_date_sale": 0,
+      "same_date_customers": 0,
+      "lf_same_date_cust": 0,
+      "total_book_bills": 0,
+      "total_mediq_extra": 0,
+      "total_manual_returns": 0,
+      "same_date_sys_returns": 0,
+      "lf_same_date_sys_ret": 0,
+      "pre_date_shift_sale": 0,
+      "lf_pre_date_sale": 0,
+      "pre_date_customers": 0,
+      "lf_pre_date_cust": 0,
+      "pre_date_sys_returns": 0,
+      "lf_pre_date_sys_ret": 0,
+      "total_extra_cash": 0
+    }
+  },
+  {
+    "name": "P2: period after a Final on an earlier day (Night + Morning, current Evening)",
+    "comment": "Final d1: sale 45000, customers 30, system returns 10, manual 100, books 200, extra cash 300, mediq 40. Night d2: 20000/10/5, manual 50. Morning d2: 30000/15/0, manual 25, books 100, extra 70, mediq 10. Same date (d2): sale 50000, customers 25, sys returns 5. The Final is an earlier date, so its sale/customers/sys returns go to lf_pre_*. Totals add the Final's own: books 100+200, mediq 10+40, manual 50+25+100, extra 70+300.",
+    "timeline": [
+      {
+        "day": 1,
+        "seq": 9999,
+        "mode": "final",
+        "status": "submitted",
+        "shift_sale": 45000,
+        "customers": 30,
+        "ret_system": 10,
+        "ret_manual": [
+          100,
+          0,
+          0
+        ],
+        "book": [
+          200,
+          0
+        ],
+        "extra_cash": 300,
+        "mediq_extra": 40
+      },
+      {
+        "day": 2,
+        "seq": 10,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 20000,
+        "customers": 10,
+        "ret_system": 5,
+        "ret_manual": [
+          50,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      },
+      {
+        "day": 2,
+        "seq": 20,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 30000,
+        "customers": 15,
+        "ret_system": 0,
+        "ret_manual": [
+          0,
+          25,
+          0
+        ],
+        "book": [
+          100,
+          0
+        ],
+        "extra_cash": 70,
+        "mediq_extra": 10
+      }
+    ],
+    "current": {
+      "day": 2,
+      "seq": 9999
+    },
+    "expect": {
+      "same_date_shift_sale": 50000,
+      "lf_same_date_sale": 0,
+      "same_date_customers": 25,
+      "lf_same_date_cust": 0,
+      "total_book_bills": 300,
+      "total_mediq_extra": 50,
+      "total_manual_returns": 175,
+      "same_date_sys_returns": 5,
+      "lf_same_date_sys_ret": 0,
+      "pre_date_shift_sale": 0,
+      "lf_pre_date_sale": 45000,
+      "pre_date_customers": 0,
+      "lf_pre_date_cust": 30,
+      "pre_date_sys_returns": 0,
+      "lf_pre_date_sys_ret": 10,
+      "total_extra_cash": 370
+    }
+  },
+  {
+    "name": "P3: a period that crosses midnight, with a handover",
+    "comment": "Final d1 morning: 40000/20/4. Evening d1: 25000/12/8, manual 30, books 50, extra 10, mediq 5. Night d2: 15000/9/3. Morning d2: 12000/7/2. Handover d2: 6000/4/1, manual 5, books 7, extra 2. Current Evening d2. Same date: sale 33000, customers 20, sys returns 6. Earlier date (Evening d1): 25000/12/8. Totals: books 57, mediq 5, manual 35, extra 12.",
+    "timeline": [
+      {
+        "day": 1,
+        "seq": 20,
+        "mode": "final",
+        "status": "submitted",
+        "shift_sale": 40000,
+        "customers": 20,
+        "ret_system": 4,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      },
+      {
+        "day": 1,
+        "seq": 9999,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 25000,
+        "customers": 12,
+        "ret_system": 8,
+        "ret_manual": [
+          30,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          50
+        ],
+        "extra_cash": 10,
+        "mediq_extra": 5
+      },
+      {
+        "day": 2,
+        "seq": 10,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 15000,
+        "customers": 9,
+        "ret_system": 3,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      },
+      {
+        "day": 2,
+        "seq": 20,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 12000,
+        "customers": 7,
+        "ret_system": 2,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      },
+      {
+        "day": 2,
+        "seq": 30,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 6000,
+        "customers": 4,
+        "ret_system": 1,
+        "ret_manual": [
+          0,
+          0,
+          5
+        ],
+        "book": [
+          7,
+          0
+        ],
+        "extra_cash": 2,
+        "mediq_extra": 0
+      }
+    ],
+    "current": {
+      "day": 2,
+      "seq": 9999
+    },
+    "expect": {
+      "same_date_shift_sale": 33000,
+      "lf_same_date_sale": 0,
+      "same_date_customers": 20,
+      "lf_same_date_cust": 0,
+      "total_book_bills": 57,
+      "total_mediq_extra": 5,
+      "total_manual_returns": 35,
+      "same_date_sys_returns": 6,
+      "lf_same_date_sys_ret": 0,
+      "pre_date_shift_sale": 25000,
+      "lf_pre_date_sale": 40000,
+      "pre_date_customers": 12,
+      "lf_pre_date_cust": 20,
+      "pre_date_sys_returns": 8,
+      "lf_pre_date_sys_ret": 4,
+      "total_extra_cash": 12
+    }
+  },
+  {
+    "name": "P4: the last Final is on the same day as this closing",
+    "comment": "Final Night d2: 18000/11/2, manual 10+10+10, books 5+5, extra 7, mediq 3. Morning d2: 9000/6/1, mediq 1. Current Evening d2. The Final's own sale/customers/sys returns go to lf_same_*. Totals add the Final's own: books 10, mediq 1+3, manual 30, extra 7.",
+    "timeline": [
+      {
+        "day": 2,
+        "seq": 10,
+        "mode": "final",
+        "status": "submitted",
+        "shift_sale": 18000,
+        "customers": 11,
+        "ret_system": 2,
+        "ret_manual": [
+          10,
+          10,
+          10
+        ],
+        "book": [
+          5,
+          5
+        ],
+        "extra_cash": 7,
+        "mediq_extra": 3
+      },
+      {
+        "day": 2,
+        "seq": 20,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 9000,
+        "customers": 6,
+        "ret_system": 1,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 1
+      }
+    ],
+    "current": {
+      "day": 2,
+      "seq": 9999
+    },
+    "expect": {
+      "same_date_shift_sale": 9000,
+      "lf_same_date_sale": 18000,
+      "same_date_customers": 6,
+      "lf_same_date_cust": 11,
+      "total_book_bills": 10,
+      "total_mediq_extra": 4,
+      "total_manual_returns": 30,
+      "same_date_sys_returns": 1,
+      "lf_same_date_sys_ret": 2,
+      "pre_date_shift_sale": 0,
+      "lf_pre_date_sale": 0,
+      "pre_date_customers": 0,
+      "lf_pre_date_cust": 0,
+      "pre_date_sys_returns": 0,
+      "lf_pre_date_sys_ret": 0,
+      "total_extra_cash": 7
+    }
+  },
+  {
+    "name": "P5: only the latest Final, live submitted closings, before this slot, count",
+    "comment": "Earlier Final d1 night (huge figures) is ignored: only the LATEST earlier Final counts (d1 morning: 10000/5/1). Evening d1 has a superseded revision (77777/77, ignored) and a current one: 20000/10/2, manual 3, books 4, extra 5, mediq 6. A draft Night d2 and a submitted closing d3 (99999) are ignored. Current Morning d2.",
+    "timeline": [
+      {
+        "day": 1,
+        "seq": 10,
+        "mode": "final",
+        "status": "submitted",
+        "shift_sale": 900000,
+        "customers": 500,
+        "ret_system": 100,
+        "ret_manual": [
+          1000,
+          0,
+          0
+        ],
+        "book": [
+          1000,
+          0
+        ],
+        "extra_cash": 1000,
+        "mediq_extra": 1000
+      },
+      {
+        "day": 1,
+        "seq": 20,
+        "mode": "final",
+        "status": "submitted",
+        "shift_sale": 10000,
+        "customers": 5,
+        "ret_system": 1,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      },
+      {
+        "day": 1,
+        "seq": 9999,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 20000,
+        "customers": 10,
+        "ret_system": 2,
+        "ret_manual": [
+          3,
+          0,
+          0
+        ],
+        "book": [
+          4,
+          0
+        ],
+        "extra_cash": 5,
+        "mediq_extra": 6,
+        "old_revision": {
+          "shift_sale": 77777,
+          "customers": 77
+        }
+      },
+      {
+        "day": 2,
+        "seq": 10,
+        "mode": "shift",
+        "status": "draft",
+        "shift_sale": 55555,
+        "customers": 55,
+        "ret_system": 0,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      },
+      {
+        "day": 3,
+        "seq": 10,
+        "mode": "shift",
+        "status": "submitted",
+        "shift_sale": 99999,
+        "customers": 99,
+        "ret_system": 0,
+        "ret_manual": [
+          0,
+          0,
+          0
+        ],
+        "book": [
+          0,
+          0
+        ],
+        "extra_cash": 0,
+        "mediq_extra": 0
+      }
+    ],
+    "current": {
+      "day": 2,
+      "seq": 20
+    },
+    "expect": {
+      "same_date_shift_sale": 0,
+      "lf_same_date_sale": 0,
+      "same_date_customers": 0,
+      "lf_same_date_cust": 0,
+      "total_book_bills": 4,
+      "total_mediq_extra": 6,
+      "total_manual_returns": 3,
+      "same_date_sys_returns": 0,
+      "lf_same_date_sys_ret": 0,
+      "pre_date_shift_sale": 20000,
+      "lf_pre_date_sale": 10000,
+      "pre_date_customers": 10,
+      "lf_pre_date_cust": 5,
+      "pre_date_sys_returns": 2,
+      "lf_pre_date_sys_ret": 1,
+      "total_extra_cash": 5
+    }
+  }
+]
