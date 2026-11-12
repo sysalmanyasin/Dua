@@ -1,6 +1,6 @@
 # Manager — brief
 
-Status: **Building** (Session M-A) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
+Status: **Building** (Session M-A done, awaiting PHONE #1) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
 Branch: `module/manager` · Migration range: `0100–0199` · Prefix: `mgmt_` · Permissions: `mgmt.*`, `credit.*` · Route prefix: `/manager` · Nav order: 20
 
 > **Work order:** `docs/modules/manager.next-session.md`. Coordination: `docs/SESSIONS.md`. Progress: `docs/modules/manager.progress.md`.

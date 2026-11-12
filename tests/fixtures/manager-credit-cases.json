@@ -1,42 +1,126 @@
 [
-  { "name": "nothing yet: an active person is listed at zero", "opening": null, "rows": [], "month": "2026-03-01",
-    "expect": { "listed": true, "prev": 0, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 0 } },
-  { "name": "opening plus earlier months carry into the previous balance", "opening": { "month": "2026-01-01", "amount": 10000 },
-    "rows": [ { "date": "2026-01-10", "kind": "entry", "amount": 2000 }, { "date": "2026-02-05", "kind": "entry", "amount": -500 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 11500, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 11500 } },
-  { "name": "old formula: prev + entries - salary - less generic", "opening": { "month": "2026-02-01", "amount": 5000 },
-    "rows": [ { "date": "2026-03-05", "kind": "entry", "amount": 3000 }, { "date": "2026-03-20", "kind": "entry", "amount": -1000 },
-              { "date": "2026-03-31", "kind": "salary_deduction", "amount": -1500 }, { "date": "2026-03-31", "kind": "generic_deduction", "amount": -400 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 5000, "entries": 2000, "salary_deduction": 1500, "generic_deduction": 400, "net": 5100 } },
-  { "name": "a deduction changed by a delta row is one number", "opening": null,
-    "rows": [ { "date": "2026-03-31", "kind": "salary_deduction", "amount": -2000 }, { "date": "2026-03-31", "kind": "salary_deduction", "amount": 500 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 0, "entries": 0, "salary_deduction": 1500, "generic_deduction": 0, "net": -1500 } },
-  { "name": "a reversal on the same date cancels the mistake", "opening": { "month": "2026-01-01", "amount": 1000 },
-    "rows": [ { "date": "2026-04-03", "kind": "entry", "amount": 2500 }, { "date": "2026-04-03", "kind": "entry", "amount": -2500 } ],
-    "month": "2026-04-01", "expect": { "listed": true, "prev": 1000, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 1000 } },
-  { "name": "a month before the opening month shows nothing", "opening": { "month": "2026-05-01", "amount": 8000 }, "rows": [],
-    "month": "2026-04-01", "expect": { "listed": true, "prev": 0, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 0 } },
-  { "name": "the opening month itself starts from the opening amount", "opening": { "month": "2026-05-01", "amount": 8000 }, "rows": [],
-    "month": "2026-05-01", "expect": { "listed": true, "prev": 8000, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 8000 } },
-  { "name": "someone who left but still owes is listed", "active": false, "opening": { "month": "2026-01-01", "amount": 700 }, "rows": [],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 700, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 700 } },
-  { "name": "someone who left with a zero balance is not listed", "active": false, "opening": null, "rows": [],
-    "month": "2026-03-01", "expect": { "listed": false } },
-  { "name": "someone who left but has a row this month is listed", "active": false, "opening": null,
-    "rows": [ { "date": "2026-03-12", "kind": "entry", "amount": 100 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 0, "entries": 100, "salary_deduction": 0, "generic_deduction": 0, "net": 100 } },
-  { "name": "paisa are exact (no floating point drift)", "opening": { "month": "2026-01-01", "amount": 1000.1 },
-    "rows": [ { "date": "2026-03-02", "kind": "entry", "amount": 0.1 }, { "date": "2026-03-03", "kind": "entry", "amount": 0.2 },
-              { "date": "2026-03-04", "kind": "entry", "amount": 250.55 }, { "date": "2026-03-05", "kind": "entry", "amount": -0.05 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 1000.1, "entries": 250.8, "salary_deduction": 0, "generic_deduction": 0, "net": 1250.9 } },
-  { "name": "a negative balance is allowed", "opening": { "month": "2026-01-01", "amount": -300 },
-    "rows": [ { "date": "2026-03-10", "kind": "entry", "amount": 100 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": -300, "entries": 100, "salary_deduction": 0, "generic_deduction": 0, "net": -200 } },
-  { "name": "rows in later months do not touch an earlier month", "opening": { "month": "2026-01-01", "amount": 1000 },
-    "rows": [ { "date": "2026-06-10", "kind": "entry", "amount": 400 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 1000, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 1000 } },
-  { "name": "every earlier kind counts toward the previous balance, across a year end", "opening": { "month": "2025-11-01", "amount": 100 },
-    "rows": [ { "date": "2025-12-15", "kind": "entry", "amount": 50 }, { "date": "2026-01-20", "kind": "entry", "amount": -20 },
-              { "date": "2026-02-28", "kind": "salary_deduction", "amount": -30 } ],
-    "month": "2026-03-01", "expect": { "listed": true, "prev": 100, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 100 } }
+  {
+    "name": "nothing yet: an active person is listed at zero",
+    "opening": null,
+    "rows": [],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 0, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 0 }
+  },
+  {
+    "name": "opening plus earlier months carry into the previous balance",
+    "opening": { "month": "2026-01-01", "amount": 10000 },
+    "rows": [
+      { "date": "2026-01-10", "kind": "entry", "amount": 2000 },
+      { "date": "2026-02-05", "kind": "entry", "amount": -500 }
+    ],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 11500, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 11500 }
+  },
+  {
+    "name": "old formula: prev + entries - salary - less generic",
+    "opening": { "month": "2026-02-01", "amount": 5000 },
+    "rows": [
+      { "date": "2026-03-05", "kind": "entry", "amount": 3000 },
+      { "date": "2026-03-20", "kind": "entry", "amount": -1000 },
+      { "date": "2026-03-31", "kind": "salary_deduction", "amount": -1500 },
+      { "date": "2026-03-31", "kind": "generic_deduction", "amount": -400 }
+    ],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 5000, "entries": 2000, "salary_deduction": 1500, "generic_deduction": 400, "net": 5100 }
+  },
+  {
+    "name": "a deduction changed by a delta row is one number",
+    "opening": null,
+    "rows": [
+      { "date": "2026-03-31", "kind": "salary_deduction", "amount": -2000 },
+      { "date": "2026-03-31", "kind": "salary_deduction", "amount": 500 }
+    ],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 0, "entries": 0, "salary_deduction": 1500, "generic_deduction": 0, "net": -1500 }
+  },
+  {
+    "name": "a reversal on the same date cancels the mistake",
+    "opening": { "month": "2026-01-01", "amount": 1000 },
+    "rows": [
+      { "date": "2026-04-03", "kind": "entry", "amount": 2500 },
+      { "date": "2026-04-03", "kind": "entry", "amount": -2500 }
+    ],
+    "month": "2026-04-01",
+    "expect": { "listed": true, "prev": 1000, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 1000 }
+  },
+  {
+    "name": "a month before the opening month shows nothing",
+    "opening": { "month": "2026-05-01", "amount": 8000 },
+    "rows": [],
+    "month": "2026-04-01",
+    "expect": { "listed": true, "prev": 0, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 0 }
+  },
+  {
+    "name": "the opening month itself starts from the opening amount",
+    "opening": { "month": "2026-05-01", "amount": 8000 },
+    "rows": [],
+    "month": "2026-05-01",
+    "expect": { "listed": true, "prev": 8000, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 8000 }
+  },
+  {
+    "name": "someone who left but still owes is listed",
+    "active": false,
+    "opening": { "month": "2026-01-01", "amount": 700 },
+    "rows": [],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 700, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 700 }
+  },
+  {
+    "name": "someone who left with a zero balance is not listed",
+    "active": false,
+    "opening": null,
+    "rows": [],
+    "month": "2026-03-01",
+    "expect": { "listed": false }
+  },
+  {
+    "name": "someone who left but has a row this month is listed",
+    "active": false,
+    "opening": null,
+    "rows": [{ "date": "2026-03-12", "kind": "entry", "amount": 100 }],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 0, "entries": 100, "salary_deduction": 0, "generic_deduction": 0, "net": 100 }
+  },
+  {
+    "name": "paisa are exact (no floating point drift)",
+    "opening": { "month": "2026-01-01", "amount": 1000.1 },
+    "rows": [
+      { "date": "2026-03-02", "kind": "entry", "amount": 0.1 },
+      { "date": "2026-03-03", "kind": "entry", "amount": 0.2 },
+      { "date": "2026-03-04", "kind": "entry", "amount": 250.55 },
+      { "date": "2026-03-05", "kind": "entry", "amount": -0.05 }
+    ],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 1000.1, "entries": 250.8, "salary_deduction": 0, "generic_deduction": 0, "net": 1250.9 }
+  },
+  {
+    "name": "a negative balance is allowed",
+    "opening": { "month": "2026-01-01", "amount": -300 },
+    "rows": [{ "date": "2026-03-10", "kind": "entry", "amount": 100 }],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": -300, "entries": 100, "salary_deduction": 0, "generic_deduction": 0, "net": -200 }
+  },
+  {
+    "name": "rows in later months do not touch an earlier month",
+    "opening": { "month": "2026-01-01", "amount": 1000 },
+    "rows": [{ "date": "2026-06-10", "kind": "entry", "amount": 400 }],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 1000, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 1000 }
+  },
+  {
+    "name": "every earlier kind counts toward the previous balance, across a year end",
+    "opening": { "month": "2025-11-01", "amount": 100 },
+    "rows": [
+      { "date": "2025-12-15", "kind": "entry", "amount": 50 },
+      { "date": "2026-01-20", "kind": "entry", "amount": -20 },
+      { "date": "2026-02-28", "kind": "salary_deduction", "amount": -30 }
+    ],
+    "month": "2026-03-01",
+    "expect": { "listed": true, "prev": 100, "entries": 0, "salary_deduction": 0, "generic_deduction": 0, "net": 100 }
+  }
 ]
