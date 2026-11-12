@@ -70,3 +70,32 @@ export function safeEqual(a: string, b: string): boolean {
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return diff === 0;
 }
+
+// What the backup workflow may report. Everything is validated; nothing free-form is stored beyond a short error line.
+export type BackupReport = {
+  kind: 'daily' | 'weekly' | 'restore_drill'; status: 'ok' | 'failed'; day: string | null;
+  size: number | null; sha: string | null; manifest: Record<string, { rows: string; md5: string }> | null; error: string | null;
+};
+export function cleanBackupReport(b: Record<string, unknown> | null): BackupReport | null {
+  if (!b) return null;
+  const kind = b.kind, status = b.status;
+  if (kind !== 'daily' && kind !== 'weekly' && kind !== 'restore_drill') return null;
+  if (status !== 'ok' && status !== 'failed') return null;
+  const day = typeof b.day === 'string' && DATE.test(b.day) ? b.day : null;
+  const size = typeof b.size_bytes === 'number' && Number.isInteger(b.size_bytes) && b.size_bytes >= 0 && b.size_bytes < 1e12 ? b.size_bytes : null;
+  const sha = typeof b.sha256 === 'string' && /^[0-9a-f]{64}$/.test(b.sha256) ? b.sha256 : null;
+  let manifest: BackupReport['manifest'] = null;
+  if (b.manifest && typeof b.manifest === 'object') {
+    const entries = Object.entries(b.manifest as Record<string, unknown>);
+    if (entries.length > 200) return null;
+    manifest = {};
+    for (const [name, v] of entries) {
+      const o = v as Record<string, unknown>;
+      if (!/^[a-z0-9_.:]{1,80}$/.test(name) || typeof o?.rows !== 'string' || !/^\d{1,12}$/.test(o.rows) || typeof o?.md5 !== 'string' || !/^([0-9a-f]{32}|empty)$/.test(o.md5)) return null;
+      manifest[name] = { rows: o.rows, md5: o.md5 };
+    }
+  }
+  if (status === 'ok' && (!day || !size || !sha)) return null; // a success must say what it saved
+  const error = typeof b.error === 'string' ? b.error.slice(0, 500) : null;
+  return { kind, status, day, size, sha, manifest, error };
+}

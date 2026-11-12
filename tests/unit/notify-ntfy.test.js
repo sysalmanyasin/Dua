@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPublish,
+  cleanBackupReport,
   canEnqueue,
   cleanExternalPayload,
   messageFor,
@@ -76,5 +77,36 @@ describe('secret comparison', () => {
     expect(safeEqual('abcdef', 'abcdeg')).toBe(false);
     expect(safeEqual('abc', 'abcd')).toBe(false);
     expect(safeEqual('', '')).toBe(false);
+  });
+});
+
+describe('backup reports from the workflow', () => {
+  const sha = 'a'.repeat(64);
+  const good = {
+    kind: 'daily',
+    status: 'ok',
+    day: '2026-11-12',
+    size_bytes: 184552,
+    sha256: sha,
+    manifest: { 'table:sales': { rows: '5883', md5: 'b'.repeat(32) }, registry: { rows: '12', md5: 'empty' } },
+  };
+  it('accepts a complete success', () => {
+    expect(cleanBackupReport(good)).toMatchObject({ kind: 'daily', status: 'ok', size: 184552, sha });
+  });
+  it('accepts a failure with just an error line, and trims it', () => {
+    const r = cleanBackupReport({ kind: 'daily', status: 'failed', error: 'x'.repeat(900) });
+    expect(r.status).toBe('failed');
+    expect(r.error.length).toBe(500);
+  });
+  it('refuses a success that does not say what it saved', () => {
+    expect(cleanBackupReport({ kind: 'daily', status: 'ok', day: '2026-11-12' })).toBeNull();
+    expect(cleanBackupReport({ ...good, sha256: 'nope' })).toBeNull();
+  });
+  it('refuses unknown kinds, statuses and malformed manifests', () => {
+    expect(cleanBackupReport({ ...good, kind: 'hourly' })).toBeNull();
+    expect(cleanBackupReport({ ...good, status: 'maybe' })).toBeNull();
+    expect(cleanBackupReport({ ...good, manifest: { 'Bad Name': { rows: '1', md5: 'empty' } } })).toBeNull();
+    expect(cleanBackupReport({ ...good, manifest: { a: { rows: 'DROP', md5: 'empty' } } })).toBeNull();
+    expect(cleanBackupReport(null)).toBeNull();
   });
 });

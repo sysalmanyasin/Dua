@@ -3,7 +3,8 @@
 //
 // Two actions, each with its own secret (a leak of one cannot do what the other does):
 //   drain    called every minute by pg_cron when alerts are due. Header x-ops-secret = NOTIFY_DRAIN_SECRET.
-//   enqueue  called by the backup workflow to raise backup.failed / restore_drill.failed. Header x-ops-secret = OPS_REPORT_SECRET.
+//   enqueue        called by the backup workflow to raise backup.failed / restore_drill.failed. Header x-ops-secret = OPS_REPORT_SECRET.
+//   backup_report  called by the backup workflow with each result (ok or failed); stored in backup_log. Same secret.
 //
 // Secrets (Dashboard → Edge Functions → Secrets; never in Git):
 //   NTFY_TOPIC (works like a password), NOTIFY_DRAIN_SECRET, OPS_REPORT_SECRET
@@ -12,7 +13,7 @@
 // A missing secret is recorded as a failed notification with a plain reason; it is never silent.
 import { serviceClient } from '../_shared/clients.ts';
 import { json, readJson } from '../_shared/http.ts';
-import { buildPublish, canEnqueue, cleanExternalPayload, messageFor, safeEqual, scrubError, validServer } from '../_shared/ntfy.ts';
+import { buildPublish, canEnqueue, cleanBackupReport, cleanExternalPayload, messageFor, safeEqual, scrubError, validServer } from '../_shared/ntfy.ts';
 
 type Row = { id: string; kind: string; payload: Record<string, unknown> };
 
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
   const body = await readJson(req);
   const action = body?.action;
   const given = req.headers.get('x-ops-secret') ?? '';
-  const need = action === 'drain' ? 'NOTIFY_DRAIN_SECRET' : action === 'enqueue' ? 'OPS_REPORT_SECRET' : null;
+  const need = action === 'drain' ? 'NOTIFY_DRAIN_SECRET' : action === 'enqueue' || action === 'backup_report' ? 'OPS_REPORT_SECRET' : null;
   if (!need) return json(req, 400, { error: 'unknown action' });
   const expected = Deno.env.get(need) ?? '';
   if (!expected) return json(req, 500, { error: 'not configured' }); // fails closed; the cron call shows as undelivered on the Cover
@@ -67,6 +68,15 @@ Deno.serve(async (req) => {
       if (error) return json(req, 500, { error: 'could not queue' });
       const res = await drain();
       return json(req, 200, { queued: data !== null, ...res });
+    }
+    if (action === 'backup_report') {
+      const r = cleanBackupReport(body);
+      if (!r) return json(req, 400, { error: 'invalid report' });
+      const { error } = await serviceClient().rpc('backup_report', {
+        p_kind: r.kind, p_status: r.status, p_day: r.day, p_size: r.size, p_sha: r.sha, p_manifest: r.manifest, p_error: r.error,
+      });
+      if (error) return json(req, 500, { error: 'could not record' });
+      return json(req, 200, { recorded: true, ...(await drain()) });
     }
     return json(req, 200, await drain());
   } catch (e) {
