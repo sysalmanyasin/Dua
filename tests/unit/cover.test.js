@@ -82,7 +82,7 @@ describe('owner alerts in needs attention', () => {
   it('puts failed and unsent alerts first, with a link for people who can view them', () => {
     const t = buildAttention(full, ['notifications.view'], 9, alerts);
     expect(t[0]).toMatchObject({ id: 'alert-a1', text: 'The daily backup failed (the alert could not be delivered)' });
-    expect(t[0].action).toMatchObject({ href: '#/tools/notifications' });
+    expect(t[0].action).toMatchObject({ href: '#/tools' });
     expect(t[1].text).toContain('has not been sent yet');
     expect(t.at(2).id).toBe('alert-more');
   });
