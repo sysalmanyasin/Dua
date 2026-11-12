@@ -28,6 +28,17 @@ insert into public.profiles(user_id, staff_id, username, role_template) values
  ('00000000-0000-0000-0000-0000000000b1','10000000-0000-0000-0000-000000000001','junior1','junior'),
  ('00000000-0000-0000-0000-0000000000b2','10000000-0000-0000-0000-000000000002','junior2','junior');
 
+-- 0. the opening closing (CLS-10): an admin enters the first closing; everything else follows it
+do $t$ declare r jsonb; begin
+  perform pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
+  r := public.closing_start_opening('e0000000-0000-0000-0000-000000000001', current_date - 6, 'evening');
+  insert into memo values ('opening', r ->> 'closing_id');
+  -- the till holds exactly the Rs 45,000 float (9 x 5000), so the opening's Liquid is 0 and the next closing carries 0 cash
+  perform public.closing_save_draft('e0000000-0000-0000-0000-000000000001', current_date - 6, 'evening', 'final', '{"till": [9,0,0,0,0,0,0,0]}');
+  perform public.closing_submit('e0000000-0000-0000-0000-000000000001');
+  reset role;
+end $t$;
+
 -- 1. drafts: idempotent, private, validated
 do $t$ declare r jsonb; r2 jsonb; n int; begin
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
@@ -41,10 +52,10 @@ do $t$ declare r jsonb; r2 jsonb; n int; begin
   perform pg_temp.ok(r ->> 'status' = 'draft', 'first save creates a draft');
   r2 := public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"sys_cash": 100000}');
   perform pg_temp.ok(r2 ->> 'closing_id' = r ->> 'closing_id', 'saving again with the same key is the same closing');
-  select count(*) into n from public.closing_slots; perform pg_temp.ok(n = 1, 'and still one slot');
+  select count(*) into n from public.closing_slots; perform pg_temp.ok(n = 2, 'and still one slot for it (plus the opening''s)');
   select count(*) into n from public.closing_credit_lines; perform pg_temp.ok(n = 2, 'a save that omits a section keeps its rows (1 named + 1 tier)');
-  perform pg_temp.ok((select responsible_staff_id from public.closings) = '10000000-0000-0000-0000-000000000001', 'responsible staff defaults to the person entering');
-  perform pg_temp.ok((select prev_cash from public.closings) = 0 and (select source_closing_id from public.closings) is null, 'first ever closing carries nothing');
+  perform pg_temp.ok((select responsible_staff_id from public.closings where not is_opening) = '10000000-0000-0000-0000-000000000001', 'responsible staff defaults to the person entering');
+  perform pg_temp.ok((select prev_cash from public.closings where not is_opening) = 0 and (select source_closing_id from public.closings where not is_opening) = (select v::uuid from memo where k = 'opening'), 'the first closing after an opening with 0 Liquid carries zeros, from the opening');
   reset role;
 
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
@@ -54,17 +65,17 @@ do $t$ declare r jsonb; r2 jsonb; n int; begin
   reset role;
 
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"sys_cash": "abc"}')$q$, 'a non-number amount is refused, not turned into 0', 'invalid amount');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"sys_cash": 1e12}')$q$, 'an absurd amount is refused', 'too large');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"till": [1,2,3,4,5,6,7,8,9]}')$q$, 'more than 8 denominations is refused', 'invalid cash');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"till": [-1,0,0,0,0,0,0,0]}')$q$, 'a negative note count is refused', 'invalid quantity');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"hs": "nope"}')$q$, 'rows that are not a list are refused', 'invalid rows');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"credit": {"tier": [{},{},{},{}]}}')$q$, 'a fourth tier slot is refused', 'at most 3');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"sys_cash": "abc"}', null, 2)$q$, 'a non-number amount is refused, not turned into 0', 'invalid amount');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"sys_cash": 1e12}', null, 2)$q$, 'an absurd amount is refused', 'too large');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"till": [1,2,3,4,5,6,7,8,9]}', null, 2)$q$, 'more than 8 denominations is refused', 'invalid cash');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"till": [-1,0,0,0,0,0,0,0]}', null, 2)$q$, 'a negative note count is refused', 'invalid quantity');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"hs": "nope"}', null, 2)$q$, 'rows that are not a list are refused', 'invalid rows');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"credit": {"tier": [{},{},{},{}]}}', null, 2)$q$, 'a fourth tier slot is refused', 'at most 3');
   perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000009', current_date + 30, 'night', 'shift', '{}')$q$, 'a far-future date is refused', 'out of range');
   perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000009', current_date - 5, 'lunch', 'shift', '{}')$q$, 'an unknown slot kind is refused', 'invalid slot');
   perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 4, 'night', 'shift', '{}')$q$, 'a key cannot be moved to another slot', 'another slot');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000009', current_date - 5, 'morning', 'shift', '{"responsible_staff_id":"99999999-0000-0000-0000-000000000000"}')$q$, 'an unknown responsible staff member is refused', 'not found');
-  select count(*) into n from public.closings; perform pg_temp.ok(n = 1, 'a refused save leaves no stray closing behind');
+  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000009', current_date - 5, 'morning', 'final', '{"responsible_staff_id":"99999999-0000-0000-0000-000000000000"}')$q$, 'an unknown responsible staff member is refused', 'not found');
+  select count(*) into n from public.closings; perform pg_temp.ok(n = 1, 'a refused save leaves no stray closing behind (the junior sees only their own)');
   reset role;
 end $t$;
 
@@ -85,7 +96,7 @@ do $t$ declare r jsonb; r2 jsonb; n int; begin
     and (r -> 'result' ->> 'liquid')::numeric = 9600, 'the stored result matches the hand-worked figures');
   r2 := public.closing_submit('a0000000-0000-0000-0000-000000000001');
   perform pg_temp.ok((r2 ->> 'already') = 'true' and r2 ->> 'closing_id' = r ->> 'closing_id', 'submitting again returns the same answer');
-  select count(*) into n from public.closing_results; perform pg_temp.ok(n = 1, 'and stores only one result');
+  select count(*) into n from public.closing_results; perform pg_temp.ok(n = 1, 'and stores only one result for it (the junior sees only their own)');
   perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{"sys_cash": 1}')$q$, 'a submitted closing cannot be saved over', 'locked');
   reset role;
   select count(*) into n from public.activity_log where action = 'closing.submitted'; perform pg_temp.ok(n = 1, 'the submit is logged exactly once');
@@ -123,8 +134,8 @@ end $t$;
 -- 4. handover slots and the slot calendar
 do $t$ declare r jsonb; begin
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
-  perform public.closing_save_draft('a0000000-0000-0000-0000-000000000021', current_date - 3, 'handover', 'shift', '{}');
-  perform public.closing_save_draft('a0000000-0000-0000-0000-000000000022', current_date - 3, 'handover', 'shift', '{}');
+  perform public.closing_save_draft('a0000000-0000-0000-0000-000000000021', current_date - 3, 'handover', 'final', '{}');
+  perform public.closing_save_draft('a0000000-0000-0000-0000-000000000022', current_date - 3, 'handover', 'final', '{}');
   perform pg_temp.ok((select array_agg(seq order by seq) from public.closing_slots where business_date = current_date - 3) = array[30, 40], 'handovers take positions 30 and 40');
   reset role;
 end $t$;

@@ -196,9 +196,9 @@ do $t$ declare n int; begin
   perform pg_temp.fails($q$select public.closing_write_result('30000000-0000-0000-0000-000000000001')$q$, 'a second result for the same closing is refused', 'duplicate');
 end $t$;
 
--- 8. one live closing per slot; a correction needs a reason; a superseded one stays
+-- 8. one submitted closing per slot; a correction needs a reason; a superseded one stays
 do $t$ begin
-  perform pg_temp.fails($q$insert into public.closings (slot_id, entered_by, idempotency_key, revision, supersedes_id, correction_reason) values ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', gen_random_uuid(), 2, '30000000-0000-0000-0000-000000000001', 'typo')$q$, 'a correction cannot be live beside its submitted original', 'one_live');
+  perform pg_temp.fails($q$insert into public.closings (slot_id, entered_by, idempotency_key, revision, supersedes_id, correction_reason, status, submitted_at) values ('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', gen_random_uuid(), 2, '30000000-0000-0000-0000-000000000001', 'typo', 'submitted', now())$q$, 'a submitted correction cannot sit beside its submitted original (a draft revision may, see 0203)', 'one_submitted');
   perform pg_temp.fails($q$insert into public.closings (slot_id, entered_by, idempotency_key, revision) values ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000000b1', gen_random_uuid(), 2)$q$, 'a revision without a reason and a link is refused', 'check');
   perform pg_temp.fails($q$insert into public.closings (slot_id, entered_by, idempotency_key, revision, supersedes_id, correction_reason) values ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000000b1', gen_random_uuid(), 2, '30000000-0000-0000-0000-000000000001', '   ')$q$, 'a blank correction reason is refused', 'check');
   perform pg_temp.fails($q$insert into public.closings (slot_id, entered_by, idempotency_key) values ('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000000b1', '40000000-0000-0000-0000-000000000002')$q$, 'the same idempotency key cannot create a second closing', 'unique');
