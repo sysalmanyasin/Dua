@@ -59,9 +59,35 @@ export function buildKpis(summary) {
   return cards;
 }
 
+const ALERT_TEXT = {
+  'closing.submitted': 'A closing was submitted',
+  'inventory.sync_stale': 'The inventory feed is late',
+  'inventory.sync_failed': 'The inventory sync failed',
+  'backup.failed': 'The daily backup failed',
+  'backup.stale': 'There is no recent backup',
+  'restore_drill.failed': 'The restore drill failed',
+};
+
+// Owner alerts that failed to send, or are still unsent after a while. `alerts` is notifications_attention() (or null).
+export function buildAlertItems(alerts, perms) {
+  if (!alerts || !Array.isArray(alerts.items)) return [];
+  const out = alerts.items.map((n) => {
+    const what = ALERT_TEXT[n.kind] ?? `Alert: ${n.kind}`;
+    const note = n.status === 'failed' ? 'the alert could not be delivered' : 'the alert has not been sent yet';
+    return {
+      id: `alert-${n.id}`,
+      text: `${what} (${note})`,
+      action: perms.includes('notifications.view') ? { label: 'Review', href: '#/tools/notifications' } : null,
+    };
+  });
+  const more = Number(alerts.failed ?? 0) + Number(alerts.stuck ?? 0) - out.length;
+  if (more > 0) out.push({ id: 'alert-more', text: `${more} more alert${more === 1 ? '' : 's'} need a look`, action: null });
+  return out;
+}
+
 // Things that need doing, most urgent first.
-export function buildAttention(summary, perms, hourPkt) {
-  const items = [];
+export function buildAttention(summary, perms, hourPkt, alerts = null) {
+  const items = buildAlertItems(alerts, perms);
   const can = (p) => perms.includes(p);
   const s = summary?.sales;
   for (const d of s?.missing_days ?? []) {
