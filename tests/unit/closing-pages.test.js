@@ -178,6 +178,14 @@ describe('Closing ledger', () => {
     type(el.querySelector('[data-list="strips"][data-k="qty"]'), '3');
     expect(el.querySelector('[data-total="strips"]').textContent).toBe('360.00');
   });
+  it('marks the section you are on in the jump bar', async () => {
+    openTarget();
+    await ledger();
+    expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+    el.querySelector('[data-jump="2"]').click();
+    expect(el.querySelector('[data-jump="2"]').getAttribute('aria-current')).toBe('step');
+    expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('false');
+  });
   it('shows later sections as not built yet and has no Submit button', async () => {
     openTarget();
     await ledger();

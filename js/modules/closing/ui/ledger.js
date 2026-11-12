@@ -405,7 +405,7 @@ export async function mount(el) {
                 html`<button
                   type="button"
                   data-jump="${i}"
-                  ${i === S.section ? 'aria-current="step"' : ''}
+                  aria-current="${i === S.section ? 'step' : 'false'}"
                   class="${s.built ? '' : 'is-later'}"
                 >
                   ${i + 1} ${s.label}
