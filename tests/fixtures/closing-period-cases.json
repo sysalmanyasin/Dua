@@ -38,15 +38,8 @@
         "shift_sale": 45000,
         "customers": 30,
         "ret_system": 10,
-        "ret_manual": [
-          100,
-          0,
-          0
-        ],
-        "book": [
-          200,
-          0
-        ],
+        "ret_manual": [100, 0, 0],
+        "book": [200, 0],
         "extra_cash": 300,
         "mediq_extra": 40
       },
@@ -58,15 +51,8 @@
         "shift_sale": 20000,
         "customers": 10,
         "ret_system": 5,
-        "ret_manual": [
-          50,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [50, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       },
@@ -78,15 +64,8 @@
         "shift_sale": 30000,
         "customers": 15,
         "ret_system": 0,
-        "ret_manual": [
-          0,
-          25,
-          0
-        ],
-        "book": [
-          100,
-          0
-        ],
+        "ret_manual": [0, 25, 0],
+        "book": [100, 0],
         "extra_cash": 70,
         "mediq_extra": 10
       }
@@ -126,15 +105,8 @@
         "shift_sale": 40000,
         "customers": 20,
         "ret_system": 4,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       },
@@ -146,15 +118,8 @@
         "shift_sale": 25000,
         "customers": 12,
         "ret_system": 8,
-        "ret_manual": [
-          30,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          50
-        ],
+        "ret_manual": [30, 0, 0],
+        "book": [0, 50],
         "extra_cash": 10,
         "mediq_extra": 5
       },
@@ -166,15 +131,8 @@
         "shift_sale": 15000,
         "customers": 9,
         "ret_system": 3,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       },
@@ -186,15 +144,8 @@
         "shift_sale": 12000,
         "customers": 7,
         "ret_system": 2,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       },
@@ -206,15 +157,8 @@
         "shift_sale": 6000,
         "customers": 4,
         "ret_system": 1,
-        "ret_manual": [
-          0,
-          0,
-          5
-        ],
-        "book": [
-          7,
-          0
-        ],
+        "ret_manual": [0, 0, 5],
+        "book": [7, 0],
         "extra_cash": 2,
         "mediq_extra": 0
       }
@@ -254,15 +198,8 @@
         "shift_sale": 18000,
         "customers": 11,
         "ret_system": 2,
-        "ret_manual": [
-          10,
-          10,
-          10
-        ],
-        "book": [
-          5,
-          5
-        ],
+        "ret_manual": [10, 10, 10],
+        "book": [5, 5],
         "extra_cash": 7,
         "mediq_extra": 3
       },
@@ -274,15 +211,8 @@
         "shift_sale": 9000,
         "customers": 6,
         "ret_system": 1,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 1
       }
@@ -322,15 +252,8 @@
         "shift_sale": 900000,
         "customers": 500,
         "ret_system": 100,
-        "ret_manual": [
-          1000,
-          0,
-          0
-        ],
-        "book": [
-          1000,
-          0
-        ],
+        "ret_manual": [1000, 0, 0],
+        "book": [1000, 0],
         "extra_cash": 1000,
         "mediq_extra": 1000
       },
@@ -342,15 +265,8 @@
         "shift_sale": 10000,
         "customers": 5,
         "ret_system": 1,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       },
@@ -362,15 +278,8 @@
         "shift_sale": 20000,
         "customers": 10,
         "ret_system": 2,
-        "ret_manual": [
-          3,
-          0,
-          0
-        ],
-        "book": [
-          4,
-          0
-        ],
+        "ret_manual": [3, 0, 0],
+        "book": [4, 0],
         "extra_cash": 5,
         "mediq_extra": 6,
         "old_revision": {
@@ -386,15 +295,8 @@
         "shift_sale": 55555,
         "customers": 55,
         "ret_system": 0,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       },
@@ -406,15 +308,8 @@
         "shift_sale": 99999,
         "customers": 99,
         "ret_system": 0,
-        "ret_manual": [
-          0,
-          0,
-          0
-        ],
-        "book": [
-          0,
-          0
-        ],
+        "ret_manual": [0, 0, 0],
+        "book": [0, 0],
         "extra_cash": 0,
         "mediq_extra": 0
       }
