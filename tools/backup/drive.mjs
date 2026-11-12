@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { KEEP_DAILY, KEEP_WEEKLY, backupName, isSunday, selectForDeletion } from './retention.mjs';
+import { BACKUP_NAME, KEEP_DAILY, KEEP_WEEKLY, isSunday, selectForDeletion } from './retention.mjs';
 
 const API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
@@ -14,8 +14,8 @@ const FOLDER = 'application/vnd.google-apps.folder';
 export async function runUpload({ fetchFn = fetch, env = process.env, outDir = env.OUT_DIR } = {}) {
   for (const k of ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'GOOGLE_REFRESH_TOKEN']) if (!env[k]) throw new Error(`${k} is not set`);
   const result = JSON.parse(readFileSync(join(outDir, 'result.json'), 'utf8'));
-  const name = backupName(result.day);
-  if (result.file !== name) throw new Error('result.json does not match the backup file name');
+  const name = result.file;
+  if (!BACKUP_NAME.test(name) || !name.includes(result.day)) throw new Error('result.json does not match the backup file name');
   const bytes = readFileSync(join(outDir, name));
   const md5 = createHash('md5').update(bytes).digest('hex');
 

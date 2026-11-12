@@ -1,9 +1,9 @@
 // Backup retention rules (Foundation F7). Pure functions, unit tested.
 export const KEEP_DAILY = 30;
 export const KEEP_WEEKLY = 12;
-export const BACKUP_NAME = /^dua-(\d{4}-\d{2}-\d{2})\.tar\.age$/;
+export const BACKUP_NAME = /^dua-(\d{4}-\d{2}-\d{2})\.tar\.(age|gpg)$/;
 
-export const backupName = (day) => `dua-${day}.tar.age`;
+export const backupName = (day, ext = 'age') => `dua-${day}.tar.${ext}`;
 export const isSunday = (day) => new Date(`${day}T00:00:00Z`).getUTCDay() === 0;
 
 // Which files to delete so only the newest `keep` remain. Only files named like our backups are ever considered,

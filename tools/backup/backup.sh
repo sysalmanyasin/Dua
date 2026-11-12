@@ -3,13 +3,24 @@
 # Takes a consistent snapshot, dumps public + auth + supabase_migrations, fingerprints the same snapshot, then encrypts
 # everything to a public key. The private key is never on the runner, so a leak of the runner cannot read old backups.
 #
-# Needs (environment): SUPABASE_DB_URL (session-mode pooler URL), BACKUP_AGE_RECIPIENT (age public key, starts with age1)
+# Needs (environment): SUPABASE_DB_URL (session-mode pooler URL) and ONE of:
+#   BACKUP_AGE_RECIPIENT  an age public key (age1...). Best: the private key stays offline, so the runner can never read old backups.
+#   BACKUP_PASSPHRASE     a long passphrase (20+ characters), used when no key pair is available. The runner holds it, so keep the
+#                         GitHub environment locked to main. File is gpg symmetric AES-256 (authenticated), named .tar.gpg.
 # Optional: OUT_DIR (default: a temp dir), BACKUP_DAY (YYYY-MM-DD, default: today UTC)
 # Writes:   $OUT_DIR/dua-<day>.tar.age and $OUT_DIR/result.json (size, hashes and the manifest; no business values)
 set -euo pipefail
 umask 077
-: "${SUPABASE_DB_URL:?SUPABASE_DB_URL is not set}" "${BACKUP_AGE_RECIPIENT:?BACKUP_AGE_RECIPIENT is not set}"
-case "$BACKUP_AGE_RECIPIENT" in age1*) ;; *) echo "BACKUP_AGE_RECIPIENT must be an age public key (age1...)" >&2; exit 2;; esac
+: "${SUPABASE_DB_URL:?SUPABASE_DB_URL is not set}"
+if [ -n "${BACKUP_AGE_RECIPIENT:-}" ]; then
+  case "$BACKUP_AGE_RECIPIENT" in age1*) ;; *) echo "BACKUP_AGE_RECIPIENT must be an age public key (age1...)" >&2; exit 2;; esac
+  EXT=age
+elif [ -n "${BACKUP_PASSPHRASE:-}" ]; then
+  [ "${#BACKUP_PASSPHRASE}" -ge 20 ] || { echo "BACKUP_PASSPHRASE must be at least 20 characters" >&2; exit 2; }
+  EXT=gpg
+else
+  echo "Set BACKUP_AGE_RECIPIENT (preferred) or BACKUP_PASSPHRASE" >&2; exit 2
+fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT_DIR="${OUT_DIR:-$(mktemp -d)}"; mkdir -p "$OUT_DIR"
 DAY="${BACKUP_DAY:-$(date -u +%F)}"
@@ -38,8 +49,13 @@ TABLES=$(grep -c '^table:' "$WORK/manifest.txt" || true)
 if [ "$SIZE_DUMP" -lt 20000 ] || [ "$TABLES" -lt 5 ]; then echo "dump looks too small ($SIZE_DUMP bytes, $TABLES tables)" >&2; exit 1; fi
 
 printf '{"day":"%s","pg_dump":"%s"}\n' "$DAY" "$(pg_dump --version | tr -d '\n')" > "$WORK/meta.json"
-OUT="$OUT_DIR/dua-$DAY.tar.age"
-tar -C "$WORK" -cf - dua.dump manifest.txt meta.json | age -r "$BACKUP_AGE_RECIPIENT" -o "$OUT"
+OUT="$OUT_DIR/dua-$DAY.tar.$EXT"
+if [ "$EXT" = "age" ]; then
+  tar -C "$WORK" -cf - dua.dump manifest.txt meta.json | age -r "$BACKUP_AGE_RECIPIENT" -o "$OUT"
+else
+  tar -C "$WORK" -cf - dua.dump manifest.txt meta.json | gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 3 \
+    --symmetric --cipher-algo AES256 --s2k-mode 3 --s2k-count 65011712 --compress-algo none -o "$OUT" 3<<<"$BACKUP_PASSPHRASE"
+fi
 
 python3 - "$OUT" "$WORK/manifest.txt" "$OUT_DIR/result.json" "$DAY" <<'PY'
 import hashlib, json, os, sys

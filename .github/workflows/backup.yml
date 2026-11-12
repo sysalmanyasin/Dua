@@ -1,4 +1,5 @@
 # Daily encrypted database backup to Google Drive (Foundation F7). Runs 18:00 Pakistan time (13:00 UTC).
+# Encryption: an age public key (variable BACKUP_AGE_RECIPIENT) if set, otherwise the secret BACKUP_PASSPHRASE.
 # Public repository: nothing here prints a secret, and the job only runs on main, in the protected "backup" environment.
 # Setup steps and the restore drill are in docs/RUNBOOK.md ("Backups").
 name: Daily backup
@@ -44,6 +45,7 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: bash tools/backup/backup.sh
 
       - name: Upload to Google Drive and prune

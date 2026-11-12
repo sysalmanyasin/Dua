@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Restore a backup into a SEPARATE database and prove it matches what was backed up (Foundation F7 restore drill).
 # Usage: restore-test.sh BACKUP.tar.age AGE_IDENTITY_FILE TARGET_DB_URL
+#        restore-test.sh BACKUP.tar.gpg -               TARGET_DB_URL   (passphrase in the environment variable BACKUP_PASSPHRASE)
 #   MODE=local     (default) an empty plain Postgres; creates the Supabase roles it needs
 #   MODE=supabase  a fresh, empty Supabase project: auth rows first (data only), then public + migrations
 # It refuses to touch the live project, and prints names and PASS/FAIL only, never row values.
@@ -12,7 +13,12 @@ BLOCK="${PROD_REF_BLOCK:-sdsynzsflubdxnelgthh}"
 case "$TARGET" in *"$BLOCK"*) echo "REFUSING: the target looks like the live project" >&2; exit 2;; esac
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
-age -d -i "$IDENT" "$BACKUP" | tar -C "$WORK" -xf -
+case "$BACKUP" in
+  *.tar.age) age -d -i "$IDENT" "$BACKUP" | tar -C "$WORK" -xf - ;;
+  *.tar.gpg) : "${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE for a .tar.gpg backup}"
+             gpg --batch --quiet --pinentry-mode loopback --passphrase-fd 3 -d "$BACKUP" 3<<<"$BACKUP_PASSPHRASE" | tar -C "$WORK" -xf - ;;
+  *) echo "unknown backup file type" >&2; exit 2 ;;
+esac
 [ -s "$WORK/dua.dump" ] && [ -s "$WORK/manifest.txt" ] || { echo "FAIL: backup is missing its dump or manifest" >&2; exit 1; }
 
 empty=$(psql "$TARGET" -qAtX -c "select count(*) from information_schema.tables where table_schema = 'public'")

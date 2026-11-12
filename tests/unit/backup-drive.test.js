@@ -35,6 +35,11 @@ describe('retention', () => {
     expect(selectForDeletion(files(days(35)), 30, backupName('2026-01-01'))).toHaveLength(4);
     for (const bad of [0, -1, 1.5, NaN, undefined]) expect(selectForDeletion(files(days(35)), bad)).toEqual([]);
   });
+  it('treats passphrase (.gpg) backups the same as key (.age) backups', () => {
+    const mixed = [...files(days(31)), ...days(2, '2026-02-01').map((d) => ({ id: `g-${d}`, name: backupName(d, 'gpg') }))];
+    expect(selectForDeletion(mixed, 30).map((f) => f.name)).toHaveLength(3);
+    expect(backupName('2026-11-12', 'gpg')).toBe('dua-2026-11-12.tar.gpg');
+  });
   it('knows which days are Sundays', () => {
     expect(isSunday('2026-11-15')).toBe(true);
     expect(isSunday('2026-11-12')).toBe(false);
@@ -105,11 +110,11 @@ function fakeDrive({ corruptUpload = false, tokenStatus = 200, existing = [] } =
   return { fetchFn, items, log };
 }
 
-function stage(day) {
+function stage(day, ext = 'age') {
   const dir = mkdtempSync(join(tmpdir(), 'bk-'));
   const bytes = Buffer.from(`encrypted-${day}`.repeat(50));
-  writeFileSync(join(dir, backupName(day)), bytes);
-  writeFileSync(join(dir, 'result.json'), JSON.stringify({ day, file: backupName(day) }));
+  writeFileSync(join(dir, backupName(day, ext)), bytes);
+  writeFileSync(join(dir, 'result.json'), JSON.stringify({ day, file: backupName(day, ext) }));
   return dir;
 }
 const env = { GOOGLE_CLIENT_ID: 'id', GOOGLE_CLIENT_SECRET: 'secret', GOOGLE_REFRESH_TOKEN: 'refresh' };
@@ -135,6 +140,17 @@ describe('drive upload', () => {
     await runUpload({ fetchFn: d.fetchFn, env, outDir: dir });
     expect(d.items.filter((i) => i.folder)).toHaveLength(3);
     expect(d.items.filter((i) => i.name === 'dua-2026-11-12.tar.age')).toHaveLength(1);
+  });
+  it('uploads a passphrase-mode (.gpg) backup under its own name', async () => {
+    const d = fakeDrive();
+    const dir = stage('2026-11-12', 'gpg');
+    const s = await runUpload({ fetchFn: d.fetchFn, env, outDir: dir });
+    expect(s.uploaded).toBe('dua-2026-11-12.tar.gpg');
+  });
+  it('refuses a result file whose name is not a backup name', async () => {
+    const dir = stage('2026-11-12');
+    writeFileSync(join(dir, 'result.json'), JSON.stringify({ day: '2026-11-12', file: '../../etc/passwd' }));
+    await expect(runUpload({ fetchFn: fakeDrive().fetchFn, env, outDir: dir })).rejects.toThrow(/does not match/);
   });
   it('copies Sunday backups to weekly', async () => {
     const d = fakeDrive();
