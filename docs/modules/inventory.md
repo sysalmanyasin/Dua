@@ -104,10 +104,10 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 | INV-10 | Never Sold and Dead Stock default window 60 days, adjustable on the screen | Accepted (owner, 12 Nov 2026) |
 | INV-11 | No Pause/Resume switch and no timers: refresh on opening a screen, on returning to the tab after 15 minutes, and by hand | Accepted (owner, 12 Nov 2026; 15 minutes, the suggested default was 5) |
 | INV-12 | Inventory owns the feed from now on (migrations, `sync-inventory-from-dropbox`, the cron job); Foundation keeps F6 and F4 | Accepted (owner, 12 Nov 2026) |
-| INV-13 | "Inventory related" includes the STR screens (list and detail, Report, Zero Dispatch, and the in-transit figure Reorder needs). Placement (module `str` or under `/inventory`) is open: question STR-Q1 in the progress file | Accepted in scope (owner, 12 Nov 2026); placement **Open** |
+| INV-13 | "Inventory related" includes the STR screens (list and detail, Report, Zero Dispatch, and the in-transit figure Reorder needs). Placement decided 12 Nov 2026: a **separate `str` module** (`/str`, `str_`, 0500–0599) reusing the Inventory local copy; permission `str.view` for all STR viewing; `inventory_in_transit()` (Reorder) approved. See the progress file | Accepted (owner, 12 Nov 2026) |
 | INV-14 | Product-level sales quantity and value may sit on the phones of `inventory.view` users | Accepted (owner, 12 Nov 2026) |
 | INV-15 | The local copy is wiped at sign-out (about 1–1.4 MB again on the next sign-in) | Accepted (owner, 12 Nov 2026) |
-| INV-16 | Delta pages are capped at 1,000 entries (work order said 200, design said 2,000); one compact JSON document per page | **Proposed** (builder), please confirm |
+| INV-16 | Delta pages are capped at 1,000 entries (work order said 200, design said 2,000); one compact JSON document per page | Accepted (owner, 12 Nov 2026) |
 
 ## 9. Slices
 
@@ -142,3 +142,5 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 - Phones read `inventory_changes_stock(p_since, p_limit)` and, with `inventory.view`, `inventory_changes_sales(...)`: one JSON document `{reset, cols, rows, removed, next, done, seq, activeCount}` per page. Save `next` only after the page is stored; `reset = true`, a different `schema_version` or a row count that differs from `activeCount` means wipe and reload.
 - Edge Function (repo copy only, not deployed): `content_hash` shortcut, 409 busy, 422 refused, body flags `recheck` and `confirmRemoval`.
 - Not done: A5 (two days of real hourly runs; the open question whether Candela writes a timestamp into the file every hour), the "Sync now" button, all screens, the STR slice. Open decisions: INV-16 (page cap) and STR-Q1 (where the STR screens live).
+
+**Update, 12 Nov 2026 (later): everything above is now applied and verified live.** Migrations `0301`–`0304` are in the live registry; the Edge Function is deployed (v14); five hourly syncs ran on the new feed without a failure. Two flaws were found and fixed on the way (`0303` heartbeat for Foundation's 3-hour watchdog, `0304` counter renumbering); details in `docs/modules/inventory.progress.md`. A phone can now install the whole product list through `inventory_changes_stock` (6 pages, about 1 MB) and, with `inventory.view`, the sales figures (about 0.5 MB more). Next: I-B, the local copy on the phone and the reorder maths.

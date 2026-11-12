@@ -1,6 +1,6 @@
 # Inventory — progress
 
-Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). Nothing from this session has been applied to the live project.
+Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0304 and the Edge Function (v14) are applied and verified live** (12 Nov 2026, owner instruction: "apply by yourself").
 
 ## Session I-A (12 Nov 2026)
 
@@ -20,20 +20,35 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 - Whole sync call about 0.2–0.25 s at 6,000 rows (includes building the test payload).
 - Two real sessions: the second `inventory_apply_sync` while the first holds the lock returns `{"ok": false, "busy": true}` and writes nothing; it runs normally afterwards.
 
-### Ready to apply (owner, by hand, in this order — RUNBOOK §4 step 3)
+### Applied live (12 Nov 2026, by hand, registered under the repo numbers)
 
-1. `0301_inventory_interfaces.sql` — safe to apply alone. Unblocks Closing Session E (audit card).
-2. `0302_inventory_delta_feed.sql` — the live registry still holds the two timestamp rows (`inventory_feed`, `enable_cron_and_net`), so F6 is **not** done: register by hand under `0301` / `0302`, never let a tool choose a version.
-   - Before applying, the owner may want a backup of `inventory_products` (it is rebuilt hourly, so loss is harmless).
-   - The migration deletes rows with a blank code and keeps one row per duplicate code. The live table has none today; the next hourly sync would restore anything removed.
-   - Existing rows get counter 1 in both groups; no phone has a copy yet, so nothing needs a reset.
-   - The currently deployed Edge Function keeps working after 0302 (same first three arguments, same answer keys). Redeploy the repo copy afterwards to get the `content_hash` shortcut.
-3. Redeploy `sync-inventory-from-dropbox` from the repo copy (by hand). The deployed copy inlines `_shared/clients.ts` and `_shared/http.ts` into one file; do the same.
-4. Run it once by hand: a second run straight after should answer `{"result":"unchanged","skipped":true}`.
+| Version | What | Verified |
+|---|---|---|
+| `0301` | permission, wrapped policies, `inventory_balances`, `inventory_search` | source and policy hashes equal the repo; no grant to `anon` or `public` |
+| `0302` | the changed-rows-only feed | all 12 function hashes equal the repo (the live `inventory_apply_sync` first lacked 8 comment lines; restored, hash now identical) |
+| `0303` | heartbeat log row (see "Found while applying") | hash equal; 3 mutations caught |
+| `0304` | renumber counters 1..N and unique counter indexes (see "Found while applying") | 5,883 distinct counters, indexes present |
+| Edge Function `sync-inventory-from-dropbox` v14 | hash shortcut, busy/refused answers | `verify_jwt` stays `false`; ran from the same call as the hourly job |
 
-## Deviations from the work order (please confirm)
+Live registry now: `0001`–`0012`, `0301`–`0304`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
 
-- **Delta page cap is 1,000 entries, not 200** (work order §6.5) **and not 2,000** (design §8). A page is one compact JSON document (about 165 KB at 1,000 stock rows), so PostgREST's 1,000-row limit does not apply, and a first install is 6 requests instead of 30. It is a single constant in each function; say the word and I change it. Proposed as **INV-16**.
+**Live evidence after the deploy** (hourly runs 08:00–12:00 UTC, plus manual runs through the same call the cron job makes):
+- 5 hourly syncs, all `ok`; each changed only 41–68 rows of 5,883 (before 0302 every sync rewrote all 5,883). No failures, no watchdog alerts.
+- Counters consistent: highest row counter equals the state counter; 5,883 distinct values.
+- A full first install through the feed, as a signed-in senior: 6 pages, 5,883 distinct products, 977 KB (stock) + 540 KB (sales, owner only) ≈ 1.5 MB, about 100 ms of server time.
+- Hash shortcut proven live: second call with the same file answered `{"result":"unchanged","skipped":true}`, moved only the "checked at" time, wrote no log row.
+- Refusals proven live inside a rolled-back test: a senior cannot read the sales feed, a sales column directly, `select *`, the state table, or call `inventory_apply_sync`; an owner without MFA gets nothing.
+- The file changes every hour with real row changes (about 1% of rows), so it does not carry an hourly timestamp; the hash shortcut will mostly fire at night and on quiet days.
+
+### Found while applying (both fixed, both with tests)
+
+1. **Watchdog false alarm (found by reading Foundation's `0012`).** `ops_check_inventory_feed` alerts when the log has no `ok` row for 3 hours. An unchanged file now skips the sync without a log row, which would have looked like a dead feed. `0303`: a scheduled unchanged check writes one `ok/unchanged` heartbeat row when the newest successful row is older than 2 hours (at most 12 a day). Caught before the new function was deployed, so no alert was ever raised.
+2. **Backfill bug in my own `0302`.** Existing rows all got counter 1, and the feed pages by counter, so a first install would have received only the first 1,000 of 5,883 products. My upgrade test compared change counts but never paged from 0 on backfilled data. Found by the live smoke test; no phone had a copy. `0304` renumbers every row 1..N, sets the state counters, and adds partial unique indexes so duplicates cannot exist again. `0304`'s test reproduces the broken state, shows it losing rows, repairs it, and pages a full install.
+3. Process slip, recorded for honesty: I re-checked the clock before 0301 but not before 0302 (hours had passed between my messages). It was safe (a transaction that holds the sync lock cannot collide with the hourly run) but the rule is now: check `now()` immediately before every apply.
+
+## Deviations from the work order (confirmed)
+
+- **Delta page cap is 1,000 entries, not 200** (work order §6.5) **and not 2,000** (design §8). A page is one compact JSON document (about 165 KB at 1,000 stock rows), so PostgREST's 1,000-row limit does not apply, and a first install is 6 requests instead of 30. Accepted by the owner as **INV-16** (12 Nov 2026).
 - `inventory_changes_*` return one `jsonb` document (`reset`, `cols`, `rows`, `removed`, `next`, `done`, `seq`, `activeCount`), not a set of rows. A set-returning function repeats every key per row (about 4.2 MB for the whole table instead of 1.4 MB).
 - Direct `select` on `inventory_products` now works only for stock columns (column-level grant), so nobody can read sales figures except through the feed (INV-8). The app must never `select *` (it would be refused).
 - `inventory_latest_sync().synced_at` now means "last checked" (`last_checked_at`): a check that found nothing new still counts as fresh. Old three columns kept in the same order.
@@ -54,14 +69,14 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 - DROP the old anonymous read client (the old app read these tables as `anon`); IMPROVE: the Dua tables are readable only with a permission.
 - **Reorder needs STR too** (old `buildInTransitMap`): in-transit pack qty per code = sum of `floor(dispatch_qty / factor)` over lines of STRs with `direction = 'in'`, `dispatch_status = 'Dispatched'`, `receive_status <> 'Received'`.
 
-Consequences to decide (question **STR-Q1**, not blocking I-B):
-1. The contract lists `str` as its own module (`str_`, `/str`, `str.`, range 0500–0599). Recommendation: build it as module `str` in this same line of sessions after the Inventory core (supplier and pack factor are already in the local product copy, so no extra download). The alternative is routes under `/inventory/str` and migrations in 0300–0399.
-2. The current read policy on the STR tables requires `str.approve` (a *different* meaning: approving requests). Viewing the report needs its own permission, proposed `str.view` (seeded in an 0500-range migration or in 0303, depending on 1).
-3. Reorder's in-transit figure needs STR lines for people who hold `inventory.view` but not `str.view`. Proposed: a small database function `inventory_in_transit()` (security definer, `inventory.view`) returning code and packs only.
+Decisions (owner, 12 Nov 2026) on **STR-Q1** and its consequences:
+1. **A separate `str` module** (`str_` prefix, route `/str`, migrations 0500–0599), reusing what Inventory already provides: supplier and pack factor from the local product copy, no extra download. Foundation owns the `MODULES.md` registry entry; this note is the request to move `str` from Planned to Active.
+2. **`str.view` is the permission for every STR viewing screen** (list, detail, Report, Zero Dispatch). The current read policy on the STR tables requires `str.approve` (a different meaning: approving requests); the STR module's first migration seeds `str.view`, moves the two read policies to it (wrapped form), and adds the permission to no role template until the owner decides.
+3. **Approved:** a small database function `inventory_in_transit()` (security definer, `inventory.view`) returning code and packs only, so Reorder works for people who hold `inventory.view` but not `str.view`. It belongs to the Reorder slice (I-C) and goes in the 0300 range.
 
 ## Still to do (next sessions)
 
-I-B (local copy, maths, golden fixtures) → I-C (reports) → I-D (Home numbers in SQL, egress review, done). STR slice after the Inventory core.
+I-B (local copy on the phone, reorder maths with golden fixtures, built on the live feed) → I-C (reports) → I-D (Home numbers in SQL, egress review, done). STR slice after the Inventory core.
 
 ## Handoff
 See the brief, §10.
