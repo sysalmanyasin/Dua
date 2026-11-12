@@ -22,6 +22,8 @@ jobs:
       - run: npm test
       - run: npm run check:secrets
       - run: npm run check:vendor
+      - name: Lint workflow files
+        run: pip install --quiet actionlint-py && actionlint
 
   database:
     runs-on: ubuntu-latest

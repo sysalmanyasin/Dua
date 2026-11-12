@@ -23,7 +23,6 @@ jobs:
     timeout-minutes: 30
     environment: backup
     env:
-      OUT_DIR: ${{ runner.temp }}/dua-backup
       OPS_FUNCTION_URL: ${{ vars.OPS_FUNCTION_URL }}
       OPS_REPORT_SECRET: ${{ secrets.OPS_REPORT_SECRET }}
     steps:
@@ -34,6 +33,7 @@ jobs:
 
       - name: Install pg_dump 17 and age
         run: |
+          echo "OUT_DIR=$RUNNER_TEMP/dua-backup" >> "$GITHUB_ENV"
           sudo install -d /usr/share/keyrings
           curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
           echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
