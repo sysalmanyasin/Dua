@@ -106,3 +106,9 @@ Reference data (permissions, payment methods, check-list content, settings) is i
 
 ## Original Phase 1 plan (superseded)
 The Phase 1 design grouped tables as core, sales, pos, inventory, str, audit, closing, management, documents. Those later groups are still the plan for the modules listed in `docs/MODULES.md`; the sections above are what exists today.
+
+## Foundation operations tables (added 12 Nov 2026, migrations 0012–0013)
+- **`notifications`** — owner alerts: `kind`, `payload` (ids and dates only), `status` (`pending|sent|failed`), `attempts`, `next_attempt_at`, `last_error`, `acked_at`. RLS: read needs `notifications.view`. Only the database calls `notify_owner(text, jsonb)`; the sender uses `notifications_claim` / `notifications_mark` (service role). The Cover reads `notifications_attention()`; `notifications_ack(id)` clears one.
+- **`backup_log`** — one row per backup or restore drill: kind, status, day, size, sha256, fingerprint manifest (names, counts, hashes only), short error. RLS: read needs `tools.view`; written only through `backup_report()` (service role).
+- **Functions:** `ops_check_inventory_feed()` (3 h without a good sync raises one alert a day), `ops_check_backups()` (30 h without a good backup, after the first), `tools_overview()` (owner only).
+- **Schedules (pg_cron):** `notify-drain` every minute (only calls out when alerts are due), `ops-check-inventory-feed` every 30 min, `ops-check-backups` 07:00 UTC. They read the function address and secret from Vault by name.

@@ -35,7 +35,11 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 ## Known gaps and accepted risks
 | Item | Status |
 |---|---|
-| **Automatic backups** | **Not built.** The free plan does not guarantee them. Highest open risk (roadmap item 1). |
+| **Automatic backups** | Built (F7, D-38) but **not live until the owner completes setup** (RUNBOOK §6) and the first real Drive upload and restore drill pass. Until then there is no automatic copy. |
+| Backup credential | The database password is a GitHub environment secret limited to `main`. A leak would allow reading the database. Rotate it by resetting the database password and updating the secret. |
+| Public ntfy topic | Anyone who learns the topic can read the pushes (generic text only) or post fake ones. Rotate by changing `NTFY_TOPIC` and re-subscribing. |
+| `public.rls_auto_enable()` | A platform helper that is not in the repo and is executable by `anon` (security advisor, 12 Nov 2026). **Open; owner decision whether to revoke.** |
+| Leaked-password protection | Off in Supabase Auth (advisor). Dashboard toggle; staff sign in with PINs so exposure is low. |
 | Separate production project | Not yet; staging and live share one project. |
 | Error monitoring (Sentry) | Not yet. |
 | End-to-end browser tests (Playwright) | Not yet; checked in a simulated browser and by the owner by hand. |
