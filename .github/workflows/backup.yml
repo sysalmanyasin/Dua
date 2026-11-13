@@ -65,7 +65,8 @@ jobs:
         if: failure()
         run: |
           step="backup"; [ "${{ steps.dump.outcome }}" = "success" ] && step="upload"; [ "${{ steps.upload.outcome }}" = "success" ] && step="report"
-          jq -n --arg day "$(date -u +%F)" --arg err "the $step step failed (see the workflow run)" \
+          detail=""; if [ -n "${OUT_DIR:-}" ] && [ -s "$OUT_DIR/error.txt" ]; then detail=": $(head -c 380 "$OUT_DIR/error.txt" | tr '\n' ' ')"; fi
+          jq -n --arg day "$(date -u +%F)" --arg err "the $step step failed$detail" \
             '{action: "backup_report", kind: "daily", status: "failed", day: $day, error: $err}' \
             | curl -sS --max-time 30 -X POST "$OPS_FUNCTION_URL/notify-ntfy" -H "x-ops-secret: $OPS_REPORT_SECRET" -H 'Content-Type: application/json' -d @- || true
 

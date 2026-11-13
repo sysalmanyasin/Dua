@@ -59,6 +59,8 @@ Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/
 
 **Emergency restore:** same steps into a fresh Supabase project, then point `js/core/config.js` at it, re-create Vault and Edge secrets from the offline secrets list, and re-create the cron jobs by running migrations `0011`, `0012`, `0013` (they skip anything that exists). Vault values are not in a dump.
 
+**Why a backup failed:** the Tools tab and the push now carry the real reason (for example "uses port 6543", "Direct connection (IPv6 only)", "must be percent-encoded", or a database/Drive error line). Fixes: `SUPABASE_DB_URL` must be the **Session pooler** string (port 5432, host ends `pooler.supabase.com`), with any special character in the password percent-encoded (`@` becomes `%40`). The Transaction pooler (6543) cannot give a consistent dump.
+
 **If backups stop:** the Tools tab and Needs attention say so. Common causes: Google refresh token revoked (re-do step 2 and replace the secret), database password changed (update `SUPABASE_DB_URL`), GitHub paused scheduled runs after 60 days of repo inactivity (run the workflow once by hand).
 
 ## 7. Local development
@@ -87,4 +89,7 @@ Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/
 | 10 Nov | New migrations did not apply automatically | Registry mismatch (§4) | Applied by hand and registered; fix needs the Foundation owner |
 | 12 Nov | Registry reconciled (D-35); owner alerts went live | planned work | Registry backed up, `0009` renamed, timestamp row removed, `0011`–`0013` applied by hand; cron job untouched |
 | 12 Nov | First alert test did not send | the Vault secret `ops_function_base_url` had been pasted as a Markdown link (`[https://…](https://…)`), so the URL was invalid; visible in `cron.job_run_details` as "Bad scheme" | Value corrected to a plain URL; the alert then sent. Always save URLs as plain text |
+| 12 Nov | Daily backup workflow failed on every push, with no steps run | `runner.temp` is not allowed in job-level `env`, so GitHub rejected the whole file | Fixed; `actionlint` now runs in CI so an invalid workflow cannot reach `main` |
+| 12 Nov | `main` briefly red (`c8a6a96`) | a lint error was pushed because the push was not gated on `npm run verify` | Fixed in `1c87c8b`. Always chain verify and push with `&&` |
+| 12 Nov | Push alerts answered 429 by ntfy.sh | anonymous senders are limited per shared IP; Supabase Edge Functions share IPs | Add a free ntfy.sh account token as the Edge secret `NTFY_TOKEN` (already supported) |
 | 10 Nov | Two sessions changing the same repo | parallel work | Rebased onto the other session's commit; shared contract in `docs/MODULES.md` |
