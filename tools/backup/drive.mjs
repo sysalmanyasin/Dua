@@ -119,6 +119,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .then((s) => console.log(`drive ok: ${s.uploaded}, weekly copy: ${s.weeklyCopied}, pruned: ${s.pruned}`))
     .catch((e) => {
       console.error(`drive failed: ${e.message}`);
+      try {
+        mkdirSync(process.env.OUT_DIR, { recursive: true });
+        writeFileSync(join(process.env.OUT_DIR, 'error.txt'), `drive: ${e.message}`.slice(0, 300));
+      } catch {
+        // the failure is already printed; the report falls back to a generic line
+      }
       process.exit(1);
     });
 }
