@@ -5,7 +5,7 @@
 ## Current implementation addendum
 
 - The base Candela → Dropbox → Edge Function feed is live.
-- The enhanced feed/interface implementation is recorded in `docs/modules/inventory.progress.md` on branch `module/inventory`.
+- The enhanced feed/interface implementation is recorded in `docs/modules/inventory.progress.md` (progress mirrored on `main`; source changes remain on branch `module/inventory`).
 - Migrations `0301`–`0304` and Edge Function `sync-inventory-from-dropbox` v14 are reported as applied and verified on DuaPharmaPlus on 12 Nov 2026.
 - **Source integration gap:** these enhanced migration files and matching function changes are not yet present on `main` at this snapshot. Review and merge the source branch; do not apply those already-live migrations again.
 - Inventory screens and the phone-local product copy are not complete. The next slices are I-B (local copy and reorder maths), I-C (reports), and I-D (Home numbers / egress review).
