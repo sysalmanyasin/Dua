@@ -52,7 +52,13 @@ Pick **Monthly report** (summary + day-by-day table), **Sale Book — a year** o
 ### Last Day (staff)
 Staff with the basic permission see only the **latest closed day's total** (today is never "closed"). Nothing else about sales is visible to them.
 
-## 5. Manager and Closing (where enabled)\n- **Manager → Staff Registry:** the owner can add and view staff records, private details and notes. A staff record does not automatically create a login; login access is managed separately in Users & Access.\n- **Manager → Staff Credit:** the owner can set an opening balance, add entries, record deductions and reverse an entry with a reason. Access is permission-controlled.\n- **Closing:** the guided ledger is still being built. Only the sections currently shown in the app are available; later sections and the submit workflow are not complete yet. Do not treat a saved draft as a submitted closing.\n- **Inventory:** the feed is running, but the Inventory screens/local product copy are not yet complete.\n\n## 6. Users & Access (owner)
+## 5. Manager and Closing (where enabled)
+- **Manager → Staff Registry:** the owner can add and view staff records, private details and notes. A staff record does not automatically create a login; login access is managed separately in Users & Access.
+- **Manager → Staff Credit:** the owner can set an opening balance, add entries, record deductions and reverse an entry with a reason. Access is permission-controlled.
+- **Closing:** the guided ledger is still being built. Only the sections currently shown in the app are available; later sections and the submit workflow are not complete yet. Do not treat a saved draft as a submitted closing.
+- **Inventory:** the feed is running, but the Inventory screens/local product copy are not yet complete.
+
+## 6. Users & Access (owner)
 See the Admin Guide.
 
 ## 7. Sending reports by Gmail
