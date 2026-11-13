@@ -1,4 +1,4 @@
-> **Integration note (13 Nov 2026):** This progress record is copied from the active Inventory work branch for visibility. The 0301–0304 migration and Edge Function source changes are still on `module/inventory`, not yet integrated into `main`. The live application status below is based on the Inventory session's recorded checks; do not infer that main can reproduce it until the source branch is reconciled.
+ > **Integration note (13 Nov 2026):** This progress record is mirrored from the active Inventory work branch for visibility. The 0301–0304 migration and Edge Function source changes are still on `module/inventory`, not yet integrated into `main`. The live application status below is based on the Inventory session's recorded checks; do not infer that main can reproduce it until the source branch is reconciled.
 
 # Inventory — progress
 
