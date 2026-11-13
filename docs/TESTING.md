@@ -34,7 +34,7 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. GitHub Actio
 - The historical Sales import covered 2,379 days. The project record says 2,378 totals reproduce exactly under the signed rule; 79 of 80 monthly totals matched, with the documented September 2026 difference of 5,674.
 - Closing uses hand-worked fixtures in `tests/fixtures/closing-cases.json` and `closing-period-cases.json`; database and JavaScript calculations are compared against those fixtures.
 - Manager credit maths uses `tests/fixtures/manager-credit-cases.json` in both SQL and browser tests.
-- Inventory's delta-feed tests include paging, permissions, tombstones, removal guard, heartbeat and unique sequence counters. See `docs/modules/inventory.progress.md` on the Inventory work branch.
+- Inventory's delta-feed tests include paging, permissions, tombstones, removal guard, heartbeat and unique sequence counters. See `docs/modules/inventory.progress.md`; the progress record is mirrored on `main`, while the implementation source remains on `module/inventory`.
 
 ## Live verification recorded
 
