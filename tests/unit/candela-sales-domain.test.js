@@ -8,7 +8,13 @@ import {
   toPaisa,
 } from '../../js/modules/candela-sales/domain/summary.js';
 
-const paymentRow = (sale_day, cash_sale, card_sale, credit_sale, total_sale) => ({
+const paymentRow = (
+  sale_day,
+  cash_sale,
+  card_sale,
+  credit_sale,
+  total_sale,
+) => ({
   sale_day,
   cash_sale,
   card_sale,
@@ -24,8 +30,20 @@ const creditRow = (sale_day, customer_name, credit_amount, receipt_count) => ({
 });
 
 const paymentRows = [
-  paymentRow('2026-11-13', '178688.80', '268611.46', '30743.09', '478043.35'),
-  paymentRow('2026-11-12', '296004.62', '271289.50', '30512.98', '597807.10'),
+  paymentRow(
+    '2026-11-13',
+    '178688.80',
+    '268611.46',
+    '30743.09',
+    '478043.35',
+  ),
+  paymentRow(
+    '2026-11-12',
+    '296004.62',
+    '271289.50',
+    '30512.98',
+    '597807.10',
+  ),
   paymentRow('2026-10-31', '1.10', '2.20', '3.30', '6.60'),
 ];
 
@@ -71,13 +89,19 @@ describe('Candela payment summaries', () => {
   it('filters inclusive dates and returns newest day first without mutating source', () => {
     const result = filterPaymentDays(paymentRows, '2026-11-12', '2026-11-13');
     expect(result.map((row) => row.sale_day)).toEqual(['2026-11-13', '2026-11-12']);
-    expect(paymentRows.map((row) => row.sale_day)).toEqual(['2026-11-13', '2026-11-12', '2026-10-31']);
+    expect(paymentRows.map((row) => row.sale_day)).toEqual([
+      '2026-11-13',
+      '2026-11-12',
+      '2026-10-31',
+    ]);
   });
 });
 
 describe('Candela customer credit summaries', () => {
   it('filters by inclusive date and case-insensitive customer search', () => {
-    expect(filterCreditRows(creditRows, '2026-11-01', null, 'customer a')).toEqual([creditRows[0]]);
+    expect(
+      filterCreditRows(creditRows, '2026-11-01', null, 'customer a'),
+    ).toEqual([creditRows[0]]);
   });
 
   it('keeps source customer rows separate and sorts newest first', () => {
@@ -97,6 +121,8 @@ describe('Candela customer credit summaries', () => {
   });
 
   it('rejects invalid receipt counts', () => {
-    expect(() => summarizeCredit([{ credit_amount: 10, receipt_count: -1 }])).toThrow(TypeError);
+    expect(
+      () => summarizeCredit([{ credit_amount: 10, receipt_count: -1 }]),
+    ).toThrow(TypeError);
   });
 });
