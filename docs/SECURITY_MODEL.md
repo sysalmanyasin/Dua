@@ -35,10 +35,10 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 ## Known gaps and accepted risks
 | Item | Status |
 |---|---|
-| **Automatic backups** | Built (F7, D-38) but **not live until the owner completes setup** (RUNBOOK §6) and the first real Drive upload and restore drill pass. Until then there is no automatic copy. |
+| **Automatic backups** | **Live since 13 Nov 2026** (first good run recorded 03:40 UTC, about 1.5 MB, Drive upload verified by checksum). Passphrase mode (D-38a). **Still unproven: a restore drill from a real Drive file into a real project** (needs a computer; RUNBOOK §6). |
 | Backup credential | The database password is a GitHub environment secret limited to `main`. A leak would allow reading the database. Rotate it by resetting the database password and updating the secret. |
 | Public ntfy topic | Anyone who learns the topic can read the pushes (generic text only) or post fake ones. Rotate by changing `NTFY_TOPIC` and re-subscribing. |
-| `public.rls_auto_enable()` | A platform helper that is not in the repo and is executable by `anon` (security advisor, 12 Nov 2026). **Open; owner decision whether to revoke.** |
+| `public.rls_auto_enable()` | **Resolved 13 Nov 2026.** Platform helper behind the `ensure_rls` event trigger (not in the repo). Execute revoked from `PUBLIC` and `anon`; verified that new tables still get RLS automatically. `authenticated` still holds execute (event-trigger functions cannot be called directly); revoke it too if the advisor still flags it. |
 | Leaked-password protection | Off in Supabase Auth (advisor). Dashboard toggle; staff sign in with PINs so exposure is low. |
 | Separate production project | Not yet; staging and live share one project. |
 | Error monitoring (Sentry) | Not yet. |
