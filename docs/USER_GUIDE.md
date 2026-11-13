@@ -15,7 +15,7 @@ For the owner, managers and staff of Fazal Din's Pharma Plus. Open the app at **
 ## 2. Finding your way around
 - **Dark bar at the very top:** the latest closed day's sale (if you may see it) and the Pakistan time.
 - **Header:** logo, business name, who you are, *Sign out*.
-- **Tabs under the header:** one tab per section (Home, Sales, Users & Access). Under a section, a second row of tabs lists its pages. On a phone the rows scroll sideways.
+- **Tabs under the header:** one tab per section the owner has enabled and your permissions allow (currently includes Home, Sales, Manager, Closing, Users & Access where available). Under a section, a second row of tabs lists its pages. On a phone the rows scroll sideways.
 - **You only see what you are allowed to use.** If a page is missing, the owner has not given you that permission.
 
 ## 3. Home (the Cover)
@@ -52,13 +52,13 @@ Pick **Monthly report** (summary + day-by-day table), **Sale Book — a year** o
 ### Last Day (staff)
 Staff with the basic permission see only the **latest closed day's total** (today is never "closed"). Nothing else about sales is visible to them.
 
-## 5. Users & Access (owner)
+## 5. Manager and Closing (where enabled)\n- **Manager → Staff Registry:** the owner can add and view staff records, private details and notes. A staff record does not automatically create a login; login access is managed separately in Users & Access.\n- **Manager → Staff Credit:** the owner can set an opening balance, add entries, record deductions and reverse an entry with a reason. Access is permission-controlled.\n- **Closing:** the guided ledger is still being built. Only the sections currently shown in the app are available; later sections and the submit workflow are not complete yet. Do not treat a saved draft as a submitted closing.\n- **Inventory:** the feed is running, but the Inventory screens/local product copy are not yet complete.\n\n## 6. Users & Access (owner)
 See the Admin Guide.
 
-## 6. Sending reports by Gmail
+## 7. Sending reports by Gmail
 *Send via Gmail* opens a small box: type one or more addresses (separate with commas), check the subject, press **Send**. The first time, Google opens a window asking you to allow **sending** from your own Gmail. The app can never read your mail. The addresses are remembered for next time.
 
-## 7. If something goes wrong
+## 8. If something goes wrong
 | You see | What to do |
 |---|---|
 | "Too many attempts" | Wait 15 minutes, or ask the owner. |
