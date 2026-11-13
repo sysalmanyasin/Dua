@@ -47,7 +47,7 @@ The latest main-branch project progress entry (13 Nov) reports **357 unit/jsdom 
 
 - `main` is the documentation and integration baseline.
 - `module/closing` and `module/manager` have no commits ahead of main in the checked comparison.
-- `module/inventory` is ahead of main and contains the enhanced inventory feed implementation and progress evidence. It must be reviewed and integrated.
+- `module/inventory` is ahead of main and contains the enhanced inventory feed implementation. Its progress record is mirrored at `docs/modules/inventory.progress.md` on main; implementation source still needs review and integration.
 - `foundation/inventory-feed`, `docs/session-plans` and `design/inventory-delta-sync` are divergent branches; compare and selectively reconcile rather than blindly merging.
 - `foundation/operations-hardening` has no commits ahead of main in the checked comparison.
 
