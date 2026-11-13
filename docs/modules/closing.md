@@ -1,6 +1,6 @@
 # Closing — brief
 
-Status: **Briefed** (awaiting owner approval) · Owner approval: no
+Status: **Building** (slices C1 + database part of C2–C4 done; no screens yet) · Owner approval: yes (9 Nov 2026, "go")
 Branch: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
 
 > Read `docs/MODULES.md` first. The calculation rules are **already written** in `docs/BUSINESS_RULES.md` §3–7 and the table design in `docs/DATABASE_DESIGN.md` ("closing"). This brief does not repeat them; it tells the session how to build them and what is new.
@@ -43,7 +43,9 @@ Out of scope: salary, staff credit ledgers, petty cash (Manager); stock data (In
 | C6 | Struck-through (deleted) rows are excluded from totals and carry-forward but kept for audit | KEEP |
 | C7 | Each shift stores **its own** variance (net cash − net sale); cumulative figures are derived (old data once saved a cumulative figure by mistake) | IMPROVE |
 | C8 | Misc charges get a **stable charge id** so aging does not depend on label text | IMPROVE |
-| C9 | **Credit lines must be per-shift new amounts, never carried balances.** The Credit Ledger shows running totals, but the Manager feed returns only the lines recorded in that shift (named entries, tier slots, free rows, credit adjustment). Confirm in the old `calc()` how each is entered and write the answer here before building the feed | **ASK / verify** |
+| C9 | **Credit lines are per-shift new amounts, never carried balances** (owner, 9 Nov 2026). The Credit Ledger shows running totals, but the Manager feed returns only the lines recorded in that shift (named entries, tier slots, free rows, credit adjustment). **Checked in the old `calc()`:** the carried balance is a separate input (`out-prev-credit`, taken from the previous slot's total) and the typed lines are separate from it; the old snapshot (`clBuildSnapshot`) stores `lines`, `openingCredit` and `creditAdj` apart. So the feed returns lines only. The credit adjustment is a line too: it keeps a stable `credit_adj_line_id` on `closings` | **Decided** |
+| C13 | **Customers charge in the period roll-up.** The old code adds the customer *count* straight into Net Sale and Net Final Sale (it only works because the charge is Rs 1). Dua multiplies by `per_customer_charge` in both places. With the charge at 1 the figures are identical to the old app; the fixture case "I" proves the fractional case | IMPROVE |
+| C14 | **Stored variance:** `closing_results.shift_variance` = this shift's own `net_cash − net_sale` in every mode; `final_variance` is filled only in Final mode (= Net Final Cash). The old app saved one absolute value plus a "Plus/Less" label; Dua stores a signed number | IMPROVE |
 | C10 | Staff see and edit only their own drafts and submissions; `closing.view_all` sees everyone's; `closing.review` and `closing.correct` are owner/senior tools | KEEP (SECURITY_MODEL) |
 | C11 | Cash-count denominations: 5000, 1000, 500, 100, 50, 20, 10, coins/loose (confirm against old `DENOMS`) | KEEP |
 | C12 | Old test suites `e2e-handover` and two others **fail in the old repo today.** Do not use them as the reference; use the formulas and invented samples | NOTE |
@@ -90,8 +92,18 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 | CLS-1 | Closing records credit; the owner files it in Manager by hand (feed, no auto-matching) | Accepted (owner, 9 Nov 2026) |
 | CLS-2 | No import of old closings; opening balances only | Accepted (owner, 9 Nov 2026) |
 | CLS-3 | Submit rules checked in the database; notifications never block | Accepted (BUSINESS_RULES §7) |
-| CLS-4 | Per-shift credit lines vs running balances (C9) | **Open: verify in old code, then confirm with owner** |
-| CLS-5 | Does the 3" thermal receipt print stay in v1? | **Open: ask the owner** |
+| CLS-4 | Per-shift credit lines vs running balances (C9) | Accepted (owner, 9 Nov 2026): **new amounts for that shift**; verified in the old code |
+| CLS-5 | Does the 3" thermal receipt print stay in v1? | Accepted (owner, 9 Nov 2026): **yes, keep it** (Credit Ledger snapshot print, 3" thermal). Needs a print helper: reuse Sales' `print.js` through a Foundation request, or build a small one inside the module |
+| CLS-6 | Skipped slots | **Accepted (owner, 11 Nov 2026):** a slot may not be skipped. Starting or submitting a closing is refused until the slot before it is submitted. Exception: a **Final** closing after a gap carries credit, card and open misc from the last submitted closing and zeroes only cash and deposits (builder's reading of CLS-6 + CLS-11; owner said "your choice") |
+| CLS-7 | Correcting an earlier closing | **Accepted (owner, 11 Nov 2026):** later *submitted* closings never change. The owner wants to **reopen the original and edit it**. Built as: "Edit" opens the original's figures as a new draft revision (reason required); on resubmit it replaces the original, which is kept as superseded (D-12, MODULES rule 5 forbid overwriting a submitted row). Later drafts pick up the corrected figures on next save |
+| CLS-8 | `closing.require_inventory_audit` ships on | **Accepted (owner, 11 Nov 2026):** keep on in code; may be switched off with a logged reason in Settings during rollout |
+| CLS-9 | Closing Book PDF | **Accepted (owner, 11 Nov 2026):** print layout, browser Save as PDF, no new library. Same answer for Manager MGR-11 |
+| CLS-10 | Opening balances | **Accepted (owner, 11 Nov 2026):** the first closing is an **opening Final closing** entered by owner/admin, not a separate fake. Cash and deposits **may be typed** for this opening closing only. Carry reads it like any submitted Final |
+| CLS-11 | Final | **Accepted (owner, 11 Nov 2026):** any slot may be Final; Final starts cash and deposits at 0, keeps credit, card and open misc |
+| CLS-12 | Carried figures changed before submit | **Accepted (owner, 11 Nov 2026):** refuse: "opening figures changed, review and submit again" |
+| CLS-13 | Two devices on one draft | **Accepted (owner, 11 Nov 2026):** refuse the older save with a conflict message and reload, like the Daily Check List |
+| CLS-14 | Responsible person | **Accepted (owner, 11 Nov 2026):** any active staff member by name, via a small function (juniors read only their own `staff` row) |
+| CLS-15 | Look and feel | **Accepted (owner, 11 Nov 2026):** keep the original Closing app's layout, design and colours (teal `#0D8C78`, navy `#0E241F`, amber = carried-forward values, red = deficits only, shift dots Night/Morning/Evening, 14-section guided flow). Scoped in `css/closing.css`; vendored Inter and IBM Plex Mono replace the original's Google fonts |
 
 ## 9. Slices
 
@@ -108,4 +120,8 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 
 ## 10. Handoff
 
-_(empty — the session fills this in at the end)_
+**Read `docs/modules/closing.next-session.md` first: it is the work order (state, owner questions, review gaps, slice plan, payload and function reference, start prompt).**
+
+- Done: pure maths (`domain/compute.js`), tables and RLS (`0201`), draft / submit / correct and carry-forward in the database (`0202`). No screens, not registered as a module, not applied to the live project.
+- Most important gaps: shift closings store a wrong "since last Final" figure until `closing_period_agg` exists (permanent once submitted, so fix before any real submit); submit can silently change carried-in figures; no opening balances; draft saves are last-write-wins.
+- `main` has moved on (F3 feed live, inventory interfaces and `notify_owner` still missing, migration registry problem D-35). Merge `main` first; it merges cleanly.

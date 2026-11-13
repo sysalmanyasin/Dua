@@ -1,0 +1,42 @@
+# Closing — progress
+
+| Date | Slice | Done | Tested | Failed / not done | Next |
+|---|---|---|---|---|---|
+| 2026-11-09 | C1 maths + tables | `domain/compute.js` (integer paisa); `0201_closing_tables.sql` (15 tables, RLS, lock triggers, `closing_calc`, `closing_compute`, internal `closing_build_input` / `closing_write_result`); shared fixture `tests/fixtures/closing-cases.json` (9 hand-worked cases) | 16 unit tests; 0201 DB tests (formula parity on all 9 cases, build-from-rows parity on case B, read isolation between staff, anon, no direct writes, locked submitted rows, append-only results, one live closing per slot); 3 deliberate breaks caught by the tests; `npm run verify` 226 pass | Period roll-up (`agg`) for **Shift** closings is empty until C4 (exact for Final closings); not tried on a phone (no screens yet) | 0202: slot creation, `closing_save_draft`, `closing_submit`, `closing_correct`, carry-forward |
+| 2026-11-10 | C2–C4 database part | `0202_closing_flow.sql`: `closing_save_draft` (creates slot + draft, idempotent on key, strict validation, carry-forward, open misc charges carried with stable ids), `closing_submit` (responsible staff, audit gate, one result, logged, owner notice when F4 exists), `closing_correct` (new revision, original kept, line/charge ids stable, reason logged) | `0202_closing_flow_test.sql`: idempotency, isolation between staff, 10 validation refusals, hand-worked result (grand 54600 / liquid 9600), carry Night→Morning, Evening Final, next-day Night, handover slots, correction, internals not callable; 3 deliberate breaks caught; verify 226 pass | No screens, no `closing_period_agg` (Shift roll-up still empty), no thermal print, no ledgers, no settings RPCs, no audit card, no Manager feed; CLS-6/7/8 need the owner | Register the module and build screens C2 (entry form, JS live preview using `domain/compute.js`), then C5 ledgers/feed |
+| 2026-11-11 | Review and plan | Re-read `main` (`e635e23`) and the branch; merged locally (clean); wrote `closing.next-session.md` and the Handoff | merged code: `npm run verify` 258 pass, all database tests pass | nothing built; plan not yet approved by the owner; not pushed (no GitHub access in the session) | owner answers CLS-6…14, then Session A |
+| 2026-11-12 | Session A1–A2 | `0203_closing_hardening.sql`: machine refusal codes, CLS-6 no skipped slots, CLS-10 opening closing (admin), draft versions + conflict (CLS-13), carry guard (CLS-12), reopen as draft revision (CLS-7), staff choices (CLS-14), `closing_my_recent`; `0204_closing_period.sql`: `closing_period_agg` ("since last Final" roll-up) feeding `closing_build_input`; fixtures `closing-period-cases.json` (5 hand-worked cases) | 0203 and 0204 DB tests (every refusal code, gaps, versions, carry guard, permissions; roll-up end-to-end + fixtures + Final empty); mutation-tested (breaking CLS-6, CLS-12, CLS-13 and the roll-up each fail the tests); JS reference of the roll-up checked against the same fixtures | Submit screen, ledgers, feed, settings screens, print (later sessions) | A3–A5 |
+| 2026-11-12 | Session A3–A5 | Module registered (`manifest.js`, `MODULE_IDS`, `css/closing.css` link). `data/api.js` (only Supabase caller). Start page (continue draft, new closing, admin opening closing). Guided ledger: progress bar, 14-section jump bar, save chip, local copy + server autosave with version, conflict dialog, responsible-staff choice, opening figures panel. Sections 1–5: POS, MEDIQ, Shift (with overrides), HS, Strips. Domain: `errors.js` (every refusal code in plain words), `form.js`, `sections.js`, `slots.js`, `store.js` | 14 page tests (jsdom), form/errors/slots unit tests, form totals checked against `computeClosing`; `npm run verify` 351 pass; all DB tests pass on the tree merged with main | **No Submit button** (by design in Session A). Sections 6–14 show "built next session". Not yet tried on a phone | Owner's phone try-out #1 |
+
+## Notes for whoever continues
+
+- The expected figures in `closing-cases.json` were worked out by hand from `BUSINESS_RULES.md` §4–6, not generated from the code. The old `calc()` is DOM-bound, so it could not be run directly; the fixtures are the reference (C12: old suites are not).
+- Slot positions: night 10, morning 20, handovers 21–9998 (first one 30), evening 9999 (same idea as the old `getSeq`).
+- A submitted closing can only move to `superseded` (trigger `closing_lock_closing`); every child row follows its closing's status (`closing_lock_children`).
+- `closing_results` stores the `till_float` and `per_customer_charge` used, so a later settings change never rewrites history.
+- The 31 audit codes are not seeded yet (slice C9 seeds them from the old `AUDIT_CODES`; item codes are not sensitive).
+
+## Session A handoff (read before Session B)
+
+### Owner decisions now in the code (CLS-6 to CLS-15 are in `closing.md` §8)
+No skipped slots (Final exempt); later submitted closings never change, a correction is made by reopening the original as a draft revision and resubmitting; audit gate on with a logged switch-off; print layout for the PDF; opening closing entered once by admin/owner; any slot may be Final (cash and deposits start at 0, credit/card/open misc carry); stale carry refused at submit; older save refused with a conflict message; any active staff member can be chosen by name.
+
+### Things the owner should confirm (builder's choices, not money rules)
+1. The opening closing skips the audit and responsible-staff gates.
+2. The opening's own POS figures (System Cash Sales Total, Last Bill Number) matter: the next closing measures its shift sale and customers from them, so the screen asks for them. Typed opening *cash* does not change what the next slot carries (the carry uses Liquid); opening cash comes from the Till/Vault counts (sections 9–10, Session B).
+3. A correction to an earlier closing that is not the immediately previous slot changes the roll-up silently at submit (the carry guard covers the four carried figures only; the roll-up is informational).
+4. The old app had a "Last Bill Amount" field; Dua has no column for it, so it is omitted rather than invented.
+
+### Foundation requests (not done here; Foundation files are off limits)
+- A ledger icon in `js/shared/icons.js` (the module uses 'shield' for now).
+- Vendoring JetBrains Mono / Source Serif if the owner wants the original fonts (Inter and IBM Plex Mono are used).
+- The toast and dialog styles come from `css/sales.css`; if Sales CSS is ever split, Closing needs its own copy.
+
+### Try-out #1 checklist for the owner (phone)
+Submit is not built yet, so the opening cannot be submitted and staff cannot start a shift closing (they will see "The opening closing has not been entered yet", which is the correct refusal). What can be tried now, as admin:
+1. Closing → Opening closing → fill sections 1–5 and the four opening figures; the chip should read "Saved ✓".
+2. Leave the page and come back through Continue: everything typed is still there.
+3. Switch the phone to aeroplane mode, type, see "Offline, draft kept", switch back on, tap the chip.
+4. Open the same draft on two phones, change both: the older save is refused with a "changed on another device" message.
+5. Typing a wrong number (a letter in an amount) turns the box red and nothing is sent until it is fixed.
+Please say if the layout, colours or wording differ from the original Closing app.

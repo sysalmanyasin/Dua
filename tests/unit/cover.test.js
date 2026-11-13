@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAttention, buildKpis, buildTiles, greeting, hourInPkt } from '../../js/modules/home/domain/cover.js';
+import { buildAlertItems, buildAttention, buildKpis, buildTiles, greeting, hourInPkt } from '../../js/modules/home/domain/cover.js';
 
 const full = {
   sales: {
@@ -70,6 +70,37 @@ describe('needs attention', () => {
   });
 });
 
+describe('owner alerts in needs attention', () => {
+  const alerts = {
+    failed: 2,
+    stuck: 1,
+    items: [
+      { id: 'a1', kind: 'backup.failed', status: 'failed', attempts: 5 },
+      { id: 'a2', kind: 'inventory.sync_stale', status: 'pending', attempts: 0 },
+    ],
+  };
+  it('puts failed and unsent alerts first, with a link for people who can view them', () => {
+    const t = buildAttention(full, ['notifications.view'], 9, alerts);
+    expect(t[0]).toMatchObject({ id: 'alert-a1', text: 'The daily backup failed (the alert could not be delivered)' });
+    expect(t[0].action).toMatchObject({ href: '#/tools' });
+    expect(t[1].text).toContain('has not been sent yet');
+    expect(t.at(2).id).toBe('alert-more');
+  });
+  it('shows no link to someone without the permission', () => {
+    expect(buildAlertItems(alerts, [])[0].action).toBeNull();
+  });
+  it('shows nothing when there are no alerts, or when they could not be loaded', () => {
+    expect(buildAlertItems(null, ['notifications.view'])).toEqual([]);
+    expect(buildAlertItems({ failed: 0, stuck: 0, items: [] }, ['notifications.view'])).toEqual([]);
+    expect(buildAttention({ sales: { missing_days: [] } }, [], 9, undefined)).toEqual([]);
+  });
+  it('names an unknown kind plainly', () => {
+    expect(buildAlertItems({ failed: 1, stuck: 0, items: [{ id: 'z', kind: 'x.y', status: 'failed' }] }, [])[0].text).toContain(
+      'Alert: x.y',
+    );
+  });
+});
+
 describe('tiles', () => {
   it('offers only pages that have a title, in each section, and never the home page itself', () => {
     const t = buildTiles([
@@ -83,11 +114,15 @@ describe('tiles', () => {
 
 describe('Cover page', () => {
   const api = { coverSummary: vi.fn(async () => full) };
-  vi.mock('../../js/modules/home/data/api.js', () => ({ coverSummary: (...a) => globalThis.__cover(...a) }));
+  vi.mock('../../js/modules/home/data/api.js', () => ({
+    coverSummary: (...a) => globalThis.__cover(...a),
+    notificationsAttention: (...a) => globalThis.__alerts(...a),
+  }));
   beforeEach(() => {
     document.body.innerHTML = '<div id="p"></div>';
     sessionStorage.clear();
     globalThis.__cover = api.coverSummary;
+    globalThis.__alerts = async () => null;
     api.coverSummary.mockImplementation(async () => full);
   });
   const ctx = { full_name: 'Salman Yasin', username: 'owner', permissions: ['sales.enter', 'checklist.fill'] };
@@ -100,6 +135,15 @@ describe('Cover page', () => {
     },
   ];
 
+  it('still shows the Cover when owner alerts fail to load', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    globalThis.__alerts = async () => {
+      throw new Error('boom');
+    };
+    const el = document.getElementById('p');
+    await mount(el, { ctx: { ...ctx, permissions: [...ctx.permissions, 'notifications.view'] }, modules });
+    expect(el.textContent).toContain('have not been entered');
+  });
   it('shows the greeting, key numbers, attention items and tiles', async () => {
     const { mount } = await import('../../js/modules/home/ui/page.js');
     const el = document.getElementById('p');

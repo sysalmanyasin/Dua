@@ -1,0 +1,284 @@
+[
+  {
+    "name": "A: first slot with no history and nothing entered (float still comes off)",
+    "input": { "mode": "shift", "settings": { "till_float": 45000, "per_customer_charge": 1 } },
+    "expect": {
+      "customers_charge": 0,
+      "hs_total": 0,
+      "strips_a": 0,
+      "total_returns": 0,
+      "mediq_extra": 0,
+      "shift_sale": 0,
+      "customers": 0,
+      "net_sale": 0,
+      "cc_curr": 0,
+      "cc_total": 0,
+      "till_c": 0,
+      "vault_d": 0,
+      "debt_e": 0,
+      "deposits_f": 0,
+      "misc_g": 0,
+      "grand": 0,
+      "liquid": -45000,
+      "net_cash": -45000,
+      "shift_variance": -45000,
+      "final_net_sale": 0,
+      "final_net_cash": -45000,
+      "final_variance": null
+    }
+  },
+  {
+    "name": "B: Night shift after the previous Evening (day changed), every section used, struck rows ignored",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 150000, "last_bill_no": 1250, "comp_sale": 24000, "alfalah": 20000, "keenu": 5000 },
+      "returns": { "manual": [1000, 0, 500], "system": 2000 },
+      "book": [3000, 0],
+      "credit_adj": 100,
+      "prev": { "exists": true, "day_changed": true, "sys_cash": 400000, "last_bill_no": 1100 },
+      "carried": { "cc": 7000, "credit": 20000, "deposits": 5000, "cash": 100000 },
+      "hs": [{ "v": 500 }, { "v": 200 }, { "v": 900, "deleted": true }],
+      "strips": [
+        { "price": 50, "qty": 10 },
+        { "price": 120, "qty": 3 },
+        { "price": 10, "qty": 5, "deleted": true }
+      ],
+      "mediq": [
+        { "collected": 1500, "bill": 1200 },
+        { "collected": 999, "bill": 0, "deleted": true }
+      ],
+      "till": [10, 20, 30, 40, 50, 60, 70, 80],
+      "vault": [2, 10, 0, 0, 0, 0, 0, 0],
+      "credit": {
+        "named": [{ "v": 3000 }, { "v": 500, "deleted": true }],
+        "tier": [1000, 0, 250],
+        "free": [{ "v": 400 }, { "v": 99, "deleted": true }]
+      },
+      "deposits": [{ "v": 10000 }, { "v": 500, "deleted": true }],
+      "misc": [{ "v": 1000 }, { "v": 200 }, { "v": 77, "deleted": true }]
+    },
+    "expect": {
+      "customers_charge": 150,
+      "hs_total": 700,
+      "strips_a": 860,
+      "total_returns": 3500,
+      "mediq_extra": 300,
+      "shift_sale": 150000,
+      "customers": 150,
+      "net_sale": 149950,
+      "cc_curr": 1000,
+      "cc_total": 8000,
+      "till_c": 93480,
+      "vault_d": 20000,
+      "debt_e": 24750,
+      "deposits_f": 15000,
+      "misc_g": 1200,
+      "grand": 163990,
+      "liquid": 118990,
+      "net_cash": 18990,
+      "shift_variance": -130960,
+      "final_net_sale": 149950,
+      "final_net_cash": -30960,
+      "final_variance": null
+    }
+  },
+  {
+    "name": "C: second slot of the same day: sale is the difference of system cash, variance is zero",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 90000, "last_bill_no": 520 },
+      "prev": { "exists": true, "day_changed": false, "sys_cash": 60000, "last_bill_no": 500 },
+      "carried": { "cash": 34980 },
+      "till": [20, 10, 0, 0, 0, 0, 0, 0]
+    },
+    "expect": {
+      "shift_sale": 30000,
+      "customers": 20,
+      "customers_charge": 20,
+      "net_sale": 30020,
+      "till_c": 110000,
+      "grand": 110000,
+      "liquid": 65000,
+      "net_cash": 30020,
+      "shift_variance": 0,
+      "final_net_sale": 30020,
+      "final_net_cash": 34980,
+      "final_variance": null
+    }
+  },
+  {
+    "name": "D: hand overrides (shift sale, customers, current CC) and extra cash",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 90000, "last_bill_no": 520 },
+      "extra_cash": 1000,
+      "prev": { "exists": true, "day_changed": false, "sys_cash": 60000, "last_bill_no": 500 },
+      "carried": { "cash": 34980 },
+      "till": [20, 10, 0, 0, 0, 0, 0, 0],
+      "overrides": { "shift_sale": 31000, "customers": 25, "curr_cc": 500 }
+    },
+    "expect": {
+      "shift_sale": 31000,
+      "customers": 25,
+      "net_sale": 31025,
+      "cc_curr": 500,
+      "cc_total": 500,
+      "grand": 110500,
+      "liquid": 65500,
+      "net_cash": 29520,
+      "shift_variance": -1505,
+      "final_net_sale": 31025,
+      "final_net_cash": 33475,
+      "final_variance": null
+    }
+  },
+  {
+    "name": "E: first slot ever with a sale (no previous slot: full system cash, no customers)",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 50000, "last_bill_no": 300 },
+      "till": [10, 0, 0, 0, 0, 0, 0, 0]
+    },
+    "expect": {
+      "shift_sale": 50000,
+      "customers": 0,
+      "net_sale": 50000,
+      "grand": 50000,
+      "liquid": 5000,
+      "net_cash": 5000,
+      "shift_variance": -45000,
+      "final_net_sale": 50000,
+      "final_net_cash": -45000
+    }
+  },
+  {
+    "name": "F: day changed, bill numbers went backwards (customers stay zero), carried credit",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 10000, "last_bill_no": 20 },
+      "prev": { "exists": true, "day_changed": true, "sys_cash": 400000, "last_bill_no": 900 },
+      "carried": { "credit": 3000 },
+      "till": [10, 0, 0, 0, 0, 0, 0, 0]
+    },
+    "expect": {
+      "shift_sale": 10000,
+      "customers": 0,
+      "net_sale": 10000,
+      "debt_e": 3000,
+      "grand": 53000,
+      "liquid": 8000,
+      "net_cash": 8000,
+      "shift_variance": -2000,
+      "final_net_sale": 10000,
+      "final_net_cash": -2000
+    }
+  },
+  {
+    "name": "G: Final closing uses only its own values; period figures in the input are ignored",
+    "input": {
+      "mode": "final",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 70000, "last_bill_no": 700 },
+      "returns": { "manual": [100, 0, 0], "system": 200 },
+      "book": [500, 0],
+      "extra_cash": 400,
+      "final_sys_returns": 300,
+      "prev": { "exists": true, "day_changed": false, "sys_cash": 65000, "last_bill_no": 650 },
+      "till": [10, 5, 0, 0, 0, 0, 0, 0],
+      "agg": { "same_date_shift_sale": 99999, "total_book_bills": 99999, "pre_date_shift_sale": 99999, "total_extra_cash": 99999 }
+    },
+    "expect": {
+      "customers_charge": 50,
+      "total_returns": 300,
+      "shift_sale": 70000,
+      "customers": 50,
+      "net_sale": 70250,
+      "till_c": 55000,
+      "grand": 55000,
+      "liquid": 10000,
+      "net_cash": 9600,
+      "shift_variance": -60650,
+      "final_net_sale": 69950,
+      "final_net_cash": -60350,
+      "final_variance": -60350
+    }
+  },
+  {
+    "name": "H: shift closing also shows the period roll-up since the last Final (informational)",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 45000, "per_customer_charge": 1 },
+      "pos": { "sys_cash": 60000, "last_bill_no": 540 },
+      "returns": { "manual": [50, 0, 0], "system": 25 },
+      "book": [250, 0],
+      "extra_cash": 100,
+      "prev": { "exists": true, "day_changed": false, "sys_cash": 30000, "last_bill_no": 500 },
+      "mediq": [{ "collected": 300, "bill": 250 }],
+      "till": [20, 0, 0, 0, 0, 0, 0, 0],
+      "agg": {
+        "same_date_shift_sale": 30000,
+        "lf_same_date_sale": 0,
+        "same_date_customers": 40,
+        "lf_same_date_cust": 0,
+        "total_book_bills": 1000,
+        "total_mediq_extra": 200,
+        "total_manual_returns": 150,
+        "same_date_sys_returns": 50,
+        "lf_same_date_sys_ret": 0,
+        "pre_date_shift_sale": 80000,
+        "lf_pre_date_sale": 5000,
+        "pre_date_customers": 70,
+        "lf_pre_date_cust": 10,
+        "pre_date_sys_returns": 20,
+        "lf_pre_date_sys_ret": 5,
+        "total_extra_cash": 600
+      }
+    },
+    "expect": {
+      "shift_sale": 30000,
+      "customers": 40,
+      "total_returns": 75,
+      "mediq_extra": 50,
+      "net_sale": 30265,
+      "grand": 100000,
+      "liquid": 55000,
+      "net_cash": 54900,
+      "shift_variance": 24635,
+      "final_net_sale": 61305,
+      "final_net_cash": -92060,
+      "final_variance": null
+    }
+  },
+  {
+    "name": "I: paise and a fractional per-customer charge add up exactly",
+    "input": {
+      "mode": "shift",
+      "settings": { "till_float": 0, "per_customer_charge": 0.25 },
+      "pos": { "sys_cash": 100.1, "last_bill_no": 13 },
+      "prev": { "exists": true, "day_changed": false, "sys_cash": 50.05, "last_bill_no": 10 },
+      "hs": [{ "v": 0.1 }, { "v": 0.2 }],
+      "strips": [{ "price": 0.1, "qty": 3 }],
+      "till": [0, 0, 0, 0, 0, 0, 0, 3]
+    },
+    "expect": {
+      "hs_total": 0.3,
+      "strips_a": 0.3,
+      "shift_sale": 50.05,
+      "customers": 3,
+      "customers_charge": 0.75,
+      "net_sale": 50.8,
+      "till_c": 3,
+      "grand": 3.6,
+      "liquid": 3.6,
+      "net_cash": 3.6,
+      "shift_variance": -47.2,
+      "final_net_sale": 50.8,
+      "final_net_cash": -47.2
+    }
+  }
+]

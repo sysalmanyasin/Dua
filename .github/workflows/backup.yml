@@ -1,0 +1,75 @@
+# Daily encrypted database backup to Google Drive (Foundation F7). Runs 18:00 Pakistan time (13:00 UTC).
+# Encryption: an age public key (variable BACKUP_AGE_RECIPIENT) if set, otherwise the secret BACKUP_PASSPHRASE.
+# Public repository: nothing here prints a secret, and the job only runs on main, in the protected "backup" environment.
+# Setup steps and the restore drill are in docs/RUNBOOK.md ("Backups").
+name: Daily backup
+
+on:
+  schedule:
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dua-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    if: github.repository == 'sysalmanyasin/Dua' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: backup
+    env:
+      OPS_FUNCTION_URL: ${{ vars.OPS_FUNCTION_URL }}
+      OPS_REPORT_SECRET: ${{ secrets.OPS_REPORT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pg_dump 17 and age
+        run: |
+          echo "OUT_DIR=$RUNNER_TEMP/dua-backup" >> "$GITHUB_ENV"
+          sudo install -d /usr/share/keyrings
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+          echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-client-17 age
+
+      - name: Dump and encrypt
+        id: dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: bash tools/backup/backup.sh
+
+      - name: Upload to Google Drive and prune
+        id: upload
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+        run: node tools/backup/drive.mjs
+
+      - name: Report success
+        run: |
+          jq '{action: "backup_report", kind: "daily", status: "ok", day: .day, size_bytes: .size_bytes, sha256: .sha256, manifest: .manifest}' "$OUT_DIR/result.json" \
+            | curl -sS --fail-with-body -X POST "$OPS_FUNCTION_URL/notify-ntfy" -H "x-ops-secret: $OPS_REPORT_SECRET" -H 'Content-Type: application/json' -d @-
+
+      - name: Report failure
+        if: failure()
+        run: |
+          step="backup"; [ "${{ steps.dump.outcome }}" = "success" ] && step="upload"; [ "${{ steps.upload.outcome }}" = "success" ] && step="report"
+          detail=""; if [ -n "${OUT_DIR:-}" ] && [ -s "$OUT_DIR/error.txt" ]; then detail=": $(head -c 380 "$OUT_DIR/error.txt" | tr '\n' ' ')"; fi
+          jq -n --arg day "$(date -u +%F)" --arg err "the $step step failed$detail" \
+            '{action: "backup_report", kind: "daily", status: "failed", day: $day, error: $err}' \
+            | curl -sS --max-time 30 -X POST "$OPS_FUNCTION_URL/notify-ntfy" -H "x-ops-secret: $OPS_REPORT_SECRET" -H 'Content-Type: application/json' -d @- || true
+
+      - name: Remove the encrypted file from the runner
+        if: always()
+        run: rm -rf "$OUT_DIR"

@@ -1,0 +1,287 @@
+/* Closing module: the guided ledger. Everything is scoped under .cls so it cannot touch other pages.
+   Look kept from the original Closing app (owner decision CLS-15): teal #0D8C78, navy #0E241F,
+   amber = carried-forward values, red = deficits only, Night / Morning / Evening shift dots. */
+.cls {
+  --cls-teal: #0d8c78;
+  --cls-navy: #0e241f;
+  --cls-amber: #b9660f;
+  --cls-amber-bg: #fdf3e3;
+  --cls-red: #c0392b;
+  --cls-night: #6366f1;
+  --cls-morning: #b9660f;
+  --cls-evening: #f97316;
+  --cls-handover: #0d8c78;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cls {
+    --cls-amber: #f2b84b;
+    --cls-amber-bg: #2a2110;
+    --cls-red: #f97066;
+  }
+}
+:root[data-theme='dark'] .cls {
+  --cls-amber: #f2b84b;
+  --cls-amber-bg: #2a2110;
+  --cls-red: #f97066;
+}
+
+/* shift dots */
+.cls .dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: var(--cls-teal);
+}
+.cls .dot-night {
+  background: var(--cls-night);
+}
+.cls .dot-morning {
+  background: var(--cls-morning);
+}
+.cls .dot-evening {
+  background: var(--cls-evening);
+}
+.cls .dot-handover {
+  background: var(--cls-handover);
+}
+
+/* start page */
+.cls .cls-grid {
+  display: grid;
+  gap: var(--space-4);
+}
+.cls .cls-pick {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+}
+.cls .cls-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cls .cls-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cls .cls-meta {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.cls .cls-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.cls .cls-badge-draft {
+  background: var(--cls-amber-bg);
+  color: var(--cls-amber);
+}
+.cls .cls-badge-final {
+  background: var(--cls-navy);
+  color: #fff;
+}
+
+/* ledger: progress, jump-nav, save chip */
+.cls .cls-bar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg);
+  padding: var(--space-2) 0;
+}
+.cls .cls-progress {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.cls .cls-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--cls-teal);
+  transition: width 0.2s;
+}
+.cls .cls-jump {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding: var(--space-2) 0;
+  scrollbar-width: thin;
+}
+.cls .cls-jump button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 99px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.cls .cls-jump button[aria-current='step'] {
+  background: var(--cls-teal);
+  border-color: var(--cls-teal);
+  color: #fff;
+}
+.cls .cls-jump button.is-later {
+  opacity: 0.55;
+}
+.cls .cls-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.cls .cls-chip-ok {
+  color: var(--ok);
+}
+.cls .cls-chip-busy {
+  color: var(--text-muted);
+}
+.cls .cls-chip-warn {
+  color: var(--cls-amber);
+  background: var(--cls-amber-bg);
+}
+.cls .cls-chip-bad {
+  color: var(--cls-red);
+  cursor: pointer;
+}
+
+/* ledger: section cards and rows */
+.cls .cls-sec {
+  display: grid;
+  gap: var(--space-3);
+}
+.cls .cls-sec h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--cls-teal);
+}
+.cls .cls-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 40%);
+  gap: var(--space-3);
+  align-items: center;
+}
+.cls .cls-row label {
+  font-size: 0.9rem;
+}
+.cls .cls-row small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+.cls .cls-in {
+  width: 100%;
+  min-height: 44px;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 1rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+.cls .cls-in:focus {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.cls .cls-in[aria-invalid='true'] {
+  border-color: var(--cls-red);
+}
+.cls .cls-in.is-carried {
+  background: var(--cls-amber-bg);
+  color: var(--cls-amber);
+}
+.cls .cls-return .cls-in,
+.cls .cls-return label {
+  color: var(--cls-red);
+}
+.cls .cls-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--cls-navy);
+  color: #fff;
+}
+.cls .cls-total strong {
+  font-family: var(--mono);
+  font-size: 1.1rem;
+}
+.cls .cls-total-net {
+  background: var(--cls-teal);
+}
+.cls .cls-neg {
+  color: var(--cls-red);
+}
+.cls .cls-table {
+  display: grid;
+  gap: var(--space-2);
+}
+.cls .cls-trow {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(var(--cols, 2), minmax(0, 1fr)) 36px;
+  gap: var(--space-2);
+  align-items: center;
+}
+.cls .cls-trow.is-head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cls .cls-trow.is-struck input {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+.cls .cls-trow .cls-in {
+  min-height: 40px;
+  padding: 0 var(--space-2);
+}
+.cls .cls-trow .cls-text {
+  text-align: left;
+  font-family: var(--font);
+}
+.cls .cls-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.cls .cls-soon {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  color: var(--text-muted);
+}
+@media (max-width: 480px) {
+  .cls .cls-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
