@@ -1,4 +1,4 @@
-# Closing — brief
+> **Status note (13 Nov 2026):** Closing is partially implemented on `main`. The guided ledger covers the first sections, but sections 6–14, submit UX, ledgers/feed, settings and print remain outstanding. See `docs/modules/closing.progress.md` and `docs/PROJECT_STATUS.md`.\n\n# Closing — brief
 
 Status: **Building** (slices C1 + database part of C2–C4 done; no screens yet) · Owner approval: yes (9 Nov 2026, "go")
 Branch: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
