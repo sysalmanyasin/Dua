@@ -1,4 +1,4 @@
-# Manager — brief
+> **Status note (13 Nov 2026):** Manager is implemented on `main` for Staff Registry and Staff Credit. Migrations 0101–0103 are reported applied and verified live. Payslips, petty cash and other remaining brief scope are not complete; see `docs/modules/manager.progress.md` and `docs/PROJECT_STATUS.md`.\n\n# Manager — brief
 
 Status: **Building** (Session M-A done; 0101–0103 applied to the live project 13 Nov 2026; awaiting merge and PHONE #1) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
 Branch: `module/manager` · Migration range: `0100–0199` · Prefix: `mgmt_` · Permissions: `mgmt.*`, `credit.*` · Route prefix: `/manager` · Nav order: 20

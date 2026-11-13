@@ -1,7 +1,7 @@
 # Business Rules (Phase 0) — Fazal Din's Pharma Plus
 
 Source: read directly from the old code (Closing `actions.js` calc(), `state.js`; BT-Sale-Data2 `platform/config.js`, `shared/summary-calc.js`; READMEs; Audit Hub blueprint).
-Status: approved and built for Sales (see §11 for the rules as they now run); closing and audit rules remain the plan for their phases. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
+Status: Sales rules are implemented (see §11). Closing has database/domain implementation and a partial guided-ledger UI; its remaining screens and workflows are still in progress. Inventory feed rules are implemented in the live feed, while Inventory screens and STR remain incomplete. Audit Hub and Emergency Billing remain planned. See `docs/PROJECT_STATUS.md` and the module progress files for current delivery status. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
 Tags: KEEP / IMPROVE / DROP / ASK.
 
 ## 1. Time and dates

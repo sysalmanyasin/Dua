@@ -1,4 +1,4 @@
-# Setup: staging project (do this once, in order)
+# Setup guide: provisioning a fresh staging project\n\n> **Not the current live-project status.** This is a bootstrap procedure for creating a separate staging environment. The existing DuaPharmaPlus project is already live and has migrations, Edge Functions, backup jobs and owner configuration applied. For current live operations, use `docs/RUNBOOK.md` and `docs/PROJECT_STATUS.md`. Do not follow this guide against the live project as if it were empty.
 
 ## 1. Create the Supabase staging project
 New project, Free plan, name `dua-staging`, region closest to Pakistan. Save the database password in your password manager, not in Git.

@@ -1,4 +1,4 @@
-# Manager — progress
+# Manager — progress\n\n**Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
 
 ## Session M-A (12 Nov 2026): DONE, waiting for PHONE #1
 

@@ -35,10 +35,10 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 ## Known gaps and accepted risks
 | Item | Status |
 |---|---|
-| **Automatic backups** | Built (F7, D-38) but **not live until the owner completes setup** (RUNBOOK §6) and the first real Drive upload and restore drill pass. Until then there is no automatic copy. |
+| **Automatic backups** | **Live since 13 Nov 2026**; first good encrypted Drive backup recorded and checksum verified. Passphrase mode (D-38a). **Still unproven:** restore from an actual Drive backup into a separate real Supabase project (RUNBOOK §6). Local 39/39 restore is not a substitute. |
 | Backup credential | The database password is a GitHub environment secret limited to `main`. A leak would allow reading the database. Rotate it by resetting the database password and updating the secret. |
 | Public ntfy topic | Anyone who learns the topic can read the pushes (generic text only) or post fake ones. Rotate by changing `NTFY_TOPIC` and re-subscribing. |
-| `public.rls_auto_enable()` | A platform helper that is not in the repo and is executable by `anon` (security advisor, 12 Nov 2026). **Open; owner decision whether to revoke.** |
+| `public.rls_auto_enable()` | **Hardened 13 Nov 2026.** Execute revoked from `PUBLIC` and `anon`; automatic RLS behaviour was checked. `authenticated` still holds execute because of the platform event-trigger constraint; re-check the advisor and platform behaviour before changing it. |
 | Leaked-password protection | Off in Supabase Auth (advisor). Dashboard toggle; staff sign in with PINs so exposure is low. |
 | Separate production project | Not yet; staging and live share one project. |
 | Error monitoring (Sentry) | Not yet. |
@@ -49,3 +49,7 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 | Free-plan limits | Storage, egress and a pause after a week of inactivity; the app reads small summaries to stay within them. |
 | Staff sign-in shares Supabase's per-address limit | Fine for one shop; a flood of bad attempts could briefly block logins. |
 | GitHub tokens pasted in chat | Treated as exposed; **revoke after each session**. |
+
+
+## Status note (13 Nov 2026)
+Manager migrations 0101–0103 and Inventory migrations 0301–0304 are recorded as live in their module progress evidence. Inventory's enhanced source is still on `module/inventory`, not yet integrated into `main`; this creates a source/live parity task, not permission to reapply the migrations. See [PROJECT_STATUS.md](PROJECT_STATUS.md).

@@ -39,3 +39,17 @@ Daily Check List (the owner's priority): all 19 sections and defaults carried ov
 
 ## Totals at 10 Nov
 10 migrations · 33 tables / 6 views / 25 functions · 29 permissions · 5 Edge Functions · ~5,600 lines of JavaScript · 242 front-end tests · 195 database checks.
+
+
+## 13 Nov — Foundation close-out and current status reconciliation
+
+- Daily encrypted database backup workflow is live; first successful Google Drive backup was recorded on 13 Nov. Owner notifications, retry handling, backup self-diagnosis and the Tools status view are implemented.
+- `public.rls_auto_enable()` execute was revoked from `PUBLIC` and `anon`; automatic RLS behaviour was checked. The remaining `authenticated` execute grant is documented as a platform/event-trigger limitation to review if the advisor continues to flag it.
+- CI now lints workflow files with actionlint. The latest main project progress entry reports 357 unit/jsdom tests and a full database suite including Closing, Manager and Inventory.
+- Manager migrations 0101–0103 are recorded as applied and checked live. Closing has a partial guided ledger UI; its remaining sections and submit/ledger workflows are still pending.
+- Inventory's enhanced delta-feed migrations 0301–0304 and Edge Function v14 are recorded by the Inventory session as applied and verified live. Their source changes remain on `module/inventory` and are not yet integrated into `main`; reconcile source and live state before further migration work.
+- Local backup restore test passed 39/39 checks. A restore from a real Drive backup into a separate Supabase project remains outstanding.
+
+## Current status pointer
+
+The dated entries above are historical. For the current module-by-module distinction between integrated, live, in-progress and pending, see [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not use the 10 Nov totals as current totals.

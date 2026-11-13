@@ -82,3 +82,4 @@ Only the registry is touched by Step 2, so there is no data to restore. Drop the
 
 ## Secrets
 Nothing in this file or in `0011` is a secret. Vault holds `inventory_sync_secret` today. F4/F7 add `ops_function_base_url` and `notify_drain_secret` (names only here; values are created by the owner in the dashboard and never written to Git or chat).
+\n\n## Status update — 13 Nov 2026\nThe core D-35 reconciliation is complete. The Inventory session subsequently reports migrations 0301–0304 applied and registered by repository version, and the live feed verified. At this date those source files are still on `module/inventory`, not `main`. Reconcile the branch and confirm the exact live registry before further migration work. Do not rerun 0301–0304 against the live database. See `docs/PROJECT_STATUS.md` and `docs/modules/inventory.progress.md`.
