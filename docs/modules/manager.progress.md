@@ -1,4 +1,6 @@
-# Manager — progress\n\n**Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
+# Manager — progress
+
+**Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
 
 ## Session M-A (12 Nov 2026): DONE, waiting for PHONE #1
 
@@ -40,7 +42,7 @@
 
 **Not Manager's, reported to the owner:** `closing_lock_children()` and `rls_auto_enable()` are executable by `anon` as SECURITY DEFINER; Auth "leaked password protection" is off.
 
-## PHONE #1: what to try (the migrations are live; the screens appear after the owner merges `module/manager` into `main`: Pages publishes in about a minute)
+## PHONE #1: what to try (the migrations are live and the screens are on `main`, merged 13 Nov as PR #4)
 1. Open **Manager → Staff Registry**. Add a person (name, designation). Check the code appears (EMP-001 style).
 2. Open the card, add private details (father's name, blood group) and save. Reopen: they are there.
 3. Notes tab: add a note, remove it (reason optional). It disappears from the list.
