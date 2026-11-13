@@ -1,6 +1,6 @@
 # Candela Sales — brief
 
-Status: Briefed        Owner approval: pending
+Status: Building (approved scope; Foundation dependencies pending)        Owner approval: yes (13 Nov 2026)
 Branch: module/candela-sales        Migration range: pending Foundation assignment        Prefix: candela_        Permissions: candela.*
 
 ## 1. Scope
@@ -67,11 +67,11 @@ All routes require candela.view. Staff receive no Candela Sales navigation or de
 
 ## 7. Cross-module / Foundation requests
 
-1. Assign an approved migration range and add the module row to the shared registry in docs/MODULES.md. The current table reserves 0900–0999 and does not yet define a Candela module range/prefix.
+1. Foundation allocation required: assign a migration range and add the module row to docs/MODULES.md. The current table reserves 0900–0999; this module will not claim a range or edit the Foundation-owned registry itself.
 2. Update the Foundation-owned feed apply function so payment and customer summary rows are upserted for incoming dates, while dates outside the payload are preserved. Reconcile this with the enhanced live Inventory feed source before changing any deployed Edge Function or live migration.
 3. Provide a staff-safe candela_today_total() interface with a dedicated permission check and no direct table access.
-4. Provide a status-bar integration path that can refresh the scalar total on a timer and app focus. js/core/statusbar.js is Foundation-owned and currently refreshes only the clock; module status pills currently load once.
-5. Confirm whether the feed includes a stable customer ID/code. If it does not, approve the exact customer-name normalization and uniqueness rule.
+4. Foundation change required: extend js/core/statusbar.js to refresh module pills safely on a timer and app focus, with cleanup and no overlapping requests. It currently refreshes only the clock; module status pills load once. Candela can supply the scalar provider and a hidden staff-authorized route.
+5. Confirm whether the feed includes a stable customer ID/code. The deployed feed currently maps only customerName; do not invent an identity key. If no stable ID exists, decide a deterministic date + normalized-name key and collision policy before adding a unique constraint.
 
 ## 8. Decisions
 
@@ -93,3 +93,29 @@ All routes require candela.view. Staff receive no Candela Sales navigation or de
 ## 10. Handoff
 
 Do not modify the live sync Edge Function or apply database changes until the live Inventory v14 source has been reconciled with the repository. The owner has approved permanent retention of both summary datasets and the separation of Candela Sales from manual Sales. Foundation-owned files and migration ranges require explicit Foundation coordination.
+
+
+## 11. Approval and parallel-session safety (13 Nov 2026)
+
+The owner approved the scope and permission model on 13 Nov 2026:
+- candela.view: owner-only detailed reports.
+- candela.today_total: staff-safe access to today's one scalar total only.
+- No staff SELECT on either detail table; no role-template grants to staff for candela.view.
+- Both datasets retained permanently; incoming dates are refreshed without deleting older dates.
+
+Do not claim a migration range. The shared registry currently marks 0900–0999 Reserved and is Foundation-owned. Foundation must assign a range and add the module row before a migration is named. Do not edit docs/MODULES.md, js/core/**, index.html, shared CI, or deployed Inventory feed from this branch.
+
+Parallel work checked on 13 Nov 2026:
+- main head: c86e1c0 (Closing Session C, migration 0206).
+- Open GitHub PRs: none at the time checked.
+- Existing branches include module/inventory, module/closing, module/manager, foundation/inventory-feed, foundation/operations-hardening, and docs/session-plans. Their heads are behind/diverged from current main. Do not merge or rebase them automatically.
+- Live Supabase project confirms migrations through 0304 and Inventory Edge Function v19. The deployed function is the authority for production behavior; source reconciliation is required before any feed change.
+
+Foundation requests to track:
+- Allocate migration range and registry row for Candela Sales.
+- Review whether the feed should retain sales rows in inventory_apply_sync (upsert incoming daily payment summaries and customer/date summaries; preserve dates outside payload).
+- Confirm stable customer ID availability from Candela export; current deployed mapper exposes only customerName.
+- Add/approve staff-safe candela_today_total(), with candela.today_total check and no table grants.
+- Add status-pill refresh lifecycle to core status bar; keep owner-only detail screens inaccessible to staff.
+
+The Candela branch is independent. No database migration, live SQL, Edge Function deployment, shared Foundation file, or merge to main has been performed.
