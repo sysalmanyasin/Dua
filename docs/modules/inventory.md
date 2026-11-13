@@ -1,4 +1,24 @@
-# Inventory — brief (includes Foundation task F3, the inventory feed)
+# Inventory — brief and implementation status
+
+**Status snapshot: 13 Nov 2026.** This document began as the original module brief. The implementation has since evolved; use the addendum below as the current status and design correction. The original scope and business-rule notes remain useful historical requirements.
+
+## Current implementation addendum
+
+- The base Candela → Dropbox → Edge Function feed is live.
+- The enhanced feed/interface implementation is recorded in `docs/modules/inventory.progress.md` on branch `module/inventory`.
+- Migrations `0301`–`0304` and Edge Function `sync-inventory-from-dropbox` v14 are reported as applied and verified on DuaPharmaPlus on 12 Nov 2026.
+- **Source integration gap:** these enhanced migration files and matching function changes are not yet present on `main` at this snapshot. Review and merge the source branch; do not apply those already-live migrations again.
+- Inventory screens and the phone-local product copy are not complete. The next slices are I-B (local copy and reorder maths), I-C (reports), and I-D (Home numbers / egress review).
+- STR is a separate planned module, not part of the Inventory screen delivery.
+
+### Current feed design (supersedes the original replace-every-row description below)
+
+The newer implementation uses hashes, independent stock/sales change counters, tombstones for removed products, a bounded delta feed, and a guarded sync. The unchanged-file shortcut can skip a full sync; a heartbeat prevents the operations watchdog from treating repeated unchanged checks as a dead feed. Sales columns are separately permission-gated. The progress file records the accepted 1,000-entry page size (INV-16), 20% removal guard and live smoke-test evidence.
+
+The original sections below record the first brief and its initial design assumptions. Where they say that every sync replaces all product rows, or describe the first proposed interface/permission model, those statements are historical and superseded by the implementation addendum above.
+
+---
+
 
 Status: **Briefed** (awaiting owner approval) · Owner approval: no
 Branch: `foundation/inventory-feed` for F3, then `module/inventory` · Migration ranges: feed in `0001–0099` (Foundation), screens in `0300–0399` · Prefix: `inventory_` · Permissions: `inventory.*` · Route prefix: `/inventory` · Nav order: 40
