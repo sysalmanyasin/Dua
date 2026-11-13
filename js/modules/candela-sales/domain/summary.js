@@ -58,7 +58,8 @@ export function filterCreditRows(rows = [], { from = null, to = null, search = '
     .slice()
     .sort(
       (a, b) =>
-        b.sale_day.localeCompare(a.sale_day) || String(a.customer_name ?? '').localeCompare(String(b.customer_name ?? '')),
+        b.sale_day.localeCompare(a.sale_day) ||
+        String(a.customer_name ?? '').localeCompare(String(b.customer_name ?? '')),
     );
 }
 
