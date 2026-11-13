@@ -16,7 +16,7 @@ const goLedger = () => {
 export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions ?? [];
   const canOpen = perms.includes('closing.settings');
-  const canLedgers = ['closing.view_all', 'closing.review', 'closing.correct'].some((k) => perms.includes(k));
+  const canLedgers = ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct'].some((k) => perms.includes(k));
   render(el, loadingCard());
   let recent;
   try {
