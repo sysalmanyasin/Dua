@@ -24,7 +24,30 @@ fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT_DIR="${OUT_DIR:-$(mktemp -d)}"; mkdir -p "$OUT_DIR"
 DAY="${BACKUP_DAY:-$(date -u +%F)}"
-WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+WORK="$(mktemp -d)"
+# Any failure leaves a short, safe reason in error.txt (the workflow sends it to the Tools tab). Passwords are never printed by
+# psql/pg_dump; connection strings are masked anyway.
+ERRFILE="$OUT_DIR/error.txt"; rm -f "$ERRFILE"
+fail() { printf '%s\n' "$1" > "$ERRFILE"; printf '%s\n' "$1" >&2; exit 1; }
+on_exit() {
+  rc=$?
+  if [ "$rc" -ne 0 ] && [ ! -s "$ERRFILE" ]; then
+    detail=""
+    for f in "$WORK/dump.err" "$WORK/psql.err"; do
+      if [ -s "$f" ]; then detail="$(tail -n 3 "$f" | tr '\n' ' ' | cut -c1-300)"; break; fi
+    done
+    printf '%s\n' "${detail:-backup.sh stopped with exit code $rc}" | sed -E 's#postgres(ql)?://[^ ]*#postgresql://***#g' > "$ERRFILE" || true
+  fi
+  rm -rf "$WORK"
+}
+trap on_exit EXIT
+
+# Check the connection string for the usual mistakes before connecting.
+DBHOST="$(printf '%s' "$SUPABASE_DB_URL" | sed -E 's#^[a-zA-Z]+://[^@]*@##; s#[:/?].*##')"
+DBPORT="$(printf '%s' "$SUPABASE_DB_URL" | sed -nE 's#^[a-zA-Z]+://[^@]*@[^:/?]+:([0-9]+).*#\1#p')"
+[ "$(printf '%s' "$SUPABASE_DB_URL" | tr -cd '@' | wc -c)" -le 1 ] || fail "SUPABASE_DB_URL has more than one @: a special character in the database password must be percent-encoded (@ becomes %40)."
+[ "$DBPORT" != "6543" ] || fail "SUPABASE_DB_URL uses port 6543 (Transaction pooler). Use the Session pooler string (port 5432): a consistent dump needs one connection."
+case "$DBHOST" in db.*.supabase.co) fail "SUPABASE_DB_URL is the Direct connection (IPv6 only); GitHub cannot reach it. Use the Session pooler string (host ends in pooler.supabase.com, port 5432).";; esac
 
 # One session holds a snapshot open while pg_dump and the fingerprint both read from it.
 coproc PSQL { psql "$SUPABASE_DB_URL" -qAtX -v ON_ERROR_STOP=1 2>"$WORK/psql.err"; }
@@ -32,13 +55,14 @@ exec 3>&"${PSQL[1]}" 4<&"${PSQL[0]}"
 echo "begin isolation level repeatable read read only; select 'SNAP:' || pg_export_snapshot();" >&3
 SNAP=""
 while read -r line <&4; do case "$line" in SNAP:*) SNAP="${line#SNAP:}"; break;; esac; done
-[ -n "$SNAP" ] || { echo "could not open a snapshot" >&2; exit 1; }
+[ -n "$SNAP" ] || fail "could not open a snapshot: $(tail -n 2 "$WORK/psql.err" 2>/dev/null | tr '\n' ' ' | cut -c1-220)"
 
 printf '\\o %s\n\\i %s\n\\o\nselect %s;\n' "$WORK/manifest.txt" "$HERE/manifest.sql" "'DONE'" >&3
 while read -r line <&4; do [ "$line" = "DONE" ] && break; done
 
 pg_dump "$SUPABASE_DB_URL" --format=custom --compress=6 --no-owner \
-  --schema=public --schema=auth --schema=supabase_migrations --snapshot="$SNAP" -f "$WORK/dua.dump"
+  --schema=public --schema=auth --schema=supabase_migrations --snapshot="$SNAP" -f "$WORK/dua.dump" 2>"$WORK/dump.err" \
+  || { cat "$WORK/dump.err" >&2; exit 1; }
 
 printf 'commit;\n\\q\n' >&3
 wait "$PSQL_PID" 2>/dev/null || true
@@ -46,7 +70,7 @@ wait "$PSQL_PID" 2>/dev/null || true
 # Sanity: an empty or tiny dump must never look like a success.
 SIZE_DUMP=$(stat -c %s "$WORK/dua.dump")
 TABLES=$(grep -c '^table:' "$WORK/manifest.txt" || true)
-if [ "$SIZE_DUMP" -lt 20000 ] || [ "$TABLES" -lt 5 ]; then echo "dump looks too small ($SIZE_DUMP bytes, $TABLES tables)" >&2; exit 1; fi
+if [ "$SIZE_DUMP" -lt 20000 ] || [ "$TABLES" -lt 5 ]; then fail "dump looks too small ($SIZE_DUMP bytes, $TABLES tables)"; fi
 
 printf '{"day":"%s","pg_dump":"%s"}\n' "$DAY" "$(pg_dump --version | tr -d '\n')" > "$WORK/meta.json"
 OUT="$OUT_DIR/dua-$DAY.tar.$EXT"

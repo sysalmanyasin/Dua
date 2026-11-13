@@ -2,7 +2,7 @@
 // Uses OAuth with the narrow drive.file scope: it can only see files and folders this app created, in a folder it creates itself.
 // Environment: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, OUT_DIR (holds dua-<day>.tar.age and result.json)
 // Nothing here prints a token or a response body that could contain one.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { BACKUP_NAME, KEEP_DAILY, KEEP_WEEKLY, isSunday, selectForDeletion } from './retention.mjs';
