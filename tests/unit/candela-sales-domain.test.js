@@ -8,6 +8,7 @@ import {
   toPaisa,
 } from '../../js/modules/candela-sales/domain/summary.js';
 
+// prettier-ignore
 describe('Candela monetary conversion', () => {
   it('converts decimal strings to integer paisa without floating point addition', () => {
     expect(toPaisa('178688.80')).toBe(17868880);
@@ -31,6 +32,7 @@ describe('Candela monetary conversion', () => {
   });
 });
 
+// prettier-ignore
 describe('Candela payment summaries', () => {
   const days = [
     {
@@ -72,6 +74,7 @@ describe('Candela payment summaries', () => {
   });
 });
 
+// prettier-ignore
 describe('Candela customer credit summaries', () => {
   const rows = [
     {
