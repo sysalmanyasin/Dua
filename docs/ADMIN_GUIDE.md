@@ -43,7 +43,13 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 | `targets.manage` | Manage sales targets |
 | `users.manage` | Manage users, roles and permissions |
 
-## 2. Current module availability\n- **Sales:** implemented; see the User Guide for available pages.\n- **Manager:** Staff Registry and Staff Credit are implemented. Migrations 0101–0103 are live. Owner phone acceptance and later slices (including payslips and petty cash) remain outstanding. See `docs/modules/manager.progress.md`.\n- **Closing:** partially implemented. The guided ledger is in progress; remaining sections, submit flow, ledgers and print are not complete. See `docs/modules/closing.progress.md`.\n- **Inventory:** Candela feed is live; enhanced feed migrations 0301–0304 and Edge Function v14 are reported live, but their source changes still need integration into `main`. Inventory screens/local copy are incomplete. Do not reapply those live migrations.\n\n## 3. Sales settings
+## 2. Current module availability
+- **Sales:** implemented; see the User Guide for available pages.
+- **Manager:** Staff Registry and Staff Credit are implemented. Migrations 0101–0103 are live. Owner phone acceptance and later slices (including payslips and petty cash) remain outstanding. See `docs/modules/manager.progress.md`.
+- **Closing:** partially implemented. The guided ledger is in progress; remaining sections, submit flow, ledgers and print are not complete. See `docs/modules/closing.progress.md`.
+- **Inventory:** Candela feed is live; enhanced feed migrations 0301–0304 and Edge Function v14 are reported live, but their source changes still need integration into `main`. Inventory screens/local copy are incomplete. Do not reapply those live migrations.
+
+## 3. Sales settings
 - **Sales → Fields (Manage Fields):** add your own bank or client column, rename a field, tick whether it appears on the Add Entry page, move it up/down, or **switch it off** (kept in history, not usable for new days). Once a field has saved figures its **type (adds / deducts / info only) and section cannot change**; hide it and add a new field instead.
 - **Sales → Targets:** a target for any month (3 months ahead and 23 back). Empty box = remove.
 - **Check list dropdown lists:** the pen button beside a dropdown (needs *checklist.manage*).
