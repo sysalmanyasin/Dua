@@ -4,7 +4,7 @@ import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
 import { hero } from '../../../shared/ui.js';
 import { BRAND } from '../../../core/config.js';
-import { coverSummary } from '../data/api.js';
+import { coverSummary, notificationsAttention } from '../data/api.js';
 import { buildAttention, buildKpis, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
 
 const arrow = (v) => (v === null ? '' : `${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}%`);
@@ -57,8 +57,17 @@ export async function mount(el, { ctx, modules = [] }) {
   } catch {
     failed = true;
   }
+  // Owner alerts are separate and optional: if they cannot load, the rest of the Cover is unaffected.
+  let alerts = null;
+  if (ctx.permissions.includes('notifications.view')) {
+    try {
+      alerts = await notificationsAttention();
+    } catch {
+      alerts = null;
+    }
+  }
   const kpis = buildKpis(summary);
-  const todo = buildAttention(summary, ctx.permissions, hour);
+  const todo = buildAttention(summary, ctx.permissions, hour, alerts);
 
   render(
     el,

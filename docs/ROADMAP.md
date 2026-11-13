@@ -1,29 +1,61 @@
-# Roadmap: what is left, in order
+# Roadmap — remaining work
 
-## A. Before relying on the system
-1. **Automatic backups.** Daily encrypted database export to Google Drive (30 daily + 12 weekly kept), and a tested restore into a spare project. *Not built; highest risk.* Interim: manual weekly dump (`RUNBOOK.md` §6). Needs a Google service account and a shared Drive folder.
-2. **Owner try-out on a real phone** of the newest pages (Dashboard, Reports, Fields, Targets, Gmail, Cover) and fixes.
-3. **Google Cloud origin step** for Gmail (`SETUP.md`).
-4. **Revoke GitHub tokens** used in chat.
-5. **Reconcile the migration registry** (`RUNBOOK.md` §4): Foundation owner.
-6. **Tidy-up on Supabase:** delete the now-inactive `import-sales` Edge Function and the uploaded backup file in Storage → `imports` (it holds salaries), then the empty folder.
-7. **Separate production project** and config; keep staging for tests.
+**Status snapshot:** 13 November 2026. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the integrated/live/branch distinction. Items below are remaining work, not a list of all planned features.
 
-## B. Sales leftovers
-| Item | Waiting for |
-|---|---|
-| Payments page (card/bank payment summaries) | Candela feed screens (data tables exist from the feed session) |
-| Daily Check List auto-fill (opening/closing stock, receives, returns, customers) | Candela inventory feed, then a rule-by-rule port |
-| "Total Credit" status pill | the credit ledger (Closing / Manager) |
-| Bar Race animation, "since you last looked", rule alerts and e-mail briefing | owner's decision; not ported from the old dashboard |
-| Differentiate Senior and Junior | owner's decision |
-| Screens for `till_float`, `per_customer_charge`, `modules_disabled` settings | with Closing |
+## P0 — Reconcile live state with Git before more releases
 
-## C. Next modules (see `docs/MODULES.md` and `docs/modules/*.md`)
-Manager (staff records, salary, payslips, petty cash, credit) → Closing (shifts, cash counting, Closing Book, Register Book, credit ledger, COD) → Inventory & STR screens → Audit Hub (offline counting) → Emergency billing → unified Reports → read-only assistant (numbers stay deterministic) → Android widgets (last).
+1. **Integrate Inventory's live source changes.** Review `module/inventory` against current `main`; bring in migrations 0301–0304, Edge Function v14, tests and current progress docs. The progress file says these changes are already applied live. Do not re-apply them; verify source hashes, registry versions and deployed function before merging.
+2. **Run current main checks** after integration: `npm run verify`, `bash supabase/tests/run.sh`, and confirm the GitHub Actions run is green.
+3. **Real backup restore drill.** Download a real encrypted Drive backup and restore into a separate empty Supabase project. The local 39/39 restore test is not a substitute for this.
+4. **Owner security housekeeping:** revoke any GitHub token pasted into chat or otherwise exposed; rotate any credential that may have been exposed. Confirm the backup environment secrets are current.
 
-## D. Quality and operations
-Playwright login and Add Entry tests · Sentry error reporting · general offline outbox (closing, audit) · accessibility pass · performance check on a low-end phone · security review before launch · restore drill each quarter.
+## P1 — Before relying on the app day to day
 
-## Decisions waiting for the owner
-Senior vs Junior differences · whether to port Bar Race and the briefing e-mail · whether Attendance/geofencing comes back (parked until the Android phase) · who owns migration reconciliation.
+1. **Real-device acceptance:** owner try-out of the newest Sales, Manager and Closing screens on the actual phones used in the pharmacy; record issues and resolve them.
+2. **Gmail verification:** add the deployed origin in Google Cloud, then test actual Gmail sending from the owner's account. The app requests send-only access.
+3. **Separate production Supabase project:** staging and live currently share DuaPharmaPlus. Create a separate production project and plan a controlled data/config migration before broader launch.
+4. **Operational checks:** confirm scheduled backups continue, owner alerts arrive, and the Tools tab reports backup health.
+
+## P2 — Finish active modules
+
+### Inventory
+- I-B: phone-local product copy, feed paging/recovery and reorder maths with shared golden fixtures.
+- I-C: Inventory reports/screens (Stock Ledger, Excess, Reorder, Health) and exports.
+- I-D: Home summary numbers, permission review and egress review.
+- Complete source integration first; the live feed is not the same thing as completed Inventory screens.
+- STR is a separate module (route `/str`, migration range 0500–0599) and follows the Inventory interfaces.
+
+### Closing
+- Complete guided ledger sections 6–14.
+- Implement submit/reopen/correction UX and remaining database/UI integration as specified by the Closing brief.
+- Complete ledgers/feed, settings, print/PDF and remaining owner acceptance.
+- Closing's current progress file records a partial ledger; it is not a complete Closing product.
+
+### Manager
+- Owner phone try-out of Staff Registry and Staff Credit.
+- Continue remaining Manager slices: payslips, petty cash and other scope in the Manager brief.
+- Confirm sign conventions for Expense, Jazz Cash and Petty before implementing those ledgers.
+
+### Sales
+- Real Gmail send verification and owner phone acceptance.
+- Payments summary and Daily Check List auto-fill depend on Inventory data/interfaces.
+- Credit status pill depends on the credit ledger.
+- Bar Race animation, briefing email and other old-dashboard extras remain unported / decision-dependent.
+
+## P3 — Later modules and quality
+
+- STR module, then Audit Hub (including offline counting), Emergency Billing and unified Reports.
+- Read-only assistant only after deterministic data interfaces are stable; calculations remain in trusted code/database.
+- Android widgets are a later phase, not part of the current web-app completion.
+- Playwright end-to-end tests, Sentry error reporting, accessibility review, low-end-phone performance review and broader security review.
+- Quarterly restore drills after the first successful real restore.
+
+## Decisions still requiring the owner
+
+- Senior vs Junior permission differences.
+- Whether to port Bar Race, briefing email and other dashboard extras.
+- Sign conventions for the remaining Manager ledgers (see Manager brief).
+- Whether Attendance/geofencing returns in the Android phase.
+- Timing and ownership for separate production project cutover.
+
+Do not mark a roadmap item complete because a design or migration file exists. Require integrated code, passing tests and live verification where applicable.

@@ -11,6 +11,10 @@ const patterns = [
   { name: 'Supabase secret key', re: /sb_secret_[A-Za-z0-9_-]{10,}/ },
   { name: 'private key block', re: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
   { name: 'GitHub token', re: /\bgh[pousr]_[A-Za-z0-9]{30,}\b/ },
+  { name: 'GitHub fine-grained token', re: /\bgithub_pat_[A-Za-z0-9_]{30,}/ },
+  { name: 'age private key', re: /AGE-SECRET-KEY-1[A-Z0-9]{20,}/ },
+  { name: 'Google OAuth client secret', re: /\bGOCSPX-[A-Za-z0-9_-]{16,}/ },
+  { name: 'Google OAuth refresh token', re: /\b1\/\/[0-9A-Za-z_-]{40,}/ },
   { name: 'Postgres URL with password', re: /postgres(?:ql)?:\/\/[^\s:@/]+:[^\s@]{3,}@/ },
   { name: 'Google API/service key', re: /\bAIza[0-9A-Za-z_-]{30,}\b/ },
 ];

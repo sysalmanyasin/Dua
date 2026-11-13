@@ -1,0 +1,68 @@
+/* Manager pages: staff list rows, credit cards, notes. Shared furniture (card, field, table, dialog, toast) comes from components.css and sales.css. */
+.mg-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  margin-bottom: var(--space-2);
+}
+.mg-name {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.mg-name small {
+  overflow-wrap: anywhere;
+}
+.mg-credit {
+  margin-bottom: var(--space-3);
+}
+.mg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mg-net {
+  display: grid;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.mg-net strong {
+  font-size: 1.15rem;
+}
+.mg-sum {
+  margin: var(--space-2) 0 0;
+}
+.mg-body {
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+.mg-struck td:not(:last-child) {
+  color: var(--text-muted);
+}
+.mg-struck .num {
+  text-decoration: line-through;
+}
+.mg-note {
+  margin-bottom: var(--space-2);
+}
+.mg-note p {
+  margin: 0 0 var(--space-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

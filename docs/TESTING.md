@@ -1,34 +1,55 @@
-# Testing
+# Testing and verification
 
-## Suites
-| Suite | Where | Count (10 Nov 2026) | What it proves |
-|---|---|---|---|
-| Front-end unit and page tests | `tests/unit/*.test.js` (27 files) | **242** | Calculations (totals, dashboard KPIs, check-list figures, reports), parsing, permissions in the registry, and each page driven in a simulated browser: typing, saving, retry, conflict, view-only, copy, print, Gmail dialog, charts (library mocked), escaping of hostile text |
-| Database security tests | `supabase/tests/*_test.sql` (7 files) | **195 checks** | Row-level security, permissions, MFA rule, validation, idempotency, revisions, immutability of the log, views, field rules — run against a real Postgres 16 with all migrations applied in order |
-| Edge Function type-check | `deno check` | 4 + feed function | The server functions compile; shared logic (PIN rules, codes, lockout) is unit-tested from Node |
-| Repo checks | `npm run check:secrets`, `check:vendor`, ESLint, Prettier | — | No secrets, no unsafe DOM calls, vendored files unchanged |
+**Status snapshot:** 13 November 2026. This document separates test evidence from real-device / production verification.
 
-## Shared test cases
-`tests/fixtures/sales-total-cases.json` holds the TOTAL cases. The browser maths and the database function are both tested against **the same file**, so they cannot drift apart. The Sale Report maths is tested against the owner's screenshot of 4 Nov 2026 (net cash 589,533, net credit 25,225, grand total 614,758, difference 24,977).
+## Current recorded test status
 
-## Real-data checks done
-- The old formula was run over all **2,379** real days: 2,378 totals reproduce exactly with the signed rule; the old "absolute value" formula would have changed 110 historical days (see D-24).
-- After import, **79 of 80** monthly totals match the original app exactly; the exception is the flagged day (25 Sep 2026, 5,674).
-- Live database: every day's cash + banks + credit equals its total; monthly grand total 890,769,482 = days 879,587,129 + the April 2021 monthly figure.
+The latest `main` entry in `PROJECT_PROGRESS.md` reports **357 unit/jsdom tests** and a full database suite including Closing, Manager and Inventory. Earlier module progress files report counts from different snapshots (Manager: 294 unit tests / 385 DB checks; Closing: 351 unit tests at its Session A snapshot; Inventory: 242 at its earlier A0/A stage). These are not additive and must not be presented as one total.
 
-## Tests that were proven able to fail (mutation checks)
-Removing the MFA rule, the "sales.edit needed to correct" rule, and the first versions of several handlers made the matching tests fail, then they were restored. A bug (Cover cards built eagerly) and several wrong expectations were caught by tests before release.
+For release decisions, use the current GitHub Actions run and rerun the commands below. Do not treat a dated count as proof that the current checkout passes.
+
+## Test suites
+
+| Suite | Command / location | Coverage |
+|---|---|---|
+| Front-end unit and page tests | `npm test`; `tests/unit/` | Domain calculations, parsing, permission registry, page interactions in jsdom, save/retry/conflict, view-only states, print/copy and Gmail dialogs |
+| Repository checks | `npm run lint`, `npm run format:check`, `npm run check:secrets`, `npm run check:vendor` | Style, unsafe DOM patterns, secret leakage and vendored-file hashes |
+| Database tests | `bash supabase/tests/run.sh` | Rebuilds a clean local PostgreSQL database from repository migrations, then checks RLS, grants, permissions, validation, idempotency, immutable records and module-specific rules |
+| Edge Function checks | CI Deno checks | Type-checks the Edge Functions included in the workflow |
+| Workflow lint | CI actionlint step | Checks GitHub Actions workflow syntax |
 
 ## How to run
-```
-npm ci
-npm run verify          # lint, formatting, front-end tests, secret scan, vendor hashes
-bash supabase/tests/run.sh   # needs a local Postgres (PGUSER set); builds a clean database from all migrations, then runs the SQL tests
-```
-GitHub runs the same on every push.
 
-## Not covered (be honest about this)
-- A real browser on a real phone (layout, touch, print dialogs, Google sign-in window). The owner tried the earlier pages (login, request/approve, PIN, lockout, Add Entry) on a phone on 5–6 Nov 2026; **the Dashboard, Reports, Fields, Targets, Gmail sending and the newest design have not been seen on a phone by anyone yet.**
-- Real Google sending (needs the origin added in Google Cloud).
-- Load, long-running and low-memory behaviour.
-- The inventory feed's live sync is tested by its own session.
+```sh
+npm ci
+npm run verify
+bash supabase/tests/run.sh
+```
+
+The database runner needs a local PostgreSQL instance and `PGUSER`. GitHub Actions runs the repository checks on pushes and pull requests; inspect the actual run rather than assuming it passed.
+
+## Shared fixtures and real-data evidence
+
+- `tests/fixtures/sales-total-cases.json` is shared by browser maths and database tests for Sales TOTAL calculations.
+- The historical Sales import covered 2,379 days. The project record says 2,378 totals reproduce exactly under the signed rule; 79 of 80 monthly totals matched, with the documented September 2026 difference of 5,674.
+- Closing uses hand-worked fixtures in `tests/fixtures/closing-cases.json` and `closing-period-cases.json`; database and JavaScript calculations are compared against those fixtures.
+- Manager credit maths uses `tests/fixtures/manager-credit-cases.json` in both SQL and browser tests.
+- Inventory's delta-feed tests include paging, permissions, tombstones, removal guard, heartbeat and unique sequence counters. See `docs/modules/inventory.progress.md`; the progress record is mirrored on `main`, while the implementation source remains on `module/inventory`.
+
+## Live verification recorded
+
+- Inventory progress reports migrations 0301–0304 and Edge Function v14 applied and verified on DuaPharmaPlus on 12 Nov 2026, with hourly sync checks and a full first-install feed test. The source branch still needs integration into `main`.
+- Manager progress reports migrations 0101–0103 applied and checked live on 13 Nov 2026.
+- Foundation progress reports the first successful encrypted Drive backup on 13 Nov 2026.
+- A local backup restore round-trip passed 39/39 checks. This does **not** prove restoration from an actual Drive backup into a separate Supabase project.
+
+## Not yet proven / gaps
+
+- A complete real-device acceptance pass for the newest Sales, Manager and Closing pages.
+- Real Gmail sending from the deployed origin with the owner's Google account.
+- A restore drill from a real encrypted Drive backup into a separate, empty Supabase project.
+- Load, long-running, offline and low-memory behaviour on the actual pharmacy phones.
+- Full browser end-to-end automation (Playwright) and production error monitoring (Sentry).
+- Inventory's full screen set and local-copy flow; the live feed alone does not mean the Inventory module is complete.
+
+A test passing in jsdom or local PostgreSQL is evidence for that test scope only. It is not evidence of real-device usability, Google integration, production restore or every live permission path.
