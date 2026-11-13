@@ -68,3 +68,10 @@ export const readAuditRequired = async () => {
 };
 export const setAuditRequired = (required, reason) =>
   one(db().rpc('settings_set', { p_key: AUDIT_KEY, p_value: required, p_reason: reason }));
+
+// ── ledgers (migration 0206): read-only, for people who may see every closing ──
+/** One snapshot per submitted closing, newest first. `from` / `to` are 'YYYY-MM-DD' or null. */
+export const creditLedger = ({ from = null, to = null, limit = 60 } = {}) =>
+  one(db().rpc('closing_credit_ledger', { p_from: from, p_to: to, p_limit: limit }));
+/** Open and closed misc charges, aged by their stable charge id: { as_of, open: [...], closed: [...] }. */
+export const miscLedger = (closedLimit = 100) => one(db().rpc('closing_misc_ledger', { p_closed_limit: closedLimit }));

@@ -19,5 +19,19 @@ export default {
       anyOf: ['closing.enter_own', 'closing.correct', 'closing.settings'],
       load: () => import('./ui/ledger.js'),
     },
+    {
+      path: '/closing/credit',
+      title: 'Credit Ledger',
+      desc: 'Credit position stored with each submitted closing',
+      anyOf: ['closing.view_all', 'closing.review', 'closing.correct'],
+      load: () => import('./ui/credit.js'),
+    },
+    {
+      path: '/closing/misc',
+      title: 'Misc Ledger',
+      desc: 'Open and closed misc charges, with their age',
+      anyOf: ['closing.view_all', 'closing.review', 'closing.correct'],
+      load: () => import('./ui/misc.js'),
+    },
   ],
 };
