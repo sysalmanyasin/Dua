@@ -12,7 +12,7 @@
 | A3 | Module skeleton, `domain/credit.js` + `domain/staff.js`, `data/api.js`, shared fixture `tests/fixtures/manager-credit-cases.json` (same cases run in SQL and in the browser) | 28 unit tests incl. guards (every permission key used is seeded; no Manager key in any role preset; no national-ID field; no direct table writes from the page code) |
 | A4 | `/manager/staff` (list, card: Details · Credit · Payslip placeholder · Notes) and `/manager/credit` (month picker, per-person block, add entry, reverse, deductions, opening balance) | 23 jsdom page tests; 3 UI mutation checks all caught |
 
-**Totals:** `npm run verify` green (29 files, 294 tests; was 242). `bash supabase/tests/run.sh`: 378 checks, 0 failures (was 195).
+**Totals:** `npm run verify` green (29 files, 294 tests; was 242). `bash supabase/tests/run.sh`: 385 checks, 0 failures (was 195).
 
 **Decisions made while building (all in the brief §8):** MGR-18 permission design (editing implies reading; 14 keys), MGR-19 (deductions are ledger rows; a reversal is dated like the original; an entry cannot predate the opening month), MGR-20 (Manager's "active" is the payroll list, not the login), MGR-21 (names are read through Manager's own functions; core policies untouched).
 
@@ -24,13 +24,23 @@
 - **Open for M-C:** the sign meaning of each ledger (Expense, Jazz Cash, Petty) must be confirmed with an owner example before building (MGR-17).
 - The local DB runner needs PostgreSQL; I installed it in my sandbox only. Nothing in the repo changed for it.
 
-## Ready to apply to the live project (owner says when; RUNBOOK §4, by hand, repo version, in this order)
-1. `supabase/migrations/0101_mgmt_staff.sql`
-2. `supabase/migrations/0102_mgmt_credit.sql`
+## Applied to the live project (DuaPharmaPlus, 13 Nov 2026, by hand, repo versions, RUNBOOK §4)
 
-Both are additive (new tables, functions and 11 permission rows). They change no existing table and no existing policy. Nothing is seeded with data.
+| Version | File | sha256 (first 12) | Recorded in `schema_migrations` |
+|---|---|---|---|
+| 0101 | `0101_mgmt_staff.sql` | `60c622cd4ab2` | yes (`0101 mgmt_staff`) |
+| 0102 | `0102_mgmt_credit.sql` | `ae93c1e2c763` | yes (`0102 mgmt_credit`) |
+| 0103 | `0103_mgmt_hardening.sql` | `783074e3bbc7` | yes (`0103 mgmt_hardening`) |
 
-## PHONE #1: what to try (owner, after the two migrations are applied and the branch is merged or previewed)
+**Checked live after applying:** RLS on all 6 `mgmt_` tables, 5 read policies and 0 write policies, no `anon` table grants, `authenticated` holds SELECT only, `anon` can execute 0 Manager functions, `authenticated` exactly the 10 whitelisted, no Manager key in any role preset, 0 rows in the new tables. A read-only run as the owner (simulated MFA) lists the 2 staff and returns the credit month; the senior (even with MFA) and `anon` are refused; with no identity the function answers `42501 not allowed`.
+
+**Found while applying (and fixed):** (1) two trigger functions kept Postgres's default public execute on the live project: revoked in `0102`, with a guard test that fails for any Manager function outside a whitelist. (2) Security advisor: those two trigger functions had no fixed `search_path`: fixed in `0103`, with a guard test.
+
+**Security advisor, left as is:** `mgmt_save_keys` "RLS enabled, no policy" and the 10 Manager RPCs "callable by signed-in users" are by design (service-only table; each RPC checks its permission inside), exactly like `sales_save_keys` and `sales_save_day`.
+
+**Not Manager's, reported to the owner:** `closing_lock_children()` and `rls_auto_enable()` are executable by `anon` as SECURITY DEFINER; Auth "leaked password protection" is off.
+
+## PHONE #1: what to try (the migrations are live; the screens appear after the owner merges `module/manager` into `main`: Pages publishes in about a minute)
 1. Open **Manager → Staff Registry**. Add a person (name, designation). Check the code appears (EMP-001 style).
 2. Open the card, add private details (father's name, blood group) and save. Reopen: they are there.
 3. Notes tab: add a note, remove it (reason optional). It disappears from the list.
