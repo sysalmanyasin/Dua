@@ -21,7 +21,7 @@
 - Dialog and toast styles are in `css/sales.css`; Manager keeps its own `ui/parts.js` copies of the helpers. **Promotion candidates:** toast, dialog, reason prompt, print helper.
 - A person added in Manager becomes a core `staff` row **without a login**. Giving them a login stays in Users & Access.
 - Salary advance (M-B) must be the signed sum of the month's `kind = 'entry'` rows, shown read-only with a breakdown (MGR-16). `mgmt_credit_month` already returns that figure as `entries_total`.
-- **Open for M-C:** the sign meaning of each ledger (Expense, Jazz Cash, Petty) must be confirmed with an owner example before building (MGR-17).
+- **Ledger signs: settled 13 Nov (MGR-17, MGR-22).** Expense = credit owed by Head Office (expenses add, Head Office cash reduces). Jazz Cash = money held (Received adds, Transfer reduces). Opening is zero for every ledger. Build the ledger engine (M-C) on those rules, and show direction in words.
 - The local DB runner needs PostgreSQL; I installed it in my sandbox only. Nothing in the repo changed for it.
 
 ## Applied to the live project (DuaPharmaPlus, 13 Nov 2026, by hand, repo versions, RUNBOOK §4)
