@@ -56,7 +56,10 @@ export function filterCreditRows(rows = [], { from = null, to = null, search = '
     .filter((row) => (!from || row.sale_day >= from) && (!to || row.sale_day <= to))
     .filter((row) => !needle || String(row.customer_name ?? '').toLocaleLowerCase().includes(needle))
     .slice()
-    .sort((a, b) => b.sale_day.localeCompare(a.sale_day) || String(a.customer_name ?? '').localeCompare(String(b.customer_name ?? '')));
+    .sort(
+      (a, b) =>
+        b.sale_day.localeCompare(a.sale_day) || String(a.customer_name ?? '').localeCompare(String(b.customer_name ?? '')),
+    );
 }
 
 export function summarizeCredit(rows = []) {
