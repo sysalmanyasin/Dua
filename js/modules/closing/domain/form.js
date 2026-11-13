@@ -2,7 +2,7 @@
 // Pure functions (no DOM, no network). Money maths for the screen's quick totals reuses toPaisa from compute.js so a total
 // shown while typing can never disagree with the server's (a test compares them on the same data).
 import { parseAmount } from '../../../shared/format.js';
-import { toPaisa } from './compute.js';
+import { DENOMINATIONS, toPaisa } from './compute.js';
 
 let counter = 0;
 export const rowId = () => `r${Date.now().toString(36)}${(counter++).toString(36)}`;
@@ -14,7 +14,11 @@ const overrideText = (v) => (v === null || v === undefined ? '' : String(Number(
 
 export const emptyRow = (extra = {}) => ({ id: rowId(), deleted: false, ...extra });
 
-export function emptyForm(catalogue = []) {
+export const TIER_SLOTS = 3;
+const blankTier = () => ({ id: rowId(), line_id: null, label: '', amount: '' });
+const namedLine = (a) => ({ id: rowId(), line_id: null, account_id: a.id, label: a.label, amount: '', deleted: false });
+
+export function emptyForm(catalogue = [], accounts = []) {
   return {
     sys_cash: '',
     last_bill_no: '',
@@ -31,6 +35,18 @@ export function emptyForm(catalogue = []) {
     strips: catalogue.map((s) => stripLine(s)),
     responsible_staff_id: '',
     opening: { cc: '', credit: '', deposits: '', cash: '' },
+    extra_cash: '',
+    final_sys_returns: '',
+    credit_adj: '',
+    till: Array(8).fill(''),
+    vault: Array(8).fill(''),
+    misc: [],
+    deposits: [],
+    credit: {
+      named: accounts.filter((a) => a.kind === 'named').map(namedLine),
+      tier: Array.from({ length: TIER_SLOTS }, blankTier),
+      free: [],
+    },
   };
 }
 
@@ -39,8 +55,8 @@ const stripLine = (s) => ({ id: rowId(), deleted: false, strip_id: s.id, label: 
 const bySort = (a, b) => (a.sort ?? 0) - (b.sort ?? 0);
 
 /** Builds the form from a closings row with its sections embedded (see data/api.js loadDraft). */
-export function formFromRow(row, catalogue = []) {
-  const f = emptyForm([]);
+export function formFromRow(row, catalogue = [], accounts = []) {
+  const f = emptyForm([], []);
   f.sys_cash = amountText(row.sys_cash);
   f.last_bill_no = amountText(row.last_bill_no);
   f.comp_sale = amountText(row.comp_sale);
@@ -84,6 +100,52 @@ export function formFromRow(row, catalogue = []) {
   // a strip added to the catalogue after this draft began still gets a line
   const have = new Set(saved.map((l) => l.strip_id).filter(Boolean));
   f.strips = [...saved, ...catalogue.filter((s) => !have.has(s.id)).map((s) => stripLine(s))];
+
+  f.extra_cash = amountText(row.extra_cash);
+  f.final_sys_returns = amountText(row.final_sys_returns);
+  f.credit_adj = amountText(row.credit_adj);
+  const counts = (area) => {
+    const out = Array(8).fill('');
+    for (const k of row.closing_cash_counts ?? []) {
+      const i = DENOMINATIONS.indexOf(Number(k.denomination));
+      if (k.area === area && i >= 0) out[i] = amountText(k.qty);
+    }
+    return out;
+  };
+  f.till = counts('till');
+  f.vault = counts('vault');
+  f.misc = [...(row.closing_misc_rows ?? [])].sort(bySort).map((r) => ({
+    id: r.id,
+    charge_id: r.charge_id,
+    label: text(r.label),
+    amount: amountText(r.amount),
+    deleted: Boolean(r.deleted_at),
+  }));
+  f.deposits = [...(row.closing_deposits ?? [])]
+    .sort(bySort)
+    .map((r) => ({ id: r.id, label: text(r.label), amount: amountText(r.amount), deleted: Boolean(r.deleted_at) }));
+  const lines = row.closing_credit_lines ?? [];
+  const line = (r) => ({
+    id: r.id,
+    line_id: r.line_id,
+    label: text(r.label),
+    amount: amountText(r.amount),
+    deleted: Boolean(r.deleted_at),
+  });
+  const savedNamed = lines.filter((r) => r.kind === 'named').sort(bySort);
+  const haveAcc = new Set(savedNamed.map((r) => r.account_id));
+  f.credit.named = [
+    ...savedNamed.map((r) => ({ ...line(r), account_id: r.account_id })),
+    ...accounts.filter((a) => a.kind === 'named' && !haveAcc.has(a.id)).map(namedLine),
+  ];
+  f.credit.tier = Array.from({ length: TIER_SLOTS }, (_, i) => {
+    const r = lines.find((x) => x.kind === 'tier' && x.tier_slot === i + 1);
+    return r ? line(r) : blankTier();
+  });
+  f.credit.free = lines
+    .filter((r) => r.kind === 'free')
+    .sort(bySort)
+    .map(line);
   return f;
 }
 
@@ -134,23 +196,68 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
       prev_cash: overrideNum(form.overrides.prev_cash, invalid, 'overrides.prev_cash'),
     },
     mediq: form.mediq
-      .filter((r) => !isBlank(r, ['bill_no', 'collected', 'pharmacy_bill']))
-      .map((r, i) => ({
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => !isBlank(r, ['bill_no', 'collected', 'pharmacy_bill']))
+      .map(({ r, i }) => ({
         bill_no: r.bill_no.trim(),
         collected: num(r.collected, invalid, `mediq.${i}.collected`),
         pharmacy_bill: num(r.pharmacy_bill, invalid, `mediq.${i}.pharmacy_bill`),
         deleted: r.deleted,
       })),
     hs: form.hs
-      .filter((r) => !isBlank(r, ['label', 'amount']))
-      .map((r, i) => ({ label: r.label.trim(), amount: num(r.amount, invalid, `hs.${i}.amount`), deleted: r.deleted })),
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => !isBlank(r, ['label', 'amount']))
+      .map(({ r, i }) => ({ label: r.label.trim(), amount: num(r.amount, invalid, `hs.${i}.amount`), deleted: r.deleted })),
     strips: form.strips
-      .filter((r) => r.strip_id || !isBlank(r, ['label', 'price', 'qty']))
-      .map((r, i) => ({
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => r.strip_id || !isBlank(r, ['label', 'price', 'qty']))
+      .map(({ r, i }) => ({
         strip_id: r.strip_id || null,
         label: r.label.trim(),
         price: num(r.price, invalid, `strips.${i}.price`),
         qty: num(r.qty, invalid, `strips.${i}.qty`, { quantity: true }),
+        deleted: r.deleted,
+      })),
+  };
+  payload.extra_cash = n('extra_cash');
+  payload.final_sys_returns = n('final_sys_returns');
+  payload.credit_adj = num(form.credit_adj, invalid, 'credit_adj');
+  payload.till = form.till.map((v, i) => num(v, invalid, `till.${i}`, { quantity: true }));
+  payload.vault = form.vault.map((v, i) => num(v, invalid, `vault.${i}`, { quantity: true }));
+  payload.misc = form.misc
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => r.charge_id || !isBlank(r, ['label', 'amount']))
+    .map(({ r, i }) => ({
+      ...(r.charge_id ? { charge_id: r.charge_id } : {}),
+      label: r.label.trim(),
+      amount: num(r.amount, invalid, `misc.${i}.amount`),
+      deleted: r.deleted,
+    }));
+  payload.deposits = form.deposits
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) => !isBlank(r, ['label', 'amount']))
+    .map(({ r, i }) => ({ label: r.label.trim(), amount: num(r.amount, invalid, `deposits.${i}.amount`), deleted: r.deleted }));
+  const lastTier = form.credit.tier.reduce((last, t, i) => (String(t.label).trim() || String(t.amount).trim() ? i : last), -1);
+  payload.credit = {
+    named: form.credit.named.map((r, i) => ({
+      ...(r.line_id ? { line_id: r.line_id } : {}),
+      account_id: r.account_id,
+      label: r.label.trim(),
+      amount: num(r.amount, invalid, `credit.named.${i}.amount`),
+      deleted: r.deleted,
+    })),
+    tier: form.credit.tier.slice(0, lastTier + 1).map((r, i) => ({
+      ...(r.line_id ? { line_id: r.line_id } : {}),
+      label: r.label.trim(),
+      amount: num(r.amount, invalid, `credit.tier.${i}.amount`),
+    })),
+    free: form.credit.free
+      .map((r, i) => ({ r, i }))
+      .filter(({ r }) => r.line_id || !isBlank(r, ['label', 'amount']))
+      .map(({ r, i }) => ({
+        ...(r.line_id ? { line_id: r.line_id } : {}),
+        label: r.label.trim(),
+        amount: num(r.amount, invalid, `credit.free.${i}.amount`),
         deleted: r.deleted,
       })),
   };
@@ -173,7 +280,7 @@ const p = (s) => {
   return Number.isNaN(v) || v === null ? 0 : toPaisa(v);
 };
 
-export function localTotals(form) {
+export function localTotals(form, carry = {}) {
   const hs = live(form.hs).reduce((t, r) => t + p(r.amount), 0);
   const strips = live(form.strips).reduce((t, r) => {
     const q = parseAmount(r.qty);
@@ -181,7 +288,35 @@ export function localTotals(form) {
   }, 0);
   const mediqRows = live(form.mediq).reduce((t, r) => t + p(r.collected) - p(r.pharmacy_bill), 0);
   const returns = p(form.ret_manual[0]) + p(form.ret_manual[1]) + p(form.ret_manual[2]) + p(form.ret_system);
-  return { hs, strips, mediqExtra: p(form.prev_mediq) + mediqRows, mediqRows, returns };
+  const cash = (counts) =>
+    DENOMINATIONS.reduce((tot, d, i) => {
+      const q = parseAmount(counts[i]);
+      return tot + (Number.isNaN(q) || q === null ? 0 : Math.round(q * d * 100));
+    }, 0);
+  const misc = live(form.misc).reduce((t, r) => t + p(r.amount), 0);
+  const ov = parseAmount(form.overrides.curr_cc);
+  const ccCurr = ov !== null && !Number.isNaN(ov) ? toPaisa(ov) : p(form.alfalah) + p(form.keenu) - p(form.comp_sale);
+  const debt =
+    toPaisa(carry.credit) +
+    live(form.credit.named).reduce((t, r) => t + p(r.amount), 0) +
+    form.credit.tier.reduce((t, r) => t + p(r.amount), 0) +
+    live(form.credit.free).reduce((t, r) => t + p(r.amount), 0) +
+    p(form.credit_adj);
+  const deposits = toPaisa(carry.deposits) + live(form.deposits).reduce((t, r) => t + p(r.amount), 0);
+  return {
+    hs,
+    strips,
+    mediqExtra: p(form.prev_mediq) + mediqRows,
+    mediqRows,
+    returns,
+    misc,
+    ccCurr,
+    ccTotal: toPaisa(carry.cc) + ccCurr,
+    till: cash(form.till),
+    vault: cash(form.vault),
+    debt,
+    deposits,
+  };
 }
 export const rowExtra = (r) => p(r.collected) - p(r.pharmacy_bill);
 export const stripLineTotal = (r) => {

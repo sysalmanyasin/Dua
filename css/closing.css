@@ -285,3 +285,36 @@
     gap: var(--space-1);
   }
 }
+
+/* Session B: late sections */
+.cls .cls-signed {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.cls .cls-name {
+  font-weight: 600;
+  align-self: center;
+}
+.cls .cls-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cls .cls-banner {
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px solid var(--cls-teal, #0d8c78);
+  border-radius: 10px;
+  background: color-mix(in srgb, #0d8c78 8%, transparent);
+}
+.cls .cls-banner-title {
+  font-weight: 700;
+  color: var(--cls-navy, #0e241f);
+  margin-bottom: 4px;
+}
+.cls .cls-banner-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+}

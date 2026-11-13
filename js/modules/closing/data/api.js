@@ -51,3 +51,20 @@ export const periodFor = (closingId) => one(db().rpc('closing_period', { p_closi
 export const reopen = ({ closingId, reason, key }) =>
   one(db().rpc('closing_reopen', { p_closing: closingId, p_reason: reason, p_key: key }));
 export const discardRevision = (closingId) => one(db().rpc('closing_discard_revision', { p_closing: closingId }));
+
+/** Credit accounts the owner configured: named accounts and the names of the staff-credit tiers. */
+export const listCreditAccounts = () =>
+  one(db().from('closing_credit_accounts').select('id, kind, tier_no, label, sort').eq('active', true).order('sort').order('label'));
+
+/** Submit the draft. Safe to repeat: a second call for the same key answers { already: true } and does nothing twice. */
+export const submit = (key) => one(db().rpc('closing_submit', { p_key: key }));
+
+// The inventory-audit requirement (CLS-8). It is on in code; an owner can switch it off with a reason, and the change is logged.
+const AUDIT_KEY = 'closing.require_inventory_audit';
+export const readAuditRequired = async () => {
+  const { data, error } = await db().from('settings').select('value').eq('key', AUDIT_KEY).maybeSingle();
+  if (error || !data) return null; // not visible to this person: unknown
+  return data.value === true || data.value === 'true';
+};
+export const setAuditRequired = (required, reason) =>
+  one(db().rpc('settings_set', { p_key: AUDIT_KEY, p_value: required, p_reason: reason }));

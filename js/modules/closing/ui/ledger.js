@@ -11,11 +11,12 @@ import { SECTIONS, clampSection } from '../domain/sections.js';
 import { slotLabel } from '../domain/slots.js';
 import { clearLocal, getOpen, loadLocal, saveLocal } from '../domain/store.js';
 import { errorCard, loadingCard, openDialog, toast } from './parts.js';
+import { lateSections, previewFigures } from './sections-late.js';
 
 const SAVE_DELAY = 2500;
 const bad = (invalid, path) => (invalid.includes(path) ? 'true' : 'false');
 
-export async function mount(el) {
+export async function mount(el, { ctx } = {}) {
   const target = getOpen();
   if (!target) {
     return render(
@@ -33,8 +34,16 @@ export async function mount(el) {
   let strips;
   let staff;
   let row;
+  let accounts;
+  let auditRequired = null;
   try {
-    [strips, staff, row] = await Promise.all([api.listStrips(), api.staffChoices().catch(() => []), api.loadByKey(target.key)]);
+    [strips, staff, row, accounts, auditRequired] = await Promise.all([
+      api.listStrips(),
+      api.staffChoices().catch(() => []),
+      api.loadByKey(target.key),
+      api.listCreditAccounts().catch(() => []),
+      api.readAuditRequired().catch(() => null),
+    ]);
   } catch (e) {
     return render(el, errorCard('the closing', friendlyError(e).message));
   }
@@ -49,8 +58,13 @@ export async function mount(el) {
     id: null,
     version: null,
     carry: null,
-    form: emptyForm(strips),
+    form: emptyForm(strips, accounts),
     section: 0,
+    period: null,
+    auditRequired,
+    tierNames: [1, 2, 3].map((n) => accounts.filter((a) => a.kind === 'tier_name' && a.tier_no === n).map((a) => a.label)),
+    submitting: false,
+    done: null,
     status: 'saved', // saved | saving | dirty | offline | failed | conflict | invalid
     invalid: [],
     preview: null,
@@ -68,7 +82,7 @@ export async function mount(el) {
     S.kind = r.closing_slots?.kind ?? S.kind;
     S.seq = r.closing_slots?.seq ?? S.seq;
     S.carry = { cc: r.prev_cc, credit: r.prev_credit, deposits: r.prev_deposits, cash: r.prev_cash, from: r.source_closing_id };
-    S.form = formFromRow(r, strips);
+    S.form = formFromRow(r, strips, accounts);
   };
 
   if (row) {
@@ -217,11 +231,124 @@ export async function mount(el) {
   async function refreshPreview() {
     try {
       S.preview = await api.computePreview(S.id);
+      S.period = await api.periodFor(S.id).catch(() => S.period);
     } catch {
       return; // the preview is a convenience; typing and saving carry on without it
     }
     paintTotals();
   }
+
+  // ── owner control for the inventory-audit requirement (CLS-8) ──
+  function changeAudit(on) {
+    const dlg = openDialog(
+      html`<h3>${on ? 'Switch the audit requirement on' : 'Switch the audit requirement off'}</h3>
+        <p>
+          ${on ? 'Closings will again need a verified inventory audit.' : 'Closings can then be submitted without a verified inventory audit.'}
+          The change is logged with your reason.
+        </p>
+        <label for="aud-why">Reason</label>
+        <input id="aud-why" class="cls-in cls-text" autocomplete="off" />
+        <div class="actions"><button type="button" class="btn btn-primary" data-act="ok">Save</button></div>`,
+      { label: 'Inventory audit requirement' },
+    );
+    dlg.querySelector('[data-act="ok"]').addEventListener('click', async () => {
+      const reason = dlg.querySelector('#aud-why').value.trim();
+      if (reason.length < 3) return toast('Give a short reason (at least 3 letters).', 'error');
+      try {
+        await api.setAuditRequired(on, reason);
+        S.auditRequired = on;
+        dlg.close();
+        toast('Saved.');
+        draw();
+      } catch (e) {
+        toast(friendlyError(e).message, 'error');
+      }
+    });
+  }
+
+  // ── submit (B2) ──
+  async function settle() {
+    // wait for any save in flight, then save what is typed, so Submit always sends the latest draft
+    for (let n = 0; n < 40 && S.saving; n++) await new Promise((r) => setTimeout(r, 100));
+    if (S.status !== 'saved') await doSave();
+    for (let n = 0; n < 40 && S.saving; n++) await new Promise((r) => setTimeout(r, 100));
+    return S.status === 'saved';
+  }
+  function askSubmit() {
+    if (!S.opening && !S.form.responsible_staff_id) return toast('Choose the responsible staff member first.', 'error');
+    const p = S.preview;
+    const dlg = openDialog(
+      html`<h3>Submit this closing?</h3>
+        <p>${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}</p>
+        ${
+          p
+            ? html`<p>
+                Net sale ${money(p.net_sale, { decimals: true })} · Grand total ${money(p.grand, { decimals: true })} · Net cash
+                ${money(p.net_cash, { decimals: true })}
+              </p>`
+            : ''
+        }
+        <p class="cls-meta">After submitting, the closing is locked and the next shift picks up its carried values.</p>
+        <div class="actions">
+          <button type="button" class="btn" data-close>Not yet</button>
+          <button type="button" class="btn btn-primary" data-act="go">Submit</button>
+        </div>`,
+      { label: 'Submit closing' },
+    );
+    dlg.querySelector('[data-act="go"]').addEventListener('click', () => {
+      dlg.close();
+      doSubmit();
+    });
+  }
+  async function doSubmit() {
+    if (S.submitting) return;
+    S.submitting = true;
+    try {
+      if (!(await settle())) {
+        S.submitting = false;
+        return toast(
+          S.invalid.length ? 'Fix the marked fields first.' : 'Your draft is not saved yet. Check the connection and try again.',
+          'error',
+        );
+      }
+      const res = await api.submit(S.key);
+      clearLocal(S.key);
+      S.done = { already: Boolean(res?.already), preview: S.preview };
+      S.submitting = false;
+      draw();
+    } catch (e) {
+      S.submitting = false;
+      const f = friendlyError(e);
+      if (f.code === 'carry_changed') {
+        try {
+          adopt(await api.loadById(S.id));
+          refreshPreview();
+        } catch {
+          /* the message below still tells them what to do */
+        }
+        draw();
+      }
+      toast(f.message, 'error');
+    }
+  }
+  const successScreen = () =>
+    html`<div class="cls">
+      ${hero({ label: 'Closing', title: S.done.already ? 'Already submitted' : 'Closing submitted ✓', sub: `${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}` })}
+      <div class="card">
+        <p>
+          ${S.done.already ? 'This closing had already been submitted. Nothing was changed.' : 'Saved and locked. The next shift will pick up the carried card balance, credit, deposits and cash.'}
+        </p>
+        ${
+          S.done.preview
+            ? html`<p class="cls-meta">
+                Net sale ${money(S.done.preview.net_sale, { decimals: true })} · Net cash
+                ${money(S.done.preview.net_cash, { decimals: true })}
+              </p>`
+            : ''
+        }
+        <p><a class="btn btn-primary" href="#/closing">Back to Closing</a></p>
+      </div>
+    </div>`;
 
   // ── typing ──
   const setPath = (path, value) => {
@@ -238,7 +365,8 @@ export async function mount(el) {
     paintTotals();
     queueSave();
   };
-  const rowOf = (list, id) => S.form[list].find((r) => r.id === id);
+  const listOf = (path) => path.split('.').reduce((o, p) => o[p], S.form);
+  const rowOf = (list, id) => listOf(list).find((r) => r.id === id);
 
   // ── drawing ──
   const field = (path, label, { note = '', cls = '' } = {}) => {
@@ -289,7 +417,7 @@ export async function mount(el) {
       data-list="${list}"
       data-id="${r.id}"
       data-k="${k}"
-      aria-invalid="${bad(S.invalid, `${list}.${S.form[list].indexOf(r)}.${k}`)}"
+      aria-invalid="${bad(S.invalid, `${list}.${listOf(list).indexOf(r)}.${k}`)}"
       value="${r[k]}"
       aria-label="${path}"
     />`;
@@ -376,7 +504,18 @@ export async function mount(el) {
       <div class="actions"><button type="button" class="btn btn-sm" data-act="add" data-list="strips">＋ Add Row</button></div>
       ${total('Total Inventory Revenue (B)', 'strips')}`;
 
-  const BUILT = [sectionPos, sectionMediq, sectionShift, sectionHs, sectionStrips];
+  const late = lateSections({
+    S,
+    field,
+    total,
+    textCell,
+    numCell,
+    strike,
+    listOf,
+    bad: (path) => bad(S.invalid, path),
+    canManage: (ctx?.permissions ?? []).includes('settings.manage'),
+  });
+  const BUILT = [sectionPos, sectionMediq, sectionShift, sectionHs, sectionStrips, ...[5, 6, 7, 8, 9, 10, 11, 12, 13].map((i) => late[i])];
 
   const sectionBody = () => {
     const def = SECTIONS[S.section];
@@ -387,6 +526,7 @@ export async function mount(el) {
   };
 
   function draw() {
+    if (S.done) return render(el, successScreen());
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
     render(
       el,
@@ -427,9 +567,13 @@ export async function mount(el) {
         </div>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>← Back</button>
-          <button type="button" class="btn btn-primary" data-act="next" ${S.section === SECTIONS.length - 1 ? 'disabled' : ''}>
-            Next →
-          </button>
+          ${
+            S.section === SECTIONS.length - 1
+              ? html`<button type="button" class="btn btn-primary" data-act="submit" ${S.submitting ? 'disabled' : ''}>
+                  Submit closing
+                </button>`
+              : html`<button type="button" class="btn btn-primary" data-act="next">Next →</button>`
+          }
         </div>
       </div>`,
     );
@@ -441,13 +585,13 @@ export async function mount(el) {
     el.querySelectorAll('[data-f]').forEach((i) => i.setAttribute('aria-invalid', bad(S.invalid, i.dataset.f)));
     el.querySelectorAll('[data-list]').forEach((i) => {
       const list = i.dataset.list;
-      const idx = S.form[list].findIndex((r) => r.id === i.dataset.id);
+      const idx = listOf(list).findIndex((r) => r.id === i.dataset.id);
       i.setAttribute('aria-invalid', bad(S.invalid, `${list}.${idx}.${i.dataset.k}`));
     });
   }
 
   function paintTotals() {
-    const t = localTotals(S.form);
+    const t = localTotals(S.form, S.carry ?? {});
     const set = (k, text, neg = false) => {
       const n = el.querySelector(`[data-total="${k}"]`);
       if (!n) return;
@@ -458,6 +602,12 @@ export async function mount(el) {
     set('strips', money(rupees(t.strips), { decimals: true }));
     set('mediqExtra', money(rupees(t.mediqExtra), { decimals: true }));
     set('returns', money(rupees(t.returns), { decimals: true }));
+    set('misc', money(rupees(t.misc), { decimals: true }));
+    set('ccTotal', money(rupees(t.ccTotal), { decimals: true }));
+    set('till', money(rupees(t.till), { decimals: true }));
+    set('vault', money(rupees(t.vault), { decimals: true }));
+    set('debt', money(rupees(t.debt), { decimals: true }));
+    set('deposits', money(rupees(t.deposits), { decimals: true }));
     const p = S.preview;
     if (p && S.status === 'saved') {
       set('netSale', money(p.net_sale, { decimals: true }), p.net_sale < 0);
@@ -465,6 +615,34 @@ export async function mount(el) {
     } else {
       set('netSale', S.status === 'saved' ? '–' : 'updates after saving');
       set('shiftInfo', '–');
+    }
+    if (p && S.status === 'saved') {
+      const fig = previewFigures(p, S.period, S.form, S.mode);
+      Object.entries(fig).forEach(([k, v]) => set(k, v.text, v.neg));
+    } else {
+      [
+        'grand',
+        'reserve',
+        'liquid',
+        'netCash',
+        'bTarget',
+        'bCash',
+        'bVar',
+        'fTarget',
+        'fCash',
+        'fVar',
+        'shifts',
+        'pSale',
+        'pBooks',
+        'pCust',
+        'pMediq',
+        'pManRet',
+        'pSysRet',
+        'finalNetSale',
+        'finalNetCash',
+        'pPre',
+        'pExtra',
+      ].forEach((k) => set(k, S.status === 'saved' ? '–' : 'updates after saving'));
     }
   }
 
@@ -508,14 +686,27 @@ export async function mount(el) {
       draw();
       return window.scrollTo?.(0, 0);
     }
+    if (act === 'sign') {
+      const cur = String(S.form.credit_adj).trim();
+      S.form.credit_adj = cur.startsWith('-') || cur.startsWith('−') ? cur.slice(1) : `-${cur}`;
+      touched();
+      return draw();
+    }
+    if (act === 'submit') return askSubmit();
+    if (act === 'audit-toggle') return changeAudit(b.dataset.to === 'on');
     if (act === 'add') {
-      S.form[b.dataset.list].push(
+      const list = b.dataset.list;
+      listOf(list).push(
         emptyRow(
-          b.dataset.list === 'mediq'
+          list === 'mediq'
             ? { bill_no: '', collected: '', pharmacy_bill: '' }
-            : b.dataset.list === 'hs'
-              ? { label: '', amount: '' }
-              : { strip_id: null, label: '', price: '', qty: '' },
+            : list === 'strips'
+              ? { strip_id: null, label: '', price: '', qty: '' }
+              : list === 'credit.free'
+                ? { line_id: null, label: '', amount: '' }
+                : list === 'misc'
+                  ? { charge_id: null, label: '', amount: '' }
+                  : { label: '', amount: '' },
         ),
       );
       draw();
