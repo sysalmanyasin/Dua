@@ -29,12 +29,7 @@ export function fromPaisa(paisa) {
 }
 
 export function summarizePayments(rows = []) {
-  const totals = {
-    cash_sale: 0,
-    card_sale: 0,
-    credit_sale: 0,
-    total_sale: 0,
-  };
+  const totals = { cash_sale: 0, card_sale: 0, credit_sale: 0, total_sale: 0 };
 
   for (const row of rows) {
     totals.cash_sale += toPaisa(row.cash_sale);
@@ -97,9 +92,5 @@ export function summarizeCredit(rows = []) {
     throw new RangeError('Receipt count is outside the safe range');
   }
 
-  return {
-    credit_amount: fromPaisa(amount),
-    receipt_count: receipts,
-    rows: rows.length,
-  };
+  return { credit_amount: fromPaisa(amount), receipt_count: receipts, rows: rows.length };
 }
