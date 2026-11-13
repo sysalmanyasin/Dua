@@ -24,7 +24,9 @@ Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
 | `js/shared/` | `html.js` (escaping templates), `format.js`, `icons.js`, `ui.js` (hero banner), `chartjs.js` (lazy Chart.js), `mailDialog.js` |
 | `js/modules/home/` | The Cover |
 | `js/modules/access/` | Users & Access |
-| `js/modules/sales/` | Dashboard, Index, Add Entry, Daily Data, Sale Report, Daily Check List, Diff Report, Cash to Deposit, Reports, Targets, Fields, Last Day |\n| `js/modules/manager/` | Staff Registry and Staff Credit (further Manager slices remain planned) |\n| `js/modules/closing/` | Partial guided closing ledger; remaining sections and submit/ledger flows are in progress |
+| `js/modules/sales/` | Dashboard, Index, Add Entry, Daily Data, Sale Report, Daily Check List, Diff Report, Cash to Deposit, Reports, Targets, Fields, Last Day |
+| `js/modules/manager/` | Staff Registry and Staff Credit (further Manager slices remain planned) |
+| `js/modules/closing/` | Partial guided closing ledger; remaining sections and submit/ledger flows are in progress |
 | `css/` | `tokens.css` (the original brand colours, light and dark), `fonts.css`, `base.css`, `components.css`, `sales.css`, `checklist.css` |
 | `vendor/` | Third-party code copied into the repo and hash-checked: Supabase client 2.45.4, Chart.js 4.4.7, Inter and IBM Plex Mono fonts. Nothing third-party is fetched at run time except Google's sign-in script when Gmail is used. |
 | `supabase/` | `migrations/`, `functions/`, `tests/`, `seed/` (templates only) |
@@ -48,7 +50,10 @@ Add Entry page → `domain/entry.js` parses what was typed → `data/api.js` cal
 - Vendored files must match their recorded SHA-256.
 - Because the policy blocks inline styles, widths and positions are set from script (`style.width = …`), never as `style="…"` attributes.
 
-## Inventory data flow\nThe base Candela → Dropbox → Edge Function feed is live. The enhanced changed-row feed and interfaces (migrations 0301–0304, Edge Function v14) are recorded as live by the Inventory session, but their source changes remain on `module/inventory` and are not yet integrated into `main` at the 13 Nov 2026 status snapshot. Inventory screens and the phone-local copy are still in progress. See `docs/PROJECT_STATUS.md` and `docs/modules/inventory.progress.md` (progress mirrored on main; source still on the work branch).\n\n## Offline behaviour
+## Inventory data flow
+The base Candela → Dropbox → Edge Function feed is live. The enhanced changed-row feed and interfaces (migrations 0301–0304, Edge Function v14) are recorded as live by the Inventory session, but their source changes remain on `module/inventory` and are not yet integrated into `main` at the 13 Nov 2026 status snapshot. Inventory screens and the phone-local copy are still in progress. See `docs/PROJECT_STATUS.md` and `docs/modules/inventory.progress.md` (progress mirrored on main; source still on the work branch).
+
+## Offline behaviour
 Only the Daily Check List keeps working through a dropped connection: it saves a copy on the phone and retries. Everything else needs a connection and says so. The copy is removed at sign-out. A general offline queue for closing and audit counting is planned (see the roadmap).
 
 ## Environments
