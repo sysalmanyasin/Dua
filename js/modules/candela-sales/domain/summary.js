@@ -1,7 +1,6 @@
 // Pure helpers for Candela's imported daily aggregates. No DOM, network or database calls.
 // Supabase numeric values may arrive as decimal strings; convert to integer paisa before adding.
 
-// prettier-ignore
 export function toPaisa(value) {
   if (value === null || value === undefined || value === '') return 0;
 
@@ -22,7 +21,6 @@ export function toPaisa(value) {
   return result;
 }
 
-// prettier-ignore
 export function fromPaisa(paisa) {
   if (!Number.isSafeInteger(paisa)) {
     throw new TypeError('Paisa total must be a safe integer');
@@ -30,7 +28,6 @@ export function fromPaisa(paisa) {
   return paisa / 100;
 }
 
-// prettier-ignore
 export function summarizePayments(rows = []) {
   const totals = { cash_sale: 0, card_sale: 0, credit_sale: 0, total_sale: 0 };
 
@@ -49,7 +46,6 @@ export function summarizePayments(rows = []) {
   };
 }
 
-// prettier-ignore
 export function filterPaymentDays(rows = [], from = null, to = null) {
   const filtered = [];
 
@@ -62,7 +58,6 @@ export function filterPaymentDays(rows = [], from = null, to = null) {
   return filtered.sort((a, b) => b.sale_day.localeCompare(a.sale_day));
 }
 
-// prettier-ignore
 export function filterCreditRows(rows = [], from = null, to = null, search = '') {
   const needle = String(search).trim().toLocaleLowerCase();
   const filtered = [];
@@ -79,7 +74,6 @@ export function filterCreditRows(rows = [], from = null, to = null, search = '')
   return filtered.sort((a, b) => b.sale_day.localeCompare(a.sale_day));
 }
 
-// prettier-ignore
 export function summarizeCredit(rows = []) {
   let amount = 0;
   let receipts = 0;
