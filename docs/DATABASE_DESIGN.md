@@ -1,4 +1,6 @@
-# Database design and schema reference\n\n> **Schema snapshot warning (13 Nov 2026):** the table/view/function catalogue below was generated from an earlier Sales/Foundation schema snapshot. It is not a complete inventory of the current live database after Manager (0101–0103), Closing (020x), Inventory (0301–0304) and Foundation operations migrations. Use migration files, module progress records and `docs/PROJECT_STATUS.md` for the later additions. Do not use the old table totals in this document as current totals.
+# Database design and schema reference
+
+> **Schema snapshot warning (13 Nov 2026):** the table/view/function catalogue below was generated from an earlier Sales/Foundation schema snapshot. It is not a complete inventory of the current live database after Manager (0101–0103), Closing (020x), Inventory (0301–0304) and Foundation operations migrations. Use migration files, module progress records and `docs/PROJECT_STATUS.md` for the later additions. Do not use the old table totals in this document as current totals.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
 
@@ -112,4 +114,12 @@ The Phase 1 design grouped tables as core, sales, pos, inventory, str, audit, cl
 - **`backup_log`** — one row per backup or restore drill: kind, status, day, size, sha256, fingerprint manifest (names, counts, hashes only), short error. RLS: read needs `tools.view`; written only through `backup_report()` (service role).
 - **Functions:** `ops_check_inventory_feed()` (3 h without a good sync raises one alert a day), `ops_check_backups()` (30 h without a good backup, after the first), `tools_overview()` (owner only).
 - **Schedules (pg_cron):** `notify-drain` every minute (only calls out when alerts are due), `ops-check-inventory-feed` every 30 min, `ops-check-backups` 07:00 UTC. They read the function address and secret from Vault by name.
-\n\n## Later module schema additions (status snapshot 13 Nov 2026)\n- **Manager:** migrations 0101–0103 add staff management, private details, notes, credit openings/entries and hardening. See `docs/modules/manager.progress.md`.\n- **Closing:** migrations in the 0200 range implement closing tables, draft/submit/correction functions, hardening and period aggregation as recorded in `docs/modules/closing.progress.md`. The UI remains partial.\n- **Inventory:** migrations 0301–0304 add published interfaces, delta feed, heartbeat and unique sequence repair. The Inventory session reports them live, but their source is not yet integrated into `main`; see `docs/modules/inventory.progress.md`.\n- **Foundation operations:** migrations 0011–0013 cover scheduled inventory/operations and backup/notification infrastructure; see `docs/RUNBOOK.md` and `docs/ops/f6-registry-reconciliation.md`.\n\nFor a reproducible schema catalogue, regenerate this reference from the current migration set after Inventory source integration. The historical table/view/function counts above must not be quoted as current.
+
+
+## Later module schema additions (status snapshot 13 Nov 2026)
+- **Manager:** migrations 0101–0103 add staff management, private details, notes, credit openings/entries and hardening. See `docs/modules/manager.progress.md`.
+- **Closing:** migrations in the 0200 range implement closing tables, draft/submit/correction functions, hardening and period aggregation as recorded in `docs/modules/closing.progress.md`. The UI remains partial.
+- **Inventory:** migrations 0301–0304 add published interfaces, delta feed, heartbeat and unique sequence repair. The Inventory session reports them live, but their source is not yet integrated into `main`; see `docs/modules/inventory.progress.md`.
+- **Foundation operations:** migrations 0011–0013 cover scheduled inventory/operations and backup/notification infrastructure; see `docs/RUNBOOK.md` and `docs/ops/f6-registry-reconciliation.md`.
+
+For a reproducible schema catalogue, regenerate this reference from the current migration set after Inventory source integration. The historical table/view/function counts above must not be quoted as current.
