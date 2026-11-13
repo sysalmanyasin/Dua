@@ -49,4 +49,7 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 | Free-plan limits | Storage, egress and a pause after a week of inactivity; the app reads small summaries to stay within them. |
 | Staff sign-in shares Supabase's per-address limit | Fine for one shop; a flood of bad attempts could briefly block logins. |
 | GitHub tokens pasted in chat | Treated as exposed; **revoke after each session**. |
-\n\n## Status note (13 Nov 2026)\nManager migrations 0101–0103 and Inventory migrations 0301–0304 are recorded as live in their module progress evidence. Inventory's enhanced source is still on `module/inventory`, not yet integrated into `main`; this creates a source/live parity task, not permission to reapply the migrations. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+
+## Status note (13 Nov 2026)
+Manager migrations 0101–0103 and Inventory migrations 0301–0304 are recorded as live in their module progress evidence. Inventory's enhanced source is still on `module/inventory`, not yet integrated into `main`; this creates a source/live parity task, not permission to reapply the migrations. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
