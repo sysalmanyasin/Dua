@@ -126,6 +126,56 @@ export async function mount(el, { ctx } = {}) {
     }
   }
 
+  // the frozen inventory audit of this draft, if it has one (a reopened revision keeps what its original had)
+  S.audit = { phase: 'idle', preview: null, error: '', snap: null };
+  if (!S.opening) {
+    try {
+      S.audit.snap = await api.readAudit(S.id);
+    } catch {
+      /* it simply shows as not verified yet */
+    }
+  }
+
+  async function auditSync() {
+    if (['syncing', 'verifying'].includes(S.audit.phase)) return;
+    S.audit.phase = 'syncing';
+    S.audit.error = '';
+    draw();
+    try {
+      S.audit.preview = await api.auditPreview();
+      S.audit.phase = 'preview';
+    } catch (e) {
+      S.audit.phase = 'error';
+      S.audit.error = friendlyError(e).message;
+    }
+    draw();
+  }
+  async function auditVerify() {
+    const p = S.audit.preview;
+    if (S.audit.phase !== 'preview' || !p) return;
+    S.audit.phase = 'verifying';
+    draw();
+    try {
+      await api.auditVerify(S.key, p.digest);
+      S.audit.snap = (await api.readAudit(S.id).catch(() => null)) ?? {
+        verified_at: new Date().toISOString(),
+        data_as_of: p.data_as_of,
+        codes_checked: p.codes_checked,
+        not_found: p.not_found,
+        by: null,
+        items: p.items.map((i) => ({ item_code: i.code, item_name: i.name, qty: i.qty })),
+      };
+      S.audit.phase = 'idle';
+      S.audit.preview = null;
+      toast('Inventory audit verified.');
+    } catch (e) {
+      S.audit.phase = 'error';
+      S.audit.preview = null;
+      S.audit.error = friendlyError(e).message;
+    }
+    draw();
+  }
+
   // ── saving ──
   const chipText = () =>
     ({
@@ -694,6 +744,8 @@ export async function mount(el, { ctx } = {}) {
     }
     if (act === 'submit') return askSubmit();
     if (act === 'audit-toggle') return changeAudit(b.dataset.to === 'on');
+    if (act === 'audit-sync') return auditSync();
+    if (act === 'audit-verify') return auditVerify();
     if (act === 'add') {
       const list = b.dataset.list;
       listOf(list).push(

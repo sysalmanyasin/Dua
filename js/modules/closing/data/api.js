@@ -122,3 +122,23 @@ export const readClosingSettings = async () => {
 };
 export const setClosingSetting = (key, value, reason) =>
   one(db().rpc('closing_settings_set', { p_key: key, p_value: value, p_reason: reason }));
+
+// ── inventory audit card (migration 0211) ──
+/** Current stock of the audit codes: { items, not_found, codes_checked, data_as_of, fetched_at, digest }. Saves nothing. */
+export const auditPreview = () => one(db().rpc('closing_audit_preview'));
+/** Freezes what the person confirmed inside this draft; refused with audit_changed if the stock moved since the preview. */
+export const auditVerify = (key, digest) => one(db().rpc('closing_audit_verify', { p_key: key, p_digest: digest }));
+/** The frozen audit of a closing, or null when it has none: { verified_at, data_as_of, codes_checked, not_found, by, items }. */
+export const readAudit = async (closingId) => {
+  const [a, items] = await Promise.all([
+    one(
+      db()
+        .from('closing_inventory_audit')
+        .select('verified_at, data_as_of, codes_checked, not_found, staff:verified_by(full_name)')
+        .eq('closing_id', closingId)
+        .maybeSingle(),
+    ),
+    one(db().from('closing_inventory_audit_items').select('item_code, item_name, qty').eq('closing_id', closingId).order('item_code')),
+  ]);
+  return a ? { ...a, by: a.staff?.full_name ?? null, items: items ?? [] } : null;
+};

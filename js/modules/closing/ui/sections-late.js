@@ -1,6 +1,7 @@
 // Sections 6-14 of the ledger: Inventory Audit, Misc, Card, Till, Vault, Credit, Deposits, Final Audit, Final aggregation.
 // Pure markup plus one function that turns the server's preview into display figures. All money rules stay in the database
 // (closing_compute / closing_period); nothing here invents a figure the server did not give, except two plain identities noted below.
+import { qtyText, whenKarachi } from '../domain/audit.js';
 import { html } from '../../../shared/html.js';
 import { money } from '../../../shared/format.js';
 import { DENOMINATIONS } from '../domain/compute.js';
@@ -49,28 +50,75 @@ export function lateSections(h) {
       ${h.listOf(list).map((r) => html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
     </div>`;
 
-  const invaudit = () => {
-    const req = S.auditRequired;
-    return html`<h2>6 · Inventory Audit</h2>
-      ${
-        req === false
-          ? html`<p class="cls-meta">The inventory audit requirement is switched off, so a closing can be submitted without it.</p>`
-          : html`<div class="cls-soon">
-              The inventory audit card arrives with the Inventory feed and is not connected yet. While the requirement is on, submitting a
-              closing is refused with “The inventory audit has not been verified”.
-            </div>`
-      }
+  const auditRows = (items) =>
+    html`<ul class="cls-list">
+      ${items.map(
+        (i) =>
+          html`<li>
+            <span>${i.name || i.code}<br /><span class="cls-meta">${i.code}</span></span
+            ><strong>${qtyText(i.qty)}</strong>
+          </li>`,
+      )}
+    </ul>`;
+  const auditCard = () => {
+    const a = S.audit ?? { phase: 'idle', snap: null, preview: null, error: '' };
+    if (S.opening) return html`<p class="cls-meta">The opening closing has no inventory audit step.</p>`;
+    if (a.snap) {
+      const sn = a.snap;
+      const items = (sn.items ?? []).map((i) => ({ code: i.item_code, name: i.item_name, qty: i.qty }));
+      return html`<div class="cls-audit" data-state="verified">
+        <p>
+          <strong>Verified</strong> ${whenKarachi(sn.verified_at)}${sn.by ? html` by ${sn.by}` : ''}. Stock data as of
+          ${whenKarachi(sn.data_as_of) || 'an unknown time'}. ${sn.codes_checked} codes checked.
+        </p>
+        ${items.length ? auditRows(items) : html`<p class="muted">Every audited code showed zero stock.</p>`}
+        ${(sn.not_found ?? []).length ? html`<p class="cls-meta">Not found in inventory: ${sn.not_found.join(', ')}</p>` : ''}
+        <p class="cls-meta">This list is frozen with the closing.</p>
+      </div>`;
+    }
+    const busy = a.phase === 'syncing' || a.phase === 'verifying';
+    const sync = html`<button type="button" class="btn btn-sm" data-act="audit-sync" ${busy ? 'disabled' : ''}>
+      ${a.phase === 'syncing' ? 'Reading stock…' : a.phase === 'preview' || a.phase === 'error' ? 'Read again' : 'Sync & audit'}
+    </button>`;
+    if (a.phase === 'preview' && a.preview) {
+      const p = a.preview;
+      return html`<div class="cls-audit" data-state="preview">
+        <p class="cls-meta">
+          Stock data as of ${whenKarachi(p.data_as_of) || 'an unknown time'}. ${p.codes_checked} codes checked. Check this list, then
+          confirm.
+        </p>
+        ${p.items.length ? auditRows(p.items) : html`<p class="muted">Every audited code shows zero stock.</p>`}
+        ${p.not_found.length ? html`<p class="cls-meta">Not found in inventory: ${p.not_found.join(', ')}</p>` : ''}
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-act="audit-verify">Verify & confirm</button>
+          ${sync}
+        </div>
+        <p class="cls-meta">Nothing is saved until you confirm. Once confirmed, the list is frozen with this closing.</p>
+      </div>`;
+    }
+    return html`<div class="cls-audit" data-state="${a.phase}">
+      <p class="cls-meta">
+        Reads the current stock of the audited codes. Only codes with stock are listed.
+        ${S.auditRequired === false ? 'The requirement is switched off, so this is optional.' : 'It must be verified before this closing can be submitted.'}
+      </p>
+      ${a.phase === 'error' ? html`<p class="cls-err" role="alert">${a.error}</p>` : ''}
+      <div class="actions">${sync}</div>
+    </div>`;
+  };
+
+  const invaudit = () =>
+    html`<h2>6 — Inventory Audit</h2>
+      ${auditCard()}
       ${
         h.canManage
           ? html`<div class="actions">
-                <button type="button" class="btn btn-sm" data-act="audit-toggle" data-to="${req === false ? 'on' : 'off'}">
-                  ${req === false ? 'Switch the requirement back on' : 'Switch the requirement off…'}
+                <button type="button" class="btn btn-sm" data-act="audit-toggle" data-to="${S.auditRequired === false ? 'on' : 'off'}">
+                  ${S.auditRequired === false ? 'Switch the requirement back on' : 'Switch the requirement off...'}
                 </button>
               </div>
               <p class="cls-meta">Owner only. The change is recorded with your reason.</p>`
           : ''
       }`;
-  };
 
   const misc = () =>
     html`<h2>7 · Ongoing / Miscellaneous Charges (C)</h2>
