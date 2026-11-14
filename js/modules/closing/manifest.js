@@ -30,7 +30,7 @@ export default {
       path: '/closing/misc',
       title: 'Misc Ledger',
       desc: 'Open and closed misc charges, with their age',
-      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct'],
+      anyOf: ['closing.view_all', 'closing.review', 'closing.correct'],
       load: () => import('./ui/misc.js'),
     },
     {
