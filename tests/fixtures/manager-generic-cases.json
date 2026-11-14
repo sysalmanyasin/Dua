@@ -1,16 +1,130 @@
 [
-  { "name": "plain 4%", "sale": 100000, "extra": 0, "rate": 0.04, "incentive": 4000, "final": 4000 },
-  { "name": "the sale is rounded to a whole rupee first, then the rate applied", "sale": 12500.5, "extra": 250, "rate": 0.04, "incentive": 500, "final": 750 },
-  { "name": "an exact result", "sale": 625, "extra": 0, "rate": 0.04, "incentive": 25, "final": 25 },
-  { "name": "a half rounds up (4.5 becomes 5)", "sale": 100, "extra": 0, "rate": 0.045, "incentive": 5, "final": 5 },
-  { "name": "49.995 rounds to 50", "sale": 1111, "extra": 0, "rate": 0.045, "incentive": 50, "final": 50 },
-  { "name": "112.5 rounds to 113 (a classic floating point trap)", "sale": 2500, "extra": 0, "rate": 0.045, "incentive": 113, "final": 113 },
-  { "name": "a tiny sale gives nothing", "sale": 3, "extra": 0, "rate": 0.04, "incentive": 0, "final": 0 },
-  { "name": "0.52 rounds to 1", "sale": 13, "extra": 0, "rate": 0.04, "incentive": 1, "final": 1 },
-  { "name": "12.5 becomes 13 first, then 0.52 becomes 1", "sale": 12.5, "extra": 0, "rate": 0.04, "incentive": 1, "final": 1 },
-  { "name": "a negative sale: -4.5 rounds toward plus, like Math.round", "sale": -100, "extra": 10, "rate": 0.045, "incentive": -4, "final": 6 },
-  { "name": "a fraction of a rupee disappears; -0.5 becomes 0", "sale": 0.4, "extra": -0.5, "rate": 0.04, "incentive": 0, "final": 0 },
-  { "name": "a rate with four decimals", "sale": 10000, "extra": 0, "rate": 0.1234, "incentive": 1234, "final": 1234 },
-  { "name": "a negative extra is subtracted", "sale": 50000, "extra": -300, "rate": 0.045, "incentive": 2250, "final": 1950 },
-  { "name": "311.08 rounds down", "sale": 7777, "extra": 0, "rate": 0.04, "incentive": 311, "final": 311 }
+  {
+    "name": "plain 4%",
+    "sale": 100000,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": 4000,
+    "final": 4000
+  },
+  {
+    "name": "the sale is rounded to a whole rupee first, then the rate applied",
+    "sale": 12500.5,
+    "extra": 250,
+    "rate": 0.04,
+    "incentive": 500,
+    "final": 750
+  },
+  {
+    "name": "an exact result",
+    "sale": 625,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": 25,
+    "final": 25
+  },
+  {
+    "name": "a half rounds up (4.5 becomes 5)",
+    "sale": 100,
+    "extra": 0,
+    "rate": 0.045,
+    "incentive": 5,
+    "final": 5
+  },
+  {
+    "name": "49.995 rounds to 50",
+    "sale": 1111,
+    "extra": 0,
+    "rate": 0.045,
+    "incentive": 50,
+    "final": 50
+  },
+  {
+    "name": "112.5 rounds to 113 (a classic floating point trap)",
+    "sale": 2500,
+    "extra": 0,
+    "rate": 0.045,
+    "incentive": 113,
+    "final": 113
+  },
+  {
+    "name": "a tiny sale gives nothing",
+    "sale": 3,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": 0,
+    "final": 0
+  },
+  {
+    "name": "0.52 rounds to 1",
+    "sale": 13,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": 1,
+    "final": 1
+  },
+  {
+    "name": "12.5 becomes 13 first, then 0.52 becomes 1",
+    "sale": 12.5,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": 1,
+    "final": 1
+  },
+  {
+    "name": "a negative sale: -4.5 rounds toward plus, like Math.round",
+    "sale": -100,
+    "extra": 10,
+    "rate": 0.045,
+    "incentive": -4,
+    "final": 6
+  },
+  {
+    "name": "a fraction of a rupee disappears; -0.5 becomes 0",
+    "sale": 0.4,
+    "extra": -0.5,
+    "rate": 0.04,
+    "incentive": 0,
+    "final": 0
+  },
+  {
+    "name": "a rate with four decimals",
+    "sale": 10000,
+    "extra": 0,
+    "rate": 0.1234,
+    "incentive": 1234,
+    "final": 1234
+  },
+  {
+    "name": "a negative extra is subtracted",
+    "sale": 50000,
+    "extra": -300,
+    "rate": 0.045,
+    "incentive": 2250,
+    "final": 1950
+  },
+  {
+    "name": "311.08 rounds down",
+    "sale": 7777,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": 311,
+    "final": 311
+  },
+  {
+    "name": "a negative sale that is not an exact multiple: -4.04 rounds to -4 (truncating would give -3)",
+    "sale": -101,
+    "extra": 0,
+    "rate": 0.04,
+    "incentive": -4,
+    "final": -4
+  },
+  {
+    "name": "-6.165 rounds to -6",
+    "sale": -137,
+    "extra": 0,
+    "rate": 0.045,
+    "incentive": -6,
+    "final": -6
+  }
 ]

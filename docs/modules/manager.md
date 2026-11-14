@@ -71,7 +71,7 @@ All tables: RLS on, `anon` nothing, **no direct writes** (RPC only), read polici
 | `mgmt_staff_notes` | Notes: body immutable, soft delete | M-A |
 | `mgmt_credit_openings` | Append-only opening balance per person with effective month and reason; latest row wins | M-A |
 | `mgmt_credit_entries` | Append-only signed rows. `kind` = `entry` / `salary_deduction` / `generic_deduction`; `source` = `manual` / `closing_inbox`; `reverses_id` (unique) | M-A |
-| `mgmt_salary_rows`, `mgmt_salary_columns`, `mgmt_generic_rows`, `mgmt_month_closes` | Sheets, custom columns, Close month, revisions | M-B |
+| `mgmt_rates`, `mgmt_sheets`, `mgmt_salary_columns`, `mgmt_salary_rows`, `mgmt_generic_rows` | Rates (append-only history, seeded generic 4%); one sheet per (month, kind) holding the rate it used and its close; global custom salary columns; append-only row revisions | M-B (`0104`) |
 | `mgmt_incentive_months` (+ rates used) | Incentive inputs and the rates each month used | M-C |
 | `mgmt_petty_groups`, `mgmt_petty_rows` | Petty Detail | M-C |
 | `mgmt_ledgers`, `mgmt_ledger_categories`, `mgmt_ledger_openings`, `mgmt_ledger_entries`, `mgmt_jazz_tally` | One ledger engine for Expense, Jazz Cash, Misc Sections + the tally | M-C |
@@ -101,6 +101,7 @@ Rule: **a key that edits also reads what it edits.** No role preset (junior / se
 | `mgmt.ledgers` | See and edit the Expense, Jazz Cash and Misc ledgers | |
 | `mgmt.inbox_file` | See the Credit Inbox and file lines. Filing **also** needs the target's own key (`mgmt.credit_manage` for staff credit, `mgmt.ledgers` for a ledger) | |
 | `mgmt.close_month` | Close a monthly sheet | owner only |
+| `mgmt.rates` | Change the generic (and later incentive and commission) rates; every change needs a reason | owner only |
 
 ## 6. Screens (phone first)
 
@@ -137,16 +138,19 @@ Routes under `/manager`; each page lists who may open it (`anyOf`).
 | MGR-15 | Staff never see their own payslip or credit in the app | Accepted (12 Nov, default) |
 | MGR-16 | Salary advance = signed sum of that month's `entry` rows (read-only, with breakdown); credit deductions stay typed per month; mismatch flagged | Accepted (12 Nov, default) |
 | MGR-17 | One ledger engine for Expense, Jazz Cash, Misc Sections; old Petty ledger skipped (the "B. Patty/Expenses" tab is the Expense ledger); Tally kept as daily snapshots with revisions. **Sign meaning CONFIRMED by the owner, 13 Nov 2026:** *Expense ledger* = the credit Head Office owes the branch: every expense **adds** to it, cash received from Head Office **reduces** it (a negative balance means the branch holds Head Office cash). *Jazz Cash ledger* = Jazz Cash money held: **Received adds**, **Transfer (and the other outgoing categories) reduce**. Direction is shown in words ("adds" / "reduces"), never by a bare +/−. **Note:** the old app's per-row Balance column shows the opposite sign of this (its Jazz Cash tally line negates the ledger balance to compensate); Dua always shows the owner's sign | Accepted (13 Nov, owner) |
-| MGR-18 | Permission design of §5 (11 new keys + 3 existing), built for sharing one capability at a time | Accepted (12 Nov, "set permissions so I can share") |
+| MGR-18 | Permission design of §5 (12 new keys + 3 existing), built for sharing one capability at a time | Accepted (12 Nov, "set permissions so I can share") |
 | MGR-19 | Credit deductions are ledger rows (`kind`), set by a delta row; a reversal is dated like the original; entries cannot predate the person's opening month; amounts keep up to 2 decimals and sums are exact | Accepted (12 Nov, design) |
 | MGR-20 | Manager's `active` flag means "on the payroll list"; it does **not** disable a login (Users & Access does) | Accepted (12 Nov, design) |
 | MGR-21 | Manager reads staff names through its own RPCs; no change to core policies | Accepted (12 Nov, design) |
 | MGR-22 | Ledger design rules: (1) a category's direction (adds / reduces) is **fixed for life**; to change it, make a new category. (2) Each entry stores the direction it was made with, so a balance can never change retroactively (the old app needed a "sign flip" migration). (3) Amounts are always positive; the category carries the direction. (4) Balance = opening (0) + sum of entries in date order. (5) The Tally line "Jazz Cash Balance (ledger)" counts the ledger balance as it is (money held), which is what the old app's negated line produced | Accepted (13 Nov, design) |
+| MGR-23 | **Rates live in their own append-only table** `mgmt_rates` (not core settings), each change with a mandatory reason and its own key `mgmt.rates`. Seeded: generic 4% (the old app's value). A sheet stores the rate it started with, so changing a rate never touches a month that already began. Refines MGR-5 | Accepted (14 Nov, design) |
+| MGR-24 | **Sheets are append-only revisions.** A save adds a new row version only when something changed; a blank row is never stored; a closed month needs a reason to be revised. Custom salary columns are **global** with an effective-from month (so they carry on by themselves), their name and direction never change, and they can be stopped but not while amounts remain. Salary can only be closed after Generic; closing refreshes each row's saved advance and generic so a closed month keeps the figures the owner saw. Custom column amounts are kept with the row, keyed by column id | Accepted (14 Nov, design) |
+| MGR-25 | **Rounding and advance, as built:** every figure is rounded to a whole rupee with floor(x + 0.5) (identical to JavaScript Math.round, halves up, also for negatives); the generic sale is rounded first, then the rate applied, in exact integer maths; the advance is the SIGNED sum of the month's credit entries, rounded once; a person with no row yet starts from the last HO salary (shown as carried) and the row is stored on first save; days is informational (default 31). Parity with the browser is proven by 16 generic and 9 salary shared cases, including -4.04 and 112.5 | Accepted (14 Nov, design) |
 
 ## 9. Slices
 
 1. **M-A** (done): A0 brief · A1 `0101_mgmt_staff` · A2 `0102_mgmt_credit` · `0103_mgmt_hardening` (advisor fix, not planned) · A3 skeleton + `domain/credit.js` + shared fixture · A4 screens `/manager/staff`, `/manager/credit` · **PHONE #1**.
-2. **M-B:** `0104` Salary + Generic + custom columns + Close month, rates as settings, parity fixtures, Payslip print · PHONE #2.
+2. **M-B** (built 14 Nov, not yet applied live): `0104` Salary + Generic + custom columns + rates + Close month, shared fixtures, Payslip print · PHONE #2.
 3. **M-C:** `0105` Incentive; `0106` Petty + ledger engine + Tally (after the sign examples) · PHONE #3.
 4. **M-D:** `0107` Credit Inbox (+ stub of `closing_credit_feed`), nav badge, reports, acceptance · PHONE #4.
 

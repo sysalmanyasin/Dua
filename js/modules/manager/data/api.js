@@ -44,3 +44,20 @@ export const creditSetDeduction = (staffId, month, kind, amount, reason, key) =>
   });
 export const creditSetOpening = (staffId, month, amount, reason, key) =>
   db().rpc('mgmt_credit_set_opening', { p_staff_id: staffId, p_month: month, p_amount: amount, p_reason: reason, p_key: key });
+
+// ── Rates, Generic, Salary ──
+export const ratesList = () => one(db().rpc('mgmt_rates_list'));
+export const rateSet = (rateKey, rate, reason, key) =>
+  db().rpc('mgmt_rate_set', { p_rate_key: rateKey, p_rate: rate, p_reason: reason, p_key: key });
+export const salaryColumns = (month) => one(db().rpc('mgmt_salary_columns', { p_month: month }));
+export const salaryColumnAdd = (name, sign, fromMonth, key) =>
+  db().rpc('mgmt_salary_column_add', { p_name: name, p_sign: sign, p_from: fromMonth, p_key: key });
+export const salaryColumnRetire = (columnId, fromMonth, key) =>
+  db().rpc('mgmt_salary_column_retire', { p_column_id: columnId, p_from: fromMonth, p_key: key });
+export const genericMonth = (month) => one(db().rpc('mgmt_generic_month', { p_month: month }));
+export const genericSave = (month, rows, reason, key) =>
+  db().rpc('mgmt_generic_save', { p_month: month, p_rows: rows, p_reason: reason || null, p_key: key });
+export const salaryMonth = (month) => one(db().rpc('mgmt_salary_month', { p_month: month }));
+export const salarySave = (month, rows, reason, key) =>
+  db().rpc('mgmt_salary_save', { p_month: month, p_rows: rows, p_reason: reason || null, p_key: key });
+export const sheetClose = (month, kind, key) => db().rpc('mgmt_sheet_close', { p_month: month, p_kind: kind, p_key: key });

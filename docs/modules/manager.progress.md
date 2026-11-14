@@ -2,6 +2,34 @@
 
 **Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
 
+## Session M-B (14 Nov 2026): built and tested, NOT yet applied to the live project
+
+| Step | What | Evidence |
+|---|---|---|
+| B1 | `0104_mgmt_salary.sql`: `mgmt_rates` (seeded generic 4%), `mgmt_sheets`, `mgmt_salary_columns`, `mgmt_salary_rows`, `mgmt_generic_rows`; permission `mgmt.rates`; functions `mgmt_rates_list`, `mgmt_rate_set`, `mgmt_salary_columns`, `_column_add`, `_column_retire`, `mgmt_generic_month`, `_save`, `mgmt_salary_month`, `_save`, `mgmt_sheet_close` | 0104 test file + shared fixtures; **10 mutation checks all caught** (rounding, advance rule, month keeps its rate, close permission, reason on closed months, append-only, saved-vs-live figures, rate table read policy, close order, retiring a column with money in it) |
+| B2 | Exposure guard moved to `0199_mgmt_exposure_test.sql`: whitelist of every callable Manager function, search_path pinned, RLS on, no write policy, no `anon` grant. **Every future Manager migration must extend its whitelist on purpose** | passes |
+| B3 | `domain/salary.js` (same rounding and integer maths as SQL), `/manager/generic`, `/manager/salary`, printable payslip (business name from `BRAND`, no WhatsApp) | 16 generic + 9 salary shared cases pass in both SQL and the browser |
+| B4 | Page tests: permissions, live preview, save/retry keys (same key on retry, new key after an edit), closed-month reasons, close order, flags, payslip, print | **9 UI mutation checks all caught** after I closed two gaps they exposed |
+
+**Totals on the merged tree:** `npm run verify` green (41 files, 470 tests); DB suite 1,058 checks, 0 failures.
+
+**Deliberate differences from the old app (all in the brief §8):** a blank row is never stored; the generic sale is rounded before the rate is applied (integer maths); the advance is rounded once after summing; sheets are revisions, never edited; Salary closes after Generic.
+
+**Mismatch flags (MGR-16):** shown on the Salary page when (a) a closed month's saved advance or generic differs from the live figure, or (b) the Staff Credit sheet's own "Salary deducted" differs from the salary advance.
+
+### Ready to apply to the live project (owner says when; RUNBOOK §4, by hand, repo version)
+1. `supabase/migrations/0104_mgmt_salary.sql` is additive: 5 new tables, 1 new permission, 11 new functions, 1 seeded rate row. It touches no existing table. After applying, re-run the RUNBOOK §4.4 checks and the Supabase security advisor.
+
+### PHONE #2: what to try (after 0104 is applied and the branch is merged)
+1. **Manager → Generic Sheet:** the rate shows 4%. Enter a generic sale for a test person; check Incentive and Final; Save; reopen: it is there.
+2. **Change rate** to 4.5% with a reason. The current month must still say 4%.
+3. **Manager → Salary:** enter an HO salary; **+ Add column** "Bonus" (adds) and enter an amount. Check Net = HO − advance + generic + bonus, and that the advance equals the Staff Credit entries for the month.
+4. **Payslip:** open it, check the lines, then **Print or save as PDF**.
+5. Close the **Generic** sheet, then the **Salary** sheet, **in an early month such as January 2026**: closing cannot be undone. Then try to save: it must ask for a reason, and the old figures stay.
+6. Go to the previous month with ‹ and back: HO salary shows "(carried)" until you save.
+7. Sharing: in Users & Access Allow only `mgmt.salary_view` for a test person: everything is read-only, no Save or Close.
+8. **Real check:** enter one real month's figures from the old app and compare each person's net.
+
 ## Session M-A (12 Nov 2026): DONE, waiting for PHONE #1
 
 **Built (branch `module/manager`, nothing applied to the live project):**

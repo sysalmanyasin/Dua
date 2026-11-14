@@ -74,3 +74,44 @@ export const errorCard = (what = 'this page') =>
     <h2>Could not load ${what}</h2>
     <p class="muted">Check your connection and try again. If it keeps happening, tell the owner.</p>
   </div>`;
+
+// A yes / no question. Resolves true only if the person confirms.
+export function confirmDialog({ title, body = '', confirm = 'Confirm' }) {
+  return new Promise((resolve) => {
+    let done = false;
+    const dlg = openDialog(
+      html`<h2>${title}</h2>
+        ${body ? html`<p class="muted small">${body}</p>` : ''}
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button
+          ><button type="button" class="btn btn-primary" data-ok>${confirm}</button>
+        </div>`,
+      { label: title },
+    );
+    dlg.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-ok]')) return;
+      done = true;
+      resolve(true);
+      dlg.close();
+    });
+    dlg.addEventListener('close', () => {
+      if (!done) resolve(false);
+    });
+  });
+}
+
+// The ‹ › month buttons shared by the monthly pages. The next button stops at the current month.
+export const monthButtons = (month, thisMonth) =>
+  html`<button class="icon-btn" data-act="prev" aria-label="Previous month">‹</button
+    ><button class="icon-btn" data-act="next" aria-label="Next month" ${month >= thisMonth ? 'disabled' : ''}>›</button>`;
+
+// A number typed by a person: empty or unreadable counts as 0 for previews; saves check it properly first.
+export const typedNumber = (parse, text) => {
+  const n = parse(String(text ?? ''));
+  return n === null || Number.isNaN(n) ? 0 : n;
+};
+export const isBadNumber = (parse, text) => {
+  if (String(text ?? '').trim() === '') return false;
+  const n = parse(String(text));
+  return n === null || Number.isNaN(n);
+};

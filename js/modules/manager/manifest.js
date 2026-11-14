@@ -19,5 +19,19 @@ export default {
       anyOf: ['credit.view', 'mgmt.credit_manage'],
       load: () => import('./ui/credit.js'),
     },
+    {
+      path: '/manager/salary',
+      title: 'Salary',
+      desc: 'Monthly salary sheet and payslips',
+      anyOf: ['mgmt.salary', 'mgmt.salary_view'],
+      load: () => import('./ui/salary.js'),
+    },
+    {
+      path: '/manager/generic',
+      title: 'Generic Sheet',
+      desc: 'Generic sale and incentive for each person',
+      anyOf: ['mgmt.salary', 'mgmt.salary_view'],
+      load: () => import('./ui/generic.js'),
+    },
   ],
 };
