@@ -643,29 +643,43 @@ export async function mount(el, { ctx } = {}) {
   // Match the old Closing app's swipe navigation without hijacking vertical
   // scrolling, text selection, form controls, or the horizontally scrolling chips.
   let swipeStart = null;
-  el.addEventListener('touchstart', (e) => {
-    if (e.touches.length !== 1 || !e.target.closest?.('.cls-sec')) {
+  el.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length !== 1 || !e.target.closest?.('.cls-sec')) {
+        swipeStart = null;
+        return;
+      }
+      if (e.target.closest('input, select, textarea, button, a, [contenteditable="true"], .cls-jump, .cls-nav')) {
+        swipeStart = null;
+        return;
+      }
+      swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    },
+    { passive: true },
+  );
+  el.addEventListener(
+    'touchend',
+    (e) => {
+      if (!swipeStart) return;
+      const start = swipeStart;
       swipeStart = null;
-      return;
-    }
-    if (e.target.closest('input, select, textarea, button, a, [contenteditable="true"], .cls-jump, .cls-nav')) {
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      moveSection(dx < 0 ? 1 : -1);
+    },
+    { passive: true },
+  );
+  el.addEventListener(
+    'touchcancel',
+    () => {
       swipeStart = null;
-      return;
-    }
-    swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, { passive: true });
-  el.addEventListener('touchend', (e) => {
-    if (!swipeStart) return;
-    const start = swipeStart;
-    swipeStart = null;
-    const touch = e.changedTouches[0];
-    if (!touch) return;
-    const dx = touch.clientX - start.x;
-    const dy = touch.clientY - start.y;
-    if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
-    moveSection(dx < 0 ? 1 : -1);
-  }, { passive: true });
-  el.addEventListener('touchcancel', () => { swipeStart = null; }, { passive: true });
+    },
+    { passive: true },
+  );
 
   function paintMarks() {
     el.querySelectorAll('[data-f]').forEach((i) => i.setAttribute('aria-invalid', bad(S.invalid, i.dataset.f)));
