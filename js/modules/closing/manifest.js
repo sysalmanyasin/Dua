@@ -23,7 +23,7 @@ export default {
       path: '/closing/credit',
       title: 'Credit Ledger',
       desc: 'Credit position stored with each submitted closing',
-      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct'],
+      anyOf: ['closing.view_all', 'closing.review', 'closing.correct'],
       load: () => import('./ui/credit.js'),
     },
     {
