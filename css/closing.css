@@ -417,7 +417,6 @@
   text-decoration: underline;
 }
 
-
 /* Mobile swipe guidance: the gesture itself is handled on the section card. */
 .cls .cls-swipe-hint {
   display: none;
