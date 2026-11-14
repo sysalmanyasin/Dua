@@ -88,6 +88,14 @@ describe('Closing start page', () => {
     expect(JSON.parse(sessionStorage.getItem('dua.closing.open'))).toMatchObject({ key: 'kd', date: '2026-11-09', kind: 'evening' });
     expect(location.hash).toBe('#/closing/ledger');
   });
+  it('keeps Credit and Misc ledgers off the ordinary staff closing home', async () => {
+    await start(['closing.enter_own']);
+    expect(el.textContent).not.toContain('Ledgers');
+    expect(el.textContent).not.toContain('Credit Ledger');
+    expect(el.textContent).not.toContain('Misc Ledger');
+    await start(['closing.enter_own', 'closing.view_all']);
+    expect(el.textContent).toContain('Ledgers');
+  });
   it('shows the opening card only to someone who may change closing settings', async () => {
     await start();
     expect(el.querySelector('#cls-open')).toBeNull();
