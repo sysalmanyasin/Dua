@@ -207,10 +207,19 @@ Deno.serve(async (req) => {
 
     // Only a signed-in person can confirm a large removal; the scheduled call never can.
     const confirmRemoval = body.confirmRemoval === true && triggeredBy !== null;
-    const { data, error } = await db.rpc('inventory_apply_sync', {
+    const args = {
       p_payload: payload, p_source: 'dropbox', p_triggered_by: triggeredBy,
       p_force: confirmRemoval, p_content_hash: fileHash,
-    });
+    };
+    let res = await db.rpc('inventory_apply_sync', args);
+    // The apply normally takes about half a second, but the database role has an 8 second limit and a busy moment on the
+    // server (for example the daily backup starting) can push one run past it. The apply is atomic and repeatable, so one
+    // retry after a short wait is safe; only a second failure is logged as a failed sync.
+    if (res.error && /statement timeout|canceling statement/i.test(res.error.message)) {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      res = await db.rpc('inventory_apply_sync', args);
+    }
+    const { data, error } = res;
     if (error) return await fail(500, 'Sync failed; previous data kept', error.message);
 
     const out = (data ?? {}) as Record<string, unknown>;
