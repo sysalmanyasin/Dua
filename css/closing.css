@@ -416,3 +416,21 @@
   font-weight: 700;
   text-decoration: underline;
 }
+
+
+/* Mobile swipe guidance: the gesture itself is handled on the section card. */
+.cls .cls-swipe-hint {
+  display: none;
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .cls .cls-swipe-hint {
+    display: block;
+  }
+  .cls .cls-sec {
+    touch-action: pan-y;
+  }
+}
