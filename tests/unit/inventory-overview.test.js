@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const STOCK_COLS = ['code', 'name', 'qty', 'price', 'company', 'generic', 'supplier', 'pack', 'created', 'received', 'sold'];
+const STOCK_COLS = ['code', 'name', 'qty', 'price', 'company', 'generic', 'supplier', 'pack', 'created', 'received', 'sold', 'packValid'];
 const SALES_COLS = ['code', 'n0', 'n30', 'n60', 'n90', 'vi0', 'vi30', 'vi60', 'vi90', 've0', 've30', 've60', 've90', 'tax', 'taxable'];
 
 const server = vi.hoisted(() => ({ products: [], calls: [], mode: 'ok' }));
@@ -127,6 +127,15 @@ describe('overview', () => {
     expect(row).toContain('0 packs + 7'); // 7 units of a pack of 10
     type(el, 'panadol');
     expect(el.querySelector('.inv-row').textContent).toContain('1 pack (pack of 10)');
+  });
+
+  it('does not invent a pack breakdown when the pack size is unknown', async () => {
+    server.products.push(product('P5', 'Mystery Pack', { qty: 25, pack: 1, packValid: false }));
+    const el = await open(OWNER);
+    type(el, 'mystery');
+    const row = el.querySelector('.inv-row').textContent;
+    expect(row).toContain('pack size unknown');
+    expect(row).not.toContain('pack of');
   });
 
   it('a person with inventory.view sees sales figures and stock value; one without never does, and never downloads them', async () => {

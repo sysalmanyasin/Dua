@@ -5,7 +5,8 @@
 // and the sales half n90 (net quantity sold in the last 90 days).
 //
 //   zeroStock    qty is exactly 0: nothing to value, listed for reference only.
-//   packIssues   qty not 0 and the pack size is not a usable number: kept out of Never Sold and Dead Stock because the
+//   packIssues   qty not 0 and the pack size cannot be trusted (the feed's packValid is false, i.e. the file had no
+//                real pack size, or the number is not above zero): kept out of Never Sold and Dead Stock because the
 //                quantity cannot be rounded down to whole packs (still eligible for Excess, which ignores pack size).
 //   neverSold    no sale date at all, received more than `neverSoldDays` ago, at least one whole pack in stock.
 //   deadStock    has a sale date, but the last sale AND the last receipt are both more than `deadDays` ago, at least one
@@ -45,7 +46,7 @@ export function computeLedger(rows, { today = new Date(), neverSoldDays = DEFAUL
       continue;
     }
 
-    if (!isPackValid(it.pack)) {
+    if (it.packValid === false || !isPackValid(it.pack)) {
       packIssues.push({ ...it, qty: stock, unitPrice, recDays, saleDays, net90, stockValue: stock * unitPrice });
     } else {
       const pack = Number(it.pack);

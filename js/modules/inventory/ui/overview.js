@@ -100,10 +100,13 @@ export async function mount(el, { ctx }) {
 
   function row(p) {
     const { packs, loose } = downRound(p.qty, p.pack);
+    // a pack breakdown is only shown when the pack size is real (INV-18); otherwise say so rather than guess
     const packText =
-      p.pack > 1 && p.qty > 0
-        ? ` · ${qty(packs)} pack${packs === 1 ? '' : 's'}${loose ? ` + ${qty(loose)}` : ''} (pack of ${qty(p.pack)})`
-        : '';
+      p.packValid === false
+        ? ' · pack size unknown'
+        : p.pack > 1 && p.qty > 0
+          ? ` · ${qty(packs)} pack${packs === 1 ? '' : 's'}${loose ? ` + ${qty(loose)}` : ''} (pack of ${qty(p.pack)})`
+          : '';
     return html`<li class="inv-row">
       <div class="inv-main">
         <strong>${p.name}</strong>

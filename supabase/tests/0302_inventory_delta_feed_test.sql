@@ -270,9 +270,9 @@ begin
   select seq_stock into s0 from public.inventory_sync_state;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
   j := public.inventory_changes_stock(0, 1000);
-  perform pg_temp.ok(j->'cols' = '["code","name","qty","price","company","generic","supplier","pack","created","received","sold"]'::jsonb, 'stock feed: the column list is the documented one');
+  perform pg_temp.ok(j->'cols' = '["code","name","qty","price","company","generic","supplier","pack","created","received","sold","packValid"]'::jsonb, 'stock feed: the column list is the documented one');
   perform pg_temp.ok((select r2 from jsonb_array_elements(j->'rows') r2 where r2->>0 = 'A1')->>3 = '6', 'stock feed: A1 carries its price');
-  perform pg_temp.ok(not exists (select 1 from jsonb_array_elements(j->'rows') r2 where jsonb_array_length(r2) <> 11), 'stock feed: every row has exactly the listed columns (no sales figures)');
+  perform pg_temp.ok(not exists (select 1 from jsonb_array_elements(j->'rows') r2 where jsonb_array_length(r2) <> 12), 'stock feed: every row has exactly the listed columns (no sales figures)');
   perform pg_temp.ok((j->>'seq')::bigint = s0 and (j->>'activeCount')::int = 5 and (j->>'done')::boolean is true, 'stock feed: reports the counter, the active count and that it is done');
   reset role;
 

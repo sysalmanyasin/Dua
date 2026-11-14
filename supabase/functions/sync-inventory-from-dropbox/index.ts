@@ -86,6 +86,8 @@ function buildPayload(file: DropboxInventoryFile) {
     company: str(p.company, 'Unassigned Manufacturer'), generic: str(p.generic),
     supplier: str(p.supplier, 'Unassigned Supplier'),
     conversion_factor: num(p.conversionFactor) || 1,
+    // INV-18: was the pack size in the file a real number above zero? (conversion_factor is 1 when it was not)
+    pack_valid: typeof p.conversionFactor === 'number' && Number.isFinite(p.conversionFactor) && p.conversionFactor > 0,
     creation_date: dateOrNull(p.creationDate), last_receive_date: dateOrNull(p.lastReceiveDate),
     last_sale_date: dateOrNull(p.lastSaleDate),
     net_qty_today: num(p.netQtyToday), net_qty_30_days: num(p.netQty30Days),

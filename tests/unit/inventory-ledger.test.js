@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { computeLedger, DEFAULT_WINDOW_DAYS, sumValue } from '../../js/modules/inventory/domain/ledger.js';
 import { joinProducts } from '../../js/modules/inventory/domain/join.js';
-import { isNotSold, notSoldStock } from '../../js/modules/inventory/domain/metrics.js';
+import { notSoldStock } from '../../js/modules/inventory/domain/metrics.js';
 import { filterAndRank, score, SEARCH_FIELDS } from '../../js/modules/inventory/domain/search.js';
 import { daysSince, downRound, isPackValid } from '../../js/modules/inventory/domain/stockMath.js';
 
@@ -31,17 +31,6 @@ describe('Stock Ledger lists match the old app', () => {
     for (const k of ['neverSold', 'deadStock', 'excess', 'excessDefault', 'packIssues', 'zeroStock'])
       expect(e[k].length).toBeGreaterThan(5);
   });
-});
-
-describe('"Stock not sold in N days" matches the old app', () => {
-  for (const n of golden.notSold) {
-    it(`${n.days} days: ${n.count} products`, () => {
-      const r = notSoldStock(golden.rows, n.days, today.getTime());
-      expect(r.count).toBe(n.count);
-      expect(r.value).toBe(n.value);
-      expect(r.rows.map((x) => x.code)).toEqual(n.codes);
-    });
-  }
 });
 
 describe('ranked search matches the old app', () => {
@@ -97,6 +86,13 @@ describe('boundaries, one product at a time', () => {
     expect(codes(r.packIssues)).not.toContain('PK-STR');
   });
 
+  it('a pack size the feed marks unusable (packValid false) is a pack issue even when the number looks fine', () => {
+    const base = { code: 'PV', name: 'PV', qty: 30, price: 10, pack: 1, created: '', received: '2026-05-01', sold: '', n90: 0 };
+    const r = computeLedger([base, { ...base, code: 'PV-OK', packValid: true }, { ...base, code: 'PV-BAD', packValid: false }], { today });
+    expect(codes(r.packIssues)).toEqual(['PV-BAD']);
+    expect(codes(r.neverSold)).toEqual(['PV', 'PV-OK']); // no flag at all (older rows) counts as usable
+  });
+
   it('zero stock is listed apart; negative stock is not zero stock and never counts as a whole pack', () => {
     const r = run();
     expect(codes(r.zeroStock)).toContain('Z-ZERO');
@@ -132,26 +128,53 @@ describe('boundaries, one product at a time', () => {
   });
 });
 
-describe('two different "not sold" numbers, on purpose (owner decision pending: which one is the Home headline)', () => {
-  const now = today.getTime();
-  const row = (over) => ({ code: 'T', name: 'T', qty: 10, price: 10, pack: 10, created: '', received: '', sold: '', n90: 0, ...over });
+describe('"Stock not sold in N days" is one number, whole packs only (decision INV-17)', () => {
   const ago = (n) => new Date(Date.UTC(2026, 10, 12) - n * 86400000).toISOString().slice(0, 10);
-
-  it('sold 300 days ago but received only 30 days ago: the headline counts it, the Dead Stock list does not', () => {
-    const r = row({ sold: ago(300), received: ago(30) });
-    expect(isNotSold(r, 60, now)).toBe(true);
-    expect(computeLedger([r], { today }).deadStock).toHaveLength(0);
+  const row = (over) => ({
+    code: 'T',
+    name: 'T',
+    qty: 10,
+    price: 10,
+    pack: 10,
+    created: '',
+    received: ago(200),
+    sold: '',
+    n90: 0,
+    ...over,
   });
 
-  it('seven loose units of a pack of ten: the headline counts the value, the lists count nothing', () => {
-    const r = row({ qty: 7, sold: '', received: ago(200) });
-    expect(notSoldStock([r], 60, now).value).toBe(70);
-    expect(computeLedger([r], { today }).neverSold).toHaveLength(0);
+  it('equals the Never Sold list plus the Dead Stock list of the same window, for every window', () => {
+    for (const days of [0, 30, 60, 90, 365]) {
+      const h = notSoldStock(golden.rows, days, today);
+      const l = computeLedger(golden.rows, { today, neverSoldDays: days, deadDays: days });
+      expect(h.count).toBe(l.neverSold.length + l.deadStock.length);
+      expect(h.value).toBe(sumValue([...l.neverSold, ...l.deadStock]));
+      expect(h.neverSold.map((r) => r.code)).toEqual(l.neverSold.map((r) => r.code));
+      expect(h.deadStock.map((r) => r.code)).toEqual(l.deadStock.map((r) => r.code));
+    }
   });
 
-  it('no sale date but sales in the 90-day window is not slow for the headline', () => {
-    expect(isNotSold(row({ sold: '', n90: 5 }), 60, now)).toBe(false);
-    expect(isNotSold(row({ sold: '', n90: 0 }), 60, now)).toBe(true);
+  it('defaults to a 60-day window', () => {
+    expect(notSoldStock(golden.rows, undefined, today).count).toBe(notSoldStock(golden.rows, 60, today).count);
+  });
+
+  it('counts whole packs only: seven loose units of a pack of ten are worth nothing, nineteen are worth one pack', () => {
+    expect(notSoldStock([row({ qty: 7 })], 60, today)).toMatchObject({ count: 0, value: 0 });
+    expect(notSoldStock([row({ qty: 19 })], 60, today)).toMatchObject({ count: 1, value: 100 });
+  });
+
+  it('does not count a product received recently, even when its last sale is old', () => {
+    expect(notSoldStock([row({ sold: ago(300), received: ago(30) })], 60, today).count).toBe(0);
+  });
+
+  it('does not count a product whose pack size cannot be trusted', () => {
+    expect(notSoldStock([row({ pack: 0 })], 60, today).count).toBe(0);
+    expect(notSoldStock([row({ packValid: false })], 60, today).count).toBe(0);
+  });
+
+  it('does not count zero stock, and an empty list gives zero', () => {
+    expect(notSoldStock([row({ qty: 0 })], 60, today).count).toBe(0);
+    expect(notSoldStock([], 60, today)).toMatchObject({ count: 0, value: 0 });
   });
 });
 

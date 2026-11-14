@@ -2,7 +2,6 @@
 // The reference functions below are copied verbatim (only the names of the row fields were adapted at the edge, see
 // `toOld`) from the old app, repository sysalmanyasin/BT-Sale-Data2 at commit e560086f7b0422007a1d0cf1cc86f33ad9362491:
 //   js/inventory/stockledger.js   computeAll, applyExcessRecalc, daysSince, downRound, isPackValid
-//   js/shared/inventory-metrics.js isNotSold, notSoldStock
 //   js/lib/bt-search.js           BTSearch.score, filterAndRank
 // The new code (js/modules/inventory/domain) must reproduce these numbers exactly.
 // Run from the repository root: node tests/fixtures/inventory-golden/make-golden.mjs && npx prettier --write tests/fixtures/inventory-golden/inventory-golden.json
@@ -108,7 +107,7 @@ const hand = [
   base('EX-NOCREATED', { qty: 400, n90: 10, created: '' }),
   base('EX-EQUAL', { qty: 100, n90: 90 }),
   base('EX-JUSTOVER', { qty: 101, n90: 90 }),
-  // "not sold in N days" headline definition
+  // products around the "not sold" boundaries
   base('NSD-NODATE-NOSALES', { sold: '', n90: 0 }),
   base('NSD-NODATE-SALES', { sold: '', n90: 5 }),
   base('NSD-OLD', { sold: ago(200) }),
@@ -266,25 +265,6 @@ function makeOld(state) {
   return { computeAll, applyExcessRecalc };
 }
 
-const num = (v) => {
-  const x = parseFloat(String(v == null ? '' : v).replace(/,/g, ''));
-  return Number.isFinite(x) ? x : 0;
-};
-const qtyOf = (r) => num(r && (r.qty != null ? r.qty : r.stock));
-const priceOf = (r) => num(r && (r.price != null ? r.price : r.unitPrice));
-function isNotSold(row, days = 90, now = Date.now()) {
-  if (!row || qtyOf(row) <= 0) return false;
-  const last = row.lastSaleDate ? new Date(row.lastSaleDate).getTime() : NaN;
-  if (Number.isFinite(last)) return last < now - days * 86400000;
-  return num(row.netQty90Days) <= 0;
-}
-function notSoldStock(list, days = 90, now = Date.now()) {
-  const hit = (Array.isArray(list) ? list : [])
-    .filter((r) => isNotSold(r, days, now))
-    .map((r) => ({ row: r, value: qtyOf(r) * priceOf(r) }))
-    .sort((a, b) => b.value - a.value);
-  return { count: hit.length, value: Math.round(hit.reduce((s, x) => s + x.value, 0)), rows: hit.map((x) => x.row) };
-}
 const BTSearch = {
   norm(s) {
     return String(s || '')
@@ -375,12 +355,6 @@ const configs = [
   };
 });
 
-const NOW = TODAY.getTime();
-const notSold = [30, 60, 90, 180].map((days) => {
-  const r = notSoldStock(oldRows, days, NOW);
-  return { days, count: r.count, value: r.value, codes: r.rows.map((x) => x.code) };
-});
-
 const QUERIES = [
   '',
   'para',
@@ -404,10 +378,7 @@ const search = QUERIES.map((query) => ({
   codes: BTSearch.filterAndRank(rows, query, ['code', 'name', 'generic', 'company', 'supplier']).map((x) => x.code),
 }));
 
-writeFileSync(
-  new URL('./inventory-golden.json', import.meta.url),
-  JSON.stringify({ today: TODAY.toISOString(), rows, configs, notSold, search }),
-);
+writeFileSync(new URL('./inventory-golden.json', import.meta.url), JSON.stringify({ today: TODAY.toISOString(), rows, configs, search }));
 console.log(
   `rows=${rows.length}`,
   configs
@@ -417,5 +388,4 @@ console.log(
     )
     .join(' | '),
 );
-console.log('notSold', notSold.map((n) => `${n.days}d:${n.count}/${n.value}`).join(' '));
 console.log('search', search.map((s) => `"${s.query}":${s.codes.length}`).join(' '));
