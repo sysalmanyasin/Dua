@@ -246,6 +246,47 @@ describe('Closing ledger', () => {
     expect(el.textContent).not.toContain('Closing submitted');
     expect(document.getElementById('toasts').textContent.length).toBeGreaterThan(5);
   });
+
+  it('supports horizontal swipe navigation while ignoring vertical scrolling and form controls', async () => {
+    openTarget();
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = vi.fn();
+    try {
+      await ledger();
+      const section = el.querySelector('.cls-sec');
+      const touch = (type, x, y) => {
+        const event = new Event(type, { bubbles: true });
+        Object.defineProperty(event, type === 'touchstart' ? 'touches' : 'changedTouches', {
+          value: [{ clientX: x, clientY: y }],
+        });
+        section.dispatchEvent(event);
+      };
+
+      touch('touchstart', 180, 100);
+      touch('touchend', 100, 105);
+      expect(el.querySelector('[data-jump="1"]').getAttribute('aria-current')).toBe('step');
+
+      touch('touchstart', 100, 100);
+      touch('touchend', 180, 105);
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+
+      touch('touchstart', 180, 100);
+      touch('touchend', 100, 170); // vertical scroll, not a section swipe
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+
+      const input = el.querySelector('#f-sys_cash');
+      const start = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(start, 'touches', { value: [{ clientX: 180, clientY: 100 }] });
+      input.dispatchEvent(start);
+      const end = new Event('touchend', { bubbles: true });
+      Object.defineProperty(end, 'changedTouches', { value: [{ clientX: 100, clientY: 105 }] });
+      input.dispatchEvent(end);
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+    } finally {
+      window.scrollTo = originalScrollTo;
+    }
+  });
+
   it('shows the opening figures only on the opening closing', async () => {
     openTarget({ opening: true, mode: 'final' });
     api.loadById.mockImplementationOnce(async () => ({
