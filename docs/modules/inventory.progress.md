@@ -29,7 +29,7 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 | `0303` | heartbeat log row (see "Found while applying") | hash equal; 3 mutations caught |
 | `0304` | renumber counters 1..N and unique counter indexes (see "Found while applying") | 5,883 distinct counters, indexes present |
 | `0305` (14 Nov) | `pack_valid` flag (INV-18) | all 12 function hashes equal the repo; 5,911 of 5,911 stored hashes consistent; upgrade path rehearsed on 6,000 products (identical sync unchanged in both payload shapes, flagging 100 products writes exactly 100 rows and moves only the stock counter); 5 mutations caught |
-| Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
+| Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`; v21 on 14 Nov adds one retry on a statement timeout) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
 
 Live registry now: `0001`–`0013`, `0201`–`0209` (Closing, applied by the owner), `0301`–`0305`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
 
@@ -62,6 +62,14 @@ Whole repo after I-B: 497 unit tests, lint, format, secret and vendor scans gree
 **A weak test found by mutation.** Removing "apply removals" from the mirror did not fail any test, because the mirror's self-healing (count mismatch, wipe, reload) quietly produced the right result. The delta test now also asserts that nothing was reloaded from zero.
 
 **Not verified: a real phone or browser.** This environment has no browser. The screen is tested in jsdom with the real mirror and a mocked network, and the IndexedDB store against a spec-compliant fake. The first run on a real device is the STOP check below.
+
+### Found after go-live (14 Nov 2026): occasional database statement timeouts
+
+Six hourly syncs have ever failed with "canceling statement due to statement timeout": three on 11 Nov (before any Inventory migration, under the old rewrite-everything sync) and three since (12 Nov 15:00 and 23:00, 13 Nov 13:00 UTC); about 3 in 55 runs since `0302`. Every one kept the previous data, and the next hour succeeded, so nothing was lost and the 3-hour watchdog never fired.
+- The role that calls the function (`authenticator`) has an 8-second statement limit. Measured on the live database at a quiet moment (a replay of a realistic payload built from the live tables, 5,932 products, 2,243 STR lines, inside a block that always rolls back): the whole sync takes **450–750 ms**, the product comparison alone about 380 ms. So the work is not slow; a busy moment on the server occasionally multiplies it past 8 s. The 13 Nov failure coincides with the daily backup starting at 13:00 UTC, the same minute as the hourly sync; the other two have no known cause.
+- Mitigation shipped (Edge Function v21): when the database reports a statement timeout, wait 5 seconds and retry once; only a second failure is logged as a failed sync. Safe because the apply is atomic and repeatable (`inventory_apply_sync` takes a lock and either completes or changes nothing).
+- Left to the owner: moving the hourly job a few minutes past the hour (for example `:05`) would also avoid the backup minute and the `:00` watchdog. I did not change the schedule because Candela's export time is not known to me.
+- Check later: if timeouts continue after v21 (look for failed rows in `inventory_sync_log`), the next step is to look at the server's own logs for what runs at those minutes.
 
 ### Owner decisions (14 Nov 2026) and what came of them
 
