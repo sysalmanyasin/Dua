@@ -33,6 +33,9 @@ export const MESSAGES = {
   invalid_rows: 'A list in the form is not valid. Reload and try again.',
   invalid_cash_count: 'The cash count is not valid.',
   too_many_tiers: 'At most 3 staff-tier credit lines are allowed.',
+  tier_taken: 'That tier already has an active name. Switch the other one off first.',
+  bad_value: 'Enter a number that is zero or more.',
+  unknown_setting: 'That setting cannot be changed here.',
 };
 
 const FALLBACK = 'Something went wrong. Your work is kept on this device. Try again in a moment.';

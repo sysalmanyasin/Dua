@@ -16,7 +16,9 @@ const goLedger = () => {
 export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions ?? [];
   const canOpen = perms.includes('closing.settings');
-  const canLedgers = ['closing.view_all', 'closing.review', 'closing.correct'].some((k) => perms.includes(k));
+  const canBooks = ['closing.view_all', 'closing.review', 'closing.correct'].some((k) => perms.includes(k));
+  const canReview = ['closing.review', 'closing.correct'].some((k) => perms.includes(k));
+  const canLedgers = ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct'].some((k) => perms.includes(k));
   render(el, loadingCard());
   let recent;
   try {
@@ -98,6 +100,21 @@ export async function mount(el, { ctx } = {}) {
                 <ul class="cls-list">
                   <li><a href="#/closing/credit">Credit Ledger</a><span class="cls-meta">Credit stored with each closing</span></li>
                   <li><a href="#/closing/misc">Misc Ledger</a><span class="cls-meta">Open charges and their age</span></li>
+                </ul>
+              </section>`
+            : ''
+        }
+        ${
+          canBooks || canReview || perms.includes('closing.settings')
+            ? html`<section class="card">
+                <h2>Books and review</h2>
+                <ul class="cls-list">
+                  ${canBooks ? html`<li><a href="#/closing/book">Closing Book</a><span class="cls-meta">One page per closing, print or PDF</span></li>` : ''}
+                  ${canBooks ? html`<li><a href="#/closing/history/cc">CC history</a><span class="cls-meta">Card at each Evening closing</span></li>` : ''}
+                  ${canBooks ? html`<li><a href="#/closing/history/rbd">RBD history</a><span class="cls-meta">Returns, book bills, deposits</span></li>` : ''}
+                  ${canBooks ? html`<li><a href="#/closing/history/mediq">MEDIQ history</a><span class="cls-meta">Orders and extras</span></li>` : ''}
+                  ${canReview ? html`<li><a href="#/closing/review">Review</a><span class="cls-meta">Reopen a closing to correct it</span></li>` : ''}
+                  ${perms.includes('closing.settings') ? html`<li><a href="#/closing/settings">Closing settings</a><span class="cls-meta">Strips, accounts, audit codes, float</span></li>` : ''}
                 </ul>
               </section>`
             : ''
