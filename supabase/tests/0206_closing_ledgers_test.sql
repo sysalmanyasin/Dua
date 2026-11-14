@@ -46,7 +46,8 @@ insert into public.profiles(user_id, staff_id, username, role_template) values
 insert into public.user_permissions(user_id, perm_key, effect) values
  ('00000000-0000-0000-0000-0000000000b2','closing.enter_own','deny'),
  ('00000000-0000-0000-0000-0000000000b3','closing.view_all','grant'),
- ('00000000-0000-0000-0000-0000000000b4','credit.view','grant');
+ ('00000000-0000-0000-0000-0000000000b4','credit.view','grant'),
+ ('00000000-0000-0000-0000-0000000000b4','closing.enter_own','deny'); -- credit.view ALONE: a junior would otherwise hold ledger access via closing.enter_own
 
 -- ── setup: opening Final (credit line + misc charge that must NOT reach the feed), Night, Morning (+ an unsent Evening draft) ──
 do $t$ declare r jsonb; mid uuid; cid uuid; begin
@@ -155,12 +156,14 @@ end $t$;
 do $t$ begin
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
   perform pg_temp.refused('select * from public.closing_credit_feed()', 'not_allowed', 'a cashier cannot read the credit feed');
-  perform pg_temp.refused('select public.closing_credit_ledger()', 'not_allowed', 'a cashier cannot read the Credit Ledger');
-  perform pg_temp.refused('select public.closing_misc_ledger()', 'not_allowed', 'a cashier cannot read the Misc Ledger');
+  -- owner decision 14 Nov 2026 (migration 0207): cashiers see the WHOLE ledgers, not just closings they entered
+  perform pg_temp.ok(jsonb_array_length(public.closing_credit_ledger()) = 3, 'a cashier sees the whole Credit Ledger (3 snapshots, including the opening they did not enter)');
+  perform pg_temp.ok(jsonb_array_length(public.closing_misc_ledger() -> 'open') = 2 and public.closing_misc_ledger() -> 'as_of' ->> 'kind' = 'morning', 'a cashier sees the whole Misc Ledger');
   reset role;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
   perform pg_temp.refused('select * from public.closing_credit_feed()', 'not_allowed', 'someone with no closing right cannot read the feed');
   perform pg_temp.refused('select public.closing_credit_ledger()', 'not_allowed', 'someone with no closing right cannot read the Credit Ledger');
+  perform pg_temp.refused('select public.closing_misc_ledger()', 'not_allowed', 'someone with no closing right cannot read the Misc Ledger');
   reset role;
   -- view_all sees the ledgers but not the feed; credit.view sees the feed but not the ledgers
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b3');
