@@ -1,6 +1,9 @@
 // Ranked text search over the local products. Ported from the old app's BTSearch so results come back in the same order.
 // Scores: exact 100, starts with 95, contains 85, all words present 80, any word of 2+ letters 60, letters in order 35.
-const norm = (s) => String(s || '').toLowerCase().trim();
+const norm = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .trim();
 
 export function score(text, query) {
   const t = norm(text);

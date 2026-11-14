@@ -22,7 +22,10 @@ export function memoryStore() {
         throw new Error('simulated crash');
       }
       const next = copy(state);
-      for (const [name, part] of [['stock', stock], ['sales', sales]]) {
+      for (const [name, part] of [
+        ['stock', stock],
+        ['sales', sales],
+      ]) {
         if (!part) continue;
         for (const code of part.del ?? []) next[name].delete(code);
         for (const row of part.put ?? []) next[name].set(row.code, row);

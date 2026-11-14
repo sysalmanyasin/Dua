@@ -86,7 +86,11 @@ export function createMirror({ store, feed, now = () => Date.now() }) {
     if (!meta.canSales && canSales) meta = { ...meta, canSales: true, seqSales: 0 };
 
     const sameCounters = meta.seqStock === ls.seq_stock && (!canSales || meta.seqSales === ls.seq_sales);
-    if (sameCounters && (await store.count('stock')) === ls.active_count && (!canSales || (await store.count('sales')) === ls.active_count)) {
+    if (
+      sameCounters &&
+      (await store.count('stock')) === ls.active_count &&
+      (!canSales || (await store.count('sales')) === ls.active_count)
+    ) {
       meta = { ...meta, syncedAt: ls.synced_at, fetchedAt: now() };
       await store.putMeta(meta);
       return { status: 'current', meta };

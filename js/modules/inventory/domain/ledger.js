@@ -49,13 +49,36 @@ export function computeLedger(rows, { today = new Date(), neverSoldDays = DEFAUL
       packIssues.push({ ...it, qty: stock, unitPrice, recDays, saleDays, net90, stockValue: stock * unitPrice });
     } else {
       const pack = Number(it.pack);
-      if (!hasSale && recDays != null && recDays > neverSoldDays) {
+      if (!hasSale && recDays !== null && recDays > neverSoldDays) {
         const dr = downRound(stock, pack);
-        if (dr.qty > 0) neverSold.push({ ...it, qty: stock, pack, unitPrice, recDays, packs: dr.packs, roundedQty: dr.qty, loose: dr.loose, value: dr.qty * unitPrice });
+        if (dr.qty > 0)
+          neverSold.push({
+            ...it,
+            qty: stock,
+            pack,
+            unitPrice,
+            recDays,
+            packs: dr.packs,
+            roundedQty: dr.qty,
+            loose: dr.loose,
+            value: dr.qty * unitPrice,
+          });
       }
-      if (hasSale && saleDays != null && saleDays > deadDays && recDays != null && recDays > deadDays) {
+      if (hasSale && saleDays !== null && saleDays > deadDays && recDays !== null && recDays > deadDays) {
         const dr = downRound(stock, pack);
-        if (dr.qty > 0) deadStock.push({ ...it, qty: stock, pack, unitPrice, recDays, saleDays, packs: dr.packs, roundedQty: dr.qty, loose: dr.loose, value: dr.qty * unitPrice });
+        if (dr.qty > 0)
+          deadStock.push({
+            ...it,
+            qty: stock,
+            pack,
+            unitPrice,
+            recDays,
+            saleDays,
+            packs: dr.packs,
+            roundedQty: dr.qty,
+            loose: dr.loose,
+            value: dr.qty * unitPrice,
+          });
       }
     }
 
@@ -71,8 +94,8 @@ export function computeLedger(rows, { today = new Date(), neverSoldDays = DEFAUL
   }
 
   const excessDefault = excess.filter((r) => {
-    if (r.daysOld != null && r.daysOld < EXCESS_MIN_AGE_DAYS) return false;
-    return r.stockDays != null && r.stockDays >= EXCESS_MIN_STOCK_DAYS;
+    if (r.daysOld !== null && r.daysOld < EXCESS_MIN_AGE_DAYS) return false;
+    return r.stockDays !== null && r.stockDays >= EXCESS_MIN_STOCK_DAYS;
   });
 
   return { neverSold, deadStock, excess, excessDefault, packIssues, zeroStock };

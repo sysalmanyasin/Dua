@@ -55,7 +55,10 @@ export function idbStore(factory = globalThis.indexedDB) {
     putMeta: (meta) => tx(['meta'], 'readwrite', ({ meta: m }) => void m.put(meta, META_KEY)),
     applyBatch: ({ stock, sales, meta }) =>
       tx(['stock', 'sales', 'meta'], 'readwrite', (s) => {
-        for (const [name, part] of [['stock', stock], ['sales', sales]]) {
+        for (const [name, part] of [
+          ['stock', stock],
+          ['sales', sales],
+        ]) {
           if (!part) continue;
           for (const code of part.del ?? []) s[name].delete(code);
           for (const row of part.put ?? []) s[name].put(row);

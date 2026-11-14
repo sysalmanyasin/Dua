@@ -46,6 +46,45 @@ Live registry now: `0001`–`0012`, `0301`–`0304`. Foundation completed F6 (`0
 2. **Backfill bug in my own `0302`.** Existing rows all got counter 1, and the feed pages by counter, so a first install would have received only the first 1,000 of 5,883 products. My upgrade test compared change counts but never paged from 0 on backfilled data. Found by the live smoke test; no phone had a copy. `0304` renumbers every row 1..N, sets the state counters, and adds partial unique indexes so duplicates cannot exist again. `0304`'s test reproduces the broken state, shows it losing rows, repairs it, and pages a full install.
 3. Process slip, recorded for honesty: I re-checked the clock before 0301 but not before 0302 (hours had passed between my messages). It was safe (a transaction that holds the sync lock cannot collide with the hourly run) but the rule is now: check `now()` immediately before every apply.
 
+## Session I-B (13 Nov 2026): the local copy, the maths, the first screen
+
+Merged `origin/main` into `module/inventory` first (Closing and Manager are on main now). One conflict, `docs/modules/inventory.progress.md` (main carried an older mirror of this file with an integration note); kept this current version. No migration number collisions (others use 0013, 0101–0103, 0201–0205; Inventory uses 0301–0304). All database checks pass on the merged tree (829).
+
+| Step | What | State | Tested |
+|---|---|---|---|
+| B1 | `data/feed.js` (the only file that calls Supabase), `data/mirror.js` (sync algorithm), `data/idbStore.js` + `data/memoryStore.js` (stores), `data/local.js` (shared copy, sign-out wipe, refresh on return) | done | 18 mirror tests (first install, no-change = one small call, delta, crash mid-install resumes from the last saved counter, reset, other person, schema change, count mismatch, offline, permission withdrawn, concurrent syncs); 6 mutations caught (one needed a stronger test, see below); the IndexedDB store checked against `fake-indexeddb` outside the project, including that a failed batch leaves rows and counter untouched |
+| B2 | `domain/ledger.js`, `metrics.js`, `search.js`, `stockMath.js`, `join.js`: pure functions ported from the old app | done | 43 tests, 401 invented products; the generator `tests/fixtures/inventory-golden/make-golden.mjs` contains the old code verbatim (cites the old commit) and writes the numbers the new code must reproduce exactly: 5 window settings, "not sold" at 4 settings, 16 search queries; 10 mutations caught |
+| B3 | `manifest.js`, `status.js` (Stock pill, arms the sign-out wipe), `ui/overview.js` (local search, 100 rows at a time, Refresh, offline and revoked-access notes), `css/inventory.css`, one line each in `js/modules/index.js` and `index.html` | done | 11 screen tests (real mirror, mocked network), 5 status/sign-out/refresh-on-return tests, 10 structural guards; 3 screen mutations caught |
+
+Whole repo after I-B: 497 unit tests, lint, format, secret and vendor scans green.
+
+**A weak test found by mutation.** Removing "apply removals" from the mirror did not fail any test, because the mirror's self-healing (count mismatch, wipe, reload) quietly produced the right result. The delta test now also asserts that nothing was reloaded from zero.
+
+**Not verified: a real phone or browser.** This environment has no browser. The screen is tested in jsdom with the real mirror and a mocked network, and the IndexedDB store against a spec-compliant fake. The first run on a real device is the STOP check below.
+
+### Owner decisions needed
+
+1. **INV-17: which "not sold" number is the Home headline?** The old app has two on purpose, both ported and tested side by side:
+   - *Headline* (old briefing): stock above zero and the last sale older than N days (or no sale date and no sales in 90 days); every unit counts, value is quantity × price.
+   - *Stock Ledger lists*: Never Sold and Dead Stock also look at the received date, count whole packs only, and exclude unreliable pack sizes.
+   Recommendation: Home keeps the headline definition (as the old briefing did), the Ledger screens use the list definitions, and each screen says in one line which it is. Default window 60 days (INV-10).
+2. **INV-18: the "Pack issues" list cannot be reproduced.** The Edge Function and `0302` turn a missing or zero pack size into 1, so the signal the old report used is gone. On the live data 2,725 of 5,308 in-stock products (Rs 14.6M of Rs 24.4M) have pack size 1, a mix of real single-unit packs and possibly missing sizes. The port treats pack 1 as valid, so those products can appear in Never Sold and Dead Stock (rounding does nothing). Options: (a) accept, the Pack issues card is dropped; (b) keep the raw factor (one more column in the feed, a migration and an Edge Function change, about 30 KB more on a first install) so unusable sizes are flagged again. Recommendation: (b), as it protects the Dead Stock numbers you act on.
+
+### Requests for Foundation (I may not edit these files)
+
+- **Sign-out hook for modules.** `js/core/auth.js` has no way for a module to clear its own storage at sign-out (MODULES.md rule 9). Inventory listens to the auth `SIGNED_OUT` event from `status.js` and also discards a copy that belongs to someone else, which works but depends on `status.js` having loaded in that tab. A real hook (for example `registerSignOutCleanup(fn)` called by `signOut()`) would be cleaner.
+- **A box icon** in `js/shared/icons.js` (Inventory uses `shield` until then, like Closing).
+
+### STOP: first check on a phone (needs this branch live, for example merged to main or a preview)
+
+1. Sign in, open **Inventory**. First time only: "Opening the product list…", then about 5,900 products (about 1 MB; about 1.5 MB if you hold `inventory.view`). Header shows the count and "as of" time.
+2. Type "para": results appear instantly, best match first, no spinner. Turn on airplane mode, type again: still works.
+3. Tap **Refresh** online: seconds, no big download (look at data use if you can). With airplane mode on: "Offline. Showing the copy from …".
+4. Close the tab, reopen Inventory: opens immediately from the phone's copy.
+5. Sign out, sign in as a different person (for example the senior), open Inventory: the first person's list must not appear.
+6. As the owner you should see "Sold: x in 30 days" lines and "stock worth Rs …"; as the senior you must not.
+7. Look at the Stock pill in the status bar (time of the last check).
+
 ## Deviations from the work order (confirmed)
 
 - **Delta page cap is 1,000 entries, not 200** (work order §6.5) **and not 2,000** (design §8). A page is one compact JSON document (about 165 KB at 1,000 stock rows), so PostgREST's 1,000-row limit does not apply, and a first install is 6 requests instead of 30. Accepted by the owner as **INV-16** (12 Nov 2026).
@@ -76,7 +115,7 @@ Decisions (owner, 12 Nov 2026) on **STR-Q1** and its consequences:
 
 ## Still to do (next sessions)
 
-I-B (local copy on the phone, reorder maths with golden fixtures, built on the live feed) → I-C (reports) → I-D (Home numbers in SQL, egress review, done). STR slice after the Inventory core.
+I-B is built (above), waiting for the phone check and decisions INV-17/INV-18. Then I-C (the reports: Stock Ledger, Reorder with `inventory_in_transit()`, Excess; the reorder maths still has to be ported with golden fixtures) → I-D (Home numbers in SQL, egress review, done). The `str` module is a separate line of work.
 
 ## Handoff
 See the brief, §10.

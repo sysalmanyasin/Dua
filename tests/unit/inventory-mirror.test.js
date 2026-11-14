@@ -17,9 +17,21 @@ function fakeServer({ pageSize = 3, schema = 1 } = {}) {
     const cols = group === 'stock' ? STOCK_COLS : SALES_COLS;
     if (s.resetNext || since > s[group === 'stock' ? 'seqStock' : 'seqSales']) {
       s.resetNext = false;
-      return { reset: true, cols, rows: [], removed: [], next: 0, done: true, seq: s[group === 'stock' ? 'seqStock' : 'seqSales'], activeCount: active() };
+      return {
+        reset: true,
+        cols,
+        rows: [],
+        removed: [],
+        next: 0,
+        done: true,
+        seq: s[group === 'stock' ? 'seqStock' : 'seqSales'],
+        activeCount: active(),
+      };
     }
-    const chunk = [...rows.values()].filter((r) => r[seqKey] > since).sort((a, b) => a[seqKey] - b[seqKey]).slice(0, s.pageSize);
+    const chunk = [...rows.values()]
+      .filter((r) => r[seqKey] > since)
+      .sort((a, b) => a[seqKey] - b[seqKey])
+      .slice(0, s.pageSize);
     return {
       reset: false,
       cols,
@@ -51,7 +63,15 @@ function fakeServer({ pageSize = 3, schema = 1 } = {}) {
         s.calls.push('latest');
         if (s.down) throw new TypeError('Failed to fetch');
         if (s.denied) throw Object.assign(new Error('not allowed'), { code: '42501' });
-        return { synced_at: '2026-11-12T12:00:00Z', item_count: active(), source: 'dropbox', seq_stock: s.seqStock, seq_sales: s.seqSales, active_count: active(), schema_version: s.schema };
+        return {
+          synced_at: '2026-11-12T12:00:00Z',
+          item_count: active(),
+          source: 'dropbox',
+          seq_stock: s.seqStock,
+          seq_sales: s.seqSales,
+          active_count: active(),
+          schema_version: s.schema,
+        };
       },
       async changesStock(since) {
         return page('stock', since);
@@ -86,7 +106,14 @@ describe('first install', () => {
     expect(stock).toHaveLength(7);
     expect(stock.find((x) => x.code === 'P003')).toMatchObject({ name: 'Item P003', qty: 3, price: 2 });
     expect(sales.size).toBe(7);
-    expect(meta).toMatchObject({ userId: 'u1', schema: LOCAL_SCHEMA, seqStock: 7, seqSales: 7, syncedAt: '2026-11-12T12:00:00Z', fetchedAt: 1_000_000 });
+    expect(meta).toMatchObject({
+      userId: 'u1',
+      schema: LOCAL_SCHEMA,
+      seqStock: 7,
+      seqSales: 7,
+      syncedAt: '2026-11-12T12:00:00Z',
+      fetchedAt: 1_000_000,
+    });
     expect(dataCalls(server).filter((c) => c.startsWith('stock'))).toEqual(['stock:0', 'stock:3', 'stock:6']);
   });
 

@@ -25,7 +25,7 @@ export function downRound(stock, pack) {
 /** A usable pack size: a finite number above zero. */
 export function isPackValid(raw) {
   const n = Number(raw);
-  return raw !== '' && raw != null && Number.isFinite(n) && n > 0;
+  return raw !== '' && raw !== null && raw !== undefined && Number.isFinite(n) && n > 0;
 }
 
 /** Numbers as the old app read them: anything that is not a number counts as 0. */

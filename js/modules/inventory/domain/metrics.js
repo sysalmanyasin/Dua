@@ -7,7 +7,7 @@
 //   - it has no last sale date AND no net sales in the 90-day window (a missing date with sales in the window is NOT slow).
 // Value = qty x price.
 const num = (v) => {
-  const x = parseFloat(String(v == null ? '' : v).replace(/,/g, ''));
+  const x = parseFloat(String(v === null || v === undefined ? '' : v).replace(/,/g, ''));
   return Number.isFinite(x) ? x : 0;
 };
 
