@@ -253,13 +253,12 @@ describe('Closing ledger', () => {
     window.scrollTo = vi.fn();
     try {
       await ledger();
-      const section = el.querySelector('.cls-sec');
       const touch = (type, x, y) => {
         const event = new Event(type, { bubbles: true });
         Object.defineProperty(event, type === 'touchstart' ? 'touches' : 'changedTouches', {
           value: [{ clientX: x, clientY: y }],
         });
-        section.dispatchEvent(event);
+        el.querySelector('.cls-sec').dispatchEvent(event);
       };
 
       touch('touchstart', 180, 100);
