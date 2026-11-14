@@ -1,0 +1,11 @@
+[
+  { "name": "plain salary", "ho": 30000, "advances": [], "generic": 0, "plus": 0, "minus": 0, "net": 30000 },
+  { "name": "every part of the formula", "ho": 30000, "advances": [2000, -500], "generic": 1200, "plus": 500, "minus": 250, "net": 29950 },
+  { "name": "HO salary 25000.5 rounds to 25001; advance 100.4 rounds to 100", "ho": 25000.5, "advances": [100.4], "generic": 0, "plus": 0, "minus": 0, "net": 24901 },
+  { "name": "an advance of 0.5 rounds up to 1", "ho": 1000, "advances": [0.5], "generic": 0, "plus": 0, "minus": 0, "net": 999 },
+  { "name": "an advance of -0.5 rounds to 0", "ho": 1000, "advances": [-0.5], "generic": 0, "plus": 0, "minus": 0, "net": 1000 },
+  { "name": "the advance is the SIGNED sum of all entries, rounded once", "ho": 1000, "advances": [100.25, 100.25], "generic": 0, "plus": 0, "minus": 0, "net": 799 },
+  { "name": "a person who owes more than the salary goes negative", "ho": 0, "advances": [5000], "generic": 0, "plus": 0, "minus": 0, "net": -5000 },
+  { "name": "custom columns are rounded one by one", "ho": 100, "advances": [], "generic": 0, "plus": 99.5, "minus": 0.4, "net": 200 },
+  { "name": "a repayment (negative entry) raises the net", "ho": 20000, "advances": [3000, -3000], "generic": 800, "plus": 0, "minus": 0, "net": 20800 }
+]
