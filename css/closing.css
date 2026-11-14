@@ -285,3 +285,120 @@
     gap: var(--space-1);
   }
 }
+
+/* Session B: late sections */
+.cls .cls-signed {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.cls .cls-name {
+  font-weight: 600;
+  align-self: center;
+}
+.cls .cls-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.cls .cls-banner {
+  margin-top: 14px;
+  padding: 12px;
+  border: 2px solid var(--cls-teal, #0d8c78);
+  border-radius: 10px;
+  background: color-mix(in srgb, #0d8c78 8%, transparent);
+}
+.cls .cls-banner-title {
+  font-weight: 700;
+  color: var(--cls-navy, #0e241f);
+  margin-bottom: 4px;
+}
+.cls .cls-banner-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Credit Ledger and Misc Ledger (Session C) ── */
+.cls .cls-snap {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+}
+.cls .cls-snap:first-of-type {
+  border-top: 0;
+}
+.cls .cls-snap header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.cls .cls-kv {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.cls .cls-kv > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 0.9rem;
+}
+.cls .cls-kv dt,
+.cls .cls-kv dd {
+  margin: 0;
+}
+.cls .cls-kv dd {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+.cls .cls-kv-total {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  font-weight: 700;
+}
+.cls .cls-list li a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 3-inch thermal receipt (CLS-5): only the receipt prints; its own page size so it never depends on Sales CSS */
+#cls-print-root {
+  display: none;
+}
+@page cls-thermal {
+  size: 72mm auto;
+  margin: 2mm;
+}
+@media print {
+  body.cls-printing > *:not(#cls-print-root) {
+    display: none !important;
+  }
+  body.cls-printing #cls-print-root {
+    display: block;
+    page: cls-thermal;
+    width: 68mm;
+    color: #000;
+    background: #fff;
+    font: 12px/1.35 monospace;
+  }
+  #cls-print-root .cls-rc-title {
+    text-align: center;
+    font-weight: 700;
+  }
+  #cls-print-root .cls-rc-sub {
+    text-align: center;
+    font-size: 11px;
+  }
+  #cls-print-root .cls-rc-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  #cls-print-root hr {
+    border: 0;
+    border-top: 1px dashed #000;
+  }
+}

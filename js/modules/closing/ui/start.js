@@ -16,6 +16,7 @@ const goLedger = () => {
 export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions ?? [];
   const canOpen = perms.includes('closing.settings');
+  const canLedgers = ['closing.view_all', 'closing.review', 'closing.correct'].some((k) => perms.includes(k));
   render(el, loadingCard());
   let recent;
   try {
@@ -90,6 +91,17 @@ export async function mount(el, { ctx } = {}) {
           <p class="cls-meta">A slot cannot be skipped. A Final closing may start after a gap.</p>
           <div class="actions"><button type="button" class="btn btn-primary" id="cls-new">Start closing</button></div>
         </section>
+        ${
+          canLedgers
+            ? html`<section class="card">
+                <h2>Ledgers</h2>
+                <ul class="cls-list">
+                  <li><a href="#/closing/credit">Credit Ledger</a><span class="cls-meta">Credit stored with each closing</span></li>
+                  <li><a href="#/closing/misc">Misc Ledger</a><span class="cls-meta">Open charges and their age</span></li>
+                </ul>
+              </section>`
+            : ''
+        }
         ${
           canOpen
             ? html`<section class="card">

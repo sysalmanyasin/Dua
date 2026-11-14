@@ -1,4 +1,4 @@
-> **Status note (13 Nov 2026):** Closing is partially implemented on `main`. The guided ledger covers the first sections, but sections 6–14, submit UX, ledgers/feed, settings and print remain outstanding. See `docs/modules/closing.progress.md` and `docs/PROJECT_STATUS.md`.\n\n# Closing — brief
+> **Status note (13 Nov 2026):** Sessions A, B and C are on `main`: the full 14-section guided ledger, submit, the Credit and Misc ledgers with the 3-inch receipt, and `closing_credit_feed` (migrations `0201`–`0206`, all applied live). Still to build: Closing Book, Register Book, history tabs, review and corrections screens, settings screens (Session D) and the Inventory Audit card (Session E). See `docs/modules/closing.progress.md`.\n\n# Closing — brief
 
 Status: **Building** (slices C1 + database part of C2–C4 done; no screens yet) · Owner approval: yes (9 Nov 2026, "go")
 Branch: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
@@ -122,6 +122,6 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 
 **Read `docs/modules/closing.next-session.md` first: it is the work order (state, owner questions, review gaps, slice plan, payload and function reference, start prompt).**
 
-- Done: pure maths (`domain/compute.js`), tables and RLS (`0201`), draft / submit / correct and carry-forward in the database (`0202`). No screens, not registered as a module, not applied to the live project.
-- Most important gaps: shift closings store a wrong "since last Final" figure until `closing_period_agg` exists (permanent once submitted, so fix before any real submit); submit can silently change carried-in figures; no opening balances; draft saves are last-write-wins.
-- `main` has moved on (F3 feed live, inventory interfaces and `notify_owner` still missing, migration registry problem D-35). Merge `main` first; it merges cleanly.
+- Done: pure maths, tables and RLS (`0201`), draft / submit / correct and carry-forward (`0202`), hardening and the owner decisions CLS-6 to CLS-14 (`0203`), the period roll-up (`0204`), trigger grants (`0205`), the credit feed and ledger functions (`0206`). Screens: start page, guided ledger sections 1–14, submit and success screen, Credit Ledger, Misc Ledger. All of `0201`–`0206` are applied to the live project.
+- Not built: Closing Book, Register Book, CC / RBD / MEDIQ history tabs, review and corrections screens, settings screens, the Inventory Audit card (until it exists, an owner switches the audit requirement off with a reason). Nothing in the credit feed or the ledgers has been tried on a phone yet.
+- Read `docs/modules/closing.progress.md` (Session C handoff) for the open owner questions and the try-out checklists.

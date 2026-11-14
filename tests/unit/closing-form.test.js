@@ -152,3 +152,111 @@ describe('quick totals agree with the shared calculation', () => {
     expect(stripLineTotal({ price: '0.10', qty: '3' })).toBe(30);
   });
 });
+
+describe('sections 6-14 in the form', () => {
+  const ACCOUNTS = [
+    { id: 'a1', kind: 'named', label: 'Dr Ali' },
+    { id: 't1', kind: 'tier_name', label: 'Staff' },
+  ];
+  const ROW = {
+    extra_cash: 200,
+    final_sys_returns: 0,
+    credit_adj: -500,
+    closing_cash_counts: [
+      { area: 'till', denomination: 5000, qty: 9 },
+      { area: 'till', denomination: 1, qty: 40 },
+      { area: 'vault', denomination: 1000, qty: 3 },
+    ],
+    closing_misc_rows: [{ id: 'm1', charge_id: 'ch1', label: 'Repair', amount: 750, sort: 1, deleted_at: null }],
+    closing_deposits: [{ id: 'd1', label: 'Bank', amount: 1200, sort: 1, deleted_at: null }],
+    closing_credit_lines: [
+      { id: 'c1', line_id: 'ln1', kind: 'named', account_id: 'a1', label: 'Dr Ali', amount: 300, sort: 1, deleted_at: null },
+      { id: 'c2', line_id: 'ln2', kind: 'tier', tier_slot: 2, label: 'Staff', amount: 80, sort: 2, deleted_at: null },
+      { id: 'c3', line_id: 'ln3', kind: 'free', label: 'Other', amount: 25, sort: 3, deleted_at: null },
+    ],
+  };
+  it('round-trips counts, misc (keeping charge_id), deposits and credit lines (keeping line_id and tier slots)', () => {
+    const f = formFromRow(ROW, [], ACCOUNTS);
+    expect(f.till).toEqual(['9', '', '', '', '', '', '', '40']);
+    expect(f.vault[1]).toBe('3');
+    expect(f.credit.tier.map((t) => t.amount)).toEqual(['', '80', '']);
+    const { payload, invalid } = payloadFromForm(f);
+    expect(invalid).toEqual([]);
+    expect(payload.till).toEqual([9, 0, 0, 0, 0, 0, 0, 40]);
+    expect(payload.misc).toEqual([{ charge_id: 'ch1', label: 'Repair', amount: 750, deleted: false }]);
+    expect(payload.deposits).toEqual([{ label: 'Bank', amount: 1200, deleted: false }]);
+    expect(payload.credit.named).toEqual([{ line_id: 'ln1', account_id: 'a1', label: 'Dr Ali', amount: 300, deleted: false }]);
+    // slot 1 is sent blank so slot 2 stays slot 2; trailing blank slot 3 is not sent
+    expect(payload.credit.tier).toEqual([
+      { label: '', amount: 0 },
+      { line_id: 'ln2', label: 'Staff', amount: 80 },
+    ]);
+    expect(payload.credit.free).toEqual([{ line_id: 'ln3', label: 'Other', amount: 25, deleted: false }]);
+    expect([payload.credit_adj, payload.extra_cash]).toEqual([-500, 200]);
+  });
+  it('a configured named account that is not in the draft yet still gets a line, without a line_id', () => {
+    const f = formFromRow({ ...ROW, closing_credit_lines: [] }, [], ACCOUNTS);
+    expect(f.credit.named).toHaveLength(1);
+    expect(payloadFromForm(f).payload.credit.named[0]).toMatchObject({ account_id: 'a1', amount: 0 });
+    expect(payloadFromForm(f).payload.credit.named[0].line_id).toBeUndefined();
+  });
+  it('reports junk counts and amounts instead of saving zero', () => {
+    const f = emptyForm([], ACCOUNTS);
+    f.till[0] = '9x';
+    f.vault[2] = '-3';
+    f.credit_adj = 'abc';
+    f.deposits = [{ id: 'd', label: 'x', amount: '1..2', deleted: false }];
+    expect(payloadFromForm(f).invalid).toEqual(['credit_adj', 'till.0', 'vault.2', 'deposits.0.amount']);
+  });
+  it('quick totals agree with computeClosing for misc, card, till, vault, credit and deposits', () => {
+    const f = formFromRow(ROW, [], ACCOUNTS);
+    f.alfalah = '1000.50';
+    f.keenu = '500';
+    f.comp_sale = '200.25';
+    f.misc.push({ id: 'x', charge_id: null, label: 'Gone', amount: '99', deleted: true });
+    const carry = { cc: 1000, credit: 2500, deposits: 300, cash: 4200 };
+    const t = localTotals(f, carry);
+    const r = computeClosing({
+      mode: 'shift',
+      settings: { till_float: 45000, per_customer_charge: 1 },
+      pos: { alfalah: '1000.50', keenu: '500', comp_sale: '200.25' },
+      carried: carry,
+      misc: f.misc.map((x) => ({ v: x.amount || 0, deleted: x.deleted })),
+      till: [9, 0, 0, 0, 0, 0, 0, 40],
+      vault: [0, 3, 0, 0, 0, 0, 0, 0],
+      credit: { named: [{ v: 300, deleted: false }], tier: [0, 80, 0], free: [{ v: 25, deleted: false }] },
+      credit_adj: -500,
+      deposits: [{ v: 1200, deleted: false }],
+    });
+    expect(t.misc).toBe(r.misc_g);
+    expect(t.ccCurr).toBe(r.cc_curr);
+    expect(t.ccTotal).toBe(r.cc_total);
+    expect(t.till).toBe(r.till_c);
+    expect(t.vault).toBe(r.vault_d);
+    expect(t.debt).toBe(r.debt_e);
+    expect(t.deposits).toBe(r.deposits_f);
+    // hand-worked: till 9 x 5000 + 40 = 45040; vault 3 x 1000 = 3000; card 1000.50 + 500 - 200.25 = 1300.25 (+1000 carried)
+    expect([t.till, t.vault, t.ccCurr, t.ccTotal]).toEqual([4504000, 300000, 130025, 230025]);
+    // debt 2500 + 300 + 80 + 25 - 500 = 2405
+    expect(t.debt).toBe(240500);
+  });
+  it('a typed card override replaces the calculated card figure, and a typed 0 counts', () => {
+    const f = emptyForm();
+    f.alfalah = '100';
+    f.overrides.curr_cc = '0';
+    expect(localTotals(f, {}).ccCurr).toBe(0);
+    f.overrides.curr_cc = '';
+    expect(localTotals(f, {}).ccCurr).toBe(10000);
+  });
+});
+
+describe('invalid paths point at the row as shown, not as sent', () => {
+  it('keeps the screen index when blank rows before it are dropped', () => {
+    const f = emptyForm();
+    f.hs = [
+      { id: 'a', label: '', amount: '', deleted: false },
+      { id: 'b', label: 'x', amount: 'oops', deleted: false },
+    ];
+    expect(payloadFromForm(f).invalid).toEqual(['hs.1.amount']);
+  });
+});
