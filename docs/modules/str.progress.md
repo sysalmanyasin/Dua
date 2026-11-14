@@ -52,3 +52,11 @@ S-C: manifest, `data/` (reads through `str_v_*`, `str_search_headers`, D1 stand-
 ## Handoff
 
 Merge `origin/main` first, run `npm ci && npm run verify` and `bash supabase/tests/run.sh`. Do not apply migrations without the owner's word. A token pasted in chat counts as exposed; never store it, and revoke it at the end.
+
+## S-C done (14 Nov)
+
+Added: `domain/mapping.js`, `data/api.js`, `data/inventory.js`, `manifest.js`, `ui/{state,parts,list,detail,print}.js`, `css/str.css`; one-line edits to `js/modules/index.js` (`MODULE_IDS`) and `index.html` (CSS link). Tests: `str-mapping`, `str-api`, `str-pages` (89 STR tests; 577 in total, verify green).
+
+Needs a phone try-out (#1): list, search, detail, print. Detail opens from in-module state, so a reload returns to `/str`. Pack sizes and suppliers appear once Inventory adds `inventory_product_meta` (D1); until then the detail shows loose units under "Unassigned Supplier" with a note.
+
+Next: S-D (Report, Zero Dispatch, per-person prefs).

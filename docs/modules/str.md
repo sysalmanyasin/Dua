@@ -1,14 +1,14 @@
 # STR (Stock Transfer Requests) — brief
 
-Status: **Building** — domain maths and database written, nothing applied live · Owner approval: go given 14 Nov 2026 (answers of 13/14 Nov recorded below)
+Status: **Building** — maths, database and list/detail screens written, nothing applied live · Owner approval: go given 14 Nov 2026 (answers of 13/14 Nov recorded below)
 Branch: `module/str` · Migration range: `0500`–`0599` · Prefix: `str_` · Permissions: `str.*` · Route: `/str` · Nav order: 60
 Depends on: core, Inventory published interfaces.
 
-> Read `docs/MODULES.md` first. Domain maths and migrations `0500`–`0504` are written and tested; **none has been applied to the live project**. Screens are not built yet. Progress: `docs/modules/str.progress.md`.
+> Read `docs/MODULES.md` first. Domain maths and migrations `0500`–`0504` are written and tested; **none has been applied to the live project**. The list and detail screens are built (S-C); Report and Zero Dispatch are not. Progress: `docs/modules/str.progress.md`.
 
 ## 1. Scope
 
-STR is a **read-only** module over Candela's stock transfer records. It browses transfers (Awaited → Dispatched → Received), shows detail and reports, lists zero-dispatch lines, prints, keeps a 6-month history, and raises overdue-receipt alerts.
+STR is a **read-only** module over Candela's stock transfer records. It browses transfers (Awaited → Dispatched → Received), shows detail and reports, lists zero-dispatch lines, prints, keeps a 1-month history, and raises overdue-receipt alerts.
 
 It does **not** create, edit or approve transfers (STR-1). Products, supplier and pack factor belong to Inventory. Notifications are delivered by Foundation's `notify_owner`.
 
@@ -117,7 +117,7 @@ Print uses a print layout and the browser's Save as PDF, with a small local prin
 1. S-0 housekeeping: **done** (`main` at `c86e1c0`).
 2. S-A `domain/` ports with golden fixtures: **done** (51 tests).
 3. S-B database `0500`–`0504` with tests and mutation checks: **done, not applied live**.
-4. S-C data layer, manifest, `/str` and `/str/detail`; phone try-out #1.
+4. S-C data layer, manifest, `/str` and `/str/detail`: **done (89 STR tests), phone try-out #1 pending**.
 5. S-D Report and Zero Dispatch, preferences, print; phone try-out #2.
 6. S-E wire the archive/search screens, Foundation wording for the alert, owner applies the migrations.
 7. Definition of done (MODULES §11), then only the owner marks Accepted.
