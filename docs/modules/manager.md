@@ -150,7 +150,7 @@ Routes under `/manager`; each page lists who may open it (`anyOf`).
 ## 9. Slices
 
 1. **M-A** (done): A0 brief · A1 `0101_mgmt_staff` · A2 `0102_mgmt_credit` · `0103_mgmt_hardening` (advisor fix, not planned) · A3 skeleton + `domain/credit.js` + shared fixture · A4 screens `/manager/staff`, `/manager/credit` · **PHONE #1**.
-2. **M-B** (built 14 Nov, not yet applied live): `0104` Salary + Generic + custom columns + rates + Close month, shared fixtures, Payslip print · PHONE #2.
+2. **M-B** (built and applied live 14 Nov; awaiting merge and PHONE #2): `0104` Salary + Generic + custom columns + rates + Close month, shared fixtures, Payslip print · PHONE #2.
 3. **M-C:** `0105` Incentive; `0106` Petty + ledger engine + Tally (after the sign examples) · PHONE #3.
 4. **M-D:** `0107` Credit Inbox (+ stub of `closing_credit_feed`), nav badge, reports, acceptance · PHONE #4.
 

@@ -2,7 +2,7 @@
 
 **Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
 
-## Session M-B (14 Nov 2026): built and tested, NOT yet applied to the live project
+## Session M-B (14 Nov 2026): built, tested, and applied to the live project (0104)
 
 | Step | What | Evidence |
 |---|---|---|
@@ -17,10 +17,10 @@
 
 **Mismatch flags (MGR-16):** shown on the Salary page when (a) a closed month's saved advance or generic differs from the live figure, or (b) the Staff Credit sheet's own "Salary deducted" differs from the salary advance.
 
-### Ready to apply to the live project (owner says when; RUNBOOK §4, by hand, repo version)
-1. `supabase/migrations/0104_mgmt_salary.sql` is additive: 5 new tables, 1 new permission, 11 new functions, 1 seeded rate row. It touches no existing table. After applying, re-run the RUNBOOK §4.4 checks and the Supabase security advisor.
+### Applied to the live project (DuaPharmaPlus, 14 Nov 2026, by hand, repo version, RUNBOOK §4)
+`0104_mgmt_salary.sql` (sha256 `9fe403f644ea`), recorded as `0104 mgmt_salary`. **Checked live afterwards:** all 11 `mgmt_` tables have RLS on, 0 write policies, `anon` holds no table grant and runs 0 Manager functions, `authenticated` holds SELECT only and runs exactly the 20 whitelisted functions (none outside), every function pins its search_path, 15 Manager permission keys, 0 in any role preset, 1 seeded rate row (generic 4%), 0 sheet rows. A read-only run as the owner (simulated MFA) returns the sheets and the rate; the senior (even with MFA) and `anon` are refused. **Security advisor:** nothing new from `0104`; only the by-design findings remain for Manager objects (RPCs callable by signed-in users, `mgmt_save_keys` with no policy).
 
-### PHONE #2: what to try (after 0104 is applied and the branch is merged)
+### PHONE #2: what to try (0104 is live; the screens appear after the branch is merged to `main`)
 1. **Manager → Generic Sheet:** the rate shows 4%. Enter a generic sale for a test person; check Incentive and Final; Save; reopen: it is there.
 2. **Change rate** to 4.5% with a reason. The current month must still say 4%.
 3. **Manager → Salary:** enter an HO salary; **+ Add column** "Bonus" (adds) and enter an amount. Check Net = HO − advance + generic + bonus, and that the advance equals the Staff Credit entries for the month.
