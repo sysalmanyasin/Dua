@@ -1,6 +1,6 @@
 # Inventory — progress
 
-Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0304 and the Edge Function (v14) are applied and verified live** (12 Nov 2026, owner instruction: "apply by yourself").
+Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0305 and the Edge Function are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026; owner instruction: "apply by yourself"). The Inventory overview screen goes live with the merge of this branch to `main` (owner instruction, 14 Nov 2026).
 
 ## Session I-A (12 Nov 2026)
 
@@ -28,9 +28,10 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 | `0302` | the changed-rows-only feed | all 12 function hashes equal the repo (the live `inventory_apply_sync` first lacked 8 comment lines; restored, hash now identical) |
 | `0303` | heartbeat log row (see "Found while applying") | hash equal; 3 mutations caught |
 | `0304` | renumber counters 1..N and unique counter indexes (see "Found while applying") | 5,883 distinct counters, indexes present |
-| Edge Function `sync-inventory-from-dropbox` v14 | hash shortcut, busy/refused answers | `verify_jwt` stays `false`; ran from the same call as the hourly job |
+| `0305` (14 Nov) | `pack_valid` flag (INV-18) | all 12 function hashes equal the repo; 5,911 of 5,911 stored hashes consistent; upgrade path rehearsed on 6,000 products (identical sync unchanged in both payload shapes, flagging 100 products writes exactly 100 rows and moves only the stock counter); 5 mutations caught |
+| Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
 
-Live registry now: `0001`–`0012`, `0301`–`0304`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
+Live registry now: `0001`–`0013`, `0201`–`0209` (Closing, applied by the owner), `0301`–`0305`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
 
 **Live evidence after the deploy** (hourly runs 08:00–12:00 UTC, plus manual runs through the same call the cron job makes):
 - 5 hourly syncs, all `ok`; each changed only 41–68 rows of 5,883 (before 0302 every sync rewrote all 5,883). No failures, no watchdog alerts.
@@ -62,20 +63,19 @@ Whole repo after I-B: 497 unit tests, lint, format, secret and vendor scans gree
 
 **Not verified: a real phone or browser.** This environment has no browser. The screen is tested in jsdom with the real mirror and a mocked network, and the IndexedDB store against a spec-compliant fake. The first run on a real device is the STOP check below.
 
-### Owner decisions needed
+### Owner decisions (14 Nov 2026) and what came of them
 
-1. **INV-17: which "not sold" number is the Home headline?** The old app has two on purpose, both ported and tested side by side:
-   - *Headline* (old briefing): stock above zero and the last sale older than N days (or no sale date and no sales in 90 days); every unit counts, value is quantity × price.
-   - *Stock Ledger lists*: Never Sold and Dead Stock also look at the received date, count whole packs only, and exclude unreliable pack sizes.
-   Recommendation: Home keeps the headline definition (as the old briefing did), the Ledger screens use the list definitions, and each screen says in one line which it is. Default window 60 days (INV-10).
-2. **INV-18: the "Pack issues" list cannot be reproduced.** The Edge Function and `0302` turn a missing or zero pack size into 1, so the signal the old report used is gone. On the live data 2,725 of 5,308 in-stock products (Rs 14.6M of Rs 24.4M) have pack size 1, a mix of real single-unit packs and possibly missing sizes. The port treats pack 1 as valid, so those products can appear in Never Sold and Dead Stock (rounding does nothing). Options: (a) accept, the Pack issues card is dropped; (b) keep the raw factor (one more column in the feed, a migration and an Edge Function change, about 30 KB more on a first install) so unusable sizes are flagged again. Recommendation: (b), as it protects the Dead Stock numbers you act on.
+1. **INV-17, "not sold" headline: whole packs only.** One definition everywhere: the headline equals the Stock Ledger's Never Sold list plus its Dead Stock list for the same window (pack size usable, received date, whole packs only, value = whole packs × price). The old app's looser headline is retired (`domain/metrics.js`); a test proves the headline always equals what the two lists add up to, for every window. Default window 60 days (INV-10).
+2. **INV-18, keep the raw pack signal (option b): built.** `0305` adds `pack_valid` (stock group, in the row hash, last column `packValid` of the stock feed). The Edge Function sends it (true when the file's pack size is a real number above zero); `conversion_factor` is unchanged (1 when missing), so existing readers keep working. The ledger treats `packValid: false` as a pack issue; the screen says "pack size unknown" instead of inventing a pack breakdown.
+   **Finding on the live data:** after the first full pass only **one** active product has an unusable pack size in the Candela file (stock worth Rs 69,300). The 2,706 in-stock products with pack size 1 (Rs 14.0M) really are single-unit packs, so the Dead Stock and Never Sold numbers were sounder than the earlier worry suggested. The flag now guards every future sync.
+3. **Go live:** merged to `main` on 14 Nov 2026 by the Inventory session on the owner's instruction, after every gate passed on the merged tree.
 
 ### Requests for Foundation (I may not edit these files)
 
 - **Sign-out hook for modules.** `js/core/auth.js` has no way for a module to clear its own storage at sign-out (MODULES.md rule 9). Inventory listens to the auth `SIGNED_OUT` event from `status.js` and also discards a copy that belongs to someone else, which works but depends on `status.js` having loaded in that tab. A real hook (for example `registerSignOutCleanup(fn)` called by `signOut()`) would be cleaner.
 - **A box icon** in `js/shared/icons.js` (Inventory uses `shield` until then, like Closing).
 
-### STOP: first check on a phone (needs this branch live, for example merged to main or a preview)
+### First check on a phone (live from the merge to `main`; Pages publishes about a minute after CI passes)
 
 1. Sign in, open **Inventory**. First time only: "Opening the product list…", then about 5,900 products (about 1 MB; about 1.5 MB if you hold `inventory.view`). Header shows the count and "as of" time.
 2. Type "para": results appear instantly, best match first, no spinner. Turn on airplane mode, type again: still works.
