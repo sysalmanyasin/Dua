@@ -75,3 +75,50 @@ export const creditLedger = ({ from = null, to = null, limit = 60 } = {}) =>
   one(db().rpc('closing_credit_ledger', { p_from: from, p_to: to, p_limit: limit }));
 /** Open and closed misc charges, aged by their stable charge id: { as_of, open: [...], closed: [...] }. */
 export const miscLedger = (closedLimit = 100) => one(db().rpc('closing_misc_ledger', { p_closed_limit: closedLimit }));
+
+// ── books, review and settings (migrations 0208, 0209) ──
+/** One page per submitted closing, newest first, with every live row and the stored results. */
+export const closingBook = ({ from = null, to = null, limit = 60 } = {}) =>
+  one(db().rpc('closing_book', { p_from: from, p_to: to, p_limit: limit }));
+
+/** Catalogs for the settings screen, including the ones switched off. */
+export const listStripsAll = () =>
+  one(db().from('closing_strips').select('id, label, group_name, price, sort, active').order('sort').order('label'));
+export const listAccountsAll = () =>
+  one(db().from('closing_credit_accounts').select('id, kind, tier_no, label, sort, active').order('sort').order('label'));
+export const listAuditItemsAll = () => one(db().from('closing_audit_items').select('code, name, sort, active').order('sort').order('code'));
+
+export const saveStrip = (r) =>
+  one(
+    db().rpc('closing_strip_save', {
+      p_id: r.id ?? null,
+      p_label: r.label,
+      p_group: r.group_name ?? '',
+      p_price: r.price,
+      p_sort: r.sort ?? 0,
+      p_active: r.active ?? true,
+    }),
+  );
+export const saveAccount = (r) =>
+  one(
+    db().rpc('closing_account_save', {
+      p_id: r.id ?? null,
+      p_kind: r.kind,
+      p_tier_no: r.tier_no ?? null,
+      p_label: r.label,
+      p_sort: r.sort ?? 0,
+      p_active: r.active ?? true,
+    }),
+  );
+export const saveAuditItem = (r) =>
+  one(db().rpc('closing_audit_item_save', { p_code: r.code, p_name: r.name, p_sort: r.sort ?? 0, p_active: r.active ?? true }));
+
+const CLOSING_SETTING_KEYS = ['till_float', 'per_customer_charge'];
+/** Current till float and per-customer charge, or null when this person cannot read settings. */
+export const readClosingSettings = async () => {
+  const { data, error } = await db().from('settings').select('key, value').in('key', CLOSING_SETTING_KEYS);
+  if (error || !data?.length) return null;
+  return Object.fromEntries(data.map((r) => [r.key, Number(r.value)]));
+};
+export const setClosingSetting = (key, value, reason) =>
+  one(db().rpc('closing_settings_set', { p_key: key, p_value: value, p_reason: reason }));

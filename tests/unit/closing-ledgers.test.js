@@ -235,20 +235,25 @@ describe('ledger links on the Closing start page', () => {
     expect(el.querySelector('a[href="#/closing/credit"]')).not.toBeNull();
     expect(el.querySelector('a[href="#/closing/misc"]')).not.toBeNull();
   });
-  it('hides them from a cashier', async () => {
+  it('shows them to a cashier too (owner decision, 14 Nov 2026)', async () => {
     await start(['closing.enter_own']);
+    expect(el.querySelector('a[href="#/closing/credit"]')).not.toBeNull();
+    expect(el.querySelector('a[href="#/closing/misc"]')).not.toBeNull();
+  });
+  it('hides them from someone with no ledger or entry right', async () => {
+    await start(['closing.settings']);
     expect(el.querySelector('a[href="#/closing/credit"]')).toBeNull();
     expect(el.querySelector('a[href="#/closing/misc"]')).toBeNull();
   });
 });
 
 describe('manifest', () => {
-  it('registers both ledger routes for people who may see every closing, and not for cashiers', async () => {
+  it('registers both ledger routes for cashiers and for people who may see every closing', async () => {
     const m = (await import('../../js/modules/closing/manifest.js')).default;
     for (const path of ['/closing/credit', '/closing/misc']) {
       const r = m.routes.find((x) => x.path === path);
-      expect(r.anyOf).toEqual(['closing.view_all', 'closing.review', 'closing.correct']);
-      expect(r.anyOf).not.toContain('closing.enter_own');
+      expect(r.anyOf).toEqual(['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct']);
+      expect(r.anyOf).not.toContain('closing.settings');
     }
   });
 });

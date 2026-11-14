@@ -402,3 +402,17 @@
     border-top: 1px dashed #000;
   }
 }
+
+/* ── Closing Book, history, review and settings (Session D) ── */
+.cls .cls-bk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: end;
+  margin-bottom: var(--space-2);
+}
+.cls .cls-bk-bar .btn[aria-pressed='true'],
+.cls .cls-bk-bar .btn[aria-current='page'] {
+  font-weight: 700;
+  text-decoration: underline;
+}
