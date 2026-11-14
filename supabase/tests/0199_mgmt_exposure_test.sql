@@ -11,7 +11,8 @@ do $t$ declare bad text; n int;
     'mgmt_staff_list','mgmt_staff_get','mgmt_staff_save','mgmt_note_add','mgmt_note_remove',
     'mgmt_credit_add','mgmt_credit_reverse','mgmt_credit_set_deduction','mgmt_credit_set_opening','mgmt_credit_month',
     'mgmt_rates_list','mgmt_rate_set','mgmt_salary_columns','mgmt_salary_column_add','mgmt_salary_column_retire',
-    'mgmt_generic_month','mgmt_generic_save','mgmt_salary_month','mgmt_salary_save','mgmt_sheet_close'];
+    'mgmt_generic_month','mgmt_generic_save','mgmt_salary_month','mgmt_salary_save','mgmt_sheet_close',
+    'mgmt_incentive_month','mgmt_incentive_save'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

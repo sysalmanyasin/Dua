@@ -11,13 +11,18 @@ export function rup(x) {
 // Sum a list of rupee amounts exactly (in paisa), as rupees.
 export const sumAmounts = (list) => fromPaisa(list.reduce((s, a) => s + toPaisa(a), 0));
 
-// rate is a fraction with at most 5 decimals (0.045 = 4.5%). Integer maths, so 2,500 at 4.5% is exactly 112.5 -> 113.
-export function genericRow({ sale, extra = 0, rate }) {
+// round(x * rate) in whole rupees. rate is a fraction with at most 5 decimals (0.045 = 4.5%). Integer maths, so 2,500 at 4.5%
+// is exactly 112.5 -> 113 and a negative result is floored (like floor(x + 0.5) in the database), never truncated.
+export function rupTimes(x, rate) {
   const units = BigInt(Math.round(Number(rate) * 100000));
-  const num = BigInt(rup(sale)) * units + 50000n;
+  const num = BigInt(rup(x)) * units + 50000n;
   let q = num / 100000n;
-  if (num < 0n && num % 100000n !== 0n) q -= 1n; // floor, not truncate
-  const incentive = Number(q) === 0 ? 0 : Number(q);
+  if (num < 0n && num % 100000n !== 0n) q -= 1n;
+  return Number(q) === 0 ? 0 : Number(q);
+}
+
+export function genericRow({ sale, extra = 0, rate }) {
+  const incentive = rupTimes(sale, rate);
   const fin = incentive + rup(extra);
   return { incentive, final: fin === 0 ? 0 : fin };
 }

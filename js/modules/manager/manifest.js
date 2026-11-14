@@ -33,5 +33,12 @@ export default {
       anyOf: ['mgmt.salary', 'mgmt.salary_view'],
       load: () => import('./ui/generic.js'),
     },
+    {
+      path: '/manager/incentive',
+      title: 'Incentive',
+      desc: 'Monthly incentive and the owner’s share',
+      anyOf: ['mgmt.incentive'],
+      load: () => import('./ui/incentive.js'),
+    },
   ],
 };

@@ -61,3 +61,11 @@ export const salaryMonth = (month) => one(db().rpc('mgmt_salary_month', { p_mont
 export const salarySave = (month, rows, reason, key) =>
   db().rpc('mgmt_salary_save', { p_month: month, p_rows: rows, p_reason: reason || null, p_key: key });
 export const sheetClose = (month, kind, key) => db().rpc('mgmt_sheet_close', { p_month: month, p_kind: kind, p_key: key });
+
+// ── Incentive ──
+export const incentiveMonth = async (month) => {
+  const rows = await one(db().rpc('mgmt_incentive_month', { p_month: month }));
+  return rows[0];
+};
+export const incentiveSave = (month, inputs, reason, key) =>
+  db().rpc('mgmt_incentive_save', { p_month: month, p_inputs: inputs, p_reason: reason || null, p_key: key });

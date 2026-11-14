@@ -5,19 +5,9 @@ import { hero } from '../../../shared/ui.js';
 import { money, monthLabel, parseAmount, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { monthStart, shiftMonth } from '../domain/credit.js';
-import { genericRow, percent, rateFromPercent } from '../domain/salary.js';
-import {
-  askReason,
-  confirmDialog,
-  errorCard,
-  isBadNumber,
-  loadingCard,
-  monthButtons,
-  newKey,
-  openDialog,
-  toast,
-  typedNumber,
-} from './parts.js';
+import { genericRow, percent } from '../domain/salary.js';
+import { askReason, confirmDialog, errorCard, isBadNumber, loadingCard, monthButtons, newKey, toast, typedNumber } from './parts.js';
+import { openRateDialog } from './rates.js';
 
 const m = (v) => money(v, { decimals: Math.round(Number(v) * 100) % 100 !== 0 });
 
@@ -168,43 +158,7 @@ export async function mount(el, { ctx }) {
     load();
   }
 
-  async function changeRate() {
-    const dlg = openDialog(
-      html`<h2>Change the generic rate</h2>
-        <p class="muted small">
-          Applies to months that have not started saving yet. A month already started keeps its own rate. The change is logged with your
-          reason.
-        </p>
-        <label class="field"
-          ><span>New rate (%)</span><input id="r-pct" inputmode="decimal" value="${Number((state.rate * 100).toFixed(3))}"
-        /></label>
-        <label class="field"><span>Reason</span><input id="r-reason" maxlength="200" /></label>
-        <small class="err" id="r-err" hidden></small>
-        <div class="actions">
-          <button type="button" class="btn btn-ghost" data-close>Cancel</button
-          ><button type="button" class="btn btn-primary" data-ok>Save rate</button>
-        </div>`,
-      { label: 'Change the generic rate' },
-    );
-    dlg.addEventListener('click', async (e) => {
-      if (!e.target.closest('[data-ok]')) return;
-      const err = (t) => {
-        const box = dlg.querySelector('#r-err');
-        box.textContent = t;
-        box.hidden = false;
-      };
-      const pct = Number(dlg.querySelector('#r-pct').value.replace(/[%\s]/g, ''));
-      const reason = dlg.querySelector('#r-reason').value.trim();
-      if (!Number.isFinite(pct) || pct < 0 || pct > 100 || dlg.querySelector('#r-pct').value.trim() === '')
-        return err('Enter a percentage from 0 to 100.');
-      if (reason.length < 3) return err('Please give a short reason.');
-      const { error } = await api.rateSet('generic_staff', rateFromPercent(pct), reason, newKey());
-      if (error) return err(error.message || 'Could not save.');
-      dlg.close();
-      toast('Rate saved');
-      load();
-    });
-  }
+  const changeRate = () => openRateDialog({ rateKey: 'generic_staff', label: 'generic', current: state.rate, onSaved: load });
 
   el.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-act]');

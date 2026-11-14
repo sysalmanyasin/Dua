@@ -306,7 +306,7 @@ begin
   -- sharing one key at a time
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');                       -- mgmt.salary_view only
   perform pg_temp.ok((select count(*) from public.mgmt_salary_month(m1)) > 0 and (select count(*) from public.mgmt_generic_month(m1)) > 0, 'salary_view can read both sheets');
-  perform pg_temp.ok((select count(*) from public.mgmt_rates_list()) = 1 and (select count(*) from public.mgmt_salary_columns(m1)) > 0, 'and the rates and columns');
+  perform pg_temp.ok((select count(*) from public.mgmt_rates_list()) >= 1 and (select count(*) from public.mgmt_salary_columns(m1)) > 0, 'and the rates and columns');
   perform pg_temp.ok((select count(*) from public.mgmt_salary_rows) > 0, 'and the rows');
   perform pg_temp.fails(format('select public.mgmt_rate_set(''generic_staff'', 0.04, ''try it'', gen_random_uuid())'), 'salary_view cannot change a rate', '42501');
   perform pg_temp.fails(format('select public.mgmt_salary_save(%L, ''[]''::jsonb, null, gen_random_uuid())', m1), 'salary_view cannot save a salary', '42501');
@@ -326,7 +326,7 @@ begin
   reset role;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000f1');                       -- mgmt.rates only
   perform pg_temp.ok((public.mgmt_rate_set('generic_staff', 0.04, 'rates key alone', gen_random_uuid()) ->> 'id') is not null, 'the rates key alone can change a rate');
-  perform pg_temp.ok((select count(*) from public.mgmt_rates_list()) = 1, 'and see the rates');
+  perform pg_temp.ok((select count(*) from public.mgmt_rates_list()) >= 1, 'and see the rates');
   perform pg_temp.fails(format('select * from public.mgmt_salary_month(%L)', m1), 'but not the salary sheet', '42501');
   reset role;
 end $t$;
