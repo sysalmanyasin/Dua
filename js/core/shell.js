@@ -4,7 +4,7 @@ import { html, render } from '../shared/html.js';
 import { icon } from '../shared/icons.js';
 import { BRAND } from './config.js';
 import { log } from './logger.js';
-import { routesFor, resolveModules } from './registry.js';
+import { isUsable, routesFor, resolveModules } from './registry.js';
 import { startRouter } from './router.js';
 import { startStatusBar } from './statusbar.js';
 import { signOut } from './auth.js';
@@ -49,7 +49,11 @@ export function startShell(root, ctx, manifests) {
 
   const content = root.querySelector('#content');
   const subtabs = root.querySelector('#subtabs');
-  const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, modules);
+  // A status pill may belong to a module the person has no page in (for example staff who may see only today's
+  // Candela total), so pills are offered from every usable module, not only those that show a tab.
+  const off = new Set(ctx.modules_disabled ?? []);
+  const pillOwners = manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
+  const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, pillOwners);
   let token = 0;
   let shownModule = null;
 

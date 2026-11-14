@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addDays,
+  compareTotals,
+  customerKey,
   filterCreditRows,
   filterPaymentDays,
   fromPaisa,
+  groupCreditByCustomer,
+  groupPaymentsByMonth,
+  monthStart,
+  percentOf,
   summarizeCredit,
   summarizePayments,
   toPaisa,
@@ -81,11 +88,7 @@ describe('Candela customer credit summaries', () => {
   });
 
   it('keeps source customer rows separate and sorts newest first', () => {
-    expect(filterCreditRows(creditRows).map((row) => row.sale_day)).toEqual([
-      '2026-11-13',
-      '2026-11-12',
-      '2026-10-31',
-    ]);
+    expect(filterCreditRows(creditRows).map((row) => row.sale_day)).toEqual(['2026-11-13', '2026-11-12', '2026-10-31']);
   });
 
   it('sums credit and receipt count accurately', () => {
@@ -98,5 +101,52 @@ describe('Candela customer credit summaries', () => {
 
   it('rejects invalid receipt counts', () => {
     expect(() => summarizeCredit([{ credit_amount: 10, receipt_count: -1 }])).toThrow(TypeError);
+  });
+});
+
+describe('Candela history roll-ups', () => {
+  it('treats the same name written differently as one customer', () => {
+    expect(customerKey('  Test   Customer A ')).toBe('test customer a');
+    expect(customerKey(null)).toBe('');
+  });
+
+  it('adds daily rows into months, newest first, exactly', () => {
+    const months = groupPaymentsByMonth(paymentRows);
+    expect(months.map((m) => m.month)).toEqual(['2026-11', '2026-10']);
+    expect(months[0]).toEqual({
+      month: '2026-11',
+      days: 2,
+      cash_sale: 474693.42,
+      card_sale: 539900.96,
+      credit_sale: 61256.07,
+      total_sale: 1075850.45,
+    });
+  });
+
+  it('adds one customer across days, biggest first', () => {
+    const rows = [
+      { customer_key: 'a', customer_name: 'A', credit_amount: '10.10', receipt_count: 1 },
+      { customer_key: 'b', customer_name: 'B', credit_amount: '50.00', receipt_count: 2 },
+      { customer_key: 'a', customer_name: 'A', credit_amount: '20.20', receipt_count: 3 },
+    ];
+    expect(groupCreditByCustomer(rows)).toEqual([
+      { customer_key: 'b', customer_name: 'B', credit_amount: 50, receipt_count: 2, days: 1 },
+      { customer_key: 'a', customer_name: 'A', credit_amount: 30.3, receipt_count: 4, days: 2 },
+    ]);
+  });
+
+  it('computes shares and day comparisons without drift', () => {
+    expect(percentOf('25.00', '100.00')).toBe(25);
+    expect(percentOf('1', '0')).toBe(0);
+    expect(compareTotals('150.50', '100.00')).toEqual({ change: 50.5, percent: 51 });
+    expect(compareTotals('10', '0')).toEqual({ change: 10, percent: null });
+  });
+});
+
+describe('Candela date helpers', () => {
+  it('moves days across month and year ends', () => {
+    expect(addDays('2026-11-01', -1)).toBe('2026-10-31');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(monthStart('2026-11-14')).toBe('2026-11-01');
   });
 });
