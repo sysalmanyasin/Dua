@@ -212,6 +212,33 @@
 }
 
 /* Print: only the print root is shown. Portrait A4. */
+/* Report and Zero Dispatch */
+.str .str-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.str .str-check input {
+  width: 24px;
+  height: 24px;
+}
+.str .str-cols summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.str .str-branch h3 {
+  margin: 16px 0 8px;
+}
+.str .str-entry {
+  margin-bottom: 20px;
+}
+.str .str-entry h4 {
+  margin: 0;
+}
+
 #str-print-root {
   display: none;
 }
@@ -237,6 +264,9 @@
   #str-print-root h1 {
     margin: 0;
     font-size: 14pt;
+  }
+  #str-print-root .str-entry {
+    break-inside: avoid-page;
   }
   #str-print-root .str-fields {
     grid-template-columns: repeat(3, 1fr);

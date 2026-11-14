@@ -60,3 +60,15 @@ Added: `domain/mapping.js`, `data/api.js`, `data/inventory.js`, `manifest.js`, `
 Needs a phone try-out (#1): list, search, detail, print. Detail opens from in-module state, so a reload returns to `/str`. Pack sizes and suppliers appear once Inventory adds `inventory_product_meta` (D1); until then the detail shows loose units under "Unassigned Supplier" with a note.
 
 Next: S-D (Report, Zero Dispatch, per-person prefs).
+
+## S-D and live apply (14 Nov)
+
+Added: `ui/report.js`, `ui/zero.js`, `ui/bundle.js`, `ui/lines-table.js`, shared `diffCell`/`printHead` in `ui/parts.js`, `api.linesFor`, routes `/str/report` and `/str/zero-dispatch`. Per-person prefs: `str.report_cols`, `str.report_hide0`, `str.zero_cols`. Tests: `str-report-pages` (12) and one more API test (102 STR tests).
+
+**Applied live to DuaPharmaPlus (14 Nov 2026), by hand, registered as 0500, 0501, 0502, 0503, 0504.** No timestamp-version tool was used. First archive run captured 186 headers and 2,243 lines. Cron jobs `str-archive-hourly` (:20) and `str-overdue-check` (09/13/17/21 Pakistan) exist. RLS on both archive tables, no anon grants, `cost_price` not readable by signed-in users on the feed or the archive. The security advisor shows no new STR findings (the SECURITY DEFINER notices are the same pattern as every other RPC; each function checks permission inside).
+
+Effect to know: reading STR tables now needs `str.view` (it was `str.approve`). The owner has everything; grant `str.view` to staff one by one.
+
+First overdue alert fires at the next slot if any live STR is overdue; wording is generic until Foundation adds `str.overdue`.
+
+Still open: phone try-outs #1 and #2; Foundation wording and a transfer icon; Inventory D1 `inventory_product_meta`; the owner marks the module Accepted.

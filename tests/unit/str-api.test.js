@@ -6,6 +6,7 @@ const builder = (name) => {
   const b = {
     select: (cols) => (calls.push({ name, select: cols }), b),
     eq: (...a) => (calls.push({ name, eq: a }), b),
+    in: () => b,
     order: () => b,
     limit: () => b,
     maybeSingle: () => b,
@@ -89,5 +90,14 @@ describe('Inventory product lookup', () => {
     expect(rpc).toHaveBeenCalledTimes(3);
     expect(rpc.mock.calls[0][1].p_codes).toHaveLength(500);
     expect(rpc.mock.calls[2][1].p_codes).toHaveLength(100);
+  });
+});
+
+describe('Batch line reads', () => {
+  it('reads lines in batches of 25 STRs, never selecting cost', async () => {
+    await api.linesFor(Array.from({ length: 60 }, (_, i) => i + 1));
+    const reads = calls.filter((c) => c.select);
+    expect(reads).toHaveLength(3);
+    expect(reads.every((c) => !/cost|\*/.test(c.select))).toBe(true);
   });
 });

@@ -5,16 +5,13 @@ import { html, render } from '../../../shared/html.js';
 import { money, shortDate } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import * as inventory from '../data/inventory.js';
-import { diffQty, diffText, diffTone } from '../domain/pack.js';
 import { grandTotals, groupBySupplier, groupTotals } from '../domain/group.js';
 import { numberRows, titleOf, toHeader, toLine } from '../domain/mapping.js';
-import { errorCard, fmtQty, loadingCard, stageBadge } from './parts.js';
+import { diffCell, errorCard, fmtQty, loadingCard, stageBadge } from './parts.js';
 import { printPage } from './print.js';
 import { state } from './state.js';
 
 const date = (v) => (v ? shortDate(v) : '');
-const TONE_MARK = { short: '▼', over: '▲', even: '=', none: '' };
-const TONE_WORD = { short: 'short', over: 'extra', even: 'even', none: '' };
 
 function fields(h) {
   return [
@@ -36,14 +33,6 @@ function fields(h) {
     ['Cartons', h.noOfBoxes],
   ];
 }
-
-const diffCell = (l) => {
-  const d = diffQty(l);
-  const tone = diffTone(d);
-  return html`<td class="num str-diff str-diff-${tone}">
-    ${d === null ? '' : html`<span aria-hidden="true">${TONE_MARK[tone]}</span> ${diffText(d)} <span class="str-word">${TONE_WORD[tone]}</span>`}
-  </td>`;
-};
 
 function table(groups) {
   const total = grandTotals(groups);

@@ -1,10 +1,10 @@
 # STR (Stock Transfer Requests) — brief
 
-Status: **Building** — maths, database and list/detail screens written, nothing applied live · Owner approval: go given 14 Nov 2026 (answers of 13/14 Nov recorded below)
+Status: **Built, awaiting phone try-out** — all four screens written; migrations 0500–0504 applied live on 14 Nov 2026 · Owner approval: go given 14 Nov 2026 (answers of 13/14 Nov recorded below)
 Branch: `module/str` · Migration range: `0500`–`0599` · Prefix: `str_` · Permissions: `str.*` · Route: `/str` · Nav order: 60
 Depends on: core, Inventory published interfaces.
 
-> Read `docs/MODULES.md` first. Domain maths and migrations `0500`–`0504` are written and tested; **none has been applied to the live project**. The list and detail screens are built (S-C); Report and Zero Dispatch are not. Progress: `docs/modules/str.progress.md`.
+> Read `docs/MODULES.md` first. Domain maths, migrations `0500`–`0504` (applied live by hand on 14 Nov 2026 under their repo numbers) and all four screens are built and tested. Progress: `docs/modules/str.progress.md`.
 
 ## 1. Scope
 
@@ -84,7 +84,7 @@ Print uses a print layout and the browser's Save as PDF, with a small local prin
 - `str_cost_by_code(p_since)`: latest known cost per product code, so **Inventory can fill its own cost column over time** (STR-7). STR never writes into Inventory tables.
 
 **Foundation requests**
-- Wording for the notification kind `str.overdue` in `supabase/functions/_shared/ntfy.ts` and `js/shared/alerts.js` (generic text until then).
+- Wording for the notification kind `str.overdue` (generic text until then). Payload keys: `count`, `str_ids`, `oldest_date`. Suggested `ntfy.ts` line: `'str.overdue': (p) => ({ title: 'Dua: transfers overdue', message: `${p.count ?? 'Some'} stock transfer(s) not received yet${dateOf(p, 'oldest_date')}.`, priority: 4, tags: ['warning'] })`. Suggested `alerts.js` line: `'str.overdue': 'Stock transfers are overdue'`.
 - `str` in `MODULE_IDS`, one `<link>` for `css/str.css`, registry status change.
 
 ## 8. Decisions
@@ -118,8 +118,8 @@ Print uses a print layout and the browser's Save as PDF, with a small local prin
 2. S-A `domain/` ports with golden fixtures: **done** (51 tests).
 3. S-B database `0500`–`0504` with tests and mutation checks: **done, not applied live**.
 4. S-C data layer, manifest, `/str` and `/str/detail`: **done (89 STR tests), phone try-out #1 pending**.
-5. S-D Report and Zero Dispatch, preferences, print; phone try-out #2.
-6. S-E wire the archive/search screens, Foundation wording for the alert, owner applies the migrations.
+5. S-D Report and Zero Dispatch, preferences, print: **done (102 STR tests), phone try-out #2 pending**.
+6. S-E: migrations **applied live 14 Nov** (0500–0504 registered); Foundation wording request below is still open.
 7. Definition of done (MODULES §11), then only the owner marks Accepted.
 
 ## 11. Handoff

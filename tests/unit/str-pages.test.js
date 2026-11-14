@@ -72,6 +72,7 @@ const LINES = [
 ];
 const api = {
   feedHeaders: vi.fn(async () => FEED),
+  linesFor: vi.fn(async () => []),
   searchHeaders: vi.fn(async () => []),
   headerById: vi.fn(async (id) => FEED.find((h) => h.str_id === id) ?? null),
   lines: vi.fn(async () => LINES),

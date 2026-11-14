@@ -44,6 +44,24 @@ export const headerById = (id) => one(db().from('str_v_headers').select(HEADER_C
 
 export const lines = (id) => one(db().from('str_v_lines').select(LINE_COLS).eq('str_id', id).order('str_item_id').limit(1000));
 
+/** Lines of many STRs at once (for the Report and Zero Dispatch pages), in small batches so no call hits the row cap. */
+export async function linesFor(ids) {
+  const out = [];
+  for (let i = 0; i < ids.length; i += 25) {
+    const part = await one(
+      db()
+        .from('str_v_lines')
+        .select(LINE_COLS)
+        .in('str_id', ids.slice(i, i + 25))
+        .order('str_id')
+        .order('str_item_id')
+        .limit(1000),
+    );
+    out.push(...part);
+  }
+  return out;
+}
+
 /** When the feed last wrote STR rows (null if there are none). */
 export async function dataAsOf() {
   const rows = await one(db().from('str_headers').select('synced_at').order('synced_at', { ascending: false }).limit(1));

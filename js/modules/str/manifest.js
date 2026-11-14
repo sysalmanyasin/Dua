@@ -18,5 +18,19 @@ export default {
       permission: 'str.view',
       load: () => import('./ui/detail.js'),
     },
+    {
+      path: '/str/report',
+      title: 'Report',
+      desc: 'All transfers by branch, with chosen columns',
+      permission: 'str.view',
+      load: () => import('./ui/report.js'),
+    },
+    {
+      path: '/str/zero-dispatch',
+      title: 'Zero Dispatch',
+      desc: 'Lines asked for but not sent',
+      permission: 'str.view',
+      load: () => import('./ui/zero.js'),
+    },
   ],
 };
