@@ -1,0 +1,60 @@
+/* Inventory pages: status line, search, product rows. Colours and spacing come from tokens.css. */
+.inv-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.inv-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.inv-hint {
+  margin: 0 0 var(--space-3);
+}
+.inv-list {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.inv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+.inv-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.inv-main strong {
+  overflow-wrap: anywhere;
+}
+.inv-qty {
+  display: grid;
+  justify-items: end;
+  align-content: start;
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+.inv-qty b {
+  font-size: 1.15rem;
+}
+.inv-qty span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.inv-qty.zero b {
+  color: var(--text-muted);
+}
+.inv-qty.neg b {
+  color: var(--danger);
+}

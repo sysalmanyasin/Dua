@@ -4,6 +4,11 @@
 //     inventory.sync. The old version ran for anyone who sent no token.
 //   - One atomic database call (inventory_apply_sync). A failed sync keeps the old rows, and the
 //     failure is written to inventory_sync_log.
+//   - Changed-rows-only (Inventory 0302): before downloading, the function asks Dropbox for the file's
+//     content_hash. Same hash as last time: record "checked" and stop (no download, no writes). Otherwise the
+//     database compares every row's hash and writes only what changed. A sync that would remove more than 20%
+//     of the products is refused (422); pass {"confirmRemoval": true} as a signed-in user with inventory.sync to
+//     override. {"recheck": true} skips the hash shortcut. A second sync while one runs answers 409.
 //
 // Secrets (Dashboard → Edge Functions → Secrets; never in Git):
 //   DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN, INVENTORY_SYNC_SECRET, ALLOWED_ORIGIN
@@ -58,12 +63,31 @@ async function dropboxAccessToken(): Promise<string> {
   return (await res.json()).access_token as string;
 }
 
+// Dropbox's content_hash of the file (about 1 KB of traffic). null when it cannot be read; the caller then
+// simply downloads, so a metadata hiccup never blocks a sync.
+async function dropboxContentHash(token: string): Promise<string | null> {
+  try {
+    const res = await fetch('https://api.dropboxapi.com/2/files/get_metadata', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: DBX_INVENTORY_PATH }),
+    });
+    if (!res.ok) return null;
+    const meta = await res.json();
+    return typeof meta?.content_hash === 'string' && meta.content_hash !== '' ? meta.content_hash : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 function buildPayload(file: DropboxInventoryFile) {
   const products = (file.products ?? []).filter((p) => !!p.name).map((p) => ({
     code: str(p.code), name: String(p.name), qty: num(p.stock), price: num(p.unitPrice),
     company: str(p.company, 'Unassigned Manufacturer'), generic: str(p.generic),
     supplier: str(p.supplier, 'Unassigned Supplier'),
     conversion_factor: num(p.conversionFactor) || 1,
+    // INV-18: was the pack size in the file a real number above zero? (conversion_factor is 1 when it was not)
+    pack_valid: typeof p.conversionFactor === 'number' && Number.isFinite(p.conversionFactor) && p.conversionFactor > 0,
     creation_date: dateOrNull(p.creationDate), last_receive_date: dateOrNull(p.lastReceiveDate),
     last_sale_date: dateOrNull(p.lastSaleDate),
     net_qty_today: num(p.netQtyToday), net_qty_30_days: num(p.netQty30Days),
@@ -120,6 +144,7 @@ Deno.serve(async (req) => {
   const pre = preflight(req);
   if (pre) return pre;
   if (req.method !== 'POST') return json(req, 405, { error: 'method' });
+  const body = await req.json().catch(() => ({})) as Record<string, unknown>;
 
   // ── who is calling? ──
   const secret = Deno.env.get('INVENTORY_SYNC_SECRET') ?? '';
@@ -157,6 +182,16 @@ Deno.serve(async (req) => {
       return await fail(502, 'Could not refresh the Dropbox token. DROPBOX_REFRESH_TOKEN may be invalid or revoked', String(e));
     }
 
+    // Layer 1: the file did not change since the last sync? Record the check and stop.
+    const fileHash = await dropboxContentHash(token);
+    if (fileHash !== null && body.recheck !== true) {
+      const { data: st } = await db.from('inventory_sync_state').select('content_hash').eq('id', 1).maybeSingle();
+      if (st?.content_hash === fileHash) {
+        await db.rpc('inventory_note_unchanged', { p_content_hash: fileHash, p_source: 'dropbox', p_triggered_by: triggeredBy });
+        return json(req, 200, { ok: true, result: 'unchanged', skipped: true, checkedAt: new Date().toISOString() });
+      }
+    }
+
     const dbx = await fetch('https://content.dropboxapi.com/2/files/download', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Dropbox-API-Arg': JSON.stringify({ path: DBX_INVENTORY_PATH }) },
@@ -170,12 +205,24 @@ Deno.serve(async (req) => {
     const payload = buildPayload(raw as DropboxInventoryFile);
     if (payload.products.length === 0) return await fail(422, "Inventory file's products array is empty or missing");
 
+    // Only a signed-in person can confirm a large removal; the scheduled call never can.
+    const confirmRemoval = body.confirmRemoval === true && triggeredBy !== null;
     const { data, error } = await db.rpc('inventory_apply_sync', {
       p_payload: payload, p_source: 'dropbox', p_triggered_by: triggeredBy,
+      p_force: confirmRemoval, p_content_hash: fileHash,
     });
     if (error) return await fail(500, 'Sync failed; previous data kept', error.message);
 
-    return json(req, 200, { ok: true, ...(data as Record<string, number>), syncedAt: new Date().toISOString() });
+    const out = (data ?? {}) as Record<string, unknown>;
+    if (out.busy === true) return json(req, 409, { error: 'Another sync is already running. Nothing was changed.' });
+    // Refusals are already written to the log by the database.
+    if (out.refused === true) {
+      return json(req, 422, {
+        error: `Refused: this sync would remove ${out.wouldRemove} of ${out.active} active products. Nothing was changed.`,
+        refused: true, wouldRemove: out.wouldRemove, active: out.active,
+      });
+    }
+    return json(req, 200, { ...out, syncedAt: new Date().toISOString() });
   } catch (e) {
     return await fail(500, 'Sync failed; previous data kept', String(e));
   }

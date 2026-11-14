@@ -50,7 +50,7 @@ Rejected: server-side reports only (revision 1). It would duplicate every rule i
 3. **Delta only.** A device asks for rows changed after its last seen counter. First install loads everything once; after that, only changes.
 4. **Two column groups, fetched separately.** Stock columns (code, name, qty, price, company, generic, supplier, pack size, three dates) go to everyone with `inventory.search`. Sales columns (net quantities, sale values, tax) go only to users with `inventory.view` (INV-8). The daily roll-over then costs a device about 0.4 MB, not a re-send of names.
 5. **No timers, no Pause switch.** The version check runs when an inventory screen opens, when the tab regains focus after 5 minutes or more, and on manual refresh. No `setInterval`, no Realtime.
-6. **Never `select *`; every list call has a limit** (cap 2,000 rows per delta page, 50 per search page, 200 codes per balance lookup, enforced inside SQL).
+6. **Never `select *`; every list call has a limit** (cap 1,000 entries per delta page, 50 per search page, 200 codes per balance lookup, enforced inside SQL).
 7. **Self-healing.** If anything looks inconsistent, the device wipes its copy and reloads. Correctness always beats saving bytes.
 8. **The copy is wiped on logout** and when permission is lost (MODULES rule 9).
 
@@ -75,8 +75,8 @@ Caveat to verify with real runs: if Candela writes a timestamp inside the JSON e
 | Function | Who | Returns |
 |---|---|---|
 | `inventory_latest_sync()` | `inventory.search` | `synced_at`, both counters, `active_count`, `schema_version`, reset flags (about 0.2 KB) |
-| `inventory_changes_stock(p_since, p_limit ≤ 2000)` | `inventory.search` | compact rows, removed codes, next counter, done flag |
-| `inventory_changes_sales(p_since, p_limit ≤ 2000)` | `inventory.view` | compact rows (code + sales columns), next counter, done flag |
+| `inventory_changes_stock(p_since, p_limit ≤ 1000)` | `inventory.search` | one JSON document: compact rows, removed codes, next counter, done flag, reset flag |
+| `inventory_changes_sales(p_since, p_limit ≤ 1000)` | `inventory.view` | one JSON document, same shape (code + sales columns) |
 | `inventory_search(text, limit ≤ 50, offset)` | `inventory.search` | slim rows |
 | `inventory_balances(codes[] ≤ 200)` | `inventory.search` | code, qty |
 | `inventory_products_for_scope(scope)` | Audit | product list, capped |

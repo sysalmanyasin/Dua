@@ -1,8 +1,6 @@
- > **Integration note (13 Nov 2026):** This progress record is mirrored from the active Inventory work branch for visibility. The 0301–0304 migration and Edge Function source changes are still on `module/inventory`, not yet integrated into `main`. The live application status below is based on the Inventory session's recorded checks; do not infer that main can reproduce it until the source branch is reconciled.
-
 # Inventory — progress
 
-Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0304 and the Edge Function (v14) are applied and verified live** (12 Nov 2026, owner instruction: "apply by yourself").
+Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0305 and the Edge Function are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026; owner instruction: "apply by yourself"). The Inventory overview screen goes live with the merge of this branch to `main` (owner instruction, 14 Nov 2026).
 
 ## Session I-A (12 Nov 2026)
 
@@ -30,9 +28,10 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 | `0302` | the changed-rows-only feed | all 12 function hashes equal the repo (the live `inventory_apply_sync` first lacked 8 comment lines; restored, hash now identical) |
 | `0303` | heartbeat log row (see "Found while applying") | hash equal; 3 mutations caught |
 | `0304` | renumber counters 1..N and unique counter indexes (see "Found while applying") | 5,883 distinct counters, indexes present |
-| Edge Function `sync-inventory-from-dropbox` v14 | hash shortcut, busy/refused answers | `verify_jwt` stays `false`; ran from the same call as the hourly job |
+| `0305` (14 Nov) | `pack_valid` flag (INV-18) | all 12 function hashes equal the repo; 5,911 of 5,911 stored hashes consistent; upgrade path rehearsed on 6,000 products (identical sync unchanged in both payload shapes, flagging 100 products writes exactly 100 rows and moves only the stock counter); 5 mutations caught |
+| Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
 
-Live registry now: `0001`–`0012`, `0301`–`0304`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
+Live registry now: `0001`–`0013`, `0201`–`0209` (Closing, applied by the owner), `0301`–`0305`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
 
 **Live evidence after the deploy** (hourly runs 08:00–12:00 UTC, plus manual runs through the same call the cron job makes):
 - 5 hourly syncs, all `ok`; each changed only 41–68 rows of 5,883 (before 0302 every sync rewrote all 5,883). No failures, no watchdog alerts.
@@ -47,6 +46,44 @@ Live registry now: `0001`–`0012`, `0301`–`0304`. Foundation completed F6 (`0
 1. **Watchdog false alarm (found by reading Foundation's `0012`).** `ops_check_inventory_feed` alerts when the log has no `ok` row for 3 hours. An unchanged file now skips the sync without a log row, which would have looked like a dead feed. `0303`: a scheduled unchanged check writes one `ok/unchanged` heartbeat row when the newest successful row is older than 2 hours (at most 12 a day). Caught before the new function was deployed, so no alert was ever raised.
 2. **Backfill bug in my own `0302`.** Existing rows all got counter 1, and the feed pages by counter, so a first install would have received only the first 1,000 of 5,883 products. My upgrade test compared change counts but never paged from 0 on backfilled data. Found by the live smoke test; no phone had a copy. `0304` renumbers every row 1..N, sets the state counters, and adds partial unique indexes so duplicates cannot exist again. `0304`'s test reproduces the broken state, shows it losing rows, repairs it, and pages a full install.
 3. Process slip, recorded for honesty: I re-checked the clock before 0301 but not before 0302 (hours had passed between my messages). It was safe (a transaction that holds the sync lock cannot collide with the hourly run) but the rule is now: check `now()` immediately before every apply.
+
+## Session I-B (13 Nov 2026): the local copy, the maths, the first screen
+
+Merged `origin/main` into `module/inventory` first (Closing and Manager are on main now). One conflict, `docs/modules/inventory.progress.md` (main carried an older mirror of this file with an integration note); kept this current version. No migration number collisions (others use 0013, 0101–0103, 0201–0205; Inventory uses 0301–0304). All database checks pass on the merged tree (829).
+
+| Step | What | State | Tested |
+|---|---|---|---|
+| B1 | `data/feed.js` (the only file that calls Supabase), `data/mirror.js` (sync algorithm), `data/idbStore.js` + `data/memoryStore.js` (stores), `data/local.js` (shared copy, sign-out wipe, refresh on return) | done | 18 mirror tests (first install, no-change = one small call, delta, crash mid-install resumes from the last saved counter, reset, other person, schema change, count mismatch, offline, permission withdrawn, concurrent syncs); 6 mutations caught (one needed a stronger test, see below); the IndexedDB store checked against `fake-indexeddb` outside the project, including that a failed batch leaves rows and counter untouched |
+| B2 | `domain/ledger.js`, `metrics.js`, `search.js`, `stockMath.js`, `join.js`: pure functions ported from the old app | done | 43 tests, 401 invented products; the generator `tests/fixtures/inventory-golden/make-golden.mjs` contains the old code verbatim (cites the old commit) and writes the numbers the new code must reproduce exactly: 5 window settings, "not sold" at 4 settings, 16 search queries; 10 mutations caught |
+| B3 | `manifest.js`, `status.js` (Stock pill, arms the sign-out wipe), `ui/overview.js` (local search, 100 rows at a time, Refresh, offline and revoked-access notes), `css/inventory.css`, one line each in `js/modules/index.js` and `index.html` | done | 11 screen tests (real mirror, mocked network), 5 status/sign-out/refresh-on-return tests, 10 structural guards; 3 screen mutations caught |
+
+Whole repo after I-B: 497 unit tests, lint, format, secret and vendor scans green.
+
+**A weak test found by mutation.** Removing "apply removals" from the mirror did not fail any test, because the mirror's self-healing (count mismatch, wipe, reload) quietly produced the right result. The delta test now also asserts that nothing was reloaded from zero.
+
+**Not verified: a real phone or browser.** This environment has no browser. The screen is tested in jsdom with the real mirror and a mocked network, and the IndexedDB store against a spec-compliant fake. The first run on a real device is the STOP check below.
+
+### Owner decisions (14 Nov 2026) and what came of them
+
+1. **INV-17, "not sold" headline: whole packs only.** One definition everywhere: the headline equals the Stock Ledger's Never Sold list plus its Dead Stock list for the same window (pack size usable, received date, whole packs only, value = whole packs × price). The old app's looser headline is retired (`domain/metrics.js`); a test proves the headline always equals what the two lists add up to, for every window. Default window 60 days (INV-10).
+2. **INV-18, keep the raw pack signal (option b): built.** `0305` adds `pack_valid` (stock group, in the row hash, last column `packValid` of the stock feed). The Edge Function sends it (true when the file's pack size is a real number above zero); `conversion_factor` is unchanged (1 when missing), so existing readers keep working. The ledger treats `packValid: false` as a pack issue; the screen says "pack size unknown" instead of inventing a pack breakdown.
+   **Finding on the live data:** after the first full pass only **one** active product has an unusable pack size in the Candela file (stock worth Rs 69,300). The 2,706 in-stock products with pack size 1 (Rs 14.0M) really are single-unit packs, so the Dead Stock and Never Sold numbers were sounder than the earlier worry suggested. The flag now guards every future sync.
+3. **Go live:** merged to `main` on 14 Nov 2026 by the Inventory session on the owner's instruction, after every gate passed on the merged tree.
+
+### Requests for Foundation (I may not edit these files)
+
+- **Sign-out hook for modules.** `js/core/auth.js` has no way for a module to clear its own storage at sign-out (MODULES.md rule 9). Inventory listens to the auth `SIGNED_OUT` event from `status.js` and also discards a copy that belongs to someone else, which works but depends on `status.js` having loaded in that tab. A real hook (for example `registerSignOutCleanup(fn)` called by `signOut()`) would be cleaner.
+- **A box icon** in `js/shared/icons.js` (Inventory uses `shield` until then, like Closing).
+
+### First check on a phone (live from the merge to `main`; Pages publishes about a minute after CI passes)
+
+1. Sign in, open **Inventory**. First time only: "Opening the product list…", then about 5,900 products (about 1 MB; about 1.5 MB if you hold `inventory.view`). Header shows the count and "as of" time.
+2. Type "para": results appear instantly, best match first, no spinner. Turn on airplane mode, type again: still works.
+3. Tap **Refresh** online: seconds, no big download (look at data use if you can). With airplane mode on: "Offline. Showing the copy from …".
+4. Close the tab, reopen Inventory: opens immediately from the phone's copy.
+5. Sign out, sign in as a different person (for example the senior), open Inventory: the first person's list must not appear.
+6. As the owner you should see "Sold: x in 30 days" lines and "stock worth Rs …"; as the senior you must not.
+7. Look at the Stock pill in the status bar (time of the last check).
 
 ## Deviations from the work order (confirmed)
 
@@ -78,7 +115,7 @@ Decisions (owner, 12 Nov 2026) on **STR-Q1** and its consequences:
 
 ## Still to do (next sessions)
 
-I-B (local copy on the phone, reorder maths with golden fixtures, built on the live feed) → I-C (reports) → I-D (Home numbers in SQL, egress review, done). STR slice after the Inventory core.
+I-B is built (above), waiting for the phone check and decisions INV-17/INV-18. Then I-C (the reports: Stock Ledger, Reorder with `inventory_in_transit()`, Excess; the reorder maths still has to be ported with golden fixtures) → I-D (Home numbers in SQL, egress review, done). The `str` module is a separate line of work.
 
 ## Handoff
 See the brief, §10.
