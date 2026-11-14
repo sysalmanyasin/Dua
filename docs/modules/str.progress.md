@@ -11,7 +11,7 @@ Branch `module/str`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **N
 | S-B | Migrations `0500`–`0504` with a test file each | done, **ready to apply, not applied** | 0500: 19 checks, 0501: 30, 0502: 41, 0503: 18, 0504: 17; 2 mutations caught (overdue threshold, search permission check); full suite `ALL DATABASE TESTS PASSED` |
 | — | Manifest, data layer, screens, `css/str.css`, `MODULE_IDS` entry | **not started** (next slice) | — |
 
-Totals after this session: 487 unit tests (`npm run verify` green), full database suite green.
+Totals after merging `main` at `72890ff` (Closing Session D): 538 unit tests (`npm run verify` green), full database suite green.
 
 ## Ready to apply (owner says when; by hand, in this order, registered under the repo number: RUNBOOK §4)
 
