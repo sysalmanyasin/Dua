@@ -615,6 +615,7 @@ export async function mount(el, { ctx } = {}) {
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
+        <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>← Back</button>
           ${
@@ -630,6 +631,55 @@ export async function mount(el, { ctx } = {}) {
     paintChip();
     paintTotals();
   }
+
+  const moveSection = (direction) => {
+    const next = clampSection(S.section + direction);
+    if (next === S.section) return;
+    S.section = next;
+    draw();
+    window.scrollTo?.(0, 0);
+  };
+
+  // Match the old Closing app's swipe navigation without hijacking vertical
+  // scrolling, text selection, form controls, or the horizontally scrolling chips.
+  let swipeStart = null;
+  el.addEventListener(
+    'touchstart',
+    (e) => {
+      if (e.touches.length !== 1 || !e.target.closest?.('.cls-sec')) {
+        swipeStart = null;
+        return;
+      }
+      if (e.target.closest('input, select, textarea, button, a, [contenteditable="true"], .cls-jump, .cls-nav')) {
+        swipeStart = null;
+        return;
+      }
+      swipeStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    },
+    { passive: true },
+  );
+  el.addEventListener(
+    'touchend',
+    (e) => {
+      if (!swipeStart) return;
+      const start = swipeStart;
+      swipeStart = null;
+      const touch = e.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      moveSection(dx < 0 ? 1 : -1);
+    },
+    { passive: true },
+  );
+  el.addEventListener(
+    'touchcancel',
+    () => {
+      swipeStart = null;
+    },
+    { passive: true },
+  );
 
   function paintMarks() {
     el.querySelectorAll('[data-f]').forEach((i) => i.setAttribute('aria-invalid', bad(S.invalid, i.dataset.f)));
@@ -732,9 +782,8 @@ export async function mount(el, { ctx } = {}) {
     }
     const act = b.dataset.act;
     if (act === 'prev' || act === 'next') {
-      S.section = clampSection(S.section + (act === 'next' ? 1 : -1));
-      draw();
-      return window.scrollTo?.(0, 0);
+      moveSection(act === 'next' ? 1 : -1);
+      return;
     }
     if (act === 'sign') {
       const cur = String(S.form.credit_adj).trim();
