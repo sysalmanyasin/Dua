@@ -1,7 +1,7 @@
 # Candela Sales — progress
 
 Last updated: 14 Nov 2026
-Branch: module/candela-sales
+Branch: module/candela-sales (merged to `main` and closed 14 Nov 2026)
 Status: Built; owner phone try-out pending.
 
 ## Done

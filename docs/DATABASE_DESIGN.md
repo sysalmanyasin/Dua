@@ -123,3 +123,4 @@ The Phase 1 design grouped tables as core, sales, pos, inventory, str, audit, cl
 - **Foundation operations:** migrations 0011–0013 cover scheduled inventory/operations and backup/notification infrastructure; see `docs/RUNBOOK.md` and `docs/ops/f6-registry-reconciliation.md`.
 
 For a reproducible schema catalogue, regenerate this reference from the current migration set after Inventory source integration. The historical table/view/function counts above must not be quoted as current.
+- **Candela Sales:** migration 0900 adds `candela_daily_payments`, `candela_credit_daily` (one row per customer per day, same name merged) and `candela_changes` (old figures when Candela corrects a day), all with RLS (`candela.view`) and no write grants; triggers on `sales_payment_summary` and `sales_credit_by_customer` fill them; `candela_today_total()` returns today's total for `candela.today_total` or `candela.view`. See `docs/modules/candela-sales.md`.

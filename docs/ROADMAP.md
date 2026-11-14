@@ -36,6 +36,12 @@
 - Continue remaining Manager slices: payslips, petty cash and other scope in the Manager brief.
 - Confirm sign conventions for Expense, Jazz Cash and Petty before implementing those ledgers.
 
+### Candela Sales
+- Owner phone try-out of the four screens and the staff pill; give `candela.today_total` to the staff who should see it.
+- Confirm the next hourly sync adds new days to `candela_daily_payments`.
+- Ask whether Candela's export can send a customer ID (today only a name arrives; same name is merged).
+- Optional: one-time import of days before 11 Nov 2026 if an older source exists.
+
 ### Sales
 - Real Gmail send verification and owner phone acceptance.
 - Payments summary and Daily Check List auto-fill depend on Inventory data/interfaces.
