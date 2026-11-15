@@ -40,5 +40,12 @@ export default {
       anyOf: ['mgmt.incentive'],
       load: () => import('./ui/incentive.js'),
     },
+    {
+      path: '/manager/petty',
+      title: 'Petty Cash',
+      desc: 'Monthly petty cash vouchers',
+      anyOf: ['mgmt.petty_cash'],
+      load: () => import('./ui/petty.js'),
+    },
   ],
 };

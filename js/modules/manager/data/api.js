@@ -69,3 +69,9 @@ export const incentiveMonth = async (month) => {
 };
 export const incentiveSave = (month, inputs, reason, key) =>
   db().rpc('mgmt_incentive_save', { p_month: month, p_inputs: inputs, p_reason: reason || null, p_key: key });
+
+// ── Petty Detail ──
+export const pettyMonth = (month) => one(db().rpc('mgmt_petty_month', { p_month: month }));
+export const pettySave = (month, groups, reason, key) =>
+  db().rpc('mgmt_petty_save', { p_month: month, p_groups: groups, p_reason: reason || null, p_key: key });
+export const pettyCopy = (fromMonth, toMonth, key) => db().rpc('mgmt_petty_copy', { p_from: fromMonth, p_to: toMonth, p_key: key });

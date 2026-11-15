@@ -115,3 +115,12 @@
     display: none !important;
   }
 }
+.mg-line {
+  display: grid;
+  grid-template-columns: 1fr 7rem auto;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.mg-line input {
+  min-width: 0;
+}
