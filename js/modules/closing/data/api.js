@@ -81,6 +81,12 @@ export const miscLedger = (closedLimit = 100) => one(db().rpc('closing_misc_ledg
 export const closingBook = ({ from = null, to = null, limit = 60 } = {}) =>
   one(db().rpc('closing_book', { p_from: from, p_to: to, p_limit: limit }));
 
+/** Pages like closingBook, but for staff too: everyone with view-all gets every closing, a cashier gets the ones they entered (migration 0212). */
+export const ownBook = ({ from = null, to = null, limit = 60, closing = null } = {}) =>
+  one(db().rpc('closing_book_own', { p_from: from, p_to: to, p_limit: limit, p_closing: closing }));
+/** The submitted closing a draft carries from, as a book page, or null (migration 0212). */
+export const prevPage = (closingId) => one(db().rpc('closing_prev_page', { p_closing: closingId }));
+
 /** Catalogs for the settings screen, including the ones switched off. */
 export const listStripsAll = () =>
   one(db().from('closing_strips').select('id, label, group_name, price, sort, active').order('sort').order('label'));

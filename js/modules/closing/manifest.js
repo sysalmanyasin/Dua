@@ -20,6 +20,13 @@ export default {
       load: () => import('./ui/ledger.js'),
     },
     {
+      path: '/closing/view',
+      title: 'Saved closing',
+      desc: 'A submitted closing, read only, with its PDF',
+      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct', 'closing.settings'],
+      load: () => import('./ui/view.js'),
+    },
+    {
       path: '/closing/credit',
       title: 'Credit Ledger',
       desc: 'Credit position stored with each submitted closing',

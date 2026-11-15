@@ -139,6 +139,17 @@ export function lateSections(h) {
     html`<h2>10 · Draw Cash (F)</h2>
       ${countRows('vault')} ${total('Total Draw Cash (F)', 'vault')}`;
 
+  // named lines grouped by account, in the order the accounts first appear
+  const namedAccounts = () => {
+    const out = [];
+    for (const r of S.form.credit.named) {
+      let a = out.find((x) => x.id === r.account_id);
+      if (!a) out.push((a = { id: r.account_id, label: r.label, rows: [] }));
+      a.rows.push(r);
+    }
+    return out;
+  };
+
   const credit = () =>
     html`<h2>11 · Credit Detail (G)</h2>
       <p class="cls-meta">Enter this shift's NEW credit only. What was carried in is shown separately.</p>
@@ -161,7 +172,27 @@ export function lateSections(h) {
       ${
         S.form.credit.named.length
           ? html`<h3 class="sec-label">Named accounts</h3>
-              ${rowsTable('credit.named', 1, (r) => html`<span class="cls-name">${r.label}</span> ${numCell('credit.named', r, 'amount', r.label)}`)}`
+              <p class="cls-meta">An account can have several entries. Use ± for a payment received (a reduction).</p>
+              ${namedAccounts().map(
+                (acc) =>
+                  html`<div class="cls-acct">
+                    <div class="cls-acct-head">${acc.label}</div>
+                    <div class="cls-table" style="--cols: 1">
+                      ${acc.rows.map(
+                        (r) =>
+                          html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
+                            ${textCell('credit.named', r, 'desc', 'Description (optional)')}
+                            ${h.signed('credit.named', r, 'amount', acc.label)} ${strike('credit.named', r)}
+                          </div>`,
+                      )}
+                    </div>
+                    <div class="actions">
+                      <button type="button" class="btn btn-sm" data-act="add-named" data-acc="${acc.id}" data-label="${acc.label}">
+                        ＋ Add entry
+                      </button>
+                    </div>
+                  </div>`,
+              )}`
           : ''
       }
       <h3 class="sec-label">Tier / Staff Credit</h3>
@@ -177,12 +208,12 @@ export function lateSections(h) {
                     </select>`
                   : textCell('credit.tier', r, 'label', 'Group')
               }
-              ${numCell('credit.tier', r, 'amount', 'Amount')}<span></span>
+              ${h.signed('credit.tier', r, 'amount', 'Amount')}<span></span>
             </div>`,
         )}
       </div>
       <h3 class="sec-label">Aux / Other Credit</h3>
-      ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${numCell('credit.free', r, 'amount', 'Amount')}`)}
+      ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${h.signed('credit.free', r, 'amount', 'Amount')}`)}
       ${add('credit.free', '＋ Add Aux Row')} ${total('Total Credit Detail (G)', 'debt')}`;
 
   const deposits = () =>
