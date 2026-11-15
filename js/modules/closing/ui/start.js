@@ -26,6 +26,13 @@ export async function mount(el, { ctx } = {}) {
   let recent;
   try {
     recent = await api.myRecent(100);
+    // Every saved (submitted) closing is visible to staff; drafts stay private to their author. If the shared list cannot
+    // be loaded, the person's own closings still show.
+    const shared = await api.savedList(100).catch(() => []);
+    const seen = new Set(recent.map((r) => r.closing_id));
+    recent = [...recent, ...(shared ?? []).filter((r) => !seen.has(r.closing_id))].sort(
+      (a, b) => b.business_date.localeCompare(a.business_date) || b.seq - a.seq || (b.revision ?? 0) - (a.revision ?? 0),
+    );
   } catch (e) {
     return render(el, errorCard('your closings', friendlyError(e).message));
   }
