@@ -125,3 +125,14 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 - Done: pure maths, tables and RLS (`0201`), draft / submit / correct and carry-forward (`0202`), hardening and the owner decisions CLS-6 to CLS-14 (`0203`), the period roll-up (`0204`), trigger grants (`0205`), the credit feed and ledger functions (`0206`). Screens: start page, guided ledger sections 1–14, submit and success screen, Credit Ledger, Misc Ledger. All of `0201`–`0206` are applied to the live project.
 - Not built: the Register Book (undefined), the Inventory Audit card (until it exists, an owner switches the audit requirement off with a reason). Books, history, review and settings are built but not yet tried on a phone.
 - Read `docs/modules/closing.progress.md` (Session C handoff) for the open owner questions and the try-out checklists.
+
+## Familiar-to-the-old-app additions (branch `feature/closing-familiar-ux`)
+
+- **Strips:** catalogue items show a fixed name and price under their group header; staff type only the quantity. Extra items stay editable.
+- **± on every credit row** (named, tier, free), as well as Credit Adjustment.
+- **Named credit accounts** can have several entries, each with an optional description. Saved as the label `Account — description`, so no schema change.
+- **Submit review:** target, net cash and Plus/Less (up to Rs. 100 fine, up to Rs. 1,000 warning, above that bad), responsible person, sections not opened. If the audit is required and not verified, it jumps to Inv Audit.
+- **Previous closing card** under every section, **View all**, **Save as Draft**, select-all on focus.
+- **Start page:** month calendar with shift dots, the day's closings, Saved records (Continue / Open / PDF).
+- **Read-only saved closing** (`/closing/view`) and PDF / print after Submit, for staff too.
+- **Needs migration `0212_closing_own_book.sql`** (read-only RPCs `closing_book_own`, `closing_prev_page`). Without it the previous-closing card, Open and PDF show nothing or an error; everything else works.
