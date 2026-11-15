@@ -2,7 +2,7 @@
 // Each module's pages are loaded on demand when their tab is opened.
 import { html, render } from '../shared/html.js';
 import { icon } from '../shared/icons.js';
-import { BRAND, FOCUS_MODULE } from './config.js';
+import { BRAND } from './config.js';
 import { log } from './logger.js';
 import { isUsable, routesFor, resolveModules } from './registry.js';
 import { startRouter } from './router.js';
@@ -12,27 +12,22 @@ import { signOut } from './auth.js';
 const ROLE_LABEL = { admin: 'Owner / Manager', senior: 'Senior staff', junior: 'Junior staff' };
 const titled = (m) => m.routes.filter((r) => r.title);
 
-// One tab per module; it opens the module's first page.
-const moduleTab = (m) => {
-  const first = titled(m)[0] ?? m.routes[0];
-  return html`<a class="nav-link" href="#${first.path}" data-module="${m.id}" data-path="${first.path}"
-    >${icon(m.icon)}<span>${m.title}</span></a
-  >`;
-};
 const pageTabs = (m) => titled(m).map((r) => html`<a class="nav-sub" href="#${r.path}" data-path="${r.path}">${r.title}</a>`);
 
-export function startShell(root, ctx, manifests, { focusModule = FOCUS_MODULE } = {}) {
-  const all = resolveModules(manifests, { permissions: ctx.permissions, disabled: ctx.modules_disabled });
-  const focus = focusModule && all.some((m) => m.id === focusModule) ? focusModule : null;
-  const modules = focus ? all.filter((m) => m.id === focus) : all;
+export function startShell(root, ctx, manifests) {
+  const modules = resolveModules(manifests, { permissions: ctx.permissions, disabled: ctx.modules_disabled });
   const routes = routesFor(modules);
-  // In focus mode the address bar always lands inside the focused module (the default #/home belongs to another module).
-  if (focus && !routes.some((r) => r.path === (location.hash.replace(/^#/, '') || '/'))) location.hash = `#${titled(modules[0])[0].path}`;
+  // Home is a launcher: one tile per module the person may use. Someone with a single module has nothing to choose,
+  // so they land inside it and see no Home link.
+  const others = modules.filter((m) => m.id !== 'home' && titled(m).length);
+  const solo = others.length === 1 ? others[0] : null;
+  const hash = location.hash.replace(/^#/, '');
+  if (solo && (hash === '' || hash === '/' || hash === '/home')) location.hash = `#${titled(solo)[0].path}`;
 
   render(
     root,
     html`<div class="app">
-      <div class="status-bar" id="status-bar" ${focus ? 'hidden' : ''}></div>
+      <div class="status-bar" id="status-bar"></div>
       <header class="hdr">
         <img class="hdr-logo" src="assets/icon.svg" width="38" height="38" alt="" />
         <div class="hdr-title"><strong>${BRAND.title}</strong><span id="hdr-sub">${BRAND.branch}</span></div>
@@ -41,7 +36,6 @@ export function startShell(root, ctx, manifests, { focusModule = FOCUS_MODULE } 
           <button class="btn btn-ghost btn-sm" data-action="signout">${icon('logout')}<span>Sign out</span></button>
         </div>
       </header>
-      <nav class="tabs" aria-label="Sections" ${focus ? 'hidden' : ''}>${modules.map(moduleTab)}</nav>
       <nav class="tabs sub" id="subtabs" aria-label="Pages" hidden></nav>
       <main class="content" id="content" tabindex="-1"></main>
     </div>`,
@@ -56,10 +50,9 @@ export function startShell(root, ctx, manifests, { focusModule = FOCUS_MODULE } 
   // A status pill may belong to a module the person has no page in (for example staff who may see only today's
   // Candela total), so pills are offered from every usable module, not only those that show a tab.
   const off = new Set(ctx.modules_disabled ?? []);
-  const pillOwners = focus ? [] : manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
+  const pillOwners = manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
   const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, pillOwners);
   let token = 0;
-  let shownModule = null;
 
   const stopRouter = startRouter(
     () => routes,
@@ -67,20 +60,22 @@ export function startShell(root, ctx, manifests, { focusModule = FOCUS_MODULE } 
       const mine = ++token;
       const mod = modules.find((m) => m.id === route.moduleId);
       root.querySelector('#hdr-sub').textContent = `${BRAND.branch} · ${mod.title}`;
-      root.querySelectorAll('.nav-link').forEach((l) => l.setAttribute('aria-current', String(l.dataset.module === mod.id)));
-      if (shownModule !== mod.id) {
-        shownModule = mod.id;
-        const pages = titled(mod);
-        subtabs.hidden = pages.length < 2;
-        render(subtabs, html`${pageTabs(mod)}`);
+      // Inside a module: "‹ Home" (when there is a Home to go to), then the module's own pages. A module with `hub: true`
+      // (its first page lists everything else) shows only a link back to that first page instead of a row of tabs.
+      const onHome = mod.id === 'home';
+      root.querySelector('#status-bar').hidden = !onHome;
+      const pages = titled(mod);
+      const home = solo ? '' : html`<a class="nav-sub nav-home" href="#/home">‹ Home</a>`;
+      subtabs.hidden = onHome || (!home && (mod.hub || pages.length < 2));
+      if (!onHome) {
+        const hubBack =
+          mod.hub && route.path !== pages[0].path ? html`<a class="nav-sub" href="#${pages[0].path}">← ${pages[0].title}</a>` : '';
+        render(subtabs, html`${home}${mod.hub ? hubBack : pageTabs(mod)}`);
+        subtabs.hidden = !(home || hubBack || (!mod.hub && pages.length > 1));
+        subtabs
+          .querySelectorAll('.nav-sub[data-path]')
+          .forEach((l) => l.setAttribute('aria-current', String(l.dataset.path === route.path)));
       }
-      // Focus mode: the page tabs are replaced by one "back" link, shown on every page except the module's first.
-      if (focus) {
-        const first = titled(mod)[0];
-        subtabs.hidden = route.path === first.path;
-        render(subtabs, html`<a class="nav-sub" href="#${first.path}">← ${first.title}</a>`);
-      }
-      subtabs.querySelectorAll('.nav-sub').forEach((l) => l.setAttribute('aria-current', String(l.dataset.path === route.path)));
       document.title = `${route.title ?? mod.title} · ${BRAND.title}`;
       render(content, html`<p class="muted">Loading…</p>`);
       try {
