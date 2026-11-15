@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { dotsByDate, monthCells, suggestForDate } from '../../js/modules/closing/domain/calendar.js';
 import { formFromRow, namedEntry, payloadFromForm } from '../../js/modules/closing/domain/form.js';
-import { overviewValue, snapshotRows } from '../../js/modules/closing/domain/snapshot.js';
+import { overviewValue, prevTitle, snapshotRows } from '../../js/modules/closing/domain/snapshot.js';
 
 const ACCOUNTS = [{ id: 'a1', kind: 'named', label: 'Dr Ali' }];
 const PAGE = {
@@ -45,22 +45,28 @@ describe('previous closing card rows', () => {
   it('shows what the last closing typed for the section, using the stored results', () => {
     expect(snapshotRows('pos', PAGE)).toContainEqual(['Last Bill Number', '123']);
     expect(snapshotRows('hs', PAGE)).toEqual([
-      ['Delivery', '300.00'],
-      ['Total HS (A)', '300.00'],
+      ['Delivery', 'Rs. 300'],
+      ['Total HS (A)', 'Rs. 300'],
     ]);
     const strips = snapshotRows('strips', PAGE);
     expect(strips[0][0]).toBe('Panadol');
     expect(strips.map((r) => r[0])).not.toContain('Brufen'); // only items that sold
     expect(snapshotRows('till', PAGE)[0][0]).toBe('Rs. 5,000 notes');
-    expect(snapshotRows('credit', PAGE)).toContainEqual(['Dr Ali — June', '200.00']);
-    expect(snapshotRows('audit', PAGE)).toContainEqual(['Variance', '−150.00']);
+    expect(snapshotRows('credit', PAGE)).toContainEqual(['Dr Ali — June', 'Rs. 200']);
+    expect(snapshotRows('audit', PAGE)).toContainEqual(['Variance', 'Rs. -150']);
   });
   it('shows nothing for unknown sections and a Final-only section only in Final mode', () => {
     expect(snapshotRows('nope', PAGE)).toEqual([]);
     expect(snapshotRows('final-agg', PAGE)).toEqual([]);
   });
+  it('titles the card like the old app and shows the strips as qty × price = total', () => {
+    expect(prevTitle({ business_date: '2026-11-14', day_no: 3, kind: 'evening', seq: 9999 })).toBe(
+      'Previous shift — 2026-11-14 · Closing 3 — Evening',
+    );
+    expect(snapshotRows('strips', PAGE)[0]).toEqual(['Panadol', '2 × Rs. 120 = Rs. 240']);
+  });
   it('overview values come from the quick totals', () => {
-    expect(overviewValue('hs', { hs: 30000 }, {})).toBe('300.00');
+    expect(overviewValue('hs', { hs: 30000 }, {})).toBe('Rs. 300');
     expect(overviewValue('nope', {}, {})).toBe('');
   });
 });

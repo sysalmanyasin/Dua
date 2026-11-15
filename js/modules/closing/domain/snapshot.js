@@ -1,10 +1,16 @@
 // The "Previous closing" card under each section: what the closing before this one entered for that section, as read-only rows.
 // Pure functions over one book page (closing_book_own / closing_prev_page). Every figure is one the database stored or the
 // cashier typed; nothing is calculated here except showing signs and labels.
-import { money } from '../../../shared/format.js';
 import { DENOMINATIONS } from './compute.js';
+import { fmt } from './sheet.js';
+import { slotLabel } from './slots.js';
 
-const M = (v) => money(Number(v) || 0, { decimals: true });
+// amounts as the old app wrote them: "Rs. 1,200" (decimals only when there are some)
+const M = (v) => `Rs. ${fmt(v)}`;
+
+/** "Previous shift — 2026-11-14 · Closing 3 — Evening" */
+export const prevTitle = (page) =>
+  `Previous shift — ${page.business_date} · Closing ${page.day_no ?? '?'} — ${slotLabel(page.kind, page.seq)}`;
 const num = (v) => Number(v) || 0;
 const DENOM_LABEL = {
   5000: 'Rs. 5,000 notes',

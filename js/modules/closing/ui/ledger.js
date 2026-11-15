@@ -17,7 +17,7 @@ import {
   rupees,
   stripLineTotal,
 } from '../domain/form.js';
-import { overviewValue, snapshotRows } from '../domain/snapshot.js';
+import { overviewValue, prevTitle, snapshotRows } from '../domain/snapshot.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { SECTIONS, clampSection, sectionIndex } from '../domain/sections.js';
 import { slotLabel } from '../domain/slots.js';
@@ -697,12 +697,14 @@ export async function mount(el, { ctx } = {}) {
     if (!S.prev) return html`<section class="card cls-prev"><div class="cls-meta">No previous closing on record yet.</div></section>`;
     const rows = snapshotRows(def.key, S.prev);
     return html`<section class="card cls-prev" aria-label="Previous closing">
-      <div class="cls-prev-head">📋 Previous closing — ${longDate(S.prev.business_date)} · ${slotLabel(S.prev.kind, S.prev.seq)}</div>
-      ${
-        rows.length
-          ? rows.map(([l, v]) => html`<div class="cls-prev-row"><span>${l}</span><span>${v}</span></div>`)
-          : html`<div class="cls-meta">Nothing for this section.</div>`
-      }
+      <div class="cls-prev-head">📋 ${prevTitle(S.prev)}</div>
+      <div class="cls-prev-rows">
+        ${
+          rows.length
+            ? rows.map(([l, v]) => html`<div class="cls-prev-row"><span>${l}</span><span>${v}</span></div>`)
+            : html`<div class="cls-meta">Nothing for this section.</div>`
+        }
+      </div>
     </section>`;
   };
 
@@ -773,7 +775,6 @@ export async function mount(el, { ctx } = {}) {
             ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
-          ${prevCard()}
         </div>
         <div class="cls-tools">
           <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
@@ -790,6 +791,7 @@ export async function mount(el, { ctx } = {}) {
               : html`<button type="button" class="btn btn-primary" data-act="next">Next →</button>`
           }
         </div>
+        ${prevCard()}
       </div>`,
     );
     paintChip();
