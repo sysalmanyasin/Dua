@@ -78,9 +78,18 @@ describe('registration', () => {
 
 describe('billing screen', () => {
   it('shows the desktop layout: header, grid, totals and bottom controls', () => {
-    for (const s of ['#eb-sku', '#eb-qty', '#eb-customer', '#eb-lines', '#eb-net', '#eb-cash', '#eb-mode', '[data-act="help"]'])
+    for (const s of [
+      '#eb-sku',
+      '#eb-qty',
+      '#eb-customer',
+      '#eb-lines',
+      '#eb-net',
+      '#eb-cash',
+      'input[name="eb-mode"]',
+      '[data-act="help"]',
+    ])
       expect(el.querySelector(s), s).not.toBeNull();
-    expect(el.querySelector('input[readonly]').value).toBe('Test Staff');
+    expect(el.querySelector('#eb-sp-name').value).toBe('Test Staff');
     expect(el.textContent).toContain('not live');
   });
   it('adds a scanned or typed code and totals it', () => {
@@ -132,6 +141,58 @@ describe('billing screen', () => {
   });
   it('switches off what is not built yet instead of faking it', () => {
     expect(el.querySelector('.btn-primary').disabled).toBe(true);
+  });
+});
+
+describe('Candela-style layout details', () => {
+  it('shows the totals row under the grid and keeps it in step', () => {
+    const sku = el.querySelector('#eb-sku');
+    type(el.querySelector('#eb-qty'), '2');
+    sku.value = 'P001';
+    key(sku, 'Enter'); // 2 x 5 = 10
+    sku.value = 'A100';
+    key(sku, 'Enter'); // 1 x 90
+    expect(el.querySelector('[data-sum="qty"]').textContent).toBe('3');
+    expect(el.querySelector('[data-sum="total"]').textContent).toBe('100.00');
+    expect(el.querySelector('[data-sum="count"]').textContent).toBe('Records: 2');
+    type(el.querySelector('[data-edit="disc"]'), '10'); // 10% off the first line
+    expect(el.querySelector('[data-sum="disc"]').textContent).toBe('1.00');
+    expect(el.querySelector('[data-udist]').textContent).toBe('0.50'); // per-unit discount
+  });
+  it('the receipt discount only counts once its box is ticked', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'A100';
+    key(sku, 'Enter');
+    expect(el.querySelector('#eb-rdisc').disabled).toBe(true);
+    const box = el.querySelector('#eb-rdon');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    type(el.querySelector('#eb-rdisc'), '10');
+    expect(el.querySelector('#eb-net').textContent).toBe('80.00');
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelector('#eb-net').textContent).toBe('90.00');
+  });
+  it('offers the Candela receipt types, switched off until printing exists', () => {
+    const sel = el.querySelector('#eb-rtype');
+    expect([...sel.options].map((o) => o.textContent)).toEqual(['Primary Receipt', 'Gift Receipt', 'Summary Receipt', 'Secondary Receipt']);
+    expect(sel.disabled).toBe(true);
+  });
+  it('Cancel / New clears the bill after confirmation, and only then', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'A100';
+    key(sku, 'Enter');
+    type(el.querySelector('#eb-customer'), 'Mr Ali');
+    const ask = vi.spyOn(window, 'confirm');
+    ask.mockReturnValueOnce(false);
+    el.querySelector('[data-act="new"]').click();
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
+    ask.mockReturnValueOnce(true);
+    el.querySelector('[data-act="cancel"]').click();
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(0);
+    expect(el.querySelector('#eb-customer').value).toBe('');
+    expect(el.querySelector('#eb-net').textContent).toBe('0.00');
+    ask.mockRestore();
   });
 });
 

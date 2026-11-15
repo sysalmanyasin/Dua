@@ -1,8 +1,11 @@
-// Emergency POS (Phase 1): the desktop billing screen. Bill building, Product Help and the totals work now.
-// Saving, holding, printing and returns arrive in later phases; their controls are shown but switched off, never faked.
+// Emergency POS: the desktop billing screen, laid out like the Candela "Sale and Return" screen the cashiers already know
+// (header rows, invoice grid with totals row, right-hand totals panel, bottom payment and receipt bar) in Dua's own look.
+// Phase 1 works: bill building, Product Help, totals, new bill and cancel. Saving, holding, printing and returns arrive in
+// later phases; their controls are shown but switched off, never faked.
 // Stock comes only from this device's saved product copy and is always labelled as such.
 import { html, render } from '../../../shared/html.js';
 import { money } from '../../../shared/format.js';
+import { BRAND } from '../../../core/config.js';
 import { addProduct, emptyCart, removeLine, setLineDiscount, setQty, stockIssue } from '../domain/cart.js';
 import { billTotals, lineTotals, payment } from '../domain/calc.js';
 import { emptyState } from '../domain/productFilter.js';
@@ -10,7 +13,8 @@ import { clock, readCopy, refreshCopy } from '../data/products.js';
 import { openProductHelp } from './productHelp.js';
 
 const m2 = (n) => money(n, { decimals: true });
-const PAYMENT_MODES = ['Cash', 'Card', 'Credit'];
+const PAYMENT_MODES = ['Cash', 'Credit', 'Card'];
+const RECEIPT_TYPES = ['Primary Receipt', 'Gift Receipt', 'Summary Receipt', 'Secondary Receipt'];
 const SOON = 'Coming in a later phase';
 
 export async function mount(el, { ctx }) {
@@ -21,17 +25,20 @@ export async function mount(el, { ctx }) {
   let closeHelp = null;
   const helpHolder = { state: emptyState() }; // survives closing and reopening Product Help
   const byCode = new Map();
-  const bill = {
+  const fresh = () => ({
     customer: '',
     customerDiscountPct: 0,
+    receiptOn: false,
     receiptDiscount: { mode: 'amt', value: 0 },
     adjustment: 0,
     taxPct: 0,
     cash: 0,
     mode: 'Cash',
     comments: '',
+    more: '',
     qty: 1,
-  };
+  });
+  let bill = fresh();
 
   const load = async () => {
     ({ products, meta } = await readCopy(ctx));
@@ -41,112 +48,182 @@ export async function mount(el, { ctx }) {
 
   render(
     el,
-    html`<section class="card eb">
-      <div class="eb-head">
-        <label class="field"><span>Salesperson</span><input value="${ctx.full_name || ctx.username || ''}" readonly /></label>
-        <label class="field eb-w2"><span>Customer / member</span><input id="eb-customer" autocomplete="off" placeholder="Walk-in" /></label>
-        <label class="field eb-qty"
-          ><span>Qty</span><input id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal"
-        /></label>
-        <label class="field eb-w2"
-          ><span>Product / SKU (F2 for Product Help)</span>
-          <span class="eb-sku"
-            ><input id="eb-sku" autocomplete="off" spellcheck="false" placeholder="Scan or type a code, then Enter" /><button
-              type="button"
-              class="btn"
-              data-act="help"
-              title="Product Help (F2)"
-              aria-label="Open Product Help"
-            >
-              🔍
-            </button></span
-          ></label
-        >
-        <div class="eb-actions">
-          <button type="button" class="btn btn-sm" disabled title="${SOON}">Hold bill</button>
-          <label class="eb-check"><input type="checkbox" disabled title="${SOON}" /> Return</label>
-          <input class="eb-reason" placeholder="Return reason" disabled title="${SOON}" />
-        </div>
-        <div class="eb-meta">
-          <span><b>Receipt</b> Draft</span><span id="eb-now"></span><span id="eb-status"></span>
-        </div>
+    html`<section class="eb">
+      <div class="eb-titlebar">
+        <span class="eb-tab">Sale and Return</span>
+        <span class="eb-title">${BRAND.title} · Emergency POS</span>
+        <span class="eb-grow"></span>
+        <span id="eb-status" class="eb-status"></span>
       </div>
       <div id="eb-note"></div>
+
+      <div class="eb-top">
+        <div class="eb-row">
+          <div class="eb-group">
+            <span class="eb-lbl">Sale person</span>
+            <input class="eb-code" value="${ctx.username || ''}" readonly aria-label="Salesperson code" />
+            <input class="eb-wide" id="eb-sp-name" value="${ctx.full_name || ctx.username || ''}" readonly aria-label="Salesperson" />
+          </div>
+          <div class="eb-group eb-grow">
+            <span class="eb-lbl">Customer / member</span>
+            <input class="eb-code" disabled title="${SOON}" aria-label="Customer code" />
+            <button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Add customer">+</button>
+            <input class="eb-wide eb-grow" id="eb-customer" autocomplete="off" placeholder="Walk-in" aria-label="Customer name" />
+            <output class="eb-bal" title="Customer balance">0.00</output>
+          </div>
+        </div>
+        <div class="eb-row">
+          <div class="eb-group">
+            <span class="eb-lbl">Qty / product (SKU)</span>
+            <input class="eb-qtyin" id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal" aria-label="Quantity" />
+            <input
+              class="eb-sku"
+              id="eb-sku"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Scan or type a code, then Enter (F2: Product Help)"
+              aria-label="Product code"
+            />
+            <button type="button" class="btn" data-act="help" title="Product Help (F2)" aria-label="Open Product Help">🔍</button>
+          </div>
+          <label class="eb-check"><input type="checkbox" disabled title="${SOON}" /> Hold</label>
+          <button type="button" class="btn btn-sm" disabled title="${SOON}">Return</button>
+          <button type="button" class="btn btn-sm" disabled title="${SOON}">Reason</button>
+          <div class="eb-group">
+            <span class="eb-lbl">Receipt #</span><input class="eb-code" value="Draft" readonly aria-label="Receipt number" />
+          </div>
+          <div class="eb-group">
+            <span class="eb-lbl">Date / time</span><input class="eb-date" id="eb-date" readonly aria-label="Date" /><input
+              class="eb-time"
+              id="eb-time"
+              readonly
+              aria-label="Time"
+            />
+          </div>
+        </div>
+      </div>
+
       <div class="eb-main">
         <div class="eb-grid">
-          <div class="eb-table-wrap"><div id="eb-lines"></div></div>
+          <div class="eb-table-wrap eb-lines-wrap"><div id="eb-lines"></div></div>
         </div>
         <aside class="eb-side" aria-label="Totals and payment">
           <dl class="eb-totals">
             <div>
               <dt>Gross total</dt>
-              <dd data-out="grossTotal"></dd>
+              <dd><output data-out="grossTotal"></output></dd>
             </div>
             <div>
               <dt>Customer discount %</dt>
               <dd>
-                <input id="eb-cdisc" type="number" min="0" max="100" step="any" value="0" /> <span data-out="customerDiscount"></span>
+                <input
+                  id="eb-cdisc"
+                  class="eb-num"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="any"
+                  value="0"
+                  aria-label="Customer discount percent"
+                /><output data-out="customerDiscount"></output>
               </dd>
             </div>
             <div>
-              <dt>Receipt discount</dt>
+              <dt>
+                <label class="eb-check"><input id="eb-rdon" type="checkbox" /> Receipt disc</label>
+              </dt>
               <dd>
-                <select id="eb-rmode">
+                <select id="eb-rmode" disabled aria-label="Receipt discount type">
                   <option value="amt">Rs</option>
                   <option value="pct">%</option></select
-                ><input id="eb-rdisc" type="number" min="0" step="any" value="0" /> <span data-out="receiptDiscount"></span>
+                ><input
+                  id="eb-rdisc"
+                  class="eb-num"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value="0"
+                  disabled
+                  aria-label="Receipt discount"
+                /><output data-out="receiptDiscount"></output>
               </dd>
             </div>
             <div>
               <dt>Net gross total</dt>
-              <dd data-out="netGross"></dd>
+              <dd><output data-out="netGross"></output></dd>
             </div>
             <div>
-              <dt>Tax / VAT %</dt>
-              <dd><input id="eb-tax" type="number" min="0" step="any" value="0" /> <span data-out="tax"></span></dd>
+              <dt>Adjustment</dt>
+              <dd><input id="eb-adj" class="eb-num" type="number" step="any" value="0" aria-label="Adjustment" /></dd>
             </div>
             <div>
-              <dt>Adjustment (+/−)</dt>
-              <dd><input id="eb-adj" type="number" step="any" value="0" /></dd>
+              <dt>VAT / sales tax %</dt>
+              <dd>
+                <input id="eb-tax" class="eb-num" type="number" min="0" step="any" value="0" aria-label="Tax percent" /><output
+                  data-out="tax"
+                ></output>
+              </dd>
             </div>
           </dl>
-          <div class="eb-net"><span>Net total</span><strong data-out="netTotal" id="eb-net"></strong></div>
-          <dl class="eb-totals">
-            <div>
-              <dt>Cash received</dt>
-              <dd><input id="eb-cash" type="number" min="0" step="any" value="0" /></dd>
-            </div>
-            <div>
-              <dt>Change</dt>
-              <dd class="eb-change" data-out="change"></dd>
-            </div>
-            <div>
-              <dt>Still due</dt>
-              <dd data-out="due"></dd>
-            </div>
-          </dl>
+          <div class="eb-netlabel">Net total</div>
+          <div class="eb-net"><output data-out="netTotal" id="eb-net"></output></div>
+          <fieldset class="eb-receipt">
+            <legend>Receipt</legend>
+            <dl class="eb-totals">
+              <div>
+                <dt>Cash</dt>
+                <dd><input id="eb-cash" class="eb-cash" type="number" min="0" step="any" value="0" aria-label="Cash received" /></dd>
+              </div>
+              <div>
+                <dt>Change</dt>
+                <dd class="eb-change"><output data-out="change"></output></dd>
+              </div>
+              <div>
+                <dt>Still due</dt>
+                <dd><output data-out="due"></output></dd>
+              </div>
+            </dl>
+          </fieldset>
         </aside>
       </div>
+
       <div class="eb-bottom">
-        <button type="button" class="btn btn-sm" disabled title="${SOON}">◀ Held</button
-        ><button type="button" class="btn btn-sm" disabled title="${SOON}">Held ▶</button>
-        <label class="field"
-          ><span>Payment mode</span
-          ><select id="eb-mode">
-            ${PAYMENT_MODES.map((x) => html`<option>${x}</option>`)}
-          </select></label
-        >
-        <label class="field eb-grow"><span>Comments</span><input id="eb-comments" autocomplete="off" /></label>
-        <label class="field eb-copies"><span>Copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
-        <label class="field"
-          ><span>Receipt type</span
-          ><select disabled title="${SOON}">
-            <option>Customer</option>
-          </select></label
-        >
-        <button type="button" class="btn" disabled title="${SOON}">Print</button>
-        <button type="button" class="btn" disabled title="${SOON}">Search receipt</button>
-        <button type="button" class="btn btn-primary" disabled title="Saving arrives in Phase 2">Save invoice</button>
+        <div class="eb-hold">
+          <span class="eb-lbl">Receipt holding [0 / 6]</span>
+          <div class="eb-navs">
+            <button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="First held bill">«</button
+            ><button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Previous held bill">‹</button
+            ><button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Next held bill">›</button
+            ><button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Last held bill">»</button>
+          </div>
+          <div class="eb-navs">
+            <button type="button" class="btn btn-sm" disabled title="${SOON}">Hold</button
+            ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">Cancel</button>
+          </div>
+        </div>
+        <fieldset class="eb-pay">
+          <legend>Payment mode</legend>
+          ${PAYMENT_MODES.map((x) => html`<label class="eb-check"><input type="radio" name="eb-mode" value="${x}" ${x === 'Cash' ? 'checked' : ''} /> ${x}</label>`)}
+        </fieldset>
+        <label class="eb-area"><span class="eb-lbl">Comments</span><textarea id="eb-comments" rows="3"></textarea></label>
+        <label class="eb-area"><span class="eb-lbl">Additional comments</span><textarea id="eb-more" rows="3"></textarea></label>
+        <div class="eb-print">
+          <label class="eb-check"><input type="checkbox" checked disabled title="${SOON}" /> Print receipt</label>
+          <label class="eb-copies"><span>No. of copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
+          <button type="button" class="btn btn-sm" disabled title="${SOON}">Search receipt</button>
+        </div>
+        <div class="eb-rtype">
+          <label class="eb-lbl" for="eb-rtype">Receipt type</label>
+          <select id="eb-rtype" disabled title="${SOON}">
+            ${RECEIPT_TYPES.map((x) => html`<option>${x}</option>`)}
+          </select>
+        </div>
+      </div>
+      <div class="eb-toolbar">
+        <button type="button" class="btn" data-act="new" title="New bill">＋ New</button>
+        <button type="button" class="btn btn-primary" disabled title="Saving arrives in Phase 2">💾 Save invoice</button>
+        <button type="button" class="btn" disabled title="Managers only, later phase">✎ Edit</button>
+        <button type="button" class="btn" data-act="cancel" title="Clear this bill">⃠ Cancel</button>
       </div>
       <div id="eb-help"></div>
     </section>`,
@@ -158,16 +235,28 @@ export async function mount(el, { ctx }) {
     return billTotals({
       lines: cart.lines,
       customerDiscountPct: bill.customerDiscountPct,
-      receiptDiscount: bill.receiptDiscount,
+      receiptDiscount: bill.receiptOn ? bill.receiptDiscount : null,
       adjustment: bill.adjustment,
       taxPct: bill.taxPct,
     });
   }
+  const udist = (l, total) => (l.qty > 0 ? total.discount / l.qty : 0);
+
   function drawTotals() {
     const t = totals();
     const p = payment(t.netTotal, bill.cash);
     const out = { ...t, change: p.change, due: p.due };
     for (const node of el.querySelectorAll('[data-out]')) node.textContent = m2(out[node.dataset.out]);
+    const sum = (f) => cart.lines.reduce((s, l, i) => s + f(l, t.lines[i]), 0);
+    const set = (k, v) => {
+      const n = q(`[data-sum="${k}"]`);
+      if (n) n.textContent = v;
+    };
+    set('qty', String(sum((l) => l.qty)));
+    set('udist', m2(sum((l, x) => udist(l, x))));
+    set('disc', m2(t.lineDiscounts));
+    set('total', m2(t.grossTotal));
+    set('count', `Records: ${cart.lines.length}`);
   }
 
   function drawLines() {
@@ -177,16 +266,16 @@ export async function mount(el, { ctx }) {
       html`<table class="eb-table eb-lines">
         <thead>
           <tr>
-            <th>#</th>
-            <th>Code</th>
-            <th>Product</th>
-            <th>Generic</th>
+            <th>Sr. #</th>
+            <th>Product code</th>
+            <th>Product name</th>
             <th>Unit</th>
             <th class="num">Rate</th>
             <th class="num">Qty</th>
-            <th>Disc</th>
-            <th class="num">Line total</th>
-            <th><span class="sr">Remove</span></th>
+            <th class="num">U.Dist</th>
+            <th>Discount</th>
+            <th class="num">Total</th>
+            <th><span class="sr">Delete</span></th>
           </tr>
         </thead>
         <tbody>
@@ -197,20 +286,31 @@ export async function mount(el, { ctx }) {
                   return html`<tr data-id="${l.id}">
                     <td>${i + 1}</td>
                     <td>${l.code}</td>
-                    <td>${l.name}${issue ? html`<div class="eb-warn" role="status">⚠ ${issue.text}</div>` : ''}</td>
-                    <td>${l.generic}</td>
+                    <td>
+                      ${l.name}${l.generic ? html`<div class="eb-sub">${l.generic}</div>` : ''}${issue ? html`<div class="eb-warn" role="status">⚠ ${issue.text}</div>` : ''}
+                    </td>
                     <td>
                       <select data-edit="unit" aria-label="Unit for ${l.name}">
-                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Unit</option>
+                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Single</option>
                         ${l.pack > 1 ? html`<option value="pack" ${l.unit === 'pack' ? 'selected' : ''}>Pack of ${l.pack}</option>` : ''}
                       </select>
                     </td>
                     <td class="num">${m2(l.rate)}</td>
                     <td class="num">
-                      <input data-edit="qty" type="number" min="0" step="any" value="${l.qty}" aria-label="Quantity of ${l.name}" />
+                      <input
+                        class="eb-edit"
+                        data-edit="qty"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value="${l.qty}"
+                        aria-label="Quantity of ${l.name}"
+                      />
                     </td>
+                    <td class="num" data-udist="${l.id}">${m2(udist(l, t.lines[i]))}</td>
                     <td class="eb-disc">
                       <input
+                        class="eb-edit"
                         data-edit="disc"
                         type="number"
                         min="0"
@@ -223,7 +323,7 @@ export async function mount(el, { ctx }) {
                       </select>
                     </td>
                     <td class="num" data-line-total="${l.id}">${m2(t.lines[i].total)}</td>
-                    <td><button type="button" class="btn btn-sm" data-del="${l.id}" aria-label="Remove ${l.name}">✕</button></td>
+                    <td><button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}">Delete</button></td>
                   </tr>`;
                 })
               : html`<tr>
@@ -233,6 +333,20 @@ export async function mount(el, { ctx }) {
                 </tr>`
           }
         </tbody>
+        <tfoot>
+          <tr>
+            <td>Σ</td>
+            <td></td>
+            <td data-sum="count"></td>
+            <td></td>
+            <td></td>
+            <td class="num" data-sum="qty"></td>
+            <td class="num" data-sum="udist"></td>
+            <td class="num" data-sum="disc"></td>
+            <td class="num" data-sum="total"></td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>`,
     );
     drawTotals();
@@ -255,11 +369,10 @@ export async function mount(el, { ctx }) {
     );
   }
   const tick = () => {
-    const n = q('#eb-now');
-    if (n)
-      n.textContent = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', dateStyle: 'medium', timeStyle: 'short' }).format(
-        new Date(),
-      );
+    const d = new Date();
+    const f = (opts) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', ...opts }).format(d);
+    if (q('#eb-date')) q('#eb-date').value = f({ day: '2-digit', month: 'short', year: 'numeric' });
+    if (q('#eb-time')) q('#eb-time').value = f({ hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase();
   };
 
   function add(product) {
@@ -291,6 +404,31 @@ export async function mount(el, { ctx }) {
     });
   }
 
+  function newBill() {
+    if (cart.lines.length && !window.confirm('Clear this bill? The items will be removed.')) return;
+    cart = emptyCart();
+    bill = fresh();
+    const set = (id, v) => {
+      q(id).value = v;
+    };
+    set('#eb-customer', '');
+    set('#eb-qty', '1');
+    set('#eb-cdisc', '0');
+    set('#eb-rdisc', '0');
+    set('#eb-adj', '0');
+    set('#eb-tax', '0');
+    set('#eb-cash', '0');
+    set('#eb-comments', '');
+    set('#eb-more', '');
+    set('#eb-rmode', 'amt');
+    q('#eb-rdon').checked = false;
+    q('#eb-rdisc').disabled = true;
+    q('#eb-rmode').disabled = true;
+    q('input[name="eb-mode"][value="Cash"]').checked = true;
+    drawLines();
+    q('#eb-sku').focus();
+  }
+
   // ───────── events ─────────
   q('#eb-sku').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
@@ -303,6 +441,8 @@ export async function mount(el, { ctx }) {
     e.target.value = '';
   });
   q('[data-act="help"]').addEventListener('click', () => openHelp());
+  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
+  q('[data-act="new"]').addEventListener('click', newBill);
   const onF2 = (e) => {
     if (!el.isConnected) return document.removeEventListener('keydown', onF2);
     if (e.key === 'F2') {
@@ -321,9 +461,13 @@ export async function mount(el, { ctx }) {
   q('#eb-comments').addEventListener('input', (e) => {
     bill.comments = e.target.value;
   });
-  q('#eb-mode').addEventListener('change', (e) => {
-    bill.mode = e.target.value;
+  q('#eb-more').addEventListener('input', (e) => {
+    bill.more = e.target.value;
   });
+  for (const r of el.querySelectorAll('input[name="eb-mode"]'))
+    r.addEventListener('change', (e) => {
+      bill.mode = e.target.value;
+    });
   const bindNum = (id, set) =>
     q(id).addEventListener('input', () => {
       set(num(id));
@@ -338,6 +482,12 @@ export async function mount(el, { ctx }) {
     bill.receiptDiscount = { ...bill.receiptDiscount, mode: e.target.value };
     drawTotals();
   });
+  q('#eb-rdon').addEventListener('change', (e) => {
+    bill.receiptOn = e.target.checked;
+    q('#eb-rdisc').disabled = !bill.receiptOn;
+    q('#eb-rmode').disabled = !bill.receiptOn;
+    drawTotals();
+  });
 
   q('#eb-lines').addEventListener('input', (e) => {
     const edit = e.target.dataset.edit;
@@ -346,7 +496,9 @@ export async function mount(el, { ctx }) {
     const line = cart.lines.find((l) => l.id === id);
     cart = edit === 'qty' ? setQty(cart, id, e.target.value) : setLineDiscount(cart, id, line.discount.mode, e.target.value);
     const row = cart.lines.find((l) => l.id === id);
-    q(`[data-line-total="${id}"]`).textContent = m2(lineTotals(row).total); // update in place: typing never loses focus
+    const lt = lineTotals(row);
+    q(`[data-line-total="${id}"]`).textContent = m2(lt.total); // update in place: typing never loses focus
+    q(`[data-udist="${id}"]`).textContent = m2(udist(row, lt));
     drawTotals();
   });
   q('#eb-lines').addEventListener('change', (e) => {
