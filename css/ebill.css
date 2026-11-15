@@ -466,3 +466,57 @@
     position: static;
   }
 }
+
+/* small question dialog (PIN, reason, number) */
+.eb-ask {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  width: min(26rem, 100%);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+.eb-ask h2 {
+  margin: 0;
+}
+.eb-ask-fields {
+  display: grid;
+  gap: var(--space-3);
+}
+.eb-ask-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* settings page */
+.ebs {
+  display: grid;
+  gap: var(--space-4);
+}
+.ebs section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+}
+.ebs h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.ebs .eb-table-wrap {
+  max-height: none;
+}
+.ebs td .btn {
+  margin-right: var(--space-1);
+}
+.ebs-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}

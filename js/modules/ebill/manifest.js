@@ -9,10 +9,15 @@ export default {
       path: '/ebill',
       title: 'Emergency POS',
       desc: 'Bill a customer when the normal POS is unavailable',
-      // Phase 1 reads only the product copy kept on this device, so the existing product-search permission is used.
-      // Phase 2 seeds ebill.use in migration 06xx and switches this line to it.
-      permission: 'inventory.search',
+      permission: 'ebill.use', // seeded by migration 0601; the owner grants it person by person in Users & Access
       load: () => import('./ui/pos.js'),
+    },
+    {
+      path: '/ebill/settings',
+      title: 'Emergency Billing Settings',
+      desc: 'Staff PINs, discount limits and devices',
+      anyOf: ['ebill.set_pin', 'ebill.manage'],
+      load: () => import('./ui/settings.js'),
     },
   ],
 };

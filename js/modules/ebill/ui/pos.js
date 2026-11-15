@@ -11,6 +11,10 @@ import { billTotals, lineTotals, payment } from '../domain/calc.js';
 import { emptyState } from '../domain/productFilter.js';
 import { clock, readCopy, refreshCopy } from '../data/products.js';
 import { openProductHelp } from './productHelp.js';
+import { ask } from './dialog.js';
+import { registerDevice, saveInvoice } from '../data/api.js';
+import { deviceLabel, getDeviceId } from '../data/device.js';
+import { buildInvoice, isPinRetry, newInvoiceId, refusalText } from '../domain/invoice.js';
 
 const m2 = (n) => money(n, { decimals: true });
 const PAYMENT_MODES = ['Cash', 'Credit', 'Card'];
@@ -22,6 +26,9 @@ export async function mount(el, { ctx }) {
   let meta = null;
   let cart = emptyCart();
   let note = '';
+  let device = { status: 'unknown' }; // 'active' | 'deactivated' | 'unknown' (not registered yet or offline)
+  let saving = false;
+  let saved = null; // the last saved invoice number, shown above the grid until the next bill
   let closeHelp = null;
   const helpHolder = { state: emptyState() }; // survives closing and reopening Product Help
   const byCode = new Map();
@@ -37,6 +44,7 @@ export async function mount(el, { ctx }) {
     comments: '',
     more: '',
     qty: 1,
+    invoiceId: null,
   });
   let bill = fresh();
 
@@ -221,11 +229,14 @@ export async function mount(el, { ctx }) {
       </div>
       <div class="eb-toolbar">
         <button type="button" class="btn" data-act="new" title="New bill">＋ New</button>
-        <button type="button" class="btn btn-primary" disabled title="Saving arrives in Phase 2">💾 Save invoice</button>
+        <button type="button" class="btn btn-primary" id="eb-save" data-act="save" disabled title="Add items to save">
+          💾 Save invoice
+        </button>
         <button type="button" class="btn" disabled title="Managers only, later phase">✎ Edit</button>
         <button type="button" class="btn" data-act="cancel" title="Clear this bill">⃠ Cancel</button>
       </div>
       <div id="eb-help"></div>
+      <div id="eb-dialog"></div>
     </section>`,
   );
   const q = (s) => el.querySelector(s);
@@ -350,6 +361,7 @@ export async function mount(el, { ctx }) {
       </table>`,
     );
     drawTotals();
+    syncSave();
   }
 
   function drawStatus() {
@@ -365,9 +377,90 @@ export async function mount(el, { ctx }) {
       q('#eb-note'),
       html`${note === 'offline' ? html`<p class="note note-info" role="status">Offline. Using the product copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}. Stock shown may be out of date.</p>` : ''}
       ${note && note !== 'offline' ? html`<p class="note note-error" role="status">${note}</p>` : ''}
+      ${saved ? html`<p class="note note-info" role="status">Saved as <b>${saved}</b>. The invoice is on the server.</p>` : ''}
+      ${device.status === 'deactivated' ? html`<p class="note note-error" role="status">This device has been switched off by the manager. Invoices cannot be saved from it.</p>` : ''}
       ${!products.length ? html`<p class="note note-info" role="status">No product copy on this device yet. Connect to the internet once so it can download.</p>` : ''}`,
     );
   }
+  function syncSave() {
+    const btn = q('#eb-save');
+    if (!btn) return;
+    btn.disabled = !cart.lines.length || saving || device.status === 'deactivated';
+    btn.title = !cart.lines.length
+      ? 'Add items to save'
+      : device.status === 'deactivated'
+        ? 'This device has been switched off'
+        : 'Save invoice (asks for your PIN)';
+  }
+
+  async function registerThisDevice() {
+    if (navigator.onLine === false) return;
+    try {
+      const r = await registerDevice(getDeviceId(), deviceLabel());
+      device = { status: r?.status === 'deactivated' ? 'deactivated' : 'active' };
+    } catch {
+      /* stays unknown; saving tries again */
+    }
+    drawStatus();
+  }
+
+  async function save() {
+    if (saving || !cart.lines.length) return;
+    if (navigator.onLine === false) {
+      note = 'You are offline. Saving without internet comes in a later phase. Keep this bill open and save when you are back online.';
+      drawStatus();
+      return;
+    }
+    const t = totals();
+    if (
+      bill.mode === 'Cash' &&
+      payment(t.netTotal, bill.cash).due > 0 &&
+      !window.confirm('Cash received is less than the net total. Save anyway?')
+    )
+      return;
+    saving = true;
+    syncSave();
+    try {
+      if (device.status !== 'active') await registerThisDevice();
+      if (device.status === 'deactivated') return;
+      bill.invoiceId ||= newInvoiceId(); // made once per bill: a retry sends the same id, so it can never save twice
+      const invoice = buildInvoice({ cart, bill, totals: t, deviceId: getDeviceId(), invoiceId: bill.invoiceId });
+      let err = '';
+      for (;;) {
+        const v = await ask(q('#eb-dialog'), {
+          title: 'Enter your PIN to save',
+          intro: `Net total ${m2(t.netTotal)}`,
+          error: err,
+          confirm: 'Save',
+          fields: [{ id: 'pin', label: 'PIN', type: 'password', inputmode: 'numeric', maxlength: 6, autocomplete: 'one-time-code' }],
+        });
+        if (!v) return;
+        const r = await saveInvoice(invoice, v.pin);
+        if (r?.ok) {
+          saved = r.invoice_no;
+          note = '';
+          resetBill();
+          drawStatus();
+          return;
+        }
+        if (isPinRetry(r)) {
+          err = refusalText(r);
+          continue;
+        }
+        if (r?.code === 'device_inactive') device = { status: 'deactivated' };
+        note = refusalText(r);
+        drawStatus();
+        return;
+      }
+    } catch {
+      note = 'Could not reach the server. Your bill is still open; try again.';
+      drawStatus();
+    } finally {
+      saving = false;
+      syncSave();
+    }
+  }
+
   const tick = () => {
     const d = new Date();
     const f = (opts) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', ...opts }).format(d);
@@ -376,6 +469,10 @@ export async function mount(el, { ctx }) {
   };
 
   function add(product) {
+    if (saved) {
+      saved = null;
+      drawStatus();
+    }
     cart = addProduct(cart, product, { qty: bill.qty });
     bill.qty = 1;
     q('#eb-qty').value = '1';
@@ -406,6 +503,11 @@ export async function mount(el, { ctx }) {
 
   function newBill() {
     if (cart.lines.length && !window.confirm('Clear this bill? The items will be removed.')) return;
+    saved = null;
+    resetBill();
+    drawStatus();
+  }
+  function resetBill() {
     cart = emptyCart();
     bill = fresh();
     const set = (id, v) => {
@@ -441,6 +543,7 @@ export async function mount(el, { ctx }) {
     e.target.value = '';
   });
   q('[data-act="help"]').addEventListener('click', () => openHelp());
+  q('#eb-save').addEventListener('click', save);
   for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
   q('[data-act="new"]').addEventListener('click', newBill);
   const onF2 = (e) => {
@@ -531,6 +634,7 @@ export async function mount(el, { ctx }) {
   drawStatus();
   drawLines();
   q('#eb-sku').focus();
+  registerThisDevice(); // quietly, when online; the owner sees this device in Settings
   note = await refreshCopy(ctx); // the saved copy is usable at once; the refresh happens behind it
   await load();
   drawStatus();

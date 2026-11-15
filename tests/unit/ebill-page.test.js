@@ -49,6 +49,15 @@ vi.mock('../../js/modules/ebill/data/products.js', () => ({
   clock: () => '02:00 pm',
 }));
 
+vi.mock('../../js/modules/ebill/data/api.js', () => ({
+  registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),
+  saveInvoice: vi.fn(async () => ({ ok: true, code: 'saved', invoice_no: 'EB-261115-00001' })),
+}));
+vi.mock('../../js/modules/ebill/data/device.js', () => ({
+  getDeviceId: () => '20000000-0000-0000-0000-000000000001',
+  deviceLabel: () => 'Test device',
+}));
+
 const ctx = { user_id: 'u1', full_name: 'Test Staff', permissions: ['inventory.search'] };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -72,7 +81,8 @@ describe('registration', () => {
   it('is a valid, permission-gated manifest', () => {
     expect(manifest.id).toBe('ebill');
     expect(manifest.routes[0].path).toBe('/ebill');
-    expect(manifest.routes[0].permission).toBe('inventory.search');
+    expect(manifest.routes[0].permission).toBe('ebill.use');
+    expect(manifest.routes[1].anyOf).toEqual(['ebill.set_pin', 'ebill.manage']);
   });
 });
 
@@ -139,8 +149,12 @@ describe('billing screen', () => {
     unit.dispatchEvent(new Event('change', { bubbles: true }));
     expect(el.querySelector('#eb-net').textContent).toBe('50.00'); // 5 x pack of 10
   });
-  it('switches off what is not built yet instead of faking it', () => {
-    expect(el.querySelector('.btn-primary').disabled).toBe(true);
+  it('Save is off until there is something to save', () => {
+    expect(el.querySelector('#eb-save').disabled).toBe(true);
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    expect(el.querySelector('#eb-save').disabled).toBe(false);
   });
 });
 
@@ -192,6 +206,123 @@ describe('Candela-style layout details', () => {
     expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(0);
     expect(el.querySelector('#eb-customer').value).toBe('');
     expect(el.querySelector('#eb-net').textContent).toBe('0.00');
+    ask.mockRestore();
+  });
+});
+
+describe('saving', () => {
+  const api = () => import('../../js/modules/ebill/data/api.js');
+  const addOne = () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'A100';
+    key(sku, 'Enter'); // 90.00
+    type(el.querySelector('#eb-cash'), '100');
+  };
+  const pinBox = () => el.querySelector('#eb-dialog [data-f="pin"]');
+  const press = (act) => el.querySelector(`#eb-dialog [data-act="${act}"]`).click();
+
+  it('asks for the PIN, sends the bill with its own id, then clears the bill and shows the invoice number', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    el.querySelector('#eb-save').click();
+    await tick();
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    const [inv, pin] = saveInvoice.mock.calls[0];
+    expect(pin).toBe('482913');
+    expect(inv.invoice_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(inv.device_id).toBe('20000000-0000-0000-0000-000000000001');
+    expect(inv.totals.net_total).toBe(90);
+    expect(inv.lines).toHaveLength(1);
+    expect(el.querySelector('#eb-note').textContent).toContain('EB-261115-00001');
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(0);
+  });
+  it('a wrong PIN asks again with the same invoice id and keeps the bill', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    saveInvoice.mockResolvedValueOnce({ ok: false, code: 'bad_pin', message: 'Wrong PIN.' });
+    addOne();
+    el.querySelector('#eb-save').click();
+    await tick();
+    pinBox().value = '000001';
+    press('yes');
+    await tick();
+    await tick();
+    expect(el.querySelector('#eb-dialog').textContent).toContain('Wrong PIN.');
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(2);
+    expect(saveInvoice.mock.calls[0][0].invoice_id).toBe(saveInvoice.mock.calls[1][0].invoice_id);
+  });
+  it('cancelling the PIN prompt saves nothing and keeps the bill', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    el.querySelector('#eb-save').click();
+    await tick();
+    press('no');
+    await tick();
+    expect(saveInvoice).not.toHaveBeenCalled();
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
+  });
+  it('a refusal such as the discount limit shows plainly and keeps the bill', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockResolvedValueOnce({ ok: false, code: 'discount_limit' });
+    addOne();
+    el.querySelector('#eb-save').click();
+    await tick();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(el.querySelector('#eb-note').textContent).toContain('above your limit');
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
+  });
+  it('a network failure keeps the bill open and says so', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockRejectedValueOnce(new Error('network'));
+    addOne();
+    el.querySelector('#eb-save').click();
+    await tick();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(el.querySelector('#eb-note').textContent).toContain('Could not reach the server');
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
+  });
+  it('a deactivated device cannot save and says why', async () => {
+    const { registerDevice, saveInvoice } = await api();
+    saveInvoice.mockClear();
+    registerDevice.mockResolvedValueOnce({ ok: true, status: 'deactivated' });
+    document.body.replaceChildren();
+    el = document.createElement('div');
+    document.body.append(el);
+    const { mount } = await import('../../js/modules/ebill/ui/pos.js');
+    await mount(el, { ctx });
+    await tick();
+    addOne();
+    expect(el.querySelector('#eb-save').disabled).toBe(true);
+    expect(el.querySelector('#eb-note').textContent).toContain('switched off by the manager');
+    expect(saveInvoice).not.toHaveBeenCalled();
+  });
+  it('warns before saving a Cash bill with too little cash', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    type(el.querySelector('#eb-cash'), '10');
+    const ask = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+    el.querySelector('#eb-save').click();
+    await tick();
+    expect(ask).toHaveBeenCalled();
+    expect(el.querySelector('#eb-dialog [data-f="pin"]')).toBeNull();
     ask.mockRestore();
   });
 });
