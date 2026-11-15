@@ -38,6 +38,7 @@ export function snapshotRows(key, page) {
       return [
         ['System Cash Sales Total', M(i.sys_cash)],
         ['Last Bill Number', String(num(i.last_bill_no))],
+        ['Last Bill Amount', M(i.last_bill_amt)],
         ['Computer Card Sale', M(i.comp_sale)],
         ['Bank Alfalah Card Machine', M(i.alfalah)],
         ['Keenu Card Machine', M(i.keenu)],
