@@ -624,3 +624,33 @@
 :root[data-theme='dark'] .cls .cls-var-bad {
   background: #3a1814;
 }
+
+/* Closing-only view: the old app's chip row, and the hidden status bar / tabs. */
+.status-bar[hidden] {
+  display: none;
+}
+.cls-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 10px;
+  margin-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.cls-chip {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  border: 1px solid var(--line, #d7dee4);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.cls-chip:hover,
+.cls-chip:focus-visible {
+  border-color: var(--brand, #0f766e);
+  color: var(--brand, #0f766e);
+}

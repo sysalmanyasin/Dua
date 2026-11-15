@@ -524,7 +524,8 @@ export async function mount(el, { ctx } = {}) {
   const sectionPos = () =>
     html`<h2>1 · POS</h2>
       ${field('sys_cash', 'System Cash Sales Total')} ${field('last_bill_no', 'Last Bill Number')}
-      ${field('comp_sale', 'Computer Card Sale')} ${field('alfalah', 'Bank Alfalah Card Machine')} ${field('keenu', 'Keenu Card Machine')}
+      ${field('last_bill_amt', 'Last Bill Amount')} ${field('comp_sale', 'Computer Card Sale')}
+      ${field('alfalah', 'Bank Alfalah Card Machine')} ${field('keenu', 'Keenu Card Machine')}
       <h3 class="sec-label">Returns / Refunds</h3>
       ${field('ret_manual.0', 'Return 1', { cls: 'cls-return' })} ${field('ret_manual.1', 'Return 2', { cls: 'cls-return' })}
       ${field('ret_manual.2', 'Return 3', { cls: 'cls-return' })} ${field('ret_system', 'System Return', { cls: 'cls-return' })}

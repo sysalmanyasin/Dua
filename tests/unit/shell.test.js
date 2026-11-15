@@ -73,7 +73,7 @@ beforeEach(() => {
 
 describe('app shell', () => {
   it('a junior sees only permitted modules and the owner-only module is not routable', async () => {
-    stop = startShell(root, junior, manifests);
+    stop = startShell(root, junior, manifests, { focusModule: null });
     await tick();
     expect(navTitles(root)).toEqual(['Home', 'Closing', 'Broken']);
     location.hash = '#/access';
@@ -83,13 +83,13 @@ describe('app shell', () => {
   });
 
   it('the owner sees the access module', async () => {
-    stop = startShell(root, admin, manifests);
+    stop = startShell(root, admin, manifests, { focusModule: null });
     await tick();
     expect(navTitles(root)).toContain('Users & Access');
   });
 
   it('module code loads only when its page is opened', async () => {
-    stop = startShell(root, admin, manifests);
+    stop = startShell(root, admin, manifests, { focusModule: null });
     await tick();
     expect(loads).toMatchObject({ home: 1, closing: 0, access: 0 });
     location.hash = '#/closing';
@@ -99,7 +99,7 @@ describe('app shell', () => {
   });
 
   it('a switched-off module disappears and cannot be opened', async () => {
-    stop = startShell(root, { ...admin, modules_disabled: ['closing'] }, manifests);
+    stop = startShell(root, { ...admin, modules_disabled: ['closing'] }, manifests, { focusModule: null });
     await tick();
     expect(navTitles(root)).not.toContain('Closing');
     location.hash = '#/closing';
@@ -109,7 +109,7 @@ describe('app shell', () => {
 
   it('a module that crashes shows a message and the rest of the app keeps working', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    stop = startShell(root, admin, manifests);
+    stop = startShell(root, admin, manifests, { focusModule: null });
     await tick();
     location.hash = '#/broken';
     await tick();
@@ -135,7 +135,7 @@ describe('app shell', () => {
         ],
       },
     ];
-    stop = startShell(root, junior, m);
+    stop = startShell(root, junior, m, { focusModule: null });
     await tick();
     location.hash = '#/other';
     await tick();
@@ -146,7 +146,7 @@ describe('app shell', () => {
   });
 
   it('user-supplied names are escaped in the shell', async () => {
-    stop = startShell(root, { ...junior, full_name: '<img src=x onerror=alert(1)>' }, manifests);
+    stop = startShell(root, { ...junior, full_name: '<img src=x onerror=alert(1)>' }, manifests, { focusModule: null });
     await tick();
     expect(root.querySelector('img:not(.hdr-logo)')).toBeNull();
     expect(root.querySelector('.who strong').textContent).toBe('<img src=x onerror=alert(1)>');

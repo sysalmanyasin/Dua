@@ -2,7 +2,7 @@
 // Each module's pages are loaded on demand when their tab is opened.
 import { html, render } from '../shared/html.js';
 import { icon } from '../shared/icons.js';
-import { BRAND } from './config.js';
+import { BRAND, FOCUS_MODULE } from './config.js';
 import { log } from './logger.js';
 import { isUsable, routesFor, resolveModules } from './registry.js';
 import { startRouter } from './router.js';
@@ -21,14 +21,18 @@ const moduleTab = (m) => {
 };
 const pageTabs = (m) => titled(m).map((r) => html`<a class="nav-sub" href="#${r.path}" data-path="${r.path}">${r.title}</a>`);
 
-export function startShell(root, ctx, manifests) {
-  const modules = resolveModules(manifests, { permissions: ctx.permissions, disabled: ctx.modules_disabled });
+export function startShell(root, ctx, manifests, { focusModule = FOCUS_MODULE } = {}) {
+  const all = resolveModules(manifests, { permissions: ctx.permissions, disabled: ctx.modules_disabled });
+  const focus = focusModule && all.some((m) => m.id === focusModule) ? focusModule : null;
+  const modules = focus ? all.filter((m) => m.id === focus) : all;
   const routes = routesFor(modules);
+  // In focus mode the address bar always lands inside the focused module (the default #/home belongs to another module).
+  if (focus && !routes.some((r) => r.path === (location.hash.replace(/^#/, '') || '/'))) location.hash = `#${titled(modules[0])[0].path}`;
 
   render(
     root,
     html`<div class="app">
-      <div class="status-bar" id="status-bar"></div>
+      <div class="status-bar" id="status-bar" ${focus ? 'hidden' : ''}></div>
       <header class="hdr">
         <img class="hdr-logo" src="assets/icon.svg" width="38" height="38" alt="" />
         <div class="hdr-title"><strong>${BRAND.title}</strong><span id="hdr-sub">${BRAND.branch}</span></div>
@@ -37,7 +41,7 @@ export function startShell(root, ctx, manifests) {
           <button class="btn btn-ghost btn-sm" data-action="signout">${icon('logout')}<span>Sign out</span></button>
         </div>
       </header>
-      <nav class="tabs" aria-label="Sections">${modules.map(moduleTab)}</nav>
+      <nav class="tabs" aria-label="Sections" ${focus ? 'hidden' : ''}>${modules.map(moduleTab)}</nav>
       <nav class="tabs sub" id="subtabs" aria-label="Pages" hidden></nav>
       <main class="content" id="content" tabindex="-1"></main>
     </div>`,
@@ -52,7 +56,7 @@ export function startShell(root, ctx, manifests) {
   // A status pill may belong to a module the person has no page in (for example staff who may see only today's
   // Candela total), so pills are offered from every usable module, not only those that show a tab.
   const off = new Set(ctx.modules_disabled ?? []);
-  const pillOwners = manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
+  const pillOwners = focus ? [] : manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
   const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, pillOwners);
   let token = 0;
   let shownModule = null;
@@ -69,6 +73,12 @@ export function startShell(root, ctx, manifests) {
         const pages = titled(mod);
         subtabs.hidden = pages.length < 2;
         render(subtabs, html`${pageTabs(mod)}`);
+      }
+      // Focus mode: the page tabs are replaced by one "back" link, shown on every page except the module's first.
+      if (focus) {
+        const first = titled(mod)[0];
+        subtabs.hidden = route.path === first.path;
+        render(subtabs, html`<a class="nav-sub" href="#${first.path}">← ${first.title}</a>`);
       }
       subtabs.querySelectorAll('.nav-sub').forEach((l) => l.setAttribute('aria-current', String(l.dataset.path === route.path)));
       document.title = `${route.title ?? mod.title} · ${BRAND.title}`;

@@ -19,6 +19,10 @@ export function getConfig(loc = globalThis.location) {
   return { name, url, publishableKey, functionsUrl: url ? `${url}/functions/v1` : '', configured: Boolean(url && publishableKey) };
 }
 
+// While Closing is the only module staff use, the app shows only that module (no other tabs, no status pills).
+// Set to null to bring the full navigation back; nothing else changes.
+export const FOCUS_MODULE = 'closing';
+
 // Names shown in the header.
 export const BRAND = { title: "Fazal Din's Pharma Plus", branch: 'Bahria Town' };
 
