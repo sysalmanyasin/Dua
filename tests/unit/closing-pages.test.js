@@ -32,6 +32,15 @@ const api = {
     { id: 't1', kind: 'tier_name', tier_no: 1, label: 'Staff' },
   ]),
   readAuditRequired: vi.fn(async () => true),
+  readAudit: vi.fn(async () => ({
+    verified_at: '2026-11-10T10:00:00Z',
+    data_as_of: '2026-11-10T09:00:00Z',
+    codes_checked: 3,
+    not_found: [],
+    items: [],
+  })),
+  prevPage: vi.fn(async () => null),
+  ownBook: vi.fn(async () => []),
   setAuditRequired: vi.fn(async () => ({})),
   periodFor: vi.fn(async () => ({})),
   submit: vi.fn(async () => ({ already: false })),
@@ -237,6 +246,19 @@ describe('Closing ledger', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(api.submit).toHaveBeenCalledWith('k1');
     expect(el.textContent).toContain('Closing submitted');
+  });
+  it('sends you to the Inventory Audit instead of the review when the audit is required and not verified', async () => {
+    api.readAudit.mockImplementationOnce(async () => null);
+    openTarget();
+    await ledger();
+    el.querySelector('#cls-staff').value = 'st1';
+    el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(3000);
+    el.querySelector('[data-jump="13"]').click();
+    el.querySelector('[data-act="submit"]').click();
+    expect(document.querySelector('dialog')).toBeNull();
+    expect(el.querySelector('[data-jump="5"]').getAttribute('aria-current')).toBe('step');
+    expect(api.submit).not.toHaveBeenCalled();
   });
   it('maps a refusal to plain words and stays on the ledger', async () => {
     openTarget();
