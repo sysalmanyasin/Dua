@@ -1,0 +1,14 @@
+/* Candela Sales: print layout for the Reports page (everything except the report is hidden). */
+@media print {
+  .status-bar,
+  .hdr,
+  .tabs,
+  .hero-actions,
+  [data-act='print'] {
+    display: none !important;
+  }
+  .candela-print {
+    box-shadow: none;
+    border: 0;
+  }
+}

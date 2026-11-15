@@ -3,6 +3,8 @@ export default {
   title: 'Closing',
   icon: 'shield', // a ledger icon needs a Foundation request (js/shared/icons.js is Foundation)
   nav: { order: 20 },
+  blurb: 'Shift closing, ledgers and books',
+  hub: true, // its first page lists the other closing pages
   permission: null, // each page below says who may open it
   routes: [
     {
@@ -20,17 +22,24 @@ export default {
       load: () => import('./ui/ledger.js'),
     },
     {
+      path: '/closing/view',
+      title: 'Saved closing',
+      desc: 'A submitted closing, read only, with its PDF',
+      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct', 'closing.settings'],
+      load: () => import('./ui/view.js'),
+    },
+    {
       path: '/closing/credit',
       title: 'Credit Ledger',
       desc: 'Credit position stored with each submitted closing',
-      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct'],
+      anyOf: ['closing.view_all', 'closing.review', 'closing.correct'],
       load: () => import('./ui/credit.js'),
     },
     {
       path: '/closing/misc',
       title: 'Misc Ledger',
       desc: 'Open and closed misc charges, with their age',
-      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct'],
+      anyOf: ['closing.view_all', 'closing.review', 'closing.correct'],
       load: () => import('./ui/misc.js'),
     },
     {

@@ -16,12 +16,27 @@ export const emptyRow = (extra = {}) => ({ id: rowId(), deleted: false, ...extra
 
 export const TIER_SLOTS = 3;
 const blankTier = () => ({ id: rowId(), line_id: null, label: '', amount: '' });
-const namedLine = (a) => ({ id: rowId(), line_id: null, account_id: a.id, label: a.label, amount: '', deleted: false });
+const namedLine = (a) => ({ id: rowId(), line_id: null, account_id: a.id, label: a.label, desc: '', amount: '', deleted: false });
+/** One more entry for a named account (the old app let an account have several, each with an optional description). */
+export const namedEntry = (accountId, label) => ({
+  id: rowId(),
+  line_id: null,
+  account_id: accountId,
+  label,
+  desc: '',
+  amount: '',
+  deleted: false,
+});
+// A named line is saved with the label "Account — description" (no database change); on loading it is split again.
+const NAMED_SEP = ' — ';
+export const namedLabel = (r) =>
+  String(r.desc ?? '').trim() ? `${r.label.trim()}${NAMED_SEP}${String(r.desc).trim()}`.slice(0, 120) : r.label.trim();
 
 export function emptyForm(catalogue = [], accounts = []) {
   return {
     sys_cash: '',
     last_bill_no: '',
+    last_bill_amt: '',
     comp_sale: '',
     alfalah: '',
     keenu: '',
@@ -59,6 +74,7 @@ export function formFromRow(row, catalogue = [], accounts = []) {
   const f = emptyForm([], []);
   f.sys_cash = amountText(row.sys_cash);
   f.last_bill_no = amountText(row.last_bill_no);
+  f.last_bill_amt = amountText(row.last_bill_amt);
   f.comp_sale = amountText(row.comp_sale);
   f.alfalah = amountText(row.alfalah);
   f.keenu = amountText(row.keenu);
@@ -134,8 +150,15 @@ export function formFromRow(row, catalogue = [], accounts = []) {
   });
   const savedNamed = lines.filter((r) => r.kind === 'named').sort(bySort);
   const haveAcc = new Set(savedNamed.map((r) => r.account_id));
+  const accLabel = (id) => accounts.find((a) => a.id === id)?.label;
   f.credit.named = [
-    ...savedNamed.map((r) => ({ ...line(r), account_id: r.account_id })),
+    ...savedNamed.map((r) => {
+      const l = line(r);
+      const base = accLabel(r.account_id);
+      if (base && l.label.startsWith(base + NAMED_SEP))
+        return { ...l, account_id: r.account_id, label: base, desc: l.label.slice(base.length + NAMED_SEP.length) };
+      return { ...l, account_id: r.account_id, desc: '' };
+    }),
     ...accounts.filter((a) => a.kind === 'named' && !haveAcc.has(a.id)).map(namedLine),
   ];
   f.credit.tier = Array.from({ length: TIER_SLOTS }, (_, i) => {
@@ -178,6 +201,7 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
   const payload = {
     sys_cash: n('sys_cash'),
     last_bill_no: num(form.last_bill_no, invalid, 'last_bill_no', { quantity: true }),
+    last_bill_amt: n('last_bill_amt'),
     comp_sale: n('comp_sale'),
     alfalah: n('alfalah'),
     keenu: n('keenu'),
@@ -239,13 +263,17 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
     .map(({ r, i }) => ({ label: r.label.trim(), amount: num(r.amount, invalid, `deposits.${i}.amount`), deleted: r.deleted }));
   const lastTier = form.credit.tier.reduce((last, t, i) => (String(t.label).trim() || String(t.amount).trim() ? i : last), -1);
   payload.credit = {
-    named: form.credit.named.map((r, i) => ({
-      ...(r.line_id ? { line_id: r.line_id } : {}),
-      account_id: r.account_id,
-      label: r.label.trim(),
-      amount: num(r.amount, invalid, `credit.named.${i}.amount`),
-      deleted: r.deleted,
-    })),
+    // each account keeps its first line even when empty; further entries are saved only when something was typed
+    named: form.credit.named
+      .map((r, i) => ({ r, i, first: form.credit.named.findIndex((x) => x.account_id === r.account_id) === i }))
+      .filter(({ r, first }) => first || r.line_id || !isBlank(r, ['desc', 'amount']))
+      .map(({ r, i }) => ({
+        ...(r.line_id ? { line_id: r.line_id } : {}),
+        account_id: r.account_id,
+        label: namedLabel(r),
+        amount: num(r.amount, invalid, `credit.named.${i}.amount`),
+        deleted: r.deleted,
+      })),
     tier: form.credit.tier.slice(0, lastTier + 1).map((r, i) => ({
       ...(r.line_id ? { line_id: r.line_id } : {}),
       label: r.label.trim(),

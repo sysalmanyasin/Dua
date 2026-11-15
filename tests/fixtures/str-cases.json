@@ -1,0 +1,29 @@
+{
+  "_note": "Invented figures. pack: loose qty and the raw factor -> expected pack qty. Shared with the database tests and, later, with Inventory's in-transit parity check. Use whole-number factors only: JS floors a float division, SQL numeric is exact.",
+  "pack": [
+    { "loose": 25, "factor": 10, "pack": 2 },
+    { "loose": 9, "factor": 10, "pack": 0 },
+    { "loose": 10, "factor": 10, "pack": 1 },
+    { "loose": 0, "factor": 10, "pack": 0 },
+    { "loose": null, "factor": 10, "pack": null },
+    { "loose": 7, "factor": 0, "pack": 7 },
+    { "loose": 7, "factor": -3, "pack": 7 },
+    { "loose": 7, "factor": null, "pack": 7 },
+    { "loose": 7, "factor": "abc", "pack": 7 },
+    { "loose": -5, "factor": 10, "pack": -1 },
+    { "loose": "12", "factor": "4", "pack": 3 },
+    { "loose": 100, "factor": 1, "pack": 100 }
+  ],
+  "zero": [
+    { "stage": "dispatched", "strQty": 10, "dispatchQty": 0, "zero": true },
+    { "stage": "dispatched", "strQty": 10, "dispatchQty": null, "zero": true },
+    { "stage": "received", "strQty": 10, "dispatchQty": 0, "zero": true },
+    { "stage": "awaited", "strQty": 10, "dispatchQty": null, "zero": false },
+    { "stage": "awaited", "strQty": 10, "dispatchQty": 0, "zero": false },
+    { "stage": "dispatched", "strQty": 10, "dispatchQty": 4, "zero": false },
+    { "stage": "dispatched", "strQty": 10, "dispatchQty": 1, "zero": false },
+    { "stage": "dispatched", "strQty": 10, "dispatchQty": 10, "zero": false },
+    { "stage": "dispatched", "strQty": 0, "dispatchQty": 0, "zero": false },
+    { "stage": "dispatched", "strQty": 5, "dispatchQty": 0, "zero": true }
+  ]
+}

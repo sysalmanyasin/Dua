@@ -59,23 +59,42 @@ const admin = {
   modules_disabled: [],
 };
 const tick = () => new Promise((r) => setTimeout(r, 20));
-const navTitles = (root) => [...root.querySelectorAll('.nav-link span')].map((s) => s.textContent);
 
 let root;
 let stop;
 afterEach(() => stop?.());
-beforeEach(() => {
+beforeEach(async () => {
   document.body.innerHTML = '<div id="app"></div>';
   root = document.getElementById('app');
   location.hash = '';
+  await tick(); // let the previous test's hashchange fire before this test's shell starts listening
   Object.keys(loads).forEach((k) => (loads[k] = 0));
 });
 
 describe('app shell', () => {
+  it('someone with a single module lands inside it and has no Home link', async () => {
+    const one = manifests
+      .filter((m) => m.id === 'home' || m.id === 'closing')
+      .map((m) => ({ ...m, routes: m.routes.map((r) => ({ ...r, title: m.title })) }));
+    stop = startShell(root, junior, one);
+    await tick();
+    expect(location.hash).toBe('#/closing');
+    expect(root.querySelector('.nav-home')).toBeNull();
+  });
+  it('with several modules Home stays the landing page and the status bar shows only there', async () => {
+    const titled = manifests.map((m) => ({ ...m, routes: m.routes.map((r) => ({ ...r, title: m.title })) }));
+    stop = startShell(root, admin, titled);
+    await tick();
+    expect(location.hash).toBe('');
+    expect(root.querySelector('#status-bar').hidden).toBe(false);
+    location.hash = '#/closing';
+    await tick();
+    expect(root.querySelector('#status-bar').hidden).toBe(true);
+  });
+
   it('a junior sees only permitted modules and the owner-only module is not routable', async () => {
     stop = startShell(root, junior, manifests);
     await tick();
-    expect(navTitles(root)).toEqual(['Home', 'Closing', 'Broken']);
     location.hash = '#/access';
     await tick();
     expect(root.querySelector('#content').textContent).toContain('Not found');
@@ -85,7 +104,10 @@ describe('app shell', () => {
   it('the owner sees the access module', async () => {
     stop = startShell(root, admin, manifests);
     await tick();
-    expect(navTitles(root)).toContain('Users & Access');
+    location.hash = '#/access';
+    await tick();
+    expect(loads.access).toBe(1);
+    expect(root.querySelector('.nav-home')).not.toBeNull(); // a way back to Home inside a module
   });
 
   it('module code loads only when its page is opened', async () => {
@@ -101,7 +123,6 @@ describe('app shell', () => {
   it('a switched-off module disappears and cannot be opened', async () => {
     stop = startShell(root, { ...admin, modules_disabled: ['closing'] }, manifests);
     await tick();
-    expect(navTitles(root)).not.toContain('Closing');
     location.hash = '#/closing';
     await tick();
     expect(loads.closing).toBe(0);

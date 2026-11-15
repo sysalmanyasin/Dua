@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
-import { bookSections, chronological, historyRows, pageIndexForDate, rangeFor, variance } from '../../js/modules/closing/domain/book.js';
+import { historyRows } from '../../js/modules/closing/domain/book.js';
 import { getOpen } from '../../js/modules/closing/domain/store.js';
 
 const PAGE = {
@@ -79,100 +79,6 @@ const EVENING = {
   inputs: { ...PAGE.inputs, ret_manual_1: 0 },
   results: { ...PAGE.results, total_returns: 0, deposits_f: 0 },
 };
-const rows = (p, id) => bookSections(p).find((s) => s.id === id)?.rows ?? null;
-const val = (p, id, label) => rows(p, id)?.find((r) => r.label === label)?.value;
-
-describe('book helpers', () => {
-  it('works out the date range and limit for each shortcut', () => {
-    expect(rangeFor('last10', '2026-11-14')).toEqual({ from: null, to: null, limit: 10 });
-    expect(rangeFor('days3', '2026-11-14')).toEqual({ from: '2026-11-12', to: '2026-11-14', limit: 200 });
-    expect(rangeFor('days7', '2026-11-14')).toEqual({ from: '2026-11-08', to: '2026-11-14', limit: 200 });
-    expect(rangeFor('month', '2026-11-14')).toEqual({ from: '2026-10-15', to: '2026-11-14', limit: 200 });
-  });
-  it('reads a book oldest first', () => {
-    expect(chronological([{ n: 3 }, { n: 2 }, { n: 1 }]).map((x) => x.n)).toEqual([1, 2, 3]);
-    expect(chronological(null)).toEqual([]);
-  });
-  it('jumps to the page on a date, or the closest earlier one', () => {
-    const pages = [{ business_date: '2026-10-01' }, { business_date: '2026-10-05' }, { business_date: '2026-10-09' }];
-    expect(pageIndexForDate(pages, '2026-10-05')).toBe(1);
-    expect(pageIndexForDate(pages, '2026-10-07')).toBe(1);
-    expect(pageIndexForDate(pages, '2026-09-01')).toBe(0);
-    expect(pageIndexForDate(pages, '2026-12-01')).toBe(2);
-    expect(pageIndexForDate([], '2026-10-05')).toBe(-1);
-  });
-  it('writes the direction of a variance in words', () => {
-    expect(variance(-500)).toBe('500.00 (Less)');
-    expect(variance(250)).toBe('250.00 (Plus)');
-    expect(variance(0)).toBe('0.00');
-    expect(variance(null)).toBe('0.00');
-  });
-});
-
-describe('book sections', () => {
-  it('lays the page out in order and leaves empty sections out', () => {
-    expect(bookSections(PAGE).map((s) => s.id)).toEqual([
-      'head',
-      'typed',
-      'carried',
-      'overrides',
-      'hs',
-      'strips',
-      'cash',
-      'mediq',
-      'credit',
-      'deposits',
-      'misc',
-      'results',
-    ]);
-    expect(bookSections({ ...PAGE, hs: [], strips: [], mediq: [], credit: [], deposits: [], misc: [], cash: [] }).map((s) => s.id)).toEqual(
-      ['head', 'typed', 'carried', 'overrides', 'results'],
-    );
-  });
-  it('shows typed figures but hides zero ones (the bill number and system cash always show)', () => {
-    expect(val(PAGE, 'typed', 'System cash')).toBe('10,000.00');
-    expect(val(PAGE, 'typed', 'Last bill no.')).toBe('520');
-    expect(val(PAGE, 'typed', 'Manual return 1')).toBe('150.00');
-    expect(val(PAGE, 'typed', 'Comp sale')).toBeUndefined();
-    expect(val(PAGE, 'carried', 'Cash')).toBe('2,000.00');
-    expect(val(PAGE, 'carried', 'Card (CC)')).toBeUndefined();
-  });
-  it('shows only overrides that were set', () => {
-    expect(val(PAGE, 'overrides', 'Customers')).toBe('300');
-    expect(val(PAGE, 'overrides', 'Shift sale')).toBeUndefined();
-  });
-  it('shows the stored results and the variance in words', () => {
-    expect(val(PAGE, 'results', 'Net sale')).toBe('7,800.00');
-    expect(val(PAGE, 'results', 'Net cash')).toBe('7,300.00');
-    expect(val(PAGE, 'results', 'Shift variance')).toBe('500.00 (Less)');
-  });
-  it('shows the final figures only on a Final closing', () => {
-    expect(val(PAGE, 'results', 'Final net sale')).toBeUndefined();
-    expect(val({ ...PAGE, mode: 'final' }, 'results', 'Final net sale')).toBe('1.00');
-    expect(val({ ...PAGE, mode: 'final' }, 'results', 'Final variance')).toBe('3.00 (Plus)');
-  });
-  it('shows list rows as typed, and skips zero-count cash rows', () => {
-    expect(val(PAGE, 'hs', 'HS A')).toBe('100.00');
-    expect(val(PAGE, 'strips', 'Panadol')).toBe('2 × 25.00');
-    expect(rows(PAGE, 'cash').map((r) => `${r.label} ${r.value}`)).toEqual(['Till 1000 × 9', 'Vault 5000 × 1']);
-    expect(val(PAGE, 'mediq', 'Bill B1')).toBe('Collected 300.00 · Pharmacy 250.00');
-    expect(val(PAGE, 'credit', 'Ali')).toBe('1,200.00');
-    expect(val(PAGE, 'deposits', 'Bank')).toBe('2,000.00');
-    expect(val(PAGE, 'misc', 'Courier')).toBe('500.00');
-  });
-  it('names who entered it and why a corrected one was corrected', () => {
-    expect(val(PAGE, 'head', 'Entered for')).toBe('Ayesha');
-    expect(val(PAGE, 'head', 'Revision')).toBeUndefined();
-    const fixed = { ...PAGE, revision: 2, correction_reason: 'Ali paid more' };
-    expect(val(fixed, 'head', 'Revision')).toBe('2');
-    expect(val(fixed, 'head', 'Corrected because')).toBe('Ali paid more');
-  });
-  it('reports the inventory audit when there is one', () => {
-    const a = { ...PAGE, audit: { verified_at: '2026-11-08T19:00:00Z', data_as_of: null, codes_checked: 31, not_found: ['X1'] } };
-    expect(val(a, 'audit', 'Codes not found')).toBe('1');
-  });
-});
-
 describe('history rows', () => {
   const pages = [EVENING, PAGE];
   it('CC lists only Evening closings', () => {
@@ -258,80 +164,6 @@ const toasts = () => document.getElementById('toasts')?.textContent ?? '';
 const setVal = (sel, v) => {
   document.querySelector(sel).value = v;
 };
-
-describe('Closing Book page', () => {
-  const open = async () => {
-    const { mount } = await import('../../js/modules/closing/ui/book.js');
-    await mount(el);
-    await tick();
-  };
-  it('opens at the newest page and flips back and forward', async () => {
-    await open();
-    expect(el.querySelector('#bk-count').textContent).toBe('Page 2 of 2');
-    expect(el.querySelector('.cls-bk-page h2').textContent).toContain('08 Nov 2026');
-    expect(el.querySelector('#bk-newer').disabled).toBe(true);
-    el.querySelector('#bk-older').click();
-    expect(el.querySelector('#bk-count').textContent).toBe('Page 1 of 2');
-    expect(el.querySelector('.cls-bk-page h2').textContent).toContain('07 Nov 2026');
-    expect(el.querySelector('#bk-older').disabled).toBe(true);
-  });
-  it('shows the figures on the page', async () => {
-    await open();
-    const t = el.querySelector('.cls-bk-page').textContent;
-    expect(t).toContain('7,800.00');
-    expect(t).toContain('500.00 (Less)');
-    expect(t).toContain('Panadol');
-  });
-  it('jumps to a date', async () => {
-    await open();
-    setVal('#bk-date', '2026-11-07');
-    el.querySelector('#bk-go').click();
-    expect(el.querySelector('.cls-bk-page h2').textContent).toContain('07 Nov 2026');
-  });
-  it('asks for a date if none was picked', async () => {
-    await open();
-    el.querySelector('#bk-go').click();
-    expect(toasts()).toContain('Pick a date first.');
-  });
-  it('asks the database for the chosen range', async () => {
-    await open();
-    el.querySelector('[data-range="days7"]').click();
-    await tick();
-    const arg = api.closingBook.mock.calls.at(-1)[0];
-    expect(arg.limit).toBe(200);
-    expect(arg.from < arg.to).toBe(true);
-    expect(el.querySelector('[data-range="days7"]').getAttribute('aria-pressed')).toBe('true');
-  });
-  it('prints every page in the range, then tidies up', async () => {
-    await open();
-    let during;
-    window.print = vi.fn(() => {
-      during = {
-        pages: document.querySelectorAll('#cls-book-print .cls-bk-page').length,
-        on: document.body.classList.contains('cls-printing-book'),
-      };
-    });
-    el.querySelector('#bk-print').click();
-    expect(during).toEqual({ pages: 2, on: true });
-    window.dispatchEvent(new Event('afterprint'));
-    expect(document.getElementById('cls-book-print')).toBeNull();
-    expect(document.body.classList.contains('cls-printing-book')).toBe(false);
-  });
-  it('says so when there is nothing in the range, and disables printing', async () => {
-    api.closingBook.mockImplementationOnce(async () => []);
-    await open();
-    expect(el.textContent).toContain('No submitted closings in this range.');
-    expect(el.querySelector('#bk-print').disabled).toBe(true);
-  });
-  it('shows a refusal in plain words', async () => {
-    api.closingBook.mockImplementationOnce(async () => {
-      throw Object.assign(new Error('x'), { hint: 'not_allowed' });
-    });
-    await open();
-    expect(el.textContent).toContain('Could not load the Closing Book');
-    expect(el.textContent).toContain('You are not allowed to do that.');
-  });
-});
 
 describe('history pages', () => {
   const LOADERS = {

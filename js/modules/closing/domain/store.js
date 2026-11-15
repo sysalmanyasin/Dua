@@ -24,3 +24,8 @@ export const saveLocal = (key, state) =>
   safe(() => localStorage.setItem(draftKey(key), JSON.stringify({ ...state, savedAt: new Date().toISOString() })));
 export const loadLocal = (key) => safe(() => JSON.parse(localStorage.getItem(draftKey(key)) || 'null'));
 export const clearLocal = (key) => safe(() => localStorage.removeItem(draftKey(key)));
+
+/** Which submitted closing the read-only page should show: { id }. */
+const VIEW_KEY = 'dua.closing.view';
+export const setView = (target) => safe(() => sessionStorage.setItem(VIEW_KEY, JSON.stringify(target)));
+export const getView = () => safe(() => JSON.parse(sessionStorage.getItem(VIEW_KEY) || 'null'));

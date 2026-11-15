@@ -108,7 +108,7 @@ describe('tiles', () => {
       { id: 'sales', title: 'Sales', icon: 'chart', routes: [{ path: '/sales', title: 'Index', desc: 'x' }, { path: '/sales/hidden' }] },
       { id: 'empty', title: 'Empty', icon: 'chart', routes: [{ path: '/e' }] },
     ]);
-    expect(t).toEqual([{ id: 'sales', title: 'Sales', icon: 'chart', pages: [{ title: 'Index', desc: 'x', href: '#/sales' }] }]);
+    expect(t).toEqual([{ id: 'sales', title: 'Sales', icon: 'chart', blurb: '', pages: [{ title: 'Index', desc: 'x', href: '#/sales' }] }]);
   });
 });
 

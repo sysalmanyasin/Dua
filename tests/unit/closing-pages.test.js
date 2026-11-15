@@ -32,6 +32,15 @@ const api = {
     { id: 't1', kind: 'tier_name', tier_no: 1, label: 'Staff' },
   ]),
   readAuditRequired: vi.fn(async () => true),
+  readAudit: vi.fn(async () => ({
+    verified_at: '2026-11-10T10:00:00Z',
+    data_as_of: '2026-11-10T09:00:00Z',
+    codes_checked: 3,
+    not_found: [],
+    items: [],
+  })),
+  prevPage: vi.fn(async () => null),
+  ownBook: vi.fn(async () => []),
   setAuditRequired: vi.fn(async () => ({})),
   periodFor: vi.fn(async () => ({})),
   submit: vi.fn(async () => ({ already: false })),
@@ -87,6 +96,13 @@ describe('Closing start page', () => {
     el.querySelector('[data-act="continue"]').click();
     expect(JSON.parse(sessionStorage.getItem('dua.closing.open'))).toMatchObject({ key: 'kd', date: '2026-11-09', kind: 'evening' });
     expect(location.hash).toBe('#/closing/ledger');
+  });
+  it('keeps Credit and Misc ledgers off the ordinary staff closing home', async () => {
+    await start(['closing.enter_own']);
+    expect(el.textContent).not.toContain('Credit Ledger');
+    expect(el.textContent).not.toContain('Misc Ledger');
+    await start(['closing.enter_own', 'closing.view_all']);
+    expect(el.textContent).toContain('Credit Ledger');
   });
   it('shows the opening card only to someone who may change closing settings', async () => {
     await start();
@@ -230,6 +246,19 @@ describe('Closing ledger', () => {
     expect(api.submit).toHaveBeenCalledWith('k1');
     expect(el.textContent).toContain('Closing submitted');
   });
+  it('sends you to the Inventory Audit instead of the review when the audit is required and not verified', async () => {
+    api.readAudit.mockImplementationOnce(async () => null);
+    openTarget();
+    await ledger();
+    el.querySelector('#cls-staff').value = 'st1';
+    el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(3000);
+    el.querySelector('[data-jump="13"]').click();
+    el.querySelector('[data-act="submit"]').click();
+    expect(document.querySelector('dialog')).toBeNull();
+    expect(el.querySelector('[data-jump="5"]').getAttribute('aria-current')).toBe('step');
+    expect(api.submit).not.toHaveBeenCalled();
+  });
   it('maps a refusal to plain words and stays on the ledger', async () => {
     openTarget();
     await ledger();
@@ -246,6 +275,46 @@ describe('Closing ledger', () => {
     expect(el.textContent).not.toContain('Closing submitted');
     expect(document.getElementById('toasts').textContent.length).toBeGreaterThan(5);
   });
+
+  it('supports horizontal swipe navigation while ignoring vertical scrolling and form controls', async () => {
+    openTarget();
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = vi.fn();
+    try {
+      await ledger();
+      const touch = (type, x, y) => {
+        const event = new Event(type, { bubbles: true });
+        Object.defineProperty(event, type === 'touchstart' ? 'touches' : 'changedTouches', {
+          value: [{ clientX: x, clientY: y }],
+        });
+        el.querySelector('.cls-sec').dispatchEvent(event);
+      };
+
+      touch('touchstart', 180, 100);
+      touch('touchend', 100, 105);
+      expect(el.querySelector('[data-jump="1"]').getAttribute('aria-current')).toBe('step');
+
+      touch('touchstart', 100, 100);
+      touch('touchend', 180, 105);
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+
+      touch('touchstart', 180, 100);
+      touch('touchend', 100, 170); // vertical scroll, not a section swipe
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+
+      const input = el.querySelector('#f-sys_cash');
+      const start = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(start, 'touches', { value: [{ clientX: 180, clientY: 100 }] });
+      input.dispatchEvent(start);
+      const end = new Event('touchend', { bubbles: true });
+      Object.defineProperty(end, 'changedTouches', { value: [{ clientX: 100, clientY: 105 }] });
+      input.dispatchEvent(end);
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+    } finally {
+      window.scrollTo = originalScrollTo;
+    }
+  });
+
   it('shows the opening figures only on the opening closing', async () => {
     openTarget({ opening: true, mode: 'final' });
     api.loadById.mockImplementationOnce(async () => ({

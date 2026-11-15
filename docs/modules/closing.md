@@ -1,4 +1,4 @@
-> **Status note (14 Nov 2026):** Sessions A to D are on `main`: the 14-section guided ledger and submit, the Credit and Misc ledgers (visible to cashiers, manager and owner) with the 3-inch receipt, `closing_credit_feed`, the Closing Book with print and Save as PDF, CC / RBD / MEDIQ history, Review with reopen-to-correct, and the settings screen (migrations `0201` to `0209`; `0207` to `0209` still to be applied live). Still to build: the Register Book (needs a definition from the owner) and the Inventory Audit card (Session E). See `docs/modules/closing.progress.md`.
+> **Status note (14 Nov 2026):** Sessions A to D are on `main`: the 14-section guided ledger and submit, the Credit and Misc ledgers (visible to cashiers, manager and owner) with the 3-inch receipt, `closing_credit_feed`, the Closing Book with print and Save as PDF, CC / RBD / MEDIQ history, Review with reopen-to-correct, and the settings screen (migrations `0201` to `0211`, all applied live). The Closing Book makes the old printed register as a PDF inside the app, and section 6 is the Inventory Audit card. Nothing is left to build; the module waits for the owner's phone try-outs and acceptance. See `docs/modules/closing.progress.md`.
 
 Status: **Building** (slices C1 + database part of C2–C4 done; no screens yet) · Owner approval: yes (9 Nov 2026, "go")
 Branch: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
@@ -123,5 +123,21 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 **Read `docs/modules/closing.next-session.md` first: it is the work order (state, owner questions, review gaps, slice plan, payload and function reference, start prompt).**
 
 - Done: pure maths, tables and RLS (`0201`), draft / submit / correct and carry-forward (`0202`), hardening and the owner decisions CLS-6 to CLS-14 (`0203`), the period roll-up (`0204`), trigger grants (`0205`), the credit feed and ledger functions (`0206`). Screens: start page, guided ledger sections 1–14, submit and success screen, Credit Ledger, Misc Ledger. All of `0201`–`0206` are applied to the live project.
-- Not built: the Register Book (undefined), the Inventory Audit card (until it exists, an owner switches the audit requirement off with a reason). Books, history, review and settings are built but not yet tried on a phone, and `0207` to `0209` are not yet applied live.
+- Not built: the Register Book (undefined), the Inventory Audit card (until it exists, an owner switches the audit requirement off with a reason). Books, history, review and settings are built but not yet tried on a phone.
 - Read `docs/modules/closing.progress.md` (Session C handoff) for the open owner questions and the try-out checklists.
+
+## Familiar-to-the-old-app additions (branch `feature/closing-familiar-ux`)
+
+- **Strips:** catalogue items show a fixed name and price under their group header; staff type only the quantity. Extra items stay editable.
+- **± on every credit row** (named, tier, free), as well as Credit Adjustment.
+- **Named credit accounts** can have several entries, each with an optional description. Saved as the label `Account — description`, so no schema change.
+- **Submit review:** target, net cash and Plus/Less (up to Rs. 100 fine, up to Rs. 1,000 warning, above that bad), responsible person, sections not opened. If the audit is required and not verified, it jumps to Inv Audit.
+- **Previous closing card** under every section, **View all**, **Save as Draft**, select-all on focus.
+- **Start page:** month calendar with shift dots, the day's closings, Saved records (Continue / Open / PDF).
+- **Read-only saved closing** (`/closing/view`) and PDF / print after Submit, for staff too.
+- **Needs migration `0212_closing_own_book.sql`** (read-only RPCs `closing_book_own`, `closing_prev_page`). Without it the previous-closing card, Open and PDF show nothing or an error; everything else works.
+
+## Last Bill Amount and Closing-only view
+- Migration 0213 adds `closings.last_bill_amt` (typed on the POS section, shown on the printed sheet and the previous-shift card; never used in a calculation). `closing_apply_payload`, `closing_correct` and `closing_reopen` carry it.
+- Home is a launcher: one tile per module the person may use (every current and future module, by permission). Someone with a single module lands inside it with no Home link. Inside a module a "‹ Home" link replaces the module tab row; a module with `hub: true` (Closing) shows only "← Closing" on inner pages because its start page lists the rest. The status bar shows on Home only.
+- The entry screen has "‹ Back to days", which saves the draft first.
