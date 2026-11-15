@@ -115,7 +115,6 @@ describe('shell: a pill without a tab', () => {
       root,
       { permissions: ['candela.today_total'], modules_disabled: [], full_name: 'T', role: 'junior' },
       manifests,
-      { focusModule: null },
     );
     await flush();
     expect(root.querySelector('.status-bar').textContent).toContain('Candela today');

@@ -742,6 +742,7 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="cls">
+        <p class="cls-backrow"><button type="button" class="btn btn-sm" data-act="leave">‹ Back to days</button></p>
         ${hero({
           label: 'Closing',
           title: `${slotLabel(S.kind, S.seq)} closing`,
@@ -781,6 +782,7 @@ export async function mount(el, { ctx } = {}) {
           <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
           <button type="button" class="btn" data-act="viewall">⊞ View all</button>
         </div>
+        <p class="cls-meta">Back to days saves your draft first. Continue it later from the calendar or Saved records.</p>
         <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>← Back</button>
@@ -967,6 +969,12 @@ export async function mount(el, { ctx } = {}) {
     if (act === 'submit') return askSubmit();
     if (act === 'viewall') return viewAll();
     if (act === 'pdf' || act === 'pdf-open') return sheetPdf(act === 'pdf-open');
+    if (act === 'leave') {
+      return (S.status === 'saved' ? Promise.resolve() : doSave()).then(() => {
+        const kept = S.status === 'saved' || S.status === 'offline';
+        if (kept || globalThis.confirm('Your latest changes could not be saved. Leave anyway?')) location.hash = '#/closing';
+      });
+    }
     if (act === 'draft') {
       return doSave().then(() => {
         if (S.status === 'saved') toast('Draft saved ✓');

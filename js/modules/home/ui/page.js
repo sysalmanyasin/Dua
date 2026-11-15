@@ -81,15 +81,18 @@ export async function mount(el, { ctx, modules = [] }) {
             </section>`
           : ''
       }
-      ${tiles.map(
-        (g) =>
-          html`<section class="tiles-group">
-            <h2 class="sec-label">${g.title}</h2>
-            <div class="tiles">
-              ${g.pages.map((p) => html`<a class="tile" href="${p.href}"><span class="tile-ic">${icon(g.icon)}</span><span class="tile-t">${p.title}</span><span class="tile-d">${p.desc}</span></a>`)}
-            </div>
-          </section>`,
-      )}
+      <section class="tiles-group">
+        <h2 class="sec-label">Open</h2>
+        <div class="tiles">
+          ${tiles.map(
+            (g) =>
+              html`<a class="tile" href="${g.pages[0].href}"
+                ><span class="tile-ic">${icon(g.icon)}</span><span class="tile-t">${g.title}</span
+                ><span class="tile-d">${g.blurb || g.pages[0].desc}</span></a
+              >`,
+          )}
+        </div>
+      </section>
       <p class="small muted center">${ctx.username} · ${ctx.permissions.length} permission${ctx.permissions.length === 1 ? '' : 's'}</p>`,
   );
 
