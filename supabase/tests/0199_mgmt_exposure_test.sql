@@ -13,7 +13,10 @@ do $t$ declare bad text; n int;
     'mgmt_rates_list','mgmt_rate_set','mgmt_salary_columns','mgmt_salary_column_add','mgmt_salary_column_retire',
     'mgmt_generic_month','mgmt_generic_save','mgmt_salary_month','mgmt_salary_save','mgmt_sheet_close',
     'mgmt_incentive_month','mgmt_incentive_save',
-    'mgmt_petty_month','mgmt_petty_save','mgmt_petty_copy'];
+    'mgmt_petty_month','mgmt_petty_save','mgmt_petty_copy',
+    'mgmt_ledgers_list','mgmt_ledger_view','mgmt_ledger_add','mgmt_ledger_reverse','mgmt_ledger_section_create','mgmt_ledger_category_add',
+    'mgmt_ledger_category_retire','mgmt_tally_accounts_list','mgmt_tally_account_add','mgmt_tally_account_retire','mgmt_tally_get',
+    'mgmt_tally_list','mgmt_tally_save'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');
