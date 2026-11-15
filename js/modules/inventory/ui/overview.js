@@ -53,6 +53,23 @@ export async function mount(el, { ctx }) {
     drawResults();
   }
 
+  // links to the other Inventory screens this person may open
+  function menu() {
+    const perms = new Set(ctx.permissions);
+    const items = [
+      ['inventory.view', '#/inventory/ledger', 'Stock Ledger', 'Never sold, dead stock, excess'],
+      ['inventory.view', '#/inventory/reorder', 'Reorder', 'What to buy'],
+      ['inventory.view', '#/inventory/excess', 'Excess Working', 'Whole packs you do not need'],
+      ['inventory.view', '#/inventory/health', 'Health', 'Where the stock stands'],
+      ['inventory.sync', '#/inventory/sync', 'Sync', 'Update the stock data now'],
+    ].filter(([perm]) => perms.has(perm));
+    return items.length
+      ? html`<nav class="inv-menu" aria-label="Inventory reports">
+          ${items.map(([, href, title, sub]) => html`<a href="${href}"><strong>${title}</strong><span>${sub}</span></a>`)}
+        </nav>`
+      : html``;
+  }
+
   function skeleton() {
     render(
       el,
@@ -73,6 +90,7 @@ export async function mount(el, { ctx }) {
             />
           </label>
         </section>
+        ${menu()}
         <div id="inv-results"></div>`,
     );
   }
