@@ -115,3 +115,35 @@ export const isBadNumber = (parse, text) => {
   const n = parse(String(text));
   return n === null || Number.isNaN(n);
 };
+
+// Asks for one line of text and resolves with it, or null if cancelled or left empty.
+export function askText({ title, label, confirm = 'Add', max = 40, hint = '' }) {
+  return new Promise((resolve) => {
+    let done = false;
+    const dlg = openDialog(
+      html`<h2>${title}</h2>
+        ${hint ? html`<p class="muted small">${hint}</p>` : ''}
+        <label class="field"><span>${label}</span><input id="ask-text" maxlength="${max}" autocomplete="off" /></label>
+        <small class="err" id="ask-err" hidden>Please type something.</small>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button
+          ><button type="button" class="btn btn-primary" data-ok>${confirm}</button>
+        </div>`,
+      { label: title },
+    );
+    dlg.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-ok]')) return;
+      const v = dlg.querySelector('#ask-text').value.trim();
+      if (!v) {
+        dlg.querySelector('#ask-err').hidden = false;
+        return;
+      }
+      done = true;
+      resolve(v);
+      dlg.close();
+    });
+    dlg.addEventListener('close', () => {
+      if (!done) resolve(null);
+    });
+  });
+}

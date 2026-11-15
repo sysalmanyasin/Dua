@@ -124,3 +124,13 @@
 .mg-line input {
   min-width: 0;
 }
+.mg-entry-top,
+.mg-entry-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.mg-entry-top strong {
+  font-variant-numeric: tabular-nums;
+}

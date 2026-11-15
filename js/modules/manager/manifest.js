@@ -47,5 +47,26 @@ export default {
       anyOf: ['mgmt.petty_cash'],
       load: () => import('./ui/petty.js'),
     },
+    {
+      path: '/manager/expenses',
+      title: 'Expenses',
+      desc: 'What Head Office owes you',
+      anyOf: ['mgmt.ledgers'],
+      load: () => import('./ui/expenses.js'),
+    },
+    {
+      path: '/manager/jazzcash',
+      title: 'Jazz Cash',
+      desc: 'Daily ledger and balance tally',
+      anyOf: ['mgmt.ledgers'],
+      load: () => import('./ui/jazzcash.js'),
+    },
+    {
+      path: '/manager/misc',
+      title: 'Misc Sections',
+      desc: 'Ledgers of your own',
+      anyOf: ['mgmt.ledgers'],
+      load: () => import('./ui/misc.js'),
+    },
   ],
 };

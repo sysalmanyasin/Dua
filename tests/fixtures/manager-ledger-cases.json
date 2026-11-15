@@ -23,12 +23,7 @@
         "amount": 50.0
       }
     ],
-    "balances": [
-      -24500.0,
-      -24450.0,
-      -24150.0,
-      -24100.0
-    ]
+    "balances": [-24500.0, -24450.0, -24150.0, -24100.0]
   },
   {
     "name": "Jazz Cash: received adds, transfer reduces",
@@ -49,11 +44,7 @@
         "amount": 2496.0
       }
     ],
-    "balances": [
-      53796.0,
-      -25146.0,
-      -22650.0
-    ]
+    "balances": [53796.0, -25146.0, -22650.0]
   },
   {
     "name": "a backdated entry changes the balance of every entry after it",
@@ -74,11 +65,7 @@
         "amount": 25.0
       }
     ],
-    "balances": [
-      100.0,
-      175.0,
-      125.0
-    ]
+    "balances": [100.0, 175.0, 125.0]
   },
   {
     "name": "entries on the same date run in the order they were added",
@@ -99,11 +86,7 @@
         "amount": 1.0
       }
     ],
-    "balances": [
-      10.0,
-      6.0,
-      7.0
-    ]
+    "balances": [10.0, 6.0, 7.0]
   },
   {
     "name": "paisa are exact (0.1 + 0.2 - 0.3 is exactly zero)",
@@ -124,11 +107,7 @@
         "amount": 0.3
       }
     ],
-    "balances": [
-      0.1,
-      0.3,
-      0.0
-    ]
+    "balances": [0.1, 0.3, 0.0]
   },
   {
     "name": "a reversal on the same date nets the mistake to zero",
@@ -144,10 +123,7 @@
         "amount": 500.0
       }
     ],
-    "balances": [
-      500.0,
-      0.0
-    ]
+    "balances": [500.0, 0.0]
   },
   {
     "name": "the balance can go below zero and come back",
@@ -168,10 +144,6 @@
         "amount": 700.0
       }
     ],
-    "balances": [
-      -1000.0,
-      -600.0,
-      100.0
-    ]
+    "balances": [-1000.0, -600.0, 100.0]
   }
 ]
