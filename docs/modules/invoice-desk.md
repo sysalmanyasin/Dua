@@ -2,7 +2,7 @@
 
 Status: Briefed
 Owner approval: implementation plan approved; Phase 0 registration approved (16 Nov 2026)
-Branch: module/invoice-desk
+Branch: module/invoice-desk-phase0
 Migration range: 1000–1099
 Table/function prefix: invoice_desk_
 Permission prefix: invoice_desk.*
