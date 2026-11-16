@@ -1,5 +1,7 @@
 # Invoice Desk — progress and handoff
 
+Branch: `module/invoice-desk-phase0`
+
 Last updated: 16 Nov 2026
 
 ## Current status
