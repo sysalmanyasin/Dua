@@ -174,6 +174,7 @@ Migrations are applied in filename order, on a clean database, by CI (`supabase/
 | `0700`–`0799` | Reports / Cover signals / Herald |
 | `0800`–`0899` | AI / Intelligence |
 | `0900`–`0999` | Candela Sales (assigned by the owner, 14 Nov 2026) |
+| `1000`–`1099` | Invoice Desk (assigned by the owner, 16 Nov 2026) |
 
 File name: `<4-digit number>_<module>_<what>.sql`, e.g. `0201_closing_tables.sql`. Test name: `<same number>_<module>_<what>_test.sql` (the runner picks up every `*_test.sql`).
 
@@ -283,6 +284,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `home` | Cover / landing (core) | — | — | `/home` | 0 | — | core | Built |
 | `sales` | Daily sales, dashboard, reports, check list (BT-Sale-Data2 `js/sales`) | _(legacy, none)_ | `sales.`, `targets.`, `checklist.` | `/sales` | 10 | 0001–0099 | core | Building |
 | `candela-sales` | **Owner-only reports** on the Candela daily payment and customer-credit summaries, kept permanently; one staff-safe number (today's total) in the status bar | `candela_` | `candela.` | `/candela-sales` | 15 | 0900–0999 | core, inventory feed (landing tables, by trigger) | Building |
+| `invoice-desk` | Business-specific invoice creation, product suggestions, history, corrections and 80 mm printing (owner-provided INVOICE.xlsx) | `invoice_desk_` | `invoice_desk.` (temporary status-page gate: `tools.view`) | `/invoice-desk` | 85 | 1000–1099 | core | Briefed |
 | `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Planned |
 | `closing` | Shift closing, final closing, credit/misc ledgers, Closing Book, history tabs (Closing repo; BT-Sale-Data2 `js/closing`) | `closing_` | `closing.` | `/closing` | 30 | 0200–0299 | core, inventory interface | Planned |
 | `inventory` | Feed (F3), stock ledger, excess, reorder, health (BT-Sale-Data2 `js/inventory`, `inventory-search`) | `inventory_` | `inventory.` | `/inventory` | 40 | 0300–0399 (+ feed in 0001–0099) | core | Planned |
