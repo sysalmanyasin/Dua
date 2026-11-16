@@ -1,3 +1,4 @@
+import { isNetworkDown, loadOfflineContext, saveOfflineContext } from './offlineContext.js';
 import { callFunction, db } from './supabase.js';
 import { log } from './logger.js';
 
@@ -47,8 +48,10 @@ export async function loadContext() {
   const { data, error } = await db().rpc('my_context');
   if (error) {
     log.error('my_context failed', { code: error.code });
-    return null;
+    // No connection: a device that was signed in may still open Emergency Billing (see offlineContext.js).
+    return isNetworkDown(error) ? loadOfflineContext() : null;
   }
+  saveOfflineContext(data);
   return data;
 }
 

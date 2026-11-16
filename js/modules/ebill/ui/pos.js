@@ -12,9 +12,14 @@ import { emptyState } from '../domain/productFilter.js';
 import { clock, readCopy, refreshCopy } from '../data/products.js';
 import { openProductHelp } from './productHelp.js';
 import { ask } from './dialog.js';
-import { registerDevice, saveInvoice } from '../data/api.js';
+import { currentUserId, myLimits, offlineGrant, registerDevice, saveInvoice } from '../data/api.js';
+import { openLocalDb } from '../data/localDb.js';
+import { createKit } from '../data/offlineKit.js';
+import { createSync, startAutoSync } from '../data/sync.js';
+import { registerServiceWorker, shellReady } from '../data/offline.js';
 import { deviceLabel, getDeviceId } from '../data/device.js';
 import { buildInvoice, isPinRetry, newInvoiceId, refusalText } from '../domain/invoice.js';
+import { checkDiscount, classifyError, localRef } from '../domain/offline.js';
 
 const m2 = (n) => money(n, { decimals: true });
 const PAYMENT_MODES = ['Cash', 'Credit', 'Card'];
@@ -28,10 +33,24 @@ export async function mount(el, { ctx }) {
   let note = '';
   let device = { status: 'unknown' }; // 'active' | 'deactivated' | 'unknown' (not registered yet or offline)
   let saving = false;
-  let saved = null; // the last saved invoice number, shown above the grid until the next bill
+  let saved = null; // { no, local } for the last saved invoice, shown above the grid until the next bill
+  const stops = []; // things to switch off when this page is left
   let closeHelp = null;
   const helpHolder = { state: emptyState() }; // survives closing and reopening Product Help
   const byCode = new Map();
+  const store = await openLocalDb(); // invoices waiting to upload live here; durable=false means this browser cannot keep them
+  const kit = createKit({ store, api: { offlineGrant, myLimits }, deviceId: getDeviceId(), userId: () => ctx.user_id });
+  const sync = createSync({
+    store,
+    api: { saveInvoice, registerDevice },
+    userId: currentUserId,
+    deviceId: getDeviceId(),
+    deviceLabel: deviceLabel(),
+    afterSync: async () => {
+      await refreshCopy(ctx); // fresh products...
+      await kit.refreshLimits(); // ...and fresh limits and PIN rule
+    },
+  });
   const fresh = () => ({
     customer: '',
     customerDiscountPct: 0,
@@ -64,6 +83,7 @@ export async function mount(el, { ctx }) {
         <span id="eb-status" class="eb-status"></span>
       </div>
       <div id="eb-note"></div>
+      <div id="eb-sync" class="eb-sync"></div>
 
       <div class="eb-top">
         <div class="eb-row">
@@ -377,7 +397,7 @@ export async function mount(el, { ctx }) {
       q('#eb-note'),
       html`${note === 'offline' ? html`<p class="note note-info" role="status">Offline. Using the product copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}. Stock shown may be out of date.</p>` : ''}
       ${note && note !== 'offline' ? html`<p class="note note-error" role="status">${note}</p>` : ''}
-      ${saved ? html`<p class="note note-info" role="status">Saved as <b>${saved}</b>. The invoice is on the server.</p>` : ''}
+      ${saved ? (saved.local ? html`<p class="note note-info" role="status">Saved on this device as <b>${saved.no}</b>. It will upload by itself when you are online.</p>` : html`<p class="note note-info" role="status">Saved as <b>${saved.no}</b>. The invoice is on the server.</p>`) : ''}
       ${device.status === 'deactivated' ? html`<p class="note note-error" role="status">This device has been switched off by the manager. Invoices cannot be saved from it.</p>` : ''}
       ${!products.length ? html`<p class="note note-info" role="status">No product copy on this device yet. Connect to the internet once so it can download.</p>` : ''}`,
     );
@@ -404,13 +424,42 @@ export async function mount(el, { ctx }) {
     drawStatus();
   }
 
+  // Offline path: check the PIN and discount on this device, then write the invoice to local storage. It is committed BEFORE
+  // the screen says saved, and stays until the server confirms it (sync.js).
+  async function saveLocally(invoice, pin, t) {
+    if (!store.durable)
+      return {
+        ok: false,
+        code: 'not_durable',
+        message: 'This browser cannot keep an invoice safely without a connection. Connect to the internet to save.',
+      };
+    const v = await kit.verifyPinLocally(pin);
+    if (!v.ok) return v;
+    const d = checkDiscount(t, cart.lines, v.limits);
+    if (!d.ok) return d;
+    const payload = { ...invoice, ...(v.proof ? { offline_proof: v.proof } : {}) };
+    const rec = {
+      invoice_id: invoice.invoice_id,
+      user_id: ctx.user_id,
+      device_id: getDeviceId(),
+      status: 'pending',
+      payload,
+      local_ref: localRef(invoice.invoice_id),
+      net_total: t.netTotal,
+      customer: bill.customer || '',
+      staff_name: ctx.full_name || ctx.username || '',
+      created_at: invoice.client_created_at,
+      attempts: 0,
+      last_error: null,
+      invoice_no: null,
+      synced_at: null,
+    };
+    await sync.queue(rec);
+    return { ok: true, ref: rec.local_ref };
+  }
+
   async function save() {
     if (saving || !cart.lines.length) return;
-    if (navigator.onLine === false) {
-      note = 'You are offline. Saving without internet comes in a later phase. Keep this bill open and save when you are back online.';
-      drawStatus();
-      return;
-    }
     const t = totals();
     if (
       bill.mode === 'Cash' &&
@@ -421,44 +470,142 @@ export async function mount(el, { ctx }) {
     saving = true;
     syncSave();
     try {
-      if (device.status !== 'active') await registerThisDevice();
+      let local = navigator.onLine === false;
+      if (!local && device.status !== 'active') await registerThisDevice();
       if (device.status === 'deactivated') return;
       bill.invoiceId ||= newInvoiceId(); // made once per bill: a retry sends the same id, so it can never save twice
       const invoice = buildInvoice({ cart, bill, totals: t, deviceId: getDeviceId(), invoiceId: bill.invoiceId });
       let err = '';
       for (;;) {
         const v = await ask(q('#eb-dialog'), {
-          title: 'Enter your PIN to save',
-          intro: `Net total ${m2(t.netTotal)}`,
+          title: local ? 'Enter your PIN to save on this device' : 'Enter your PIN to save',
+          intro: local
+            ? `No connection. This bill is kept on this device and uploads by itself later. Net total ${m2(t.netTotal)}`
+            : `Net total ${m2(t.netTotal)}`,
           error: err,
           confirm: 'Save',
           fields: [{ id: 'pin', label: 'PIN', type: 'password', inputmode: 'numeric', maxlength: 6, autocomplete: 'one-time-code' }],
         });
         if (!v) return;
-        const r = await saveInvoice(invoice, v.pin);
-        if (r?.ok) {
-          saved = r.invoice_no;
+        if (!local) {
+          let r;
+          try {
+            r = await saveInvoice(invoice, v.pin);
+          } catch (e) {
+            if (classifyError(e, navigator.onLine !== false) !== 'network') throw e;
+            local = true; // the connection dropped: carry on with the same PIN, on this device
+          }
+          if (r?.ok) {
+            saved = { no: r.invoice_no, local: false };
+            note = '';
+            resetBill();
+            drawStatus();
+            kit.afterOnlineSave(v.pin).then(drawSync); // quietly get this device ready for offline billing
+            return;
+          }
+          if (r) {
+            if (isPinRetry(r)) {
+              err = refusalText(r);
+              continue;
+            }
+            if (r.code === 'device_inactive') device = { status: 'deactivated' };
+            note = refusalText(r);
+            drawStatus();
+            return;
+          }
+        }
+        const r = await saveLocally(invoice, v.pin, t);
+        if (r.ok) {
+          saved = { no: r.ref, local: true };
           note = '';
           resetBill();
           drawStatus();
+          drawSync();
+          sync.syncNow().catch(() => {}); // a no-op while offline; uploads at once if the connection is back
           return;
         }
-        if (isPinRetry(r)) {
-          err = refusalText(r);
+        if (r.code === 'bad_pin') {
+          err = r.message;
           continue;
         }
-        if (r?.code === 'device_inactive') device = { status: 'deactivated' };
-        note = refusalText(r);
+        note = r.message || 'The invoice was not saved.';
         drawStatus();
         return;
       }
     } catch {
-      note = 'Could not reach the server. Your bill is still open; try again.';
+      note = 'Could not save. Your bill is still open; try again.';
       drawStatus();
     } finally {
       saving = false;
       syncSave();
     }
+  }
+
+  // The sync strip: connection, what is waiting, what failed, when the server was last reached, and each local invoice's state.
+  const STATE = { pending: 'Pending', synced: 'Synced', failed: 'Failed' };
+  async function drawSync() {
+    if (!q('#eb-sync')) return;
+    const [s, ready, shell] = await Promise.all([sync.snapshot(), kit.readiness(), shellReady()]);
+    if (s.items.some((i) => i.last_error?.code === 'device_inactive') && device.status !== 'deactivated') {
+      device = { status: 'deactivated' };
+      drawStatus();
+      syncSave();
+    }
+    const online = navigator.onLine !== false;
+    render(
+      q('#eb-sync'),
+      html`<div class="eb-sync-row">
+          <span class="pill ${online ? '' : 'eb-pill-off'}">${online ? 'Online' : 'Offline'}</span>
+          <span>Pending <b>${s.pending}</b></span>
+          <span class="${s.failed ? 'neg' : ''}">Failed <b>${s.failed}</b></span>
+          <span class="muted">Last sync: ${s.lastSyncAt ? clock(s.lastSyncAt) : 'never'}</span>
+          <span class="${ready.ready && shell ? '' : 'muted'}" title="${ready.ready ? '' : ready.why}"
+            >${ready.ready && shell ? '✓ Ready for offline billing' : 'Not ready for offline billing yet'}</span
+          >
+          ${s.failed ? html`<button type="button" class="btn btn-sm" data-act="retry">Retry failed</button>` : ''}
+          ${s.pending && online ? html`<button type="button" class="btn btn-sm" data-act="syncnow">Upload now</button>` : ''}
+          ${online && !ready.ready && !String(ready.why).includes('Ask the owner') ? html`<button type="button" class="btn btn-sm" data-act="prep">Prepare offline</button>` : ''}
+        </div>
+        ${!ready.ready ? html`<p class="muted eb-sync-why">${ready.why}</p>` : ''}
+        ${!shell && ready.ready ? html`<p class="muted eb-sync-why">The page is not saved for offline use yet. Keep this page open online for a moment, then reload once.</p>` : ''}
+        ${s.others ? html`<p class="note note-info">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</p>` : ''}
+        ${
+          s.items.length
+            ? html`<details class="eb-sync-list">
+                <summary>Invoices on this device (${s.items.length})</summary>
+                <div class="eb-table-wrap">
+                  <table class="eb-table">
+                    <thead>
+                      <tr>
+                        <th>Invoice</th>
+                        <th>Time</th>
+                        <th>Customer</th>
+                        <th class="num">Net total</th>
+                        <th>Status</th>
+                        <th>Detail</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${s.items.map(
+                        (i) =>
+                          html`<tr>
+                            <td>${i.invoice_no || i.local_ref}</td>
+                            <td>${clock(i.created_at)}</td>
+                            <td>${i.customer || '–'}</td>
+                            <td class="num">${m2(i.net_total)}</td>
+                            <td><span class="eb-st eb-st-${i.status}">${STATE[i.status] || i.status}</span></td>
+                            <td class="muted">
+                              ${i.status === 'failed' ? i.last_error?.message || '' : i.status === 'pending' && i.last_error?.code === 'network' ? 'Waiting for a connection' : ''}
+                            </td>
+                          </tr>`,
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </details>`
+            : ''
+        }`,
+    );
   }
 
   const tick = () => {
@@ -627,15 +774,58 @@ export async function mount(el, { ctx }) {
 
   // ───────── start ─────────
   tick();
-  setInterval(() => (el.isConnected ? tick() : null), 30_000);
-  window.addEventListener('online', () => el.isConnected && drawStatus());
-  window.addEventListener('offline', () => el.isConnected && drawStatus());
+  const clockTimer = setInterval(() => {
+    if (el.isConnected) return tick();
+    stops.forEach((f) => f());
+    clearInterval(clockTimer);
+  }, 30_000);
+  const onNet = () => el.isConnected && (drawStatus(), drawSync());
+  window.addEventListener('online', onNet);
+  window.addEventListener('offline', onNet);
+  stops.push(() => {
+    window.removeEventListener('online', onNet);
+    window.removeEventListener('offline', onNet);
+  });
+  el.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-act="retry"],[data-act="syncnow"],[data-act="prep"]')?.dataset.act;
+    if (!a) return;
+    if (a === 'retry') await sync.retryFailed().catch(() => {});
+    else if (a === 'syncnow') await sync.syncNow().catch(() => {});
+    else if (a === 'prep') {
+      const v = await ask(q('#eb-dialog'), {
+        title: 'Prepare this device for offline billing',
+        intro: 'Type your PIN once while online. Your PIN is not kept on the device, only a check of it.',
+        confirm: 'Prepare',
+        fields: [{ id: 'pin', label: 'PIN', type: 'password', inputmode: 'numeric', maxlength: 6, autocomplete: 'one-time-code' }],
+      });
+      if (v) {
+        try {
+          if (device.status !== 'active') await registerThisDevice();
+          const r = await kit.earnGrant(v.pin);
+          if (r?.ok) {
+            await kit.refreshLimits();
+            note = '';
+          } else note = refusalText(r);
+        } catch {
+          note = 'Could not reach the server. Try again when you are online.';
+        }
+        drawStatus();
+      }
+    }
+    drawSync();
+  });
   await load();
   drawStatus();
   drawLines();
+  drawSync();
   q('#eb-sku').focus();
+  registerServiceWorker(); // lets the page open offline; nothing breaks if it is unsupported
   registerThisDevice(); // quietly, when online; the owner sees this device in Settings
+  stops.push(sync.subscribe(drawSync));
+  stops.push(startAutoSync(sync, { alive: () => el.isConnected })); // uploads when the connection returns, when the page is shown, and every minute while something waits
   note = await refreshCopy(ctx); // the saved copy is usable at once; the refresh happens behind it
+  if (note === '') kit.refreshLimits().catch(() => {});
   await load();
   drawStatus();
+  drawSync();
 }

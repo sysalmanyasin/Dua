@@ -13,11 +13,13 @@
     "check:vendor": "node tools/check-vendor.mjs",
     "test:db": "bash supabase/tests/run.sh",
     "serve": "npx http-server -c-1 -p 8080 .",
-    "verify": "npm run lint && npm run format:check && npm test && npm run check:secrets && npm run check:vendor"
+    "verify": "npm run lint && npm run format:check && npm test && npm run check:secrets && npm run check:vendor",
+    "build:sw": "node tools/sw-precache.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
     "eslint": "9.39.5",
+    "fake-indexeddb": "6.2.8",
     "globals": "17.14.0",
     "jsdom": "25.0.1",
     "prettier": "3.9.10",
