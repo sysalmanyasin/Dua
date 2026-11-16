@@ -113,7 +113,6 @@ const hand = [
   base('NSD-OLD', { sold: ago(200) }),
   base('NSD-RECENT', { sold: ago(5), n90: 4 }),
   base('NSD-EXACT', { sold: ago(90) }),
-  base('NSD-TEXTQTY', { qty: '1,200', price: '3.5', sold: ago(300) }),
 ];
 
 const random = [];

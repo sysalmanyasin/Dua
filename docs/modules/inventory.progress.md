@@ -1,6 +1,6 @@
 # Inventory — progress
 
-Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0305 and the Edge Function are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026; owner instruction: "apply by yourself"). The Inventory overview screen goes live with the merge of this branch to `main` (owner instruction, 14 Nov 2026).
+Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0306 and the Edge Function are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026, 0306 on 16 Nov 2026; owner instruction: "apply by yourself"). The Inventory overview screen goes live with the merge of this branch to `main` (owner instruction, 14 Nov 2026).
 
 ## Session I-A (12 Nov 2026)
 
@@ -31,7 +31,7 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 | `0305` (14 Nov) | `pack_valid` flag (INV-18) | all 12 function hashes equal the repo; 5,911 of 5,911 stored hashes consistent; upgrade path rehearsed on 6,000 products (identical sync unchanged in both payload shapes, flagging 100 products writes exactly 100 rows and moves only the stock counter); 5 mutations caught |
 | Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`; v21 on 14 Nov adds one retry on a statement timeout) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
 
-Live registry now: `0001`–`0013`, `0201`–`0209` (Closing, applied by the owner), `0301`–`0305`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
+Live registry: Foundation `0001`–`0013`, Closing `02xx`, Inventory `0301`–`0306`, STR `0500`–`0504`, e-bill `06xx`, Candela history `0900`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
 
 **Live evidence after the deploy** (hourly runs 08:00–12:00 UTC, plus manual runs through the same call the cron job makes):
 - 5 hourly syncs, all `ok`; each changed only 41–68 rows of 5,883 (before 0302 every sync rewrote all 5,883). No failures, no watchdog alerts.
@@ -46,6 +46,42 @@ Live registry now: `0001`–`0013`, `0201`–`0209` (Closing, applied by the own
 1. **Watchdog false alarm (found by reading Foundation's `0012`).** `ops_check_inventory_feed` alerts when the log has no `ok` row for 3 hours. An unchanged file now skips the sync without a log row, which would have looked like a dead feed. `0303`: a scheduled unchanged check writes one `ok/unchanged` heartbeat row when the newest successful row is older than 2 hours (at most 12 a day). Caught before the new function was deployed, so no alert was ever raised.
 2. **Backfill bug in my own `0302`.** Existing rows all got counter 1, and the feed pages by counter, so a first install would have received only the first 1,000 of 5,883 products. My upgrade test compared change counts but never paged from 0 on backfilled data. Found by the live smoke test; no phone had a copy. `0304` renumbers every row 1..N, sets the state counters, and adds partial unique indexes so duplicates cannot exist again. `0304`'s test reproduces the broken state, shows it losing rows, repairs it, and pages a full install.
 3. Process slip, recorded for honesty: I re-checked the clock before 0301 but not before 0302 (hours had passed between my messages). It was safe (a transaction that holds the sync lock cannot collide with the hourly run) but the rule is now: check `now()` immediately before every apply.
+
+## Sessions I-C and I-D (15–16 Nov 2026): every screen, shared state, the Home numbers
+
+Merged `origin/main` three more times (Closing, then STR, e-bill, Candela history: 51 commits, no conflicts). All gates green on the combined tree: **907 unit tests in 67 files, 1,183 database checks**, every Edge Function type-checks, lint, format, secret and vendor scans.
+
+| Screen / piece | What it does | Tested |
+|---|---|---|
+| **Stock Ledger** `/inventory/ledger` | Tabs: Never sold, Dead stock, Excess (standard 90 days old / 200 days cover, or everything above target), Zero stock, Pack issues; window 30–365 days (default 60, INV-10); search, sort, totals, CSV of exactly what is shown | golden comparison with the old app (5 window settings, 400 products), 10 mutations, screen tests |
+| **Reorder** `/inventory/reorder` | Window 30/60/90, cover days, include today (Karachi clock), Top sellers vs All low cover, group by supplier, search, sort, units already on the way, per-row other windows, CSV | every number of every product compared with the old engine for 5 settings; threshold, tax and supplier-fallback cases; 10 mutations |
+| **Excess Working** `/inventory/excess` | Whole-pack corrected excess, Retained / Loose / Excess status, misc and head-office value, retain list shared across devices, filters, CSV | 3 scenarios compared with the old engine; retain failure puts the screen back |
+| **Health** `/inventory/health` | The four Home numbers, class doughnut, stock by supplier, best sellers (Chart.js loaded only here), filterable product list | KPIs equal the Home four; classes use the ledger lists (INV-17); charts destroyed on redraw |
+| **Sync** `/inventory/sync` (inventory.sync) | Last check, "Sync now", "Re-read the whole file", last 40 runs, explicit confirmation when a sync is refused for removing over 20% | refused → confirm flow, busy, errors |
+| **Overview** | now has a menu to the screens each person may open | |
+| `0306` (live 16 Nov) | `inventory_in_transit()`, shared retain list and settings tables with RLS, `inventory_cover_summary()` | 38 checks incl. **SQL parity with the old app on 409 products** (all 7 figures, counts exact, money to the cent); 10 mutations (one equivalent) |
+
+**Decisions made while building (please confirm any you disagree with):**
+1. **Export is CSV, not Excel.** CSV opens in Excel, needs no new library, and a formula guard stops a product name starting with `=`, `+`, `-` or `@` from running as a formula. The old app wrote Excel with formulas; say so if you need that and I will check what can be vendored.
+2. **"In transit" comes from the STR module.** STR (decision STR-10) publishes `str_in_transit_lines()`; `inventory_in_transit()` is a thin wrapper that only applies Inventory's pack size, so Inventory never reads STR tables and the definition lives in one place. Consequence: in transit follows STR's rule (live feed only, closed transfers excluded) and packs are `floor(sum of loose units / pack size)` per product, where the old app floored per line. My first version read the STR tables directly; changed after finding STR's interface.
+3. **Excess retain list, misc and head-office value are shared** (migration `0306`, readable and changeable only with `inventory.view`), not per device as in the old app.
+4. **Reorder settings are per person** (window, cover days, include today, tab, top N, grouping, sort), stored in the database preferences like other personal settings.
+5. **Health classes use the ledger lists** for Never sold and Dead stock (INV-17: one definition); the dashboard's own looser tests are dropped, and its trend over time stays dropped (INV-3).
+6. **The "reorder" Home figure leaves today out** so it is steady all day; the Reorder screen includes today by default, so the two can differ slightly on purpose.
+
+**Live numbers on 16 Nov 02:39 UTC (rolled-back smoke test):** stock Rs 23.7M; to reorder 1,682 products, Rs 4.0M to buy; not sold in whole packs 694 products, Rs 2.2M; excess 256 products, Rs 0.86M; 253 products (851 packs) on the way. The cover summary takes about 120 ms on the live database. The reorder list is long on purpose: that is why the screen opens on "Top sellers".
+
+**Egress review (the work order's I-D check).** Per person, per day, on the Free plan's 5 GB/month:
+- First install: about 1 MB of products (about 1.5 MB with sales); once, and again only after a sign-out, a reset or a schema change.
+- Each visit: one small call (about 0.5 KB); the hourly changes are about 40–700 rows, 7–115 KB, fetched only when something changed and the person opens a screen.
+- Reorder adds the in-transit list (about 250 products, under 10 KB) per visit; Excess adds the shared state (a few KB); Health, Ledger and Overview add nothing: they compute on the phone.
+- The Home numbers come from `inventory_cover_summary()`: one call, a few hundred bytes, no product rows.
+- A heavy day (20 screen visits, 5 hourly deltas) is well under 1 MB per person. Ten people stay far inside the monthly allowance. The old app pulled the whole table on every visit.
+
+**Not done / needs someone else:**
+- **Home is not wired to `inventory_cover_summary()`**: the Home module and `cover_summary()` are Foundation's. The interface is live and tested; Foundation (or the Home owner) calls it.
+- **Nothing was verified on a real phone or browser** (no browser here). Screens are tested with the real code against a fake server; the first look on a phone is yours.
+- **Retained names are matched by product name** (as in the old app); two products with the same name share a status.
 
 ## Session I-B (13 Nov 2026): the local copy, the maths, the first screen
 
@@ -123,7 +159,7 @@ Decisions (owner, 12 Nov 2026) on **STR-Q1** and its consequences:
 
 ## Still to do (next sessions)
 
-I-B is built (above), waiting for the phone check and decisions INV-17/INV-18. Then I-C (the reports: Stock Ledger, Reorder with `inventory_in_transit()`, Excess; the reorder maths still has to be ported with golden fixtures) → I-D (Home numbers in SQL, egress review, done). The `str` module is a separate line of work.
+All Inventory screens are built and live (I-A to I-D). What remains is the first real-phone check, Foundation wiring Home to `inventory_cover_summary()`, and the open question about Excel export (decision 1 above).
 
 ## Handoff
 See the brief, §10.

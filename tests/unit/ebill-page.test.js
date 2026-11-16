@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import 'fake-indexeddb/auto';
+import { webcrypto } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import manifest from '../../js/modules/ebill/manifest.js';
 
@@ -49,7 +51,14 @@ vi.mock('../../js/modules/ebill/data/products.js', () => ({
   clock: () => '02:00 pm',
 }));
 
+vi.mock('../../js/modules/ebill/data/offline.js', () => ({
+  registerServiceWorker: vi.fn(async () => ({ supported: false })),
+  shellReady: vi.fn(async () => true),
+}));
 vi.mock('../../js/modules/ebill/data/api.js', () => ({
+  currentUserId: vi.fn(async () => 'u1'),
+  myLimits: vi.fn(async () => ({ max_pct: 10, max_amount: 1000, override: false, pin_required: true, has_pin: true })),
+  offlineGrant: vi.fn(async () => ({ ok: true, secret: 'S3CRET', pin_set_at: '2026-11-01T00:00:00Z' })),
   registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),
   saveInvoice: vi.fn(async () => ({ ok: true, code: 'saved', invoice_no: 'EB-261115-00001' })),
 }));
@@ -67,6 +76,7 @@ const type = (el, v) => {
 };
 const key = (el, k, init = {}) => el.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init }));
 
+Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 let el;
 beforeEach(async () => {
   document.body.replaceChildren();
@@ -285,9 +295,20 @@ describe('saving', () => {
     expect(el.querySelector('#eb-note').textContent).toContain('above your limit');
     expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
   });
-  it('a network failure keeps the bill open and says so', async () => {
+  it('a dropped connection with this device not yet prepared keeps the bill open and says what is missing', async () => {
     const { saveInvoice } = await api();
-    saveInvoice.mockRejectedValueOnce(new Error('network'));
+    saveInvoice.mockRejectedValueOnce(new Error('TypeError: Failed to fetch'));
+    addOne();
+    el.querySelector('#eb-save').click();
+    await tick();
+    pinBox().value = '482913';
+    press('yes');
+    await vi.waitFor(() => expect(el.querySelector('#eb-note').textContent).toMatch(/not set up on this device|Limits not downloaded/));
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
+  });
+  it('any other unexpected failure keeps the bill open too', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockRejectedValueOnce(new Error('something strange'));
     addOne();
     el.querySelector('#eb-save').click();
     await tick();
@@ -295,7 +316,7 @@ describe('saving', () => {
     press('yes');
     await tick();
     await tick();
-    expect(el.querySelector('#eb-note').textContent).toContain('Could not reach the server');
+    expect(el.querySelector('#eb-note').textContent).toContain('Could not save');
     expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
   });
   it('a deactivated device cannot save and says why', async () => {

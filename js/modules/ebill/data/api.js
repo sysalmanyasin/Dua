@@ -8,9 +8,20 @@ const one = async (query) => {
   return data;
 };
 
+/** The signed-in person's id, or null. Works offline (read from the saved session). */
+export async function currentUserId() {
+  const { data } = await db().auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 export const registerDevice = (deviceId, label) => one(db().rpc('ebill_register_device', { p_device_id: deviceId, p_label: label }));
 /** Save one invoice. Resolves { ok, code, message?, invoice_no? }; a refusal is a result, not an exception. Network errors throw. */
 export const saveInvoice = (invoice, pin) => one(db().rpc('ebill_save_invoice', { p_invoice: invoice, p_pin: pin || null }));
+
+/** Online, after typing the PIN: the server issues this device the secret that lets it save offline. Resolves { ok, secret?, code?, message? }. */
+export const offlineGrant = (deviceId, pin) => one(db().rpc('ebill_offline_grant', { p_device_id: deviceId, p_pin: pin }));
+/** This person's discount limits and PIN rule, for the offline check. */
+export const myLimits = () => one(db().rpc('ebill_my_limits'));
 
 export const listStaff = () => one(db().rpc('ebill_staff_list'));
 export const setPin = (userId, pin) => one(db().rpc('ebill_set_pin', { p_user: userId, p_pin: pin }));

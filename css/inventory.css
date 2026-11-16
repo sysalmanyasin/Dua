@@ -58,3 +58,127 @@
 .inv-qty.neg b {
   color: var(--danger);
 }
+
+/* report screens */
+.inv-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.inv-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.inv-chip.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+.inv-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.inv-check {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+.inv-num {
+  width: 5.5rem;
+}
+.inv-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.inv-total div,
+.inv-kpi {
+  display: grid;
+  gap: 2px;
+}
+.inv-total b,
+.inv-kpi b {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+}
+.inv-total span,
+.inv-kpi span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.inv-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-4);
+}
+.inv-kpis > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.inv-chart {
+  position: relative;
+  height: 230px;
+}
+.inv-group {
+  margin: var(--space-4) 0 var(--space-2);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: 0.95rem;
+}
+.inv-badge {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.72rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.inv-badge-excess {
+  background: #d97706;
+  border-color: #d97706;
+  color: #fff;
+}
+.inv-badge-retained {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+.note-info {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+.inv-menu {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+.inv-menu a {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+.inv-menu a span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

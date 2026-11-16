@@ -14,6 +14,7 @@ Business boundary (owner): emergency invoices stay separate from normal Sales an
 | EB-4 | Stock is read from the Inventory module's local copy and always labelled "saved on this device, not live". |
 | EB-5 | Pack price = unit price × conversion factor (owner, 15 Nov 2026). Matches the Pack option on the screen. |
 | EB-6 | No role preset carries an ebill right, so Foundation's role tests stay true. The owner grants `ebill.use` person by person in Users & Access. |
+| EB-8 | Offline start (owner asked for offline billing, 15 Nov 2026): a device that was signed in keeps a small saved context so Emergency Billing can open with no connection. It holds only who the person is and the `ebill.use` right (nothing else opens offline), expires after 30 days, is used only when the server cannot be reached, and is removed on sign-out. Saving still needs the PIN. |
 | EB-7 | Work goes to `main` as well as the feature branch, so the owner can see live screens (owner, 15 Nov 2026; replaces the "never commit to the default branch" line of the first brief). Only code that passes `npm run verify` and the database suite is pushed. |
 
 ## Database (Phase 2, applied to DuaPharmaPlus on 15 Nov 2026)
@@ -52,3 +53,22 @@ Open question for the owner: the product copy's `price` is treated as the price 
 - Device id kept in localStorage and registered quietly when online. A deactivated device cannot save.
 - Settings page (`/ebill/settings`, owner and managers): staff PINs, per-person discount limits, shop defaults, devices and "switch off".
 - Route permission is now `ebill.use`.
+
+## Phase 3: offline billing and sync (built)
+
+**What the server added (`0612`)**: a PIN cannot be checked offline against the server's hash without giving a device that hash. Instead, after a person types their PIN correctly online, the server gives that device a random secret (stored only as a SHA-256 hash). An invoice made offline carries it as `offline_proof`. At sync the server accepts it only if the secret matches this person's grant for this device, the person still has a PIN, and the PIN was not changed after the device last proved it (invoices made before a change are still honoured). Everything else (totals, discount limit, device status, duplicates) is re-checked as for an online save. Such invoices are marked `pin_check = 'device'`. `ebill_my_limits()` gives an offline device the person's limits and the PIN rule.
+
+**On the device**
+- `data/localDb.js`: IndexedDB `dua-ebill` (invoices, small settings). An invoice is committed in its own transaction before the screen says saved. If IndexedDB is unavailable the screen refuses to save offline.
+- `data/localPin.js`, `data/offlineKit.js`: after an online save the device keeps the grant and a PBKDF2 check of the PIN (never the PIN). Five wrong PINs lock the device check for 15 minutes.
+- `data/sync.js`: the single sync. Uploads oldest first; marks **synced** only on the server's confirmation (or "duplicate"); a refusal marks **failed** with the reason and keeps the invoice whole; a dropped connection leaves invoices **pending** and stops the run; only the signed-in person's invoices are uploaded. Runs when the connection returns, when the page is shown, every minute while something waits, and on Upload now / Retry failed. Synced copies are kept 30 days.
+- `sw.js` + `tools/sw-precache.mjs` (`npm run build:sw`): service worker, network-first for same-origin files, other sites and non-GET untouched; precaches the app shell and Emergency Billing so it opens offline. A test fails if the list goes stale.
+- `js/core/offlineContext.js`: the narrow offline start described in EB-8.
+
+**On screen**: a sync strip (Online/Offline, Pending, Failed, last sync, ready-for-offline, Retry failed, Upload now, Prepare offline) and a list of the invoices held on this device with Pending / Synced / Failed and the reason. A connection that drops during an online save carries on locally with the same PIN and the same invoice id, so a lost reply cannot create a second invoice.
+
+**Limits to know about**
+- Offline billing works only after the person has proved their PIN online once on that device (the screen says what is missing, and "Prepare offline" does it).
+- Stock offline is the device's saved copy, always labelled as such. Discount limit and PIN are checked on the device, then again by the server.
+- Someone with the device and enough skill can clear browser data to reset the local PIN counter. The protection that matters is the server: it will not take an offline invoice without the grant, and the owner can switch the device off.
+- The owner sees which invoices were PIN-checked on a device (`pin_check`) once history exists (Phase 4).
