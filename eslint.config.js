@@ -29,6 +29,7 @@ export default [
     },
   },
   { files: ['js/shared/html.js'], rules: { 'no-restricted-properties': 'off' } },
+  { files: ['sw.js'], languageOptions: { ecmaVersion: 2023, sourceType: 'script', globals: { ...globals.serviceworker } } },
   {
     files: ['tests/**/*.js', 'tools/**/*.mjs', 'eslint.config.js'],
     languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
