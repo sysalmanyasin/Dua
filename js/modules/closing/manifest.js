@@ -3,6 +3,8 @@ export default {
   title: 'Closing',
   icon: 'shield', // a ledger icon needs a Foundation request (js/shared/icons.js is Foundation)
   nav: { order: 20 },
+  blurb: 'Shift closing, ledgers and books',
+  hub: true, // its first page lists the other closing pages
   permission: null, // each page below says who may open it
   routes: [
     {

@@ -136,3 +136,8 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 - **Start page:** month calendar with shift dots, the day's closings, Saved records (Continue / Open / PDF).
 - **Read-only saved closing** (`/closing/view`) and PDF / print after Submit, for staff too.
 - **Needs migration `0212_closing_own_book.sql`** (read-only RPCs `closing_book_own`, `closing_prev_page`). Without it the previous-closing card, Open and PDF show nothing or an error; everything else works.
+
+## Last Bill Amount and Closing-only view
+- Migration 0213 adds `closings.last_bill_amt` (typed on the POS section, shown on the printed sheet and the previous-shift card; never used in a calculation). `closing_apply_payload`, `closing_correct` and `closing_reopen` carry it.
+- Home is a launcher: one tile per module the person may use (every current and future module, by permission). Someone with a single module lands inside it with no Home link. Inside a module a "‹ Home" link replaces the module tab row; a module with `hub: true` (Closing) shows only "← Closing" on inner pages because its start page lists the rest. The status bar shows on Home only.
+- The entry screen has "‹ Back to days", which saves the draft first.

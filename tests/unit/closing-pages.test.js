@@ -99,11 +99,10 @@ describe('Closing start page', () => {
   });
   it('keeps Credit and Misc ledgers off the ordinary staff closing home', async () => {
     await start(['closing.enter_own']);
-    expect(el.textContent).not.toContain('Ledgers');
     expect(el.textContent).not.toContain('Credit Ledger');
     expect(el.textContent).not.toContain('Misc Ledger');
     await start(['closing.enter_own', 'closing.view_all']);
-    expect(el.textContent).toContain('Ledgers');
+    expect(el.textContent).toContain('Credit Ledger');
   });
   it('shows the opening card only to someone who may change closing settings', async () => {
     await start();

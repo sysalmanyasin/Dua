@@ -1,7 +1,6 @@
 // Closing start page: a calendar to pick the day, the closings of that day, saved records (continue / open / PDF), and (owner/admin)
 // the one-time opening closing.
 import { html, render } from '../../../shared/html.js';
-import { hero } from '../../../shared/ui.js';
 import { longDate, shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { MONTHS, WEEKDAYS, dotsByDate, monthCells, suggestForDate } from '../domain/calendar.js';
@@ -156,41 +155,23 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   };
 
-  const link = (href, name, note) => html`<li><a href="${href}">${name}</a><span class="cls-meta">${note}</span></li>`;
+  // The old app's chip row: every other closing page is one tap away, nothing else is shown.
+  const chip = (href, name) => html`<a class="cls-chip" href="${href}">${name}</a>`;
+  const chips = () =>
+    html`<nav class="cls-chips" aria-label="Closing pages">
+      ${canBooks ? chip('#/closing/credit', 'Credit Ledger') : ''} ${canBooks ? chip('#/closing/misc', 'Misc Ledger') : ''}
+      ${canBooks ? chip('#/closing/book', 'Closing Book') : ''} ${canBooks ? chip('#/closing/history/cc', 'CC history') : ''}
+      ${canBooks ? chip('#/closing/history/rbd', 'RBD history') : ''} ${canBooks ? chip('#/closing/history/mediq', 'MEDIQ history') : ''}
+      ${canReview ? chip('#/closing/review', 'Review') : ''} ${canOpen ? chip('#/closing/settings', 'Settings') : ''}
+    </nav>`;
 
   const draw = () => {
     render(
       el,
       html`<div class="cls">
-        ${hero({ label: 'Closing', title: 'Shift closing', sub: 'Pick a day on the calendar to start or continue a closing.' })}
+        ${chips()}
         <div class="cls-grid">
           ${calendar()} ${dayPanel()} ${records()}
-          ${
-            canBooks
-              ? html`<section class="card">
-                  <h2>Ledgers</h2>
-                  <ul class="cls-list">
-                    ${link('#/closing/credit', 'Credit Ledger', 'Credit stored with each closing')}
-                    ${link('#/closing/misc', 'Misc Ledger', 'Open charges and their age')}
-                  </ul>
-                </section>`
-              : ''
-          }
-          ${
-            canBooks || canReview || canOpen
-              ? html`<section class="card">
-                  <h2>Books and review</h2>
-                  <ul class="cls-list">
-                    ${canBooks ? link('#/closing/book', 'Closing Book', 'One page per closing, print or PDF') : ''}
-                    ${canBooks ? link('#/closing/history/cc', 'CC history', 'Card at each Evening closing') : ''}
-                    ${canBooks ? link('#/closing/history/rbd', 'RBD history', 'Returns, book bills, deposits') : ''}
-                    ${canBooks ? link('#/closing/history/mediq', 'MEDIQ history', 'Orders and extras') : ''}
-                    ${canReview ? link('#/closing/review', 'Review', 'Reopen a closing to correct it') : ''}
-                    ${canOpen ? link('#/closing/settings', 'Closing settings', 'Strips, accounts, audit codes, float') : ''}
-                  </ul>
-                </section>`
-              : ''
-          }
           ${
             canOpen
               ? html`<section class="card">

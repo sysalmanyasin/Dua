@@ -36,6 +36,7 @@ export function emptyForm(catalogue = [], accounts = []) {
   return {
     sys_cash: '',
     last_bill_no: '',
+    last_bill_amt: '',
     comp_sale: '',
     alfalah: '',
     keenu: '',
@@ -73,6 +74,7 @@ export function formFromRow(row, catalogue = [], accounts = []) {
   const f = emptyForm([], []);
   f.sys_cash = amountText(row.sys_cash);
   f.last_bill_no = amountText(row.last_bill_no);
+  f.last_bill_amt = amountText(row.last_bill_amt);
   f.comp_sale = amountText(row.comp_sale);
   f.alfalah = amountText(row.alfalah);
   f.keenu = amountText(row.keenu);
@@ -199,6 +201,7 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
   const payload = {
     sys_cash: n('sys_cash'),
     last_bill_no: num(form.last_bill_no, invalid, 'last_bill_no', { quantity: true }),
+    last_bill_amt: n('last_bill_amt'),
     comp_sale: n('comp_sale'),
     alfalah: n('alfalah'),
     keenu: n('keenu'),

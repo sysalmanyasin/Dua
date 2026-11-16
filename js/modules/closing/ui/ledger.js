@@ -524,7 +524,8 @@ export async function mount(el, { ctx } = {}) {
   const sectionPos = () =>
     html`<h2>1 · POS</h2>
       ${field('sys_cash', 'System Cash Sales Total')} ${field('last_bill_no', 'Last Bill Number')}
-      ${field('comp_sale', 'Computer Card Sale')} ${field('alfalah', 'Bank Alfalah Card Machine')} ${field('keenu', 'Keenu Card Machine')}
+      ${field('last_bill_amt', 'Last Bill Amount')} ${field('comp_sale', 'Computer Card Sale')}
+      ${field('alfalah', 'Bank Alfalah Card Machine')} ${field('keenu', 'Keenu Card Machine')}
       <h3 class="sec-label">Returns / Refunds</h3>
       ${field('ret_manual.0', 'Return 1', { cls: 'cls-return' })} ${field('ret_manual.1', 'Return 2', { cls: 'cls-return' })}
       ${field('ret_manual.2', 'Return 3', { cls: 'cls-return' })} ${field('ret_system', 'System Return', { cls: 'cls-return' })}
@@ -741,6 +742,7 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="cls">
+        <p class="cls-backrow"><button type="button" class="btn btn-sm" data-act="leave">‹ Back to days</button></p>
         ${hero({
           label: 'Closing',
           title: `${slotLabel(S.kind, S.seq)} closing`,
@@ -780,6 +782,7 @@ export async function mount(el, { ctx } = {}) {
           <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
           <button type="button" class="btn" data-act="viewall">⊞ View all</button>
         </div>
+        <p class="cls-meta">Back to days saves your draft first. Continue it later from the calendar or Saved records.</p>
         <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>← Back</button>
@@ -966,6 +969,12 @@ export async function mount(el, { ctx } = {}) {
     if (act === 'submit') return askSubmit();
     if (act === 'viewall') return viewAll();
     if (act === 'pdf' || act === 'pdf-open') return sheetPdf(act === 'pdf-open');
+    if (act === 'leave') {
+      return (S.status === 'saved' ? Promise.resolve() : doSave()).then(() => {
+        const kept = S.status === 'saved' || S.status === 'offline';
+        if (kept || globalThis.confirm('Your latest changes could not be saved. Leave anyway?')) location.hash = '#/closing';
+      });
+    }
     if (act === 'draft') {
       return doSave().then(() => {
         if (S.status === 'saved') toast('Draft saved ✓');
