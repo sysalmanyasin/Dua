@@ -2,6 +2,35 @@
 
 **Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
 
+## Session M-C (14 Nov 2026): built and tested, NOT yet applied to the live project
+
+| Step | What | Evidence |
+|---|---|---|
+| C1 | `0105_mgmt_incentive.sql`: the Incentive calculator (owner only), three more rates (sale commission 0.5%, generic 4.5%, owner's share 50%), Close month now also for `incentive` and `petty`; `/manager/incentive` with live statement and print | 9 shared fixture cases from an independent exact-fraction reference; 10 DB + 9 UI mutation checks, all caught |
+| C2 | `0106_mgmt_petty.sql`: Petty Detail vouchers (append-only revisions, copy to next month); `/manager/petty` with per-voucher print | 12 DB + 9 UI mutation checks, all caught (one DB gap, refund lines, closed by a new test) |
+| C3 | `0107_mgmt_ledgers.sql`: ledger engine (Expenses, Jazz Cash, Misc Sections) and Balance Tally; shared `ledgerPanel`, `/manager/expenses`, `/manager/jazzcash`, `/manager/misc` | 7 shared running-balance cases; 21 DB + 15 UI mutation checks, all caught (two gaps closed: balance as-of-date, tally keys) |
+
+**Totals on this branch:** `npm run verify` green (44 files, 541 tests); DB suite 1,358 checks, 0 failures. The exposure guard (`0199`) now whitelists 36 callable Manager functions.
+
+**The owner's ledger rules are built in, in his words** (MGR-17/22/28): Expense balance = what Head Office owes you (expenses add, Head Office cash reduces); Jazz Cash = money held (Received adds, Transfer reduces); openings are zero; direction is shown as "adds" / "reduces", never a bare sign, and a category's direction can never change.
+
+**Lessons recorded (so the next session does not repeat them):** (1) never write `x or true` in a `perform` test (Postgres folds it and never runs the call); (2) after every `git checkout`-style restore of a *new* file use a saved copy, not git; (3) chain verification with `&&` and stop on failure.
+
+### Ready to apply to the live project (owner says when; RUNBOOK §4, by hand, repo version, in this order)
+1. `supabase/migrations/0105_mgmt_incentive.sql`: replaces two functions, adds one table and three rate rows, loosens two check constraints (rate keys, sheet kinds).
+2. `supabase/migrations/0106_mgmt_petty.sql`: one table, three functions.
+3. `supabase/migrations/0107_mgmt_ledgers.sql`: five tables, 15 functions, seeds the two built-in ledgers, their 12 categories and 6 tally accounts (no money, no people).
+After each: the RUNBOOK §4.4 checks (including the exposure whitelist query) and the security advisor.
+
+### PHONE #3: what to try (after applying and merging)
+**Important:** ledger entries and tally counts cannot be deleted, only reversed or revised. Do the experiments in a **Misc Section called "Test drawer"** and in a **past month** for Incentive and Petty. In Expenses and Jazz Cash enter **real** figures only (opening is zero, so your first real entry is the start).
+1. **Incentive:** open a past month, enter that month's figures from the old app, compare the owner's net with the old app. Print the statement. Change a rate with a reason: a month already saved keeps its own.
+2. **Petty Cash:** add a voucher with two lines and a refund (negative) line; save; reopen. Copy last month's vouchers into an empty month. Print a voucher. Remove one: it leaves the month but stays in the record.
+3. **Test drawer (Misc):** create it with "Put in" (adds) and "Take out" (reduces). Add entries, check the balance wording, reverse one with a reason, try the date filter and "group by category".
+4. **Expenses:** the first real entry is either an expense (Head Office owes you) or cash from Head Office ("You hold Head Office cash"). Check the wording follows your rule.
+5. **Jazz Cash:** Received adds, Transfer reduces; a shift is required. **Balance Tally:** count the accounts and the app total; check Balanced / Extra cash / Short; change a count and see it ask for a reason.
+6. **Sharing:** in Users & Access Allow only `mgmt.petty_cash` for a test person: they see Petty Cash and nothing else. Allow only `mgmt.ledgers`: Expenses, Jazz Cash and Misc only. A person with only `mgmt.salary` must NOT see Incentive.
+
 ## Session M-B (14 Nov 2026): built, tested, and applied to the live project (0104)
 
 | Step | What | Evidence |
