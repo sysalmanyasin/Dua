@@ -28,14 +28,23 @@ begin
   insert into public.str_headers (str_id, str_number, direction, dispatch_status, receive_status) values
     (1, 'S1', 'in', 'Dispatched', ''), (2, 'S2', 'out', 'Dispatched', ''), (3, 'S3', 'in', 'Dispatched', 'Received'),
     (4, 'S4', 'in', '', ''), (5, 'S5', 'in', 'Dispatched', 'Pending');
+  insert into public.str_headers (str_id, str_number, direction, dispatch_status, receive_status, str_status) values (6, 'S6', 'in', 'Dispatched', '', 'Closed');
   insert into public.str_line_items (str_id, str_item_id, product_code, dispatch_qty, str_qty) values
     (1, 1, 'T1', 25, 25), (1, 2, 'T1', 14, 14), (1, 3, 'T2', 7, 7), (1, 4, 'NOPE', 9, 9), (1, 5, 'T3', null, 6), (1, 6, 'T3', 5, 5),
-    (2, 1, 'T1', 100, 100), (3, 1, 'T1', 100, 100), (4, 1, 'T1', 100, 100), (5, 1, 'T2', 3, 3);
+    (2, 1, 'T1', 100, 100), (3, 1, 'T1', 100, 100), (4, 1, 'T1', 100, 100), (5, 1, 'T2', 3, 3), (6, 1, 'T1', 100, 100);
 
   perform pg_temp.as_user(junior_id);
   begin perform * from public.inventory_in_transit(); perform pg_temp.ok(false, 'junior in transit');
   exception when sqlstate '42501' then perform pg_temp.ok(true, 'a person with inventory.search only cannot read units in transit (pass: refused)'); end;
   reset role;
+  -- someone who may view STRs (str.view) but not inventory.view gets nothing through Inventory's function
+  insert into public.role_permissions (role, perm_key) values ('junior', 'str.view') on conflict do nothing;
+  perform pg_temp.as_user(junior_id);
+  perform pg_temp.ok(public.has_perm('str.view') and not public.has_perm('inventory.view'), 'setup: this person holds str.view but not inventory.view');
+  begin perform * from public.inventory_in_transit(); perform pg_temp.ok(false, 'str.view only');
+  exception when sqlstate '42501' then perform pg_temp.ok(true, 'str.view alone does not open Inventory''s in-transit function (pass: refused)'); end;
+  reset role;
+  delete from public.role_permissions where role = 'junior' and perm_key = 'str.view';
   set local role anon;
   begin perform * from public.inventory_in_transit(); perform pg_temp.ok(false, 'anon in transit');
   exception when insufficient_privilege then perform pg_temp.ok(true, 'anon cannot read units in transit (pass: refused)'); end;
@@ -43,7 +52,9 @@ begin
 
   perform pg_temp.as_user(owner_id, 'aal2');
   perform pg_temp.ok((select string_agg(code || '=' || packs, ',' order by code) from public.inventory_in_transit()) = 'NOPE=9,T1=3,T2=10',
-                     'in transit: only incoming, dispatched, not-received transfers; whole packs per line; unknown code counts as pack 1; a line with no dispatch quantity adds nothing; 5 units of a pack of 6 is 0 packs and is not listed');
+                     'in transit: only incoming, dispatched, not-received, not-closed transfers (STR''s rule); whole packs of the summed loose units; unknown code counts as pack 1; a line with no dispatch quantity adds nothing; 5 units of a pack of 6 is 0 packs and is not listed');
+  perform pg_temp.ok((select prosrc from pg_proc where proname = 'inventory_in_transit') like '%str_in_transit_lines()%' and (select prosrc from pg_proc where proname = 'inventory_in_transit') not like '%str_headers%',
+                     'Inventory asks STR''s published interface and does not read the STR tables itself');
   perform pg_temp.ok((select count(*) from public.inventory_in_transit(1)) = 1, 'the limit is honoured');
   perform pg_temp.ok((select count(*) from public.inventory_in_transit(0)) = 1 and (select count(*) from public.inventory_in_transit(-9)) = 1, 'a limit below 1 is raised to 1');
   perform pg_temp.ok((select count(*) from public.inventory_in_transit(100000)) = 3, 'a huge limit is capped, not refused');

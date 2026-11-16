@@ -1,6 +1,9 @@
 -- 0306_inventory_reports.sql — Inventory module, slice I-C/I-D.
 -- 1. inventory_in_transit(): units already on their way to this branch, for the Reorder Report (approved by the owner,
---    13 Nov 2026). Returns codes and whole packs only, for people who hold inventory.view but not the STR permission.
+--    13 Nov 2026). The STR module owns what "in transit" means and publishes it as str_in_transit_lines() (migration 0504,
+--    decision STR-10: loose units by code, live feed only, closed transfers excluded); Inventory only applies its own pack
+--    size, so it never reads the STR tables itself. Returns codes and whole packs, for people who hold inventory.view.
+--    (STR's migration numbers are higher than this one; the function is looked up when it runs, so the order does not matter.)
 -- 2. The Excess Working's shared state: the "retain" list of product names and the misc / head-office amounts. In the old
 --    app these were synced between devices; they are business facts, not a person's setting, so they live here, not in
 --    a person's preferences. Readable and changeable only with inventory.view.
@@ -9,23 +12,18 @@
 -- Nothing here is applied to the live project until the owner has said so.
 
 -- ───────── 1. units in transit ─────────
--- Lines of transfers that come INTO this branch, are dispatched and not yet received. Whole packs per line, using the
--- product's pack size (1 when the product is unknown). Packs only, so a line of loose units adds nothing.
 create or replace function public.inventory_in_transit(p_limit integer default 2000)
 returns table (code text, packs integer)
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not public.has_perm('inventory.view') then raise exception 'not allowed' using errcode = '42501'; end if;
   return query
-    select l.product_code,
-           sum(floor(coalesce(l.dispatch_qty, 0) / (case when p.conversion_factor > 0 then p.conversion_factor else 1 end)))::integer
-    from public.str_line_items l
-    join public.str_headers h on h.str_id = l.str_id
-    left join public.inventory_products p on p.code = l.product_code and p.active
-    where h.direction = 'in' and h.dispatch_status = 'Dispatched' and coalesce(h.receive_status, '') <> 'Received'
-    group by l.product_code
-    having sum(floor(coalesce(l.dispatch_qty, 0) / (case when p.conversion_factor > 0 then p.conversion_factor else 1 end))) > 0
-    order by l.product_code
+    select t.code, x.packs
+    from public.str_in_transit_lines() t
+    left join public.inventory_products p on p.code = t.code and p.active
+    cross join lateral (select floor(t.loose_qty / (case when p.conversion_factor > 0 then p.conversion_factor else 1 end))::integer as packs) x
+    where x.packs > 0
+    order by t.code
     limit greatest(1, least(coalesce(p_limit, 2000), 5000));
 end $$;
 
