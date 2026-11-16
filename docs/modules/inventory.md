@@ -81,7 +81,7 @@ Proposed (the session confirms from the live table before writing the migration)
 
 ## 5. Permissions
 
-Existing, reserved: `inventory.search`, `inventory.view_cost`. New (suggested, with owner approval): `inventory.view` (reports and ledgers), `inventory.sync` (trigger a sync by hand). Presets already give junior/senior `inventory.search`.
+Existing: `inventory.search` (products, stock columns; presets give junior and senior this, and it must stay open to staff because the later Audit module needs it), `inventory.view_cost`, `inventory.sync` (`0009`: trigger a sync by hand, see failed syncs). New in `0301`: `inventory.view` (sales figures and the reports). **No role template holds `inventory.view`**; the owner (admin at MFA level 2) holds every key, and anyone else gets it by hand through Manager → permissions (owner decision INV-8). Sales columns are not readable by a direct `select` for anyone; they come only through `inventory_changes_sales()`, which needs `inventory.view`.
 
 ## 6. Screens (layout)
 
@@ -114,10 +114,22 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 |---|---|---|
 | INV-1 | Inventory is latest-only; no dated snapshots | Accepted (owner, 9 Nov 2026) |
 | INV-2 | Candela → Dropbox → Edge Function pipeline stays the same, moved into the Dua project | Accepted (owner, 9 Nov 2026) |
-| INV-3 | Reorder-value trend (I9) | **Open** |
+| INV-3 | Reorder-value trend (I9): drop the per-device "reorder value over time" trend | Accepted (owner, 12 Nov 2026) |
 | INV-4 | Sync trigger and schedule (I10): scheduled every hour (pg_cron → Edge Function with the shared secret); manual "Sync now" needs `inventory.sync` | Accepted (owner, 9 Nov 2026) |
 | INV-5 | Meaning of `price` (I11): it is the **retail** price, so it is not gated by `inventory.view_cost` | Accepted (owner, 9 Nov 2026) |
 | INV-6 | The feed also lands Candela sales summaries and STR headers/lines (`0009_inventory_feed.sql`); screens for them belong to the Sales and STR modules | Accepted (owner, 9 Nov 2026) |
+| INV-7 | Reports run on a local copy of the products on each phone, kept current by a changed-rows-only feed (overrides §6 "heavy tables paginate on the server" for the report screens) | Accepted (owner, 12 Nov 2026) |
+| INV-8 | Sales columns only for `inventory.view` holders, stock columns for `inventory.search`; `inventory.view` is granted by hand (no role template) | Accepted (owner, 12 Nov 2026) |
+| INV-9 | A sync that would remove more than 20% of the active products is refused and logged; only a signed-in person with `inventory.sync` can confirm (`confirmRemoval`) | Accepted (owner, 12 Nov 2026); built in `0302` |
+| INV-10 | Never Sold and Dead Stock default window 60 days, adjustable on the screen | Accepted (owner, 12 Nov 2026) |
+| INV-11 | No Pause/Resume switch and no timers: refresh on opening a screen, on returning to the tab after 15 minutes, and by hand | Accepted (owner, 12 Nov 2026; 15 minutes, the suggested default was 5) |
+| INV-12 | Inventory owns the feed from now on (migrations, `sync-inventory-from-dropbox`, the cron job); Foundation keeps F6 and F4 | Accepted (owner, 12 Nov 2026) |
+| INV-13 | "Inventory related" includes the STR screens (list and detail, Report, Zero Dispatch, and the in-transit figure Reorder needs). Placement decided 12 Nov 2026: a **separate `str` module** (`/str`, `str_`, 0500–0599) reusing the Inventory local copy; permission `str.view` for all STR viewing; `inventory_in_transit()` (Reorder) approved. See the progress file | Accepted (owner, 12 Nov 2026) |
+| INV-14 | Product-level sales quantity and value may sit on the phones of `inventory.view` users | Accepted (owner, 12 Nov 2026) |
+| INV-15 | The local copy is wiped at sign-out (about 1–1.4 MB again on the next sign-in) | Accepted (owner, 12 Nov 2026) |
+| INV-16 | Delta pages are capped at 1,000 entries (work order said 200, design said 2,000); one compact JSON document per page | Accepted (owner, 12 Nov 2026) |
+| INV-17 | The "stock not sold in N days" headline is whole packs only: it equals Never Sold plus Dead Stock of the same window, one definition everywhere (the old looser headline is retired) | Accepted (owner, 14 Nov 2026); built |
+| INV-18 | Keep the raw pack signal: the feed carries `pack_valid`, so a missing or unusable pack size is flagged instead of silently becoming 1 | Accepted (owner, 14 Nov 2026); built in `0305` |
 
 ## 9. Slices
 
@@ -144,3 +156,17 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 - Secrets live only in Edge Function secrets: DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN, INVENTORY_SYNC_SECRET, ALLOWED_ORIGIN. The refresh token must be the `refresh_token` field, not the `access_token`.
 - The deployed copy inlines `_shared/clients.ts` and `_shared/http.ts` into one file; the repo copy imports them.
 - Next: slices I4 (interfaces `inventory_balances`, `inventory_search`, `inventory_products_for_scope`) and the Part B screens. Not yet built: the "Sync now" button (needs `inventory.sync`).
+
+**Session I-A (12 Nov 2026) — interfaces and the changed-rows-only feed are built, tested, not applied.**
+- `0301_inventory_interfaces.sql` and `0302_inventory_delta_feed.sql` are ready (details, test counts and the apply order in `docs/modules/inventory.progress.md`). The live registry still has the two timestamp rows (F6 not done), so apply by hand and register under `0301` / `0302`.
+- Published interfaces now exist for the other modules: `inventory_balances(p_codes text[])` (≤ 200 codes, unknown code returns `found = false`, never 0), `inventory_search(p_text, p_limit ≤ 50, p_offset)` (plain-text match, `%` and `_` are ordinary characters), `inventory_latest_sync()` (old three columns first, then counters). Closing Session E can use `inventory_balances` once 0301 is applied.
+- The app must never `select *` from `inventory_products` (refused by design) and reads only through `js/modules/inventory/data/`.
+- Phones read `inventory_changes_stock(p_since, p_limit)` and, with `inventory.view`, `inventory_changes_sales(...)`: one JSON document `{reset, cols, rows, removed, next, done, seq, activeCount}` per page. Save `next` only after the page is stored; `reset = true`, a different `schema_version` or a row count that differs from `activeCount` means wipe and reload.
+- Edge Function (repo copy only, not deployed): `content_hash` shortcut, 409 busy, 422 refused, body flags `recheck` and `confirmRemoval`.
+- Not done: A5 (two days of real hourly runs; the open question whether Candela writes a timestamp into the file every hour), the "Sync now" button, all screens, the STR slice. Open decisions: INV-16 (page cap) and STR-Q1 (where the STR screens live).
+
+**Update, 12 Nov 2026 (later): everything above is now applied and verified live.** Migrations `0301`–`0304` are in the live registry; the Edge Function is deployed (v14); five hourly syncs ran on the new feed without a failure. Two flaws were found and fixed on the way (`0303` heartbeat for Foundation's 3-hour watchdog, `0304` counter renumbering); details in `docs/modules/inventory.progress.md`. A phone can now install the whole product list through `inventory_changes_stock` (6 pages, about 1 MB) and, with `inventory.view`, the sales figures (about 0.5 MB more). Next: I-B, the local copy on the phone and the reorder maths.
+
+**Session I-B (13 Nov 2026) — local copy, ported maths and the first screen are built and tested; waiting for the first phone check.** Merged `origin/main`; module registered (`js/modules/index.js`, `css/inventory.css` link). Files: `js/modules/inventory/{manifest,status}.js`, `data/{feed,mirror,idbStore,memoryStore,local}.js`, `domain/{ledger,metrics,search,stockMath,join}.js`, `ui/{overview,parts}.js`. Open for the owner: INV-17 (which "not sold" definition is the Home headline), INV-18 (the old Pack issues list cannot be rebuilt because pack size 0 or missing was turned into 1; recommend keeping the raw factor). Foundation requests: a sign-out hook for modules, a box icon. Details and the phone checklist: `docs/modules/inventory.progress.md`.
+
+**Update, 14 Nov 2026: Inventory I-B is live.** INV-17 and INV-18 are decided and built (`0305`, Edge Function v20, whole-pack headline, `packValid` in the feed). Migrations 0301–0305 are applied; this branch was merged to `main` on the owner's instruction after all gates passed (576 unit tests, 913 database checks, all Edge Functions type-check). The Overview screen (`/inventory`, search over the phone's own copy) is the first live Inventory page. Next: I-C (Stock Ledger, Reorder with `inventory_in_transit()`, Excess screens), then I-D.

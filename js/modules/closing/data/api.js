@@ -51,3 +51,100 @@ export const periodFor = (closingId) => one(db().rpc('closing_period', { p_closi
 export const reopen = ({ closingId, reason, key }) =>
   one(db().rpc('closing_reopen', { p_closing: closingId, p_reason: reason, p_key: key }));
 export const discardRevision = (closingId) => one(db().rpc('closing_discard_revision', { p_closing: closingId }));
+
+/** Credit accounts the owner configured: named accounts and the names of the staff-credit tiers. */
+export const listCreditAccounts = () =>
+  one(db().from('closing_credit_accounts').select('id, kind, tier_no, label, sort').eq('active', true).order('sort').order('label'));
+
+/** Submit the draft. Safe to repeat: a second call for the same key answers { already: true } and does nothing twice. */
+export const submit = (key) => one(db().rpc('closing_submit', { p_key: key }));
+
+// The inventory-audit requirement (CLS-8). It is on in code; an owner can switch it off with a reason, and the change is logged.
+const AUDIT_KEY = 'closing.require_inventory_audit';
+export const readAuditRequired = async () => {
+  const { data, error } = await db().from('settings').select('value').eq('key', AUDIT_KEY).maybeSingle();
+  if (error || !data) return null; // not visible to this person: unknown
+  return data.value === true || data.value === 'true';
+};
+export const setAuditRequired = (required, reason) =>
+  one(db().rpc('settings_set', { p_key: AUDIT_KEY, p_value: required, p_reason: reason }));
+
+// ── ledgers (migration 0206): read-only, for people who may see every closing ──
+/** One snapshot per submitted closing, newest first. `from` / `to` are 'YYYY-MM-DD' or null. */
+export const creditLedger = ({ from = null, to = null, limit = 60 } = {}) =>
+  one(db().rpc('closing_credit_ledger', { p_from: from, p_to: to, p_limit: limit }));
+/** Open and closed misc charges, aged by their stable charge id: { as_of, open: [...], closed: [...] }. */
+export const miscLedger = (closedLimit = 100) => one(db().rpc('closing_misc_ledger', { p_closed_limit: closedLimit }));
+
+// ── books, review and settings (migrations 0208, 0209) ──
+/** One page per submitted closing, newest first, with every live row and the stored results. */
+export const closingBook = ({ from = null, to = null, limit = 60 } = {}) =>
+  one(db().rpc('closing_book', { p_from: from, p_to: to, p_limit: limit }));
+
+/** Pages like closingBook, but for staff too: everyone with view-all gets every closing, a cashier gets the ones they entered (migration 0212). */
+export const ownBook = ({ from = null, to = null, limit = 60, closing = null } = {}) =>
+  one(db().rpc('closing_book_own', { p_from: from, p_to: to, p_limit: limit, p_closing: closing }));
+/** The submitted closing a draft carries from, as a book page, or null (migration 0212). */
+export const prevPage = (closingId) => one(db().rpc('closing_prev_page', { p_closing: closingId }));
+
+/** Catalogs for the settings screen, including the ones switched off. */
+export const listStripsAll = () =>
+  one(db().from('closing_strips').select('id, label, group_name, price, sort, active').order('sort').order('label'));
+export const listAccountsAll = () =>
+  one(db().from('closing_credit_accounts').select('id, kind, tier_no, label, sort, active').order('sort').order('label'));
+export const listAuditItemsAll = () => one(db().from('closing_audit_items').select('code, name, sort, active').order('sort').order('code'));
+
+export const saveStrip = (r) =>
+  one(
+    db().rpc('closing_strip_save', {
+      p_id: r.id ?? null,
+      p_label: r.label,
+      p_group: r.group_name ?? '',
+      p_price: r.price,
+      p_sort: r.sort ?? 0,
+      p_active: r.active ?? true,
+    }),
+  );
+export const saveAccount = (r) =>
+  one(
+    db().rpc('closing_account_save', {
+      p_id: r.id ?? null,
+      p_kind: r.kind,
+      p_tier_no: r.tier_no ?? null,
+      p_label: r.label,
+      p_sort: r.sort ?? 0,
+      p_active: r.active ?? true,
+    }),
+  );
+export const saveAuditItem = (r) =>
+  one(db().rpc('closing_audit_item_save', { p_code: r.code, p_name: r.name, p_sort: r.sort ?? 0, p_active: r.active ?? true }));
+
+const CLOSING_SETTING_KEYS = ['till_float', 'per_customer_charge'];
+/** Current till float and per-customer charge, or null when this person cannot read settings. */
+export const readClosingSettings = async () => {
+  const { data, error } = await db().from('settings').select('key, value').in('key', CLOSING_SETTING_KEYS);
+  if (error || !data?.length) return null;
+  return Object.fromEntries(data.map((r) => [r.key, Number(r.value)]));
+};
+export const setClosingSetting = (key, value, reason) =>
+  one(db().rpc('closing_settings_set', { p_key: key, p_value: value, p_reason: reason }));
+
+// ── inventory audit card (migration 0211) ──
+/** Current stock of the audit codes: { items, not_found, codes_checked, data_as_of, fetched_at, digest }. Saves nothing. */
+export const auditPreview = () => one(db().rpc('closing_audit_preview'));
+/** Freezes what the person confirmed inside this draft; refused with audit_changed if the stock moved since the preview. */
+export const auditVerify = (key, digest) => one(db().rpc('closing_audit_verify', { p_key: key, p_digest: digest }));
+/** The frozen audit of a closing, or null when it has none: { verified_at, data_as_of, codes_checked, not_found, by, items }. */
+export const readAudit = async (closingId) => {
+  const [a, items] = await Promise.all([
+    one(
+      db()
+        .from('closing_inventory_audit')
+        .select('verified_at, data_as_of, codes_checked, not_found, staff:verified_by(full_name)')
+        .eq('closing_id', closingId)
+        .maybeSingle(),
+    ),
+    one(db().from('closing_inventory_audit_items').select('item_code, item_name, qty').eq('closing_id', closingId).order('item_code')),
+  ]);
+  return a ? { ...a, by: a.staff?.full_name ?? null, items: items ?? [] } : null;
+};

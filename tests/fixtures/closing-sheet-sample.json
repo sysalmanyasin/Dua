@@ -1,0 +1,321 @@
+{
+  "closing_id": "c-sample",
+  "business_date": "2026-11-13",
+  "kind": "evening",
+  "seq": 9999,
+  "mode": "shift",
+  "revision": 1,
+  "is_opening": false,
+  "submitted_at": "2026-11-13T23:30:00Z",
+  "correction_reason": null,
+  "staff": "Ayesha",
+  "day_no": 3,
+  "shop": {
+    "title": "Fazal Din's Pharma Plus",
+    "branch": "Bahria Town Branch"
+  },
+  "hs_plus_strips": 19470,
+  "inputs": {
+    "sys_cash": 292168,
+    "last_bill_no": 2478772,
+    "comp_sale": 311908,
+    "alfalah": 84688,
+    "keenu": 161704,
+    "ret_manual_1": 14430,
+    "ret_manual_2": 0,
+    "ret_manual_3": 0,
+    "ret_system": 0,
+    "book_bill_1": 8390,
+    "book_bill_2": 0,
+    "extra_cash": 0,
+    "credit_adj": 0,
+    "prev_cash": 1129774,
+    "prev_cc": 62242,
+    "prev_credit": 325317,
+    "prev_deposits": 686100,
+    "prev_mediq": 0
+  },
+  "results": {
+    "shift_sale": 131924,
+    "customers": 262,
+    "customers_charge": 262,
+    "hs_total": 0,
+    "strips_a": 19470,
+    "total_returns": 14430,
+    "mediq_extra": 0,
+    "net_sale": 126146,
+    "cc_curr": -65516,
+    "cc_total": -3274,
+    "till_c": 16810,
+    "vault_d": 68970,
+    "debt_e": 399764,
+    "deposits_f": 771100,
+    "misc_g": 16865,
+    "grand": 1289705,
+    "liquid": 1244705,
+    "prev_cash": 1129774,
+    "net_cash": 114931,
+    "shift_variance": -11215,
+    "final_net_sale": 276349,
+    "final_net_cash": -12632,
+    "final_variance": null,
+    "till_float": 45000,
+    "per_customer_charge": 1
+  },
+  "hs": [],
+  "strips": [
+    {
+      "label": "Water 1.5L",
+      "price": 100,
+      "qty": 13,
+      "amount": 1300
+    },
+    {
+      "label": "Water 330ml",
+      "price": 60,
+      "qty": 20,
+      "amount": 1200
+    },
+    {
+      "label": "Sugar Strips",
+      "price": 60,
+      "qty": 7,
+      "amount": 420
+    },
+    {
+      "label": "Juice Pack 60x",
+      "price": 60,
+      "qty": 13,
+      "amount": 780
+    },
+    {
+      "label": "Juice Pack 80x",
+      "price": 80,
+      "qty": 42,
+      "amount": 3360
+    },
+    {
+      "label": "Sparkling Water 150x",
+      "price": 150,
+      "qty": 7,
+      "amount": 1050
+    },
+    {
+      "label": "Juice Pack 150x",
+      "price": 150,
+      "qty": 14,
+      "amount": 2100
+    },
+    {
+      "label": "Juice Pack 400x",
+      "price": 400,
+      "qty": 4,
+      "amount": 1600
+    },
+    {
+      "label": "Juice Pack 500x",
+      "price": 500,
+      "qty": 4,
+      "amount": 2000
+    },
+    {
+      "label": "Nescafe 150x",
+      "price": 150,
+      "qty": 10,
+      "amount": 1500
+    },
+    {
+      "label": "Milo 100x",
+      "price": 100,
+      "qty": 24,
+      "amount": 2400
+    },
+    {
+      "label": "Milo 160x",
+      "price": 160,
+      "qty": 11,
+      "amount": 1760
+    }
+  ],
+  "cash": [
+    {
+      "area": "till",
+      "denomination": 1000,
+      "qty": 2
+    },
+    {
+      "area": "till",
+      "denomination": 500,
+      "qty": 14
+    },
+    {
+      "area": "till",
+      "denomination": 100,
+      "qty": 12
+    },
+    {
+      "area": "till",
+      "denomination": 50,
+      "qty": 96
+    },
+    {
+      "area": "till",
+      "denomination": 10,
+      "qty": 108
+    },
+    {
+      "area": "till",
+      "denomination": 1,
+      "qty": 730
+    },
+    {
+      "area": "vault",
+      "denomination": 50,
+      "qty": 900
+    },
+    {
+      "area": "vault",
+      "denomination": 10,
+      "qty": 400
+    },
+    {
+      "area": "vault",
+      "denomination": 1,
+      "qty": 19970
+    }
+  ],
+  "credit": [
+    {
+      "kind": "free",
+      "label": "Salman Jazz Cash",
+      "amount": 9937
+    },
+    {
+      "kind": "free",
+      "label": "Guard Incentive",
+      "amount": 50
+    },
+    {
+      "kind": "free",
+      "label": "Pharmacy Use \u2014 Toilet paper",
+      "amount": 131
+    },
+    {
+      "kind": "free",
+      "label": "Book Bill",
+      "amount": 61850
+    }
+  ],
+  "deposits": [
+    {
+      "label": "Bank deposit",
+      "amount": 85000
+    }
+  ],
+  "mediq": [],
+  "misc": [
+    {
+      "label": "Hassan comp",
+      "amount": 2010
+    },
+    {
+      "label": "Zarar sb",
+      "amount": 2180
+    },
+    {
+      "label": "Pepsi 500ml(2) mirinda 500ml (3)",
+      "amount": 450
+    },
+    {
+      "label": "Shahid Driver FDPP",
+      "amount": 620
+    },
+    {
+      "label": "AUNTY",
+      "amount": 800
+    },
+    {
+      "label": "Salman Gulam Ali",
+      "amount": 160
+    },
+    {
+      "label": "zahid printers",
+      "amount": 1630
+    },
+    {
+      "label": "Sadid Ahmad",
+      "amount": 360
+    },
+    {
+      "label": "Shamshair HS",
+      "amount": 3530
+    },
+    {
+      "label": "Ali hussnain",
+      "amount": 160
+    },
+    {
+      "label": "Customer 1025 blockumer",
+      "amount": 130
+    },
+    {
+      "label": "Mustafa mobile",
+      "amount": 280
+    },
+    {
+      "label": "mobile shop",
+      "amount": 200
+    },
+    {
+      "label": "asad",
+      "amount": 150
+    },
+    {
+      "label": "dr kamran nature time",
+      "amount": 375
+    },
+    {
+      "label": "Sir usman HS",
+      "amount": 2687
+    },
+    {
+      "label": "Dr Usama",
+      "amount": 383
+    }
+  ],
+  "audit": null,
+  "final_part": {
+    "part1": {
+      "pos_sale": 292168,
+      "book_bills": 73294,
+      "customers": 603,
+      "mediq_extra": 0,
+      "manual_returns": 89716,
+      "system_returns": 0,
+      "additional_system_returns": 0,
+      "net_final_sale": 276349
+    },
+    "part2": {
+      "net_cash_available": 1244705,
+      "pre_date_pos": 656460,
+      "pre_date_customers": 993,
+      "pre_date_system_returns": 26465,
+      "pre_date_total": 630988,
+      "extra_cash": 350000,
+      "target_net_sale": 276349,
+      "net_final_cash": -12632
+    },
+    "ties": {
+      "sale": true,
+      "cash": true
+    },
+    "period": [
+      {
+        "business_date": "2026-11-13",
+        "kind": "evening",
+        "seq": 9999
+      }
+    ],
+    "last_final": null
+  }
+}

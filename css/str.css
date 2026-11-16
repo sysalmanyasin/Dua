@@ -1,0 +1,297 @@
+/* STR module. Everything is scoped under .str (or the print root) so it cannot touch other pages.
+   Colours come from the shared tokens; status is always a word and a mark as well as a colour. */
+.str .field {
+  margin-bottom: var(--space-3);
+}
+.str input[type='search'],
+.str input[type='date'] {
+  width: 100%;
+  min-height: 44px;
+  font-size: 1rem;
+}
+.str-stages,
+.str-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.str-stage,
+.str-chip {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.str-stage[aria-pressed='true'],
+.str-chip[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+.str-dates {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+@media (max-width: 480px) {
+  .str-dates {
+    grid-template-columns: 1fr 1fr;
+  }
+  .str-dates .actions {
+    grid-column: 1 / -1;
+  }
+}
+.str-status {
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.str-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.str-row {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.str-row:hover {
+  background: var(--surface-2);
+}
+.str-row-top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  align-items: center;
+}
+.str-row-route,
+.str-row-meta,
+.str-row-note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.str-row-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.str-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid currentcolor;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.str-awaited {
+  color: var(--text-muted);
+}
+.str-dispatched {
+  color: #b9660f;
+}
+.str-received {
+  color: var(--ok);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .str-dispatched {
+    color: var(--amber);
+  }
+}
+:root[data-theme='dark'] .str-dispatched {
+  color: var(--amber);
+}
+.str-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.str-title h2 {
+  margin: 0;
+}
+.str-back {
+  margin: 0 0 var(--space-2);
+}
+.str-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+.str-fields dt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.str-fields dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.str-note {
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 0.9rem;
+}
+.str-scroll {
+  overflow-x: auto;
+}
+.str-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.str-table th,
+.str-table td {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.str-table thead th {
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.str-table .num {
+  text-align: center;
+  white-space: nowrap;
+}
+.str-table .str-group th {
+  background: var(--surface-2);
+  font-weight: 800;
+}
+.str-table .str-sub td,
+.str-table tfoot td {
+  font-weight: 700;
+}
+.str-diff-short {
+  color: var(--danger);
+}
+.str-diff-over {
+  color: var(--ok);
+}
+.str-word {
+  font-size: 0.75rem;
+}
+.str-comments {
+  margin-top: var(--space-3);
+}
+.str-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.str-actions .btn {
+  min-height: 44px;
+}
+.str-empty {
+  padding: var(--space-4) 0;
+}
+
+/* Print: only the print root is shown. Portrait A4. */
+/* Report and Zero Dispatch */
+.str .str-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.str .str-check input {
+  width: 24px;
+  height: 24px;
+}
+.str .str-cols summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.str .str-branch h3 {
+  margin: 16px 0 8px;
+}
+.str .str-entry {
+  margin-bottom: 20px;
+}
+.str .str-entry h4 {
+  margin: 0;
+}
+
+#str-print-root {
+  display: none;
+}
+@media print {
+  body.str-printing > *:not(#str-print-root) {
+    display: none !important;
+  }
+  body.str-printing #str-print-root {
+    display: block;
+    color: #000;
+    background: #fff;
+    font:
+      11pt/1.35 system-ui,
+      sans-serif;
+  }
+  #str-print-root .str-print-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #000;
+    margin-bottom: 8pt;
+  }
+  #str-print-root h1 {
+    margin: 0;
+    font-size: 14pt;
+  }
+  #str-print-root .str-entry {
+    break-inside: avoid-page;
+  }
+  #str-print-root .str-fields {
+    grid-template-columns: repeat(3, 1fr);
+    margin-bottom: 8pt;
+  }
+  #str-print-root .str-fields dt {
+    color: #444;
+  }
+  #str-print-root .str-table th,
+  #str-print-root .str-table td {
+    border-color: #999;
+    color: #000;
+  }
+  #str-print-root .str-table .str-group th,
+  #str-print-root .str-table thead th {
+    background: #eee;
+  }
+  #str-print-root .str-diff-short,
+  #str-print-root .str-diff-over {
+    color: #000;
+  }
+  #str-print-root tr {
+    break-inside: avoid;
+  }
+  #str-print-root thead {
+    display: table-header-group;
+  }
+}

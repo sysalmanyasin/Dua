@@ -27,6 +27,23 @@ const api = {
   computePreview: vi.fn(async () => ({ net_sale: 1234, shift_sale: 1000, customers: 7 })),
   myRecent: vi.fn(async () => []),
   startOpening: vi.fn(async () => ({ closing_id: 'o1' })),
+  listCreditAccounts: vi.fn(async () => [
+    { id: 'a1', kind: 'named', label: 'Ali Traders' },
+    { id: 't1', kind: 'tier_name', tier_no: 1, label: 'Staff' },
+  ]),
+  readAuditRequired: vi.fn(async () => true),
+  readAudit: vi.fn(async () => ({
+    verified_at: '2026-11-10T10:00:00Z',
+    data_as_of: '2026-11-10T09:00:00Z',
+    codes_checked: 3,
+    not_found: [],
+    items: [],
+  })),
+  prevPage: vi.fn(async () => null),
+  ownBook: vi.fn(async () => []),
+  setAuditRequired: vi.fn(async () => ({})),
+  periodFor: vi.fn(async () => ({})),
+  submit: vi.fn(async () => ({ already: false })),
 };
 vi.mock('../../js/modules/closing/data/api.js', () => api);
 
@@ -38,6 +55,10 @@ const type = (el, value) => {
 let el;
 HTMLDialogElement.prototype.showModal ??= function () {
   this.setAttribute('open', '');
+};
+HTMLDialogElement.prototype.close ??= function () {
+  this.removeAttribute('open');
+  this.dispatchEvent(new Event('close'));
 };
 beforeEach(() => {
   vi.useFakeTimers();
@@ -75,6 +96,13 @@ describe('Closing start page', () => {
     el.querySelector('[data-act="continue"]').click();
     expect(JSON.parse(sessionStorage.getItem('dua.closing.open'))).toMatchObject({ key: 'kd', date: '2026-11-09', kind: 'evening' });
     expect(location.hash).toBe('#/closing/ledger');
+  });
+  it('keeps Credit and Misc ledgers off the ordinary staff closing home', async () => {
+    await start(['closing.enter_own']);
+    expect(el.textContent).not.toContain('Credit Ledger');
+    expect(el.textContent).not.toContain('Misc Ledger');
+    await start(['closing.enter_own', 'closing.view_all']);
+    expect(el.textContent).toContain('Credit Ledger');
   });
   it('shows the opening card only to someone who may change closing settings', async () => {
     await start();
@@ -186,13 +214,107 @@ describe('Closing ledger', () => {
     expect(el.querySelector('[data-jump="2"]').getAttribute('aria-current')).toBe('step');
     expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('false');
   });
-  it('shows later sections as not built yet and has no Submit button', async () => {
+  it('shows the late sections and keeps Submit for the last one', async () => {
     openTarget();
     await ledger();
-    el.querySelector('[data-jump="6"]').click();
-    expect(el.querySelector('.cls-soon')).not.toBeNull();
-    expect(el.textContent).not.toMatch(/submit/i);
+    expect(el.querySelector('[data-act="submit"]')).toBeNull();
+    el.querySelector('[data-jump="8"]').click();
+    expect(el.querySelectorAll('[data-f^="till."]')).toHaveLength(8);
+    type(el.querySelector('[data-f="till.0"]'), '2');
+    expect(el.querySelector('[data-total="till"]').textContent).toBe('10,000.00');
+    el.querySelector('[data-jump="10"]').click();
+    expect(el.textContent).toContain('Ali Traders');
+    expect(el.querySelectorAll('select[data-list="credit.tier"]')).toHaveLength(1); // only slot 1 has configured names
+    expect(el.querySelectorAll('input[data-list="credit.tier"][data-k="label"]')).toHaveLength(2);
+    el.querySelector('[data-act="add"][data-list="credit.free"]').click();
+    expect(el.querySelectorAll('input[data-list="credit.free"][data-k="label"]').length).toBe(1);
+    el.querySelector('[data-jump="13"]').click();
+    expect(el.querySelector('[data-act="submit"]')).not.toBeNull();
   });
+  it('refuses to submit without a responsible person, then submits and shows the success screen', async () => {
+    openTarget();
+    await ledger();
+    el.querySelector('[data-jump="13"]').click();
+    el.querySelector('[data-act="submit"]').click();
+    expect(api.submit).not.toHaveBeenCalled();
+    el.querySelector('#cls-staff').value = 'st1';
+    el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(3000);
+    el.querySelector('[data-act="submit"]').click();
+    document.querySelector('dialog [data-act="go"]').click();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(api.submit).toHaveBeenCalledWith('k1');
+    expect(el.textContent).toContain('Closing submitted');
+  });
+  it('sends you to the Inventory Audit instead of the review when the audit is required and not verified', async () => {
+    api.readAudit.mockImplementationOnce(async () => null);
+    openTarget();
+    await ledger();
+    el.querySelector('#cls-staff').value = 'st1';
+    el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(3000);
+    el.querySelector('[data-jump="13"]').click();
+    el.querySelector('[data-act="submit"]').click();
+    expect(document.querySelector('dialog')).toBeNull();
+    expect(el.querySelector('[data-jump="5"]').getAttribute('aria-current')).toBe('step');
+    expect(api.submit).not.toHaveBeenCalled();
+  });
+  it('maps a refusal to plain words and stays on the ledger', async () => {
+    openTarget();
+    await ledger();
+    el.querySelector('#cls-staff').value = 'st1';
+    el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(3000);
+    api.submit.mockImplementationOnce(async () => {
+      throw Object.assign(new Error('x'), { hint: 'audit_not_verified' });
+    });
+    el.querySelector('[data-jump="13"]').click();
+    el.querySelector('[data-act="submit"]').click();
+    document.querySelector('dialog [data-act="go"]').click();
+    await vi.advanceTimersByTimeAsync(300);
+    expect(el.textContent).not.toContain('Closing submitted');
+    expect(document.getElementById('toasts').textContent.length).toBeGreaterThan(5);
+  });
+
+  it('supports horizontal swipe navigation while ignoring vertical scrolling and form controls', async () => {
+    openTarget();
+    const originalScrollTo = window.scrollTo;
+    window.scrollTo = vi.fn();
+    try {
+      await ledger();
+      const touch = (type, x, y) => {
+        const event = new Event(type, { bubbles: true });
+        Object.defineProperty(event, type === 'touchstart' ? 'touches' : 'changedTouches', {
+          value: [{ clientX: x, clientY: y }],
+        });
+        el.querySelector('.cls-sec').dispatchEvent(event);
+      };
+
+      touch('touchstart', 180, 100);
+      touch('touchend', 100, 105);
+      expect(el.querySelector('[data-jump="1"]').getAttribute('aria-current')).toBe('step');
+
+      touch('touchstart', 100, 100);
+      touch('touchend', 180, 105);
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+
+      touch('touchstart', 180, 100);
+      touch('touchend', 100, 170); // vertical scroll, not a section swipe
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+
+      const input = el.querySelector('#f-sys_cash');
+      const start = new Event('touchstart', { bubbles: true });
+      Object.defineProperty(start, 'touches', { value: [{ clientX: 180, clientY: 100 }] });
+      input.dispatchEvent(start);
+      const end = new Event('touchend', { bubbles: true });
+      Object.defineProperty(end, 'changedTouches', { value: [{ clientX: 100, clientY: 105 }] });
+      input.dispatchEvent(end);
+      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+    } finally {
+      window.scrollTo = originalScrollTo;
+    }
+  });
+
   it('shows the opening figures only on the opening closing', async () => {
     openTarget({ opening: true, mode: 'final' });
     api.loadById.mockImplementationOnce(async () => ({

@@ -63,7 +63,7 @@ describe('closing sections', () => {
     expect(sectionIndex('strips')).toBe(4);
     expect(sectionIndex('nope')).toBe(0);
   });
-  it('this session builds sections 1 to 5 only', () => {
-    expect(SECTIONS.filter((s) => s.built).map((s) => s.key)).toEqual(['pos', 'mediq', 'shift', 'hs', 'strips']);
+  it('builds all 14 sections', () => {
+    expect(SECTIONS.filter((s) => s.built)).toHaveLength(14);
   });
 });

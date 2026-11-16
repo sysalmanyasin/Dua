@@ -112,6 +112,7 @@ export function buildTiles(modules) {
       id: m.id,
       title: m.title,
       icon: m.icon,
+      blurb: m.blurb ?? '',
       pages: m.routes.filter((r) => r.title).map((r) => ({ title: r.title, desc: r.desc ?? '', href: `#${r.path}` })),
     }))
     .filter((g) => g.pages.length);

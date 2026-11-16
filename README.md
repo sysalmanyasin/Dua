@@ -16,6 +16,7 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Candela / Dropbox inventory feed | Base feed live; enhanced feed 0301–0304 and Edge Function v14 are live according to Inventory progress, but their source changes are not yet integrated into `main` |
 | Inventory screens and local product copy | In progress on `module/inventory` |
 | Daily encrypted backups | Workflow live; first successful Drive backup recorded 13 Nov; real Drive-to-separate-Supabase restore drill still pending |
+| Candela Sales | Integrated; migration 0900 applied and checked live 14 Nov; owner phone try-out pending |
 | STR, Audit Hub, Emergency Billing, unified Reports, assistant and Android widgets | Planned / later phases |
 
 **Important:** a feature can be live in Supabase while its latest source is still on a feature branch. See [Project status](docs/PROJECT_STATUS.md) and [module progress files](docs/modules/).

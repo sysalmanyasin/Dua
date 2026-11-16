@@ -53,3 +53,6 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 
 ## Status note (13 Nov 2026)
 Manager migrations 0101–0103 and Inventory migrations 0301–0304 are recorded as live in their module progress evidence. Inventory's enhanced source is still on `module/inventory`, not yet integrated into `main`; this creates a source/live parity task, not permission to reapply the migrations. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+## Candela Sales (14 Nov 2026)
+Candela history and customer credit are readable only with `candela.view` (owner, at MFA level 2); no role preset carries it and no staff SELECT exists on the history tables. Staff may be granted `candela.today_total`, which allows one function, `candela_today_total()`, returning today's total (Pakistan date, decided in the database). History tables have no write grants; only security-definer triggers write them. The older landing-table policies still use `sales.view_history` and `credit.view`; if either is ever granted to staff for another reason, those raw rows would be visible to them.
