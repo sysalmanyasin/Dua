@@ -3,7 +3,7 @@
 export default {
   id: 'invoice-desk',
   title: 'Invoice Desk',
-  icon: 'receipt',
+  icon: 'shield',
   nav: { order: 85 },
   permission: 'tools.view',
   routes: [
