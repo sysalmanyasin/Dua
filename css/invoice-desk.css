@@ -10,7 +10,7 @@
 .id-words{font-size:.82rem;color:var(--text-muted);margin-top:var(--space-3)}
 .id-history-row{align-items:center}
 .id-paper{width:min(100%,720px);margin:12px auto;padding:22px;background:#fff;color:#111;border:1px solid #aaa;font-family:Cambria,Georgia,serif}
-.id-paper header{text-align:center;border-bottom:1px solid #333;padding-bottom:10px;margin-bottom:10px}
+.id-copy{text-align:center;font-weight:700;letter-spacing:.12em;font-size:.75rem;margin-bottom:6px}.id-meta{display:flex;justify-content:space-between;gap:8px;font-size:.78rem;margin:5px 0}.id-policy{font-size:.68rem;text-align:center;line-height:1.25;margin:8px 0}.id-thanks{text-align:center;font-weight:700;margin:8px 0}.id-summary{margin-top:8px}.id-summary>div{display:flex;justify-content:space-between;padding:4px 0}.id-paper header{text-align:center;border-bottom:1px solid #333;padding-bottom:10px;margin-bottom:10px}
 .id-paper header h2{font-size:1.3rem;letter-spacing:.04em;margin:0}
 .id-paper header p{margin:3px 0;font-weight:700}
 .id-paper table{width:100%;border-collapse:collapse;font-size:.85rem}
