@@ -1,7 +1,7 @@
 export function validateInvoiceHeader(header) {
   const errors = {};
   if (!['bs-mart','safari-book-land','best-choice-store'].includes(header.businessId)) errors.businessId = 'Select a business.';
-  if (typeof header.invoiceNumber !== 'string' || header.invoiceNumber.length < 1 || header.invoiceNumber.length > 120) errors.invoiceNumber = 'Enter an invoice number (1–120 characters).';
+  if (typeof header.invoiceNumber !== 'string' || header.invoiceNumber.trim().length < 1 || header.invoiceNumber.length > 120) errors.invoiceNumber = 'Enter an invoice number (1–120 characters).';
   if (!/^\d{4}-\d{2}-\d{2}$/.test(header.invoiceDate ?? '')) errors.invoiceDate = 'Enter a valid invoice date.';
   return errors;
 }
