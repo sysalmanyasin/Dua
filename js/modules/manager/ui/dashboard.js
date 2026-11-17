@@ -1,4 +1,4 @@
-import { html, render } from '../../../shared/html.js';
+import { html as markup, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import { money, monthLabel, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
@@ -54,22 +54,22 @@ export async function mount(el, { ctx }) {
     paint();
   }
 
-  const card = (label, value, href) => html`
+  const card = (label, value, href) => markup`
     <a class="md-kpi" href="${href}">
       <small>${label}</small>
       <strong>${value}</strong>
       <span>Open details ↗</span>
     </a>`;
-  const line = (label, value) => html`
+  const line = (label, value) => markup`
     <div class="md-line"><span>${label}</span><strong>${value}</strong></div>`;
-  const panel = (label, body, href) => html`
+  const panel = (label, body, href) => markup`
     <section class="md-panel">
       <header><h2>${label}</h2><a href="${href}">View →</a></header>
       ${body}
     </section>`;
 
   function paint() {
-    const actions = html`
+    const actions = markup`
       <label class="md-month">
         Month
         <input type="month" data-month value='${state.month.slice(0, 7)}" max='${currentMonth.slice(0, 7)}' />
@@ -82,7 +82,7 @@ export async function mount(el, { ctx }) {
       actions,
     });
 
-    if (state.loading) return render(el, html`${heading}${loadingCard()}`);
+    if (state.loading) return render(el, markup`${heading}${loadingCard()}`);
 
     const data = state.data;
     const cards = [];
@@ -127,11 +127,11 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Staff Credit',
           data.credit
-            ? html`${line('Previous balance', moneyValue(total(data.credit, 'prev_balance')))}${line(
+            ? markup`${line('Previous balance', moneyValue(total(data.credit, 'prev_balance')))}${line(
                 'Monthly entries',
                 moneyValue(total(data.credit, 'entries_total')),
               )}${line('Net outstanding', moneyValue(total(data.credit, 'net')))}`
-            : html`<p>Could not load credit data.</p>`,
+            : markup`<p>Could not load credit data.</p>`,
           '#/manager/credit',
         )
       : '';
@@ -139,14 +139,14 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Payroll & Generic',
           data.salary && data.generic
-            ? html`${line('HO salary', moneyValue(total(data.salary, 'ho_salary')))}${line(
+            ? markup`${line('HO salary', moneyValue(total(data.salary, 'ho_salary')))}${line(
                 'Advances',
                 moneyValue(total(data.salary, 'advance')),
               )}${line('Generic in payroll', moneyValue(total(data.salary, 'generic')))}${line(
                 'Net salary',
                 moneyValue(total(data.salary, 'net')),
               )}${line('Generic final', moneyValue(total(data.generic, 'final')))}`
-            : html`<p>Could not load sheets.</p>`,
+            : markup`<p>Could not load sheets.</p>`,
           '#/manager/salary',
         )
       : '';
@@ -154,14 +154,14 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Incentive',
           data.incentive
-            ? html`${line('Sale commission', moneyValue(data.incentive.sale_comm))}${line(
+            ? markup`${line('Sale commission', moneyValue(data.incentive.sale_comm))}${line(
                 'Generic incentive',
                 moneyValue(data.incentive.gen_inc),
               )}${line('Net incentive', moneyValue(data.incentive.net_inc))}${line(
                 'Owner share',
                 moneyValue(data.incentive.owner_net),
               )}`
-            : html`<p>Could not load incentive.</p>`,
+            : markup`<p>Could not load incentive.</p>`,
           '#/manager/incentive',
         )
       : '';
@@ -169,11 +169,11 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Petty Cash',
           data.petty
-            ? html`${line('Voucher total', moneyValue(pettyAmountFor(data.petty)))}${line(
+            ? markup`${line('Voucher total', moneyValue(pettyAmountFor(data.petty)))}${line(
                 'Voucher groups',
                 data.petty.length,
               )}`
-            : html`<p>Could not load petty cash.</p>`,
+            : markup`<p>Could not load petty cash.</p>`,
           '#/manager/petty',
         )
       : '';
@@ -181,7 +181,7 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Live Balances',
           data.ledgers
-            ? html`${data.ledgers.map((ledger) => {
+            ? markup`${data.ledgers.map((ledger) => {
                 const balance = balanceMessage(ledger, ledger.balance);
                 const href =
                   ledger.code === 'expense'
@@ -189,38 +189,38 @@ export async function mount(el, { ctx }) {
                     : ledger.code === 'jazzcash'
                       ? '#/manager/jazzcash'
                       : '#/manager/misc';
-                return html`
+                return markup`
                   <a class="md-balance" href="${href}">
                     <span>${ledger.name}</span>
                     <strong>${balance.amount ? moneyValue(balance.amount) : 'Settled'}</strong>
                     <small>${balance.text} · ${ledger.entry_count} entries</small>
                   </a>`;
               })}`
-            : html`<p>Could not load ledgers.</p>`,
+            : markup`<p>Could not load ledgers.</p>`,
           '#/manager/expenses',
         )
       : '';
     const inbox = can.inbox
       ? panel(
           'Credit Inbox',
-          html`
+          markup`
             <strong class="md-inbox">${Number(data.inbox?.[0]?.count ?? data.inbox?.[0] ?? data.inbox ?? 0)}</strong>
             <a href="#/manager/inbox">Review inbox →</a>`,
           '#/manager/inbox',
         )
       : '';
-    const links = html`
+    const links = markup`
       <nav class="md-links">
-        ${can.staff ? html`<a href="#/manager/staff">Staff Registry</a>` : ''}
-        ${can.credit ? html`<a href="#/manager/credit">Staff Credit</a>` : ''}
-        ${can.salary ? html`<a href="#/manager/reports">Reports</a>` : ''}
-        ${can.petty ? html`<a href="#/manager/petty">Petty Cash</a>` : ''}
-        ${can.ledgers ? html`<a href="#/manager/misc">Misc Sections</a>` : ''}
+        ${can.staff ? markup`<a href="#/manager/staff">Staff Registry</a>` : ''}
+        ${can.credit ? markup`<a href="#/manager/credit">Staff Credit</a>` : ''}
+        ${can.salary ? markup`<a href="#/manager/reports">Reports</a>` : ''}
+        ${can.petty ? markup`<a href="#/manager/petty">Petty Cash</a>` : ''}
+        ${can.ledgers ? markup`<a href="#/manager/misc">Misc Sections</a>` : ''}
       </nav>`;
 
     render(
       el,
-      html`${heading}
+      markup`${heading}
         <div class="md-intro">
           <span>MONTHLY SNAPSHOT</span>
           <h2>Your branch, at a glance.</h2>
