@@ -35,7 +35,7 @@ function kpiCard(k) {
 }
 
 function stockCard(c) {
-  const lead = c.count === undefined ? '' : html`<span class="ks">${money(c.count)} products</span>`;
+  const lead = c.count === undefined ? '' : html`<span class="ks">${money(c.count)} product${c.count === 1 ? '' : 's'}</span>`;
   return html`<a class="kpi" href="${c.href}"><span class="kl">${c.label}</span><strong class="kv">₨ ${money(c.value)}</strong>${lead}<span class="ks">${c.sub}</span></a>`;
 }
 
