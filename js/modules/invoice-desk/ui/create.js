@@ -91,7 +91,7 @@ export async function mount(el) {
     if(totalBox) drawTotals(totalBox);
   });
   el.addEventListener('change',async(e)=>{
-    if(e.target.id==='business') { state.businessId=e.target.value; state.lines=[blankLine()]; state.discount='0.00'; state.saved=null; await loadProducts(); draw(); }
+    if(e.target.id==='business') { state.businessId=e.target.value; state.lines=[blankLine()]; state.discount='0.00'; state.cash=''; state.change=''; state.cashier=''; state.customer=''; state.shift=''; state.time=''; state.saved=null; state.key=crypto.randomUUID(); await loadProducts(); draw(); }
     if(e.target.matches('[data-field="description"]')) {
       const line=e.target.closest('[data-line]'); const i=Number(line.dataset.line);
       const p=state.products.find(x=>x.name.toLowerCase()===e.target.value.trim().toLowerCase());
@@ -100,9 +100,9 @@ export async function mount(el) {
   });
   el.addEventListener('click',async(e)=>{
     const b=e.target.closest('[data-act]'); if(!b)return;
-    if(b.dataset.act==='add'){state.lines.push(blankLine());draw();}
-    if(b.dataset.act==='remove'){state.lines.splice(Number(b.dataset.index),1);draw();}
-    if(b.dataset.act==='new'){state.invoiceNumber='';state.lines=[blankLine()];state.discount='0.00';state.saved=null;state.key=crypto.randomUUID();draw();}
+    if(b.dataset.act==='add'){state.lines.push(blankLine());state.saved=null;state.key=crypto.randomUUID();draw();}
+    if(b.dataset.act==='remove'){state.lines.splice(Number(b.dataset.index),1);state.saved=null;state.key=crypto.randomUUID();draw();}
+    if(b.dataset.act==='new'){state.invoiceNumber='';state.lines=[blankLine()];state.discount='0.00';state.cash='';state.change='';state.cashier='';state.customer='';state.shift='';state.time='';state.saved=null;state.key=crypto.randomUUID();draw();}
     if(b.dataset.act==='print'){printSaved();}
     if(b.dataset.act==='save') await save();
   });
