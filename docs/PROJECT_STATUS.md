@@ -1,6 +1,6 @@
 # Project status — canonical snapshot
 
-**Snapshot date:** 13 November 2026  
+**Snapshot date:** 17 November 2026  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
 **Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
@@ -20,7 +20,7 @@ This file is the current status summary. Older dated entries in `PROJECT_PROGRES
 |---|---|---|---|
 | Foundation / authentication / permissions | Integrated | Live and owner-accepted | Operational hardening and separate production environment remain |
 | Sales | Integrated; core pages, reports, targets, fields, Cover and Gmail-send flow are implemented | Sales migrations and imported history are live | Owner's full real-device try-out; Google Cloud origin / real Gmail send verification; remaining dependent features below |
-| Manager | Integrated on `main`; staff registry and staff-credit screens are implemented | Migrations 0101–0103 applied and checked on 13 Nov | Phone try-out; remaining Manager slices (payslips, petty cash and other planned items) |
+| Manager | Integrated on `main`; Staff Registry, Staff Credit, Salary, Generic Sheet, Incentive, Petty Cash, Expenses, Jazz Cash, Misc Sections and Balance Tally implementation is recorded in the module progress file | Migrations 0101–0107 applied and checked live on 17 Nov 2026 | Credit Inbox (`0108`) is not yet present; run full database and UI verification, confirm current screens/permissions, then owner phone acceptance |
 | Closing | Integrated on `main`; module shell and partial guided ledger are present | Database work through the documented 020x slices is in the repository; verify exact live registry before further apply | Sections 6–14, submit flow, ledgers/feed, print and remaining screens; owner phone try-out |
 | Inventory feed | Base Candela/Dropbox feed is integrated | Feed is live; hourly sync and inventory data were checked | Enhanced changed-row feed/interface migrations 0301–0304 and Edge Function v14 are recorded as applied live by the Inventory session, but their source branch is not yet integrated into `main`; reconcile and merge before treating repository as reproducible |
 | Inventory screens / local copy / reports | In progress on `module/inventory` | Feed is live; screen work is not complete | I-B local copy and reorder maths, I-C reports, I-D Home numbers and egress review |
@@ -54,7 +54,7 @@ The latest main-branch project progress entry (13 Nov) reports **357 unit/jsdom 
 
 Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
 
-## Candela Sales (14 Nov 2026)
+## Manager (17 Nov 2026)\n\n- Live `DuaPharmaPlus` migration registry contains Manager migrations `0101`–`0107` in order. `0105`–`0107` were applied from the exact `main` SQL files on 17 Nov 2026 and registered under their repository versions.\n- Live post-apply checks: 17 Manager tables have RLS enabled; no direct `anon` table grants, no direct authenticated write grants, no `anon` execution of Manager RPCs, and fixed search paths on Manager functions. Manager data access is through permission-checked RPCs, not direct table policies.\n- Built-in seed state checked: 4 rates, 2 ledgers, 6 tally accounts. No business transactions or staff records were imported.\n- `0108` / Credit Inbox is not in the current main migration directory and remains outstanding. Full local DB suite, current `npm run verify`, and owner phone acceptance still need to be run. See `docs/modules/manager.progress.md`.\n\n## Candela Sales (14 Nov 2026)
 
 - The Candela feed carries only the last 4 days and `inventory_apply_sync` replaces `sales_payment_summary` and `sales_credit_by_customer` on every run. Migration 0900 adds statement triggers on those two tables that copy every incoming day into `candela_daily_payments` and `candela_credit_daily` in the same transaction, so history is permanent and the Inventory-owned sync function is unchanged.
 - History starts at the first capture (11 Nov 2026); earlier days exist only in backups.
