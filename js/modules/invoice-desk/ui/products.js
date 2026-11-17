@@ -24,7 +24,7 @@ export async function mount(el){
     if(b.dataset.act==='save'){
       if(!s.name.trim()||!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(s.price)){s.error='Enter a product name and valid non-negative price.';return draw();}
       s.busy=true;draw();
-      try{const {error}=await api.saveProduct({id:s.editing,business_id:s.businessId,name:s.name.trim(),suggested_price:s.price,active:true},s.key);if(error)throw error;s.editing=null;s.name='';s.price='0.00';s.key=crypto.randomUUID();await load();}
+      try{const {error}=await api.saveProduct({id:s.editing,business_id:s.businessId,name:s.name.trim(),suggested_price:s.price,active:true},s.key);if(error)throw error;s.editing=null;s.name='';s.price='0.00';s.key=crypto.randomUUID();s.busy=false;await load();}
       catch(err){s.error=err.message||'Could not save product.';s.busy=false;draw();}
     }
     if(b.dataset.act==='toggle'){
