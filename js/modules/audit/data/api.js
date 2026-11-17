@@ -76,3 +76,71 @@ export const startRound = (roundId, version) => one(db().rpc('audit_round_start'
 /** The ids of one company's items in a round, so a whole company can be moved to another person. */
 export const companyItemIds = async (roundId, company) =>
   (await one(db().from('audit_round_items').select('id').eq('round_id', roundId).eq('company', company).limit(6000))).map((r) => r.id);
+
+// ── counting, Individual Audit and templates (migration 0406 and 0402) ──
+/** The person's own assignments, newest first, with item and counted totals. */
+export const myAssignments = () => one(db().rpc('audit_my_assignments'));
+/** All of one assignment's items with the latest count on each. The database gives pages; this asks until a page comes back short. */
+export async function myItems(assignmentId) {
+  const PAGE = 500;
+  const out = [];
+  for (;;) {
+    const page = await one(
+      db().rpc('audit_my_items', {
+        p_assignment: assignmentId,
+        p_after: out.length ? out[out.length - 1].item_position : 0,
+        p_limit: PAGE,
+      }),
+    );
+    out.push(...page);
+    if (page.length < PAGE) return out;
+  }
+}
+/** Sends counts. Each event carries its own id, so sending the same batch twice changes nothing. Returns { accepted, duplicates }. */
+export const countBatch = (assignmentId, events) => one(db().rpc('audit_count_batch', { p_assignment: assignmentId, p_events: events }));
+export const submitCount = (assignmentId, extraNote) =>
+  one(db().rpc('audit_submit', { p_assignment: assignmentId, p_extra_note: extraNote || null }));
+/** Starts the person's own audit from typed codes or a template. Safe to repeat with the same key. */
+export const startIndividual = ({ key, codes = [], templateId = null }) =>
+  one(db().rpc('audit_individual_start', { p_key: key, p_codes: codes, p_template: templateId }));
+export const listTemplates = () => one(db().from('audit_templates').select('id, name, codes, updated_at').order('name'));
+export const saveTemplate = ({ id = null, name, codes }) =>
+  one(db().rpc('audit_template_save', { p_id: id, p_name: name, p_codes: codes }));
+export const deleteTemplate = (id) => one(db().rpc('audit_template_delete', { p_id: id }));
+
+// ── review, corrections, conflicts, Force Submit and follow-up rounds (migrations 0402 and 0407) ──
+/** Everything the review screen needs in one call: round, people with progress, newest compilation, history, conflicts, corrections. */
+export const compileOverview = (roundId) => one(db().rpc('audit_compile_overview', { p_round: roundId }));
+/** One page of compiled rows. mode: 'all' | 'diff' | 'missing'. Returns { rows, total }. */
+export async function compiledRows({ compilationId, mode = 'diff', text = '', from = 0, to = 49 }) {
+  let q = db()
+    .from('audit_compiled_rows')
+    .select(
+      'round_item_id, position, company, code, name, system_qty, retail_price, counted_qty, variance, variance_value, missing, auto_matched, auditor_id, note, corrected_by',
+      { count: 'exact' },
+    )
+    .eq('compilation_id', compilationId)
+    .order('position')
+    .range(from, to);
+  if (mode === 'diff') q = q.neq('variance', 0);
+  if (mode === 'missing') q = q.eq('missing', true);
+  const t = text.replace(/[,()%*\\]/g, ' ').trim();
+  if (t) q = q.or(`name.ilike.*${t}*,code.ilike.*${t}*,company.ilike.*${t}*`);
+  const { data, count, error } = await q;
+  if (error) throw error;
+  return { rows: data, total: count ?? data.length };
+}
+export const compileRound = ({ roundId, allowMissing = false, version }) =>
+  one(db().rpc('audit_compile_round', { p_round: roundId, p_allow_missing: allowMissing, p_expected_version: version }));
+export const forceSubmit = ({ assignmentId, mode, reason }) =>
+  one(db().rpc('audit_force_submit', { p_assignment: assignmentId, p_mode: mode, p_reason: reason }));
+export const reopenAssignment = ({ assignmentId, reason }) =>
+  one(db().rpc('audit_reopen', { p_assignment: assignmentId, p_reason: reason }));
+export const proposeCorrection = ({ roundId, itemId, qty, reason }) =>
+  one(db().rpc('audit_correction_propose', { p_round: roundId, p_item: itemId, p_qty: qty, p_reason: reason }));
+export const decideCorrection = ({ id, approve, note }) =>
+  one(db().rpc('audit_correction_decide', { p_id: id, p_approve: approve, p_note: note || null }));
+export const resolveConflict = ({ id, side, reason }) =>
+  one(db().rpc('audit_conflict_resolve', { p_conflict: id, p_side: side, p_reason: reason }));
+export const nextRound = ({ key, baseRoundId, mode, sample = null, seed = null }) =>
+  one(db().rpc('audit_round_next', { p_key: key, p_base_round: baseRoundId, p_mode: mode, p_sample: sample, p_seed: seed }));

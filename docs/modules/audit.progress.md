@@ -52,5 +52,32 @@
 - Not built here: sub-rounds and follow-up rounds (B1), Individual and template audits (A5), live counting progress (A5), Force Submit and reopen buttons (B1).
 - Screens were checked in a DOM test, not on a phone against a live database. Please try them once after merging.
 
+## Done (slice A5, counting and Individual Audit)
+- `supabase/migrations/0405_audit_search_path.sql`: pins the search path on five audit helper and guard functions (security advisor hygiene).
+- `supabase/migrations/0406_audit_counting_reads_individual.sql`: `audit_my_assignments()`, `audit_my_items()` (paged, latest count on each item), `audit_templates` with `audit_template_save/delete`, and `audit_individual_start()` (one rolling engagement per month in the Asia/Karachi calendar, one round per self-pick, locked and started in one step, one open self-pick per person).
+- `data/outboxStore.js` (IndexedDB, memory fallback), `domain/outbox.js` (batches of 200, resend-safe), `domain/count.js` (typed quantity, row difference and value in paisa, filters, totals).
+- Pages: `/audit/count` (assignments, then the counting screen: search, company and status filters, Matches button, notes, difference and value at once, submit with a warning about uncounted items and "mark the rest as matching"), `/audit/individual`, `/audit/templates`. `ui/signoutGuard.js` blocks sign-out while counts are unsent (AUD-9).
+- Every count is saved on the device first, then sent in the background (on a short delay, when the connection returns, every 20 s, or Send now). The item list is also copied to the device, so the screen reopens without signal.
+- Tests: DB 0406 (32 checks); `tests/unit/audit-count.test.js` (includes PHONE 1 as a simulation: 200 counts offline, then sent once each, and a lost reply resent without doubling, on both stores); `tests/unit/audit-count-pages.test.js`. Full DB suite and `npm run verify` pass (1250 tests).
+- Applied live on 17 Nov 2026 with 0401-0405.
+
+## Notes from A5
+- PHONE 1 on a real phone is still to do: airplane mode, 200 counts, reconnect.
+- The outbox and the sign-out guard live inside the Audit module because the Foundation request (OD-6) is not built. The guard listens for the shell's sign-out button before the shell does, and is installed when an audit page opens. If Foundation ships a shared outbox, this can move there.
+- Individual Audit needs the Inventory interface `inventory_products_for_scope` like any round; until it exists a start refuses with `inventory_interface_missing`. Codes are typed or pasted; picking products from a searchable list (Inventory tab) waits for the same interface.
+- Not built: the calculator, barcode and hybrid counting (C2), a count seen by the owner while counting (live progress, B1). A note on an item must follow its count.
+- Counter variance visibility (R21) uses the assignment's own items only.
+
+## Done (slice B1, review, corrections, conflicts, follow-up rounds)
+- `supabase/migrations/0407_audit_review_followup.sql` (applied live 17 Nov 2026): `audit_correction_propose/decide`, `audit_conflict_resolve` (with a carry-over trigger so a choice survives a recompile, in either direction), `audit_force_submit` (as counted, or mark the rest as matching), `audit_round_next` (differences, whole company, random sample from a stored seed), `audit_compile_overview` (one read with names), and `audit_person_name`.
+- `/audit/compile` (`ui/compile.js`): who has counted, Force Submit, reopen, compile and recompile (with the explicit "compile anyway" choice), result with value and counter notes, the differing items with search and paging, correction proposals and decisions, conflicts, and the next round. A link from the round page opens it.
+- Tests: DB 0407 (53 checks); `tests/unit/audit-compile-page.test.js`; the error-message test covers every new code. Also made the A5 page tests independent of timing (`timing` in `domain/outbox.js`).
+
+## Notes from B1
+- Decision to confirm: a follow-up round keeps the **system quantity and price of the compiled round** for the items it carries (it does not take a new Inventory snapshot). That keeps differences comparable and needs no Inventory interface. If the owner wants a fresh snapshot for follow-ups, it is a change to `audit_round_next`.
+- An approved correction takes effect at the **next compile** (the screen says so). A conflict choice is recorded only; it feeds the Final Snapshot in B2.
+- Reading the review needs `audit.view` (or `audit.review`/`audit.report`) **and** being a member of the engagement; a person with only `audit.compile` can compile but not see the screen. Give delegates `audit.view` too.
+- PHONE 2 (two people, two rounds, end to end) is still to do on real phones.
+
 ## Next
-- A5: counting screen, offline outbox, Individual Audit, templates. Needs the Foundation outbox request (OD-6) and PHONE 1.
+- B2: Final Snapshot, reports with print / PDF, audit trail view, owner alerts.
