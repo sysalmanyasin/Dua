@@ -25,5 +25,6 @@ begin
     v_rejected := true;
   end;
   if not v_rejected then raise exception 'cross-business product reference was not rejected'; end if;
+  raise notice 'pass: product references cannot cross business boundaries';
 end $$;
 rollback;
