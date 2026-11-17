@@ -178,12 +178,14 @@ describe('Cover page', () => {
 
   it('keeps the staff landing page limited to the summary and modules supplied by permissions', async () => {
     const { mount } = await import('../../js/modules/home/ui/page.js');
-    const staffModules = [{
-      id: 'sales',
-      title: 'Sales',
-      icon: 'chart',
-      routes: [{ path: '/sales/yesterday', title: 'Last Day', desc: 'The latest closed day' }],
-    }];
+    const staffModules = [
+      {
+        id: 'sales',
+        title: 'Sales',
+        icon: 'chart',
+        routes: [{ path: '/sales/yesterday', title: 'Last Day', desc: 'The latest closed day' }],
+      },
+    ];
     const staffSummary = { sales: { last_day: { date: '2026-11-16', total: 120000 } } };
     api.coverSummary.mockImplementation(async () => staffSummary);
     const el = document.getElementById('p');
@@ -196,7 +198,9 @@ describe('Cover page', () => {
     expect(el.textContent).not.toContain('Customers');
     expect(el.textContent).not.toContain('Manager');
     expect(el.querySelectorAll('.home-module').length).toBe(1);
-    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/yesterday');
+    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe(
+      '#/sales/yesterday',
+    );
   });
 
   it('lets a person pin and unpin only accessible pages', async () => {
