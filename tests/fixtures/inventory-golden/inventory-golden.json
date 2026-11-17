@@ -682,23 +682,6 @@
       "n90": 0
     },
     {
-      "code": "NSD-TEXTQTY",
-      "name": "Item NSD-TEXTQTY",
-      "qty": "1,200",
-      "price": "3.5",
-      "company": "Acme",
-      "generic": "Gen",
-      "supplier": "Sup One",
-      "pack": 10,
-      "created": "2025-10-08",
-      "received": "2026-08-04",
-      "sold": "2026-01-16",
-      "n0": 0,
-      "n30": 0,
-      "n60": 0,
-      "n90": 0
-    },
-    {
       "code": "R0001",
       "name": "Iron Syrup 64 mg",
       "qty": 654,
@@ -8235,7 +8218,6 @@
         ],
         "zeroStock": [
           { "code": "Z-ZERO", "recDays": 100, "saleDays": 100 },
-          { "code": "NSD-TEXTQTY", "recDays": 100, "saleDays": 300 },
           { "code": "R0010", "recDays": 119, "saleDays": 116 },
           { "code": "R0020", "recDays": 227, "saleDays": null },
           { "code": "R0023", "recDays": 119, "saleDays": 379 },
@@ -9685,7 +9667,6 @@
         ],
         "zeroStock": [
           { "code": "Z-ZERO", "recDays": 100, "saleDays": 100 },
-          { "code": "NSD-TEXTQTY", "recDays": 100, "saleDays": 300 },
           { "code": "R0010", "recDays": 119, "saleDays": 116 },
           { "code": "R0020", "recDays": 227, "saleDays": null },
           { "code": "R0023", "recDays": 119, "saleDays": 379 },
@@ -11078,7 +11059,6 @@
         ],
         "zeroStock": [
           { "code": "Z-ZERO", "recDays": 100, "saleDays": 100 },
-          { "code": "NSD-TEXTQTY", "recDays": 100, "saleDays": 300 },
           { "code": "R0010", "recDays": 119, "saleDays": 116 },
           { "code": "R0020", "recDays": 227, "saleDays": null },
           { "code": "R0023", "recDays": 119, "saleDays": 379 },
@@ -12596,7 +12576,6 @@
         ],
         "zeroStock": [
           { "code": "Z-ZERO", "recDays": 100, "saleDays": 100 },
-          { "code": "NSD-TEXTQTY", "recDays": 100, "saleDays": 300 },
           { "code": "R0010", "recDays": 119, "saleDays": 116 },
           { "code": "R0020", "recDays": 227, "saleDays": null },
           { "code": "R0023", "recDays": 119, "saleDays": 379 },
@@ -13832,7 +13811,6 @@
         ],
         "zeroStock": [
           { "code": "Z-ZERO", "recDays": 100, "saleDays": 100 },
-          { "code": "NSD-TEXTQTY", "recDays": 100, "saleDays": 300 },
           { "code": "R0010", "recDays": 119, "saleDays": 116 },
           { "code": "R0020", "recDays": 227, "saleDays": null },
           { "code": "R0023", "recDays": 119, "saleDays": 379 },
@@ -13918,7 +13896,6 @@
         "NSD-OLD",
         "NSD-RECENT",
         "NSD-EXACT",
-        "NSD-TEXTQTY",
         "R0001",
         "R0002",
         "R0003",
@@ -14794,7 +14771,6 @@
         "EX-EQUAL",
         "EX-JUSTOVER",
         "NSD-EXACT",
-        "NSD-TEXTQTY",
         "R0001",
         "R0005",
         "R0010",
@@ -15009,7 +14985,6 @@
         "NSD-OLD",
         "NSD-RECENT",
         "NSD-EXACT",
-        "NSD-TEXTQTY",
         "R0010",
         "R0014",
         "R0015",
@@ -15233,7 +15208,6 @@
         "NSD-OLD",
         "NSD-RECENT",
         "NSD-EXACT",
-        "NSD-TEXTQTY",
         "R0002",
         "R0003",
         "R0004",
@@ -15533,8 +15507,7 @@
         "NSD-NODATE-SALES",
         "NSD-OLD",
         "NSD-RECENT",
-        "NSD-EXACT",
-        "NSD-TEXTQTY"
+        "NSD-EXACT"
       ]
     },
     { "query": "no such thing", "codes": ["NS-NOREC", "DS-NOREC", "EX-NOSALES", "EX-NOCREATED", "NSD-NODATE-NOSALES", "NSD-NODATE-SALES"] },
