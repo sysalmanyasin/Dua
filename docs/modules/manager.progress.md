@@ -1,5 +1,13 @@
 # Manager — progress
 
+## Manager Dashboard (17 Nov 2026)
+
+- Added `/manager` Overview with permission-aware monthly cards for Staff Credit, Salary, Generic, Incentive, Petty Cash, ledger balances and Credit Inbox.
+- Reads the existing Manager RPCs only; no parallel financial storage or calculation engine.
+- Added responsive layout, month selection, quick access and print/PDF support. Attendance remains excluded.
+- Verification and owner acceptance pending.
+
+
 **Current status (17 Nov 2026):** Manager migrations `0101`–`0108` are in the repository. `0101`–`0107` are live; `0108` (Credit Inbox) is applied live (17 Nov 2026) and registered as `0108`; see Session M-D below. The full database suite (`bash supabase/tests/run.sh`, 2,434 passing checks, 0 failures) and `npm run verify` (85 files, 1,267 tests) pass. Remaining: owner phone acceptance (try-outs #2, #3, #4), the Credit Inbox tried on real Closing data, and Attendance (deliberately later).
 
 ## Session M-C (14 Nov 2026): built, tested, merged and applied live (0105–0107)
