@@ -6,11 +6,11 @@ import { renderInvoice } from './renderers.js';
 
 const names={'bs-mart':'B.S Mart','safari-book-land':'Safari Book Land','best-choice-store':'Best Choice Store'};
 export async function mount(el){
-  const state={businessId:'',from:'',to:'',search:'',rows:[],selected:null,error:''};
+  const state={businessId:'',from:'',to:'',search:'',rows:[],offset:0,selected:null,error:''};
   render(el,html`<div class="card"><p class="muted">Loading invoice history…</p></div>`);
   async function load(){
     state.error='';
-    try{state.rows=await api.listInvoices({businessId:state.businessId||null,from:state.from||null,to:state.to||null,search:state.search});}
+    try{state.rows=await api.listInvoices({businessId:state.businessId||null,from:state.from||null,to:state.to||null,search:state.search,offset:state.offset,limit:100});}
     catch(e){state.error=e.message||'Could not load history.';state.rows=[];}
     draw();
   }
@@ -21,7 +21,7 @@ export async function mount(el){
         <label class="field"><span>Invoice number</span><input id="search" value="${state.search}" placeholder="Search exact or partial number" /></label>
         <label class="field"><span>From</span><input id="from" type="date" value="${state.from}" /></label>
         <label class="field"><span>To</span><input id="to" type="date" value="${state.to}" /></label>
-      </div><button class="btn btn-primary" data-act="search">Search</button></section>
+      </div><div class="actions"><button class="btn btn-primary" data-act="search">Search</button><button class="btn" data-act="prev" ${state.offset===0?'disabled':''}>Previous</button><button class="btn" data-act="next" ${state.rows.length<100?'disabled':''}>Next</button></div></section>
       ${state.error?html`<p class="note note-error">${state.error}</p>`:''}
       <section class="card"><h2>Saved invoices (${state.rows.length})</h2>
         ${state.rows.length?state.rows.map(r=>html`<div class="row id-history-row"><div><strong>${names[r.business_id]} · #${r.invoice_number}</strong><div class="muted small">${shortDate(r.invoice_date)} · ${r.template_id} v${r.template_version}</div></div><strong>Rs. ${money(r.grand_total,{decimals:true})}</strong><button class="btn btn-sm" data-act="open" data-id="${r.id}">Open / Print</button></div>`):html`<p class="muted">No invoices match these filters.</p>`}
@@ -33,7 +33,9 @@ export async function mount(el){
   el.addEventListener('input',e=>{if(e.target.id==='search')state.search=e.target.value;});
   el.addEventListener('click',async e=>{
     const b=e.target.closest('[data-act]');if(!b)return;
-    if(b.dataset.act==='search')return load();
+    if(b.dataset.act==='search'){state.offset=0;return load();}
+    if(b.dataset.act==='prev'){state.offset=Math.max(0,state.offset-100);return load();}
+    if(b.dataset.act==='next'&&state.rows.length===100){state.offset+=100;return load();}
     if(b.dataset.act==='close'){state.selected=null;return draw();}
     if(b.dataset.act==='open'){
       try{state.selected=await api.getInvoice(b.dataset.id);draw();}catch(err){state.error=err.message||'Could not open invoice.';draw();}
