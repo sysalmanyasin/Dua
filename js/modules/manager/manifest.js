@@ -8,6 +8,13 @@ export default {
   permission: null, // owner only: each page below lists the keys that may open it (and the database checks them again)
   routes: [
     {
+      path: '/manager',
+      title: 'Overview',
+      desc: 'Monthly figures, balances and action items',
+      anyOf: ['mgmt.staff_view', 'mgmt.staff_edit', 'credit.view', 'mgmt.credit_manage', 'mgmt.salary', 'mgmt.salary_view', 'mgmt.incentive', 'mgmt.petty_cash', 'mgmt.ledgers', 'mgmt.inbox_file'],
+      load: () => import('./ui/dashboard.js'),
+    },
+    {
       path: '/manager/staff',
       title: 'Staff Registry',
       desc: 'Everyone on the team: details, notes and credit',
