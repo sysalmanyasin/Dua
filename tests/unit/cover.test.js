@@ -56,7 +56,11 @@ describe('key numbers', () => {
 describe('needs attention', () => {
   it('lists missing days, an unstarted check list in the evening, and a missing target, only for people who can act', () => {
     const noTarget = { ...full, sales: { ...full.sales, target: null } };
-    const t = buildAttention(noTarget, ['sales.enter', 'checklist.fill', 'targets.manage'], 19);
+    const t = buildAttention(
+      noTarget,
+      ['sales.view_history', 'sales.enter', 'checklist.fill', 'targets.manage'],
+      19,
+    );
     expect(t.map((i) => i.id)).toEqual(['missing-2026-11-03', 'checklist', 'target']);
     expect(t[0].action).toMatchObject({ href: '#/sales/entry', handoff: '2026-11-03' });
   });
@@ -166,7 +170,11 @@ describe('Cover page', () => {
     globalThis.__inv = async () => stockCover;
     api.coverSummary.mockImplementation(async () => full);
   });
-  const ctx = { full_name: 'Salman Yasin', username: 'owner', permissions: ['sales.enter', 'checklist.fill'] };
+  const ctx = {
+    full_name: 'Salman Yasin',
+    username: 'owner',
+    permissions: ['sales.view_history', 'sales.view_last_day', 'sales.enter', 'checklist.fill', 'targets.manage'],
+  };
   const modules = [
     {
       id: 'sales',
