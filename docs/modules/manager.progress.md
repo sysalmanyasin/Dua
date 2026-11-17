@@ -1,6 +1,6 @@
 # Manager — progress
 
-**Current status (17 Nov 2026):** Manager migrations `0101`–`0108` are in the repository. `0101`–`0107` are live; `0108` (Credit Inbox) is written, tested and pushed, and its live application is recorded in Session M-D below. The full database suite (`bash supabase/tests/run.sh`, 2,434 passing checks, 0 failures) and `npm run verify` (85 files, 1,267 tests) pass. Remaining: owner phone acceptance (try-outs #2, #3, #4), the Credit Inbox tried on real Closing data, and Attendance (deliberately later).
+**Current status (17 Nov 2026):** Manager migrations `0101`–`0108` are in the repository. `0101`–`0107` are live; `0108` (Credit Inbox) is applied live (17 Nov 2026) and registered as `0108`; see Session M-D below. The full database suite (`bash supabase/tests/run.sh`, 2,434 passing checks, 0 failures) and `npm run verify` (85 files, 1,267 tests) pass. Remaining: owner phone acceptance (try-outs #2, #3, #4), the Credit Inbox tried on real Closing data, and Attendance (deliberately later).
 
 ## Session M-C (14 Nov 2026): built, tested, merged and applied live (0105–0107)
 
@@ -129,3 +129,10 @@ The exact repository files `0105_mgmt_incentive.sql`, `0106_mgmt_petty.sql` and 
 - Migration drift: live has `0214_closing_staff_see_all`, which is not in the repository; the repository has `0404_audit_split_order`, which is not live. Neither belongs to Manager. Both need the Closing and Audit owners.
 - Manager docs said 17 `mgmt_` tables; live has 18 (`mgmt_save_keys` included).
 - Ledger pages still offer only a date filter and grouping (no category filter).
+
+### Live application of 0108 (17 Nov 2026)
+Pushed to `main` as `4372f01` (CI and Pages green). The Supabase GitHub integration did not apply it, so the SQL of `0108_mgmt_inbox.sql` was run by hand (comment lines left out) and registered in the same transaction as `0108 mgmt_inbox` (RUNBOOK §4; `apply_migration` was not used). Registry now lists `0101`–`0108` in order.
+
+Live checks afterwards: `mgmt_credit_filings` has RLS on; 0 `mgmt_` tables without RLS; 0 Manager functions executable by `anon`; the 5 inbox functions are executable by `authenticated` only; 0 Manager functions without a fixed `search_path`; no write grant or write policy on any `mgmt_` table; 0 filing rows (nothing has been filed). Live now has 19 `mgmt_` tables and 58 `mgmt_` functions. The Supabase security advisor shows nothing new from `0108` beyond the expected permission-gated RPC notices.
+
+Advisor items that pre-date this work and are not Manager: `set_updated_at` and `activity_log_immutable` have no fixed `search_path`; leaked-password protection is switched off in Supabase Auth (a dashboard setting).
