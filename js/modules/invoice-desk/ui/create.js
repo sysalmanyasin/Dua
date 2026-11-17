@@ -1,6 +1,6 @@
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
-import { money, todayPkt } from '../../../shared/format.js';
+import { todayPkt } from '../../../shared/format.js';
 import { amountInWords } from '../domain/amount-in-words.js';
 import { calculateInvoice, toPaisa } from '../domain/calculations.js';
 import { validateInvoiceHeader, validateLine } from '../domain/validation.js';
