@@ -31,9 +31,9 @@ describe('greeting', () => {
 
 describe('key numbers', () => {
   it('owner sees latest sale, month so far, target and customers', () => {
-    const k = buildKpis(full);
+    const k = buildKpis(full, ['sales.view_history', 'sales.view_last_day']);
     expect(k.map((c) => c.id)).toEqual(['latest', 'mtd', 'target', 'customers']);
-    expect(k[0]).toMatchObject({ value: 614758, diff: 24977, href: null });
+    expect(k[0]).toMatchObject({ value: 614758, diff: 24977, href: '#/sales/yesterday' });
     expect(k[1].vsLastYear).toBeCloseTo(58.56, 1);
     expect(k[2]).toMatchObject({ pct: 19, remaining: 13328799 });
   });
@@ -75,7 +75,7 @@ describe('needs attention', () => {
   });
   it('shows a missing day without a button when the person cannot enter sales', () => {
     const t = buildAttention({ sales: { missing_days: ['2026-11-03'] } }, [], 12);
-    expect(t[0].action).toMatchObject({ href: '#/tools' });
+    expect(t[0].action).toBeNull();
   });
   it('is empty when everything is done', () => {
     expect(
@@ -100,7 +100,7 @@ describe('owner alerts in needs attention', () => {
   it('puts failed and unsent alerts first, with a link for people who can view them', () => {
     const t = buildAttention(full, ['notifications.view', 'tools.view'], 9, alerts);
     expect(t[0]).toMatchObject({ id: 'alert-a1', text: 'The daily backup failed (the alert could not be delivered)' });
-    expect(t[0].action).toBeNull();
+    expect(t[0].action).toMatchObject({ href: '#/tools' });
     expect(t[1].text).toContain('has not been sent yet');
     expect(t.at(2).id).toBe('alert-more');
   });
