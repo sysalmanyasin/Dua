@@ -15,6 +15,7 @@ const safe = async (request) => {
     return null;
   }
 };
+const signedMoney = (value) => `${Number(value) < 0 ? '−' : ''}₨${moneyValue(Math.abs(Number(value) || 0))}`;
 
 export async function mount(el, { ctx }) {
   const permissions = new Set(ctx.permissions);
@@ -52,161 +53,151 @@ export async function mount(el, { ctx }) {
     paint();
   }
 
-  const card = (label, value, href) => markup`
-    <a class="md-kpi" href="${href}">
-      <small>${label}</small>
+  const sectionTitle = (label, note = '') => markup`
+    <div class="md-section-title">
+      <h2>${label}</h2>
+      ${note ? markup`<small>${note}</small>` : ''}
+    </div>`;
+  const detailRow = (label, value, extra = '') => markup`
+    <div class="md-detail-row">
+      <span>${label}${extra ? markup`<small>${extra}</small>` : ''}</span>
       <strong>${value}</strong>
-      <span>Open details ↗</span>
-    </a>`;
-  const line = (label, value) => markup`
-    <div class="md-line"><span>${label}</span><strong>${value}</strong></div>`;
-  const panel = (label, body, href) => markup`
-    <section class="md-panel">
-      <header><h2>${label}</h2><a href="${href}">View →</a></header>
-      ${body}
+    </div>`;
+  const ledgerCard = ({ title, value, rows, href, tone, empty = 'No activity yet' }) => markup`
+    <section class="md-ledger-card md-${tone}">
+      <header class="md-ledger-head">
+        <div><span class="md-ledger-mark"></span><h3>${title}</h3></div>
+        <a href="${href}">OPEN ↗</a>
+      </header>
+      <div class="md-ledger-total">${value}</div>
+      <div class="md-ledger-rows">${rows.length ? rows : markup`<p class="md-empty">${empty}</p>`}</div>
     </section>`;
 
   function paint() {
     const actions = markup`
       <label class="md-month">
-        Month
+        <span>Credit details</span>
         <input type="month" data-month value="${state.month.slice(0, 7)}" max="${currentMonth.slice(0, 7)}" />
       </label>
-      <button class="btn btn-ghost" data-print>Print / PDF</button>`;
+      <button class="btn btn-ghost" data-print>Print</button>`;
     const heading = hero({
       label: 'MANAGER WORKSPACE',
-      title: 'Manager Overview',
-      sub: monthLabel(state.month),
+      title: 'Manager Dashboard',
+      sub: 'Staff Credit · Jazz Cash · Patty/Expenses · Other ledgers · Working Summary',
       actions,
     });
 
     if (state.loading) return render(el, markup`${heading}${loadingCard()}`);
 
     const data = state.data;
-    const cards = [];
-    if (can.credit) {
-      cards.push(card('Staff credit outstanding', data.credit ? moneyValue(total(data.credit, 'net')) : 'Unavailable', '#/manager/credit'));
-    }
-    if (can.salary) {
-      cards.push(
-        card('Net salary', data.salary ? moneyValue(total(data.salary, 'net')) : 'Unavailable', '#/manager/salary'),
-        card('Generic final', data.generic ? moneyValue(total(data.generic, 'final')) : 'Unavailable', '#/manager/generic'),
-      );
-    }
-    if (can.incentive) {
-      cards.push(card('Net incentive', data.incentive ? moneyValue(data.incentive.net_inc) : 'Unavailable', '#/manager/incentive'));
-    }
-    if (can.petty) {
-      const pettyAmount = (data.petty || []).reduce(
-        (sum, group) => sum + (group.lines || []).reduce((sub, item) => sub + (Number(item.amount) || 0), 0),
-        0,
-      );
-      cards.push(card('Petty cash', data.petty ? moneyValue(pettyAmount) : 'Unavailable', '#/manager/petty'));
-    }
+    const creditRows = Array.isArray(data.credit) ? data.credit : [];
+    const ledgers = Array.isArray(data.ledgers) ? data.ledgers : [];
+    const staffRows = creditRows
+      .filter((person) => Number(person.net) !== 0)
+      .map((person) => detailRow(person.full_name, signedMoney(person.net)));
+    const staffTotal = total(creditRows, 'net');
+    const jazz = ledgers.find((ledger) => ledger.code === 'jazzcash');
+    const expense = ledgers.find((ledger) => ledger.code === 'expense');
+    const miscLedgers = ledgers.filter((ledger) => !['jazzcash', 'expense'].includes(ledger.code));
+    const jazzBalance = Number(jazz?.balance) || 0;
+    const expenseBalance = Number(expense?.balance) || 0;
+    const miscTotal = miscLedgers.reduce((sum, ledger) => sum + (Number(ledger.balance) || 0), 0);
+    const grandTotal = staffTotal + jazzBalance + expenseBalance + miscTotal;
 
-    const credit = can.credit
-      ? panel(
-          'Staff Credit',
-          data.credit
-            ? markup`${line('Previous balance', moneyValue(total(data.credit, 'prev_balance')))}${line(
-                'Monthly entries',
-                moneyValue(total(data.credit, 'entries_total')),
-              )}${line('Net outstanding', moneyValue(total(data.credit, 'net')))}`
-            : markup`<p>Could not load credit data.</p>`,
-          '#/manager/credit',
-        )
-      : '';
-    const payroll = can.salary
-      ? panel(
-          'Payroll & Generic',
-          data.salary && data.generic
-            ? markup`${line('HO salary', moneyValue(total(data.salary, 'ho_salary')))}${line(
-                'Advances',
-                moneyValue(total(data.salary, 'advance')),
-              )}${line('Generic in payroll', moneyValue(total(data.salary, 'generic')))}${line(
-                'Net salary',
-                moneyValue(total(data.salary, 'net')),
-              )}${line('Generic final', moneyValue(total(data.generic, 'final')))}`
-            : markup`<p>Could not load sheets.</p>`,
-          '#/manager/salary',
-        )
-      : '';
-    const incentive = can.incentive
-      ? panel(
-          'Incentive',
-          data.incentive
-            ? markup`${line('Sale commission', moneyValue(data.incentive.sale_comm))}${line(
-                'Generic incentive',
-                moneyValue(data.incentive.gen_inc),
-              )}${line('Net incentive', moneyValue(data.incentive.net_inc))}${line('Owner share', moneyValue(data.incentive.owner_net))}`
-            : markup`<p>Could not load incentive.</p>`,
-          '#/manager/incentive',
-        )
-      : '';
-    const petty = can.petty
-      ? panel(
-          'Petty Cash',
-          data.petty
-            ? markup`${line('Voucher total', moneyValue(pettyAmountFor(data.petty)))}${line('Voucher groups', data.petty.length)}`
-            : markup`<p>Could not load petty cash.</p>`,
-          '#/manager/petty',
-        )
-      : '';
-    const ledgers = can.ledgers
-      ? panel(
-          'Live Balances',
-          data.ledgers
-            ? markup`${data.ledgers.map((ledger) => {
-                const balance = balanceMessage(ledger, ledger.balance);
-                const href =
-                  ledger.code === 'expense' ? '#/manager/expenses' : ledger.code === 'jazzcash' ? '#/manager/jazzcash' : '#/manager/misc';
-                return markup`
-                  <a class="md-balance" href="${href}">
-                    <span>${ledger.name}</span>
-                    <strong>${balance.amount ? moneyValue(balance.amount) : 'Settled'}</strong>
-                    <small>${balance.text} · ${ledger.entry_count} entries</small>
-                  </a>`;
-              })}`
-            : markup`<p>Could not load ledgers.</p>`,
-          '#/manager/expenses',
-        )
-      : '';
-    const inbox = can.inbox
-      ? panel(
-          'Credit Inbox',
-          data.inbox === null
-            ? markup`<p>Inbox count unavailable.</p>`
-            : markup`
-                <strong class="md-inbox">${Number(data.inbox ?? 0)}</strong>
-                <a href="#/manager/inbox">Review inbox →</a>`,
-          '#/manager/inbox',
-        )
-      : '';
-    const links = markup`
-      <nav class="md-links">
-        ${can.staff ? markup`<a href="#/manager/staff">Staff Registry</a>` : ''}
-        ${can.credit ? markup`<a href="#/manager/credit">Staff Credit</a>` : ''}
-        ${can.salary ? markup`<a href="#/manager/reports">Reports</a>` : ''}
-        ${can.petty ? markup`<a href="#/manager/petty">Petty Cash</a>` : ''}
-        ${can.ledgers ? markup`<a href="#/manager/misc">Misc Sections</a>` : ''}
-      </nav>`;
+    const jazzRows = jazz
+      ? [detailRow(jazz.name, signedMoney(jazzBalance), `${Number(jazz.entry_count) || 0} entries`)]
+      : [];
+    const expenseRows = expense
+      ? [detailRow(expense.name, signedMoney(expenseBalance), `${Number(expense.entry_count) || 0} entries`)]
+      : [];
+    const miscCards = miscLedgers.map((ledger) =>
+      ledgerCard({
+        title: ledger.name,
+        value: signedMoney(ledger.balance),
+        rows: [detailRow('Entries', Number(ledger.entry_count) || 0)],
+        href: '#/manager/misc',
+        tone: 'misc',
+      }),
+    );
+
+    const topCards = markup`
+      ${can.credit ? ledgerCard({
+        title: `Staff Credit — ${monthLabel(state.month)}`,
+        value: signedMoney(staffTotal),
+        rows: staffRows,
+        href: '#/manager/credit',
+        tone: 'staff',
+      }) : ''}
+      ${can.ledgers && jazz ? ledgerCard({
+        title: 'Jazz Cash (all-time)',
+        value: signedMoney(jazzBalance),
+        rows: jazzRows,
+        href: '#/manager/jazzcash',
+        tone: 'jazz',
+      }) : ''}
+      ${can.ledgers && expense ? ledgerCard({
+        title: 'Patty / Expenses (all-time)',
+        value: signedMoney(expenseBalance),
+        rows: expenseRows,
+        href: '#/manager/expenses',
+        tone: 'expense',
+      }) : ''}
+    `;
+
+    const working = [];
+    if (can.salary) working.push({ label: 'Salary', value: moneyValue(total(data.salary, 'net')), href: '#/manager/salary' });
+    if (can.salary) working.push({ label: 'Generic', value: moneyValue(total(data.generic, 'final')), href: '#/manager/generic' });
+    if (can.petty) working.push({ label: 'Petty Detail', value: moneyValue(pettyAmountFor(data.petty)), href: '#/manager/petty' });
+    if (can.incentive) working.push({ label: 'Incentives', value: moneyValue(data.incentive?.net_inc), href: '#/manager/incentive' });
+
+    const quick = [
+      can.staff ? ['Staff Registry', '#/manager/staff'] : null,
+      can.credit ? ['Staff Credit', '#/manager/credit'] : null,
+      can.salary ? ['Reports', '#/manager/reports'] : null,
+      can.petty ? ['Petty Cash', '#/manager/petty'] : null,
+      can.ledgers ? ['Misc Sections', '#/manager/misc'] : null,
+      can.inbox ? ['Credit Inbox', '#/manager/inbox'] : null,
+    ].filter(Boolean);
 
     render(
       el,
       markup`${heading}
-        <div class="md-intro">
-          <span>MONTHLY SNAPSHOT</span>
-          <h2>Your branch, at a glance.</h2>
-          <p>Live figures from existing Manager records.</p>
+        <div class="md-toolbar">
+          <span class="md-eyebrow">CREDIT DETAILS</span>
+          <span class="md-month-label">${monthLabel(state.month)}</span>
         </div>
-        <div class="md-kpis">${cards}</div>
-        <div class="md-columns">${credit}${payroll}${incentive}${petty}${ledgers}${inbox}</div>
-        ${panel('Quick Access', links, '#/manager')}`,
+        <div class="md-ledger-grid md-ledger-primary">${topCards}</div>
+        ${can.ledgers && miscCards.length ? markup`
+          ${sectionTitle('MISC SECTIONS', 'All-time balances')}
+          <div class="md-ledger-grid md-ledger-misc">${miscCards}</div>` : ''}
+        ${(can.credit || can.ledgers) ? markup`
+          <section class="md-total-band">
+            <div>
+              <strong>TOTAL OUTSTANDING CREDITS</strong>
+              <small>Staff (${monthLabel(state.month)}) + Jazz Cash + Patty/Expenses + Misc Sections, all-time</small>
+            </div>
+            <b>${signedMoney(grandTotal)}</b>
+          </section>` : ''}
+        ${working.length ? markup`
+          ${sectionTitle('WORKING SUMMARY')}
+          <div class="md-working-grid">
+            ${working.map((item) => markup`
+              <a class="md-working-item" href="${item.href}">
+                <strong>${item.value}</strong><span>${item.label}</span>
+              </a>`)}
+          </div>` : ''}
+        ${can.inbox ? markup`
+          <a class="md-inbox-link" href="#/manager/inbox">
+            <span>Credit Inbox</span><strong>${Number(data.inbox) || 0} pending</strong><span>Review →</span>
+          </a>` : ''}
+        ${quick.length ? markup`
+          ${sectionTitle('QUICK ACCESS')}
+          <nav class="md-quick-links">${quick.map(([label, href]) => markup`<a href="${href}">${label}</a>`)}</nav>` : ''}`,
     );
   }
 
   el.addEventListener('change', (event) => {
-    if (!event.target.matches('[data-month]') || !/^\d{4}-\d{2}$/.test(event.target.value)) return;
+    if (!event.target.matches('[data-month]') || !/^\\d{4}-\\d{2}$/.test(event.target.value)) return;
     state.month = `${event.target.value}-01`;
     load();
   });
