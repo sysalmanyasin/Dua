@@ -3,7 +3,6 @@ import { hero } from '../../../shared/ui.js';
 import { money, monthLabel, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { monthStart } from '../domain/credit.js';
-import { balanceMessage } from '../domain/ledger.js';
 import { loadingCard } from './parts.js';
 
 const moneyValue = (value) => money(Number(value) || 0);
