@@ -134,6 +134,14 @@ export async function mount(el, { ctx, modules = [] }) {
 
   renderFavourites();
   el.querySelector('#home-search')?.addEventListener('input', (event) => renderSearch(event.target.value));
+  const syncPins = () => {
+    el.querySelectorAll('[data-pin]').forEach((button) => {
+      const pinned = favourites.includes(button.dataset.pin);
+      button.textContent = pinned ? '★' : '☆';
+      button.title = pinned ? 'Remove favourite' : 'Add to favourites';
+      button.setAttribute('aria-label', `${pinned ? 'Remove' : 'Add'} ${button.dataset.pin} ${pinned ? 'from' : 'to'} favourites`);
+    });
+  };
   el.addEventListener('click', (event) => {
     const pin = event.target.closest('[data-pin]');
     const unpin = event.target.closest('[data-unpin]');
@@ -144,11 +152,13 @@ export async function mount(el, { ctx, modules = [] }) {
       favourites = favourites.includes(href) ? favourites.filter((x) => x !== href) : [...favourites, href].slice(-12);
       safeWrite(prefKey, favourites);
       renderFavourites();
+      syncPins();
     }
     if (unpin) {
       favourites = favourites.filter((x) => x !== unpin.dataset.unpin);
       safeWrite(prefKey, favourites);
       renderFavourites();
+      syncPins();
     }
   });
   el.querySelectorAll('.kpfill[data-w]').forEach((bar) => { bar.style.width = `${bar.dataset.w}%`; });
