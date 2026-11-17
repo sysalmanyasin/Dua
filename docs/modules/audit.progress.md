@@ -40,5 +40,17 @@
 - The icon is the shared shield until Foundation adds an audit icon (request already in the brief).
 - Deputy sees results only for audits they were added to (AUD-3); adding members from the UI comes with A4.
 
+## Done (slice A4, engagements and rounds)
+- `supabase/migrations/0403_audit_overviews.sql`: read-only `audit_people()`, `audit_engagement_overview()`, `audit_round_overview()` give names and counts in one call (counters cannot read other people's names through row-level security).
+- `supabase/migrations/0404_audit_split_order.sql`: makes `audit_assign_auto` order equal-sized companies in plain character order (`collate "C"`), so the browser preview and the database can never disagree. Same function as 0401 otherwise.
+- `js/modules/audit/domain/split.js`: the auto-split preview, the same rules as the database; `domain/nav.js` keeps the opened audit or round for the tab.
+- Pages: `/audit/engagements` (list, new audit), `/audit/engagement` (team and rounds, start a round), `/audit/round` (who counts what, auto-split with a preview before saving, move a company, take a part back with a reason, lock, start counting). Every write sends the version the screen last saw; a stale one is refused in words and the page reloads.
+- Tests: DB 0403 (27 checks) and 0404; `tests/unit/audit-split.test.js`; `tests/unit/audit-pages.test.js` opens the pages in a DOM with the database layer replaced. Full DB suite and `npm run verify` pass (972 unit tests).
+
+## Notes from A4
+- Real round creation still refuses with `inventory_interface_missing` until Inventory ships `inventory_products_for_scope`. Please confirm its shape and a way to list company names (`inventory_companies()`), because the new-audit form takes company names as typed text for now. A misspelt company gives `no_items`, never a wrong round.
+- Not built here: sub-rounds and follow-up rounds (B1), Individual and template audits (A5), live counting progress (A5), Force Submit and reopen buttons (B1).
+- Screens were checked in a DOM test, not on a phone against a live database. Please try them once after merging.
+
 ## Next
-- A4: engagements and rounds UI (create engagement, members, round, assignment, lock). Real round creation still waits for `inventory_products_for_scope`.
+- A5: counting screen, offline outbox, Individual Audit, templates. Needs the Foundation outbox request (OD-6) and PHONE 1.

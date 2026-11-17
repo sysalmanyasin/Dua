@@ -25,6 +25,25 @@ export default {
       load: () => import('./ui/hub.js'),
     },
     {
+      path: '/audit/engagements',
+      title: 'Audits',
+      desc: 'All audits, and start a new one',
+      anyOf: ['audit.view', 'audit.manage'],
+      load: () => import('./ui/engagements.js'),
+    },
+    {
+      path: '/audit/engagement',
+      desc: 'One audit: its team and rounds',
+      anyOf: ['audit.view', 'audit.manage'],
+      load: () => import('./ui/engagement.js'),
+    },
+    {
+      path: '/audit/round',
+      desc: 'One round: who counts what, split, lock and start',
+      anyOf: ['audit.view', 'audit.manage', 'audit.assign'],
+      load: () => import('./ui/round.js'),
+    },
+    {
       path: '/audit/team',
       title: 'Team access',
       desc: 'Give a person the Deputy or Sub-Auditor set of audit permissions, or switch single ones',
