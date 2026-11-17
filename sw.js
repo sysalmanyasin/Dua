@@ -16,6 +16,7 @@ const PRECACHE = [
   "css/components.css",
   "css/ebill.css",
   "css/fonts.css",
+  "css/home.css",
   "css/inventory.css",
   "css/invoice-desk.css",
   "css/manager-dashboard.css",
