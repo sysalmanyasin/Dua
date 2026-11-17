@@ -52,5 +52,21 @@
 - Not built here: sub-rounds and follow-up rounds (B1), Individual and template audits (A5), live counting progress (A5), Force Submit and reopen buttons (B1).
 - Screens were checked in a DOM test, not on a phone against a live database. Please try them once after merging.
 
+## Done (slice A5, counting and Individual Audit)
+- `supabase/migrations/0405_audit_search_path.sql`: pins the search path on five audit helper and guard functions (security advisor hygiene).
+- `supabase/migrations/0406_audit_counting_reads_individual.sql`: `audit_my_assignments()`, `audit_my_items()` (paged, latest count on each item), `audit_templates` with `audit_template_save/delete`, and `audit_individual_start()` (one rolling engagement per month in the Asia/Karachi calendar, one round per self-pick, locked and started in one step, one open self-pick per person).
+- `data/outboxStore.js` (IndexedDB, memory fallback), `domain/outbox.js` (batches of 200, resend-safe), `domain/count.js` (typed quantity, row difference and value in paisa, filters, totals).
+- Pages: `/audit/count` (assignments, then the counting screen: search, company and status filters, Matches button, notes, difference and value at once, submit with a warning about uncounted items and "mark the rest as matching"), `/audit/individual`, `/audit/templates`. `ui/signoutGuard.js` blocks sign-out while counts are unsent (AUD-9).
+- Every count is saved on the device first, then sent in the background (on a short delay, when the connection returns, every 20 s, or Send now). The item list is also copied to the device, so the screen reopens without signal.
+- Tests: DB 0406 (32 checks); `tests/unit/audit-count.test.js` (includes PHONE 1 as a simulation: 200 counts offline, then sent once each, and a lost reply resent without doubling, on both stores); `tests/unit/audit-count-pages.test.js`. Full DB suite and `npm run verify` pass (1250 tests).
+- Applied live on 17 Nov 2026 with 0401-0405.
+
+## Notes from A5
+- PHONE 1 on a real phone is still to do: airplane mode, 200 counts, reconnect.
+- The outbox and the sign-out guard live inside the Audit module because the Foundation request (OD-6) is not built. The guard listens for the shell's sign-out button before the shell does, and is installed when an audit page opens. If Foundation ships a shared outbox, this can move there.
+- Individual Audit needs the Inventory interface `inventory_products_for_scope` like any round; until it exists a start refuses with `inventory_interface_missing`. Codes are typed or pasted; picking products from a searchable list (Inventory tab) waits for the same interface.
+- Not built: the calculator, barcode and hybrid counting (C2), a count seen by the owner while counting (live progress, B1). A note on an item must follow its count.
+- Counter variance visibility (R21) uses the assignment's own items only.
+
 ## Next
-- A5: counting screen, offline outbox, Individual Audit, templates. Needs the Foundation outbox request (OD-6) and PHONE 1.
+- B1: compile screen, corrections, conflicts, sub-rounds, Force Submit and reopen buttons.

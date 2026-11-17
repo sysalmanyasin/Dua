@@ -43,6 +43,12 @@ export const MESSAGES = {
   round_not_found: 'That round could not be found. Reload and try again.',
   round_not_locked: 'The round must be locked first.',
   too_many_items: 'That scope has too many items for one round. Split it.',
+  invalid_codes: 'Enter at least one product code.',
+  invalid_template: 'A template needs a name of 2 to 80 letters and at least one product code.',
+  self_pick_open: 'You already have an Individual Audit open. Submit it first.',
+  template_name_taken: 'Another template already has that name.',
+  template_not_found: 'That template could not be found. Reload and try again.',
+  too_many_codes: 'That is too many products for one Individual Audit (500 at most).',
   version_conflict: 'Someone else changed this. Reload and try again.',
 };
 

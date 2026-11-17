@@ -76,3 +76,34 @@ export const startRound = (roundId, version) => one(db().rpc('audit_round_start'
 /** The ids of one company's items in a round, so a whole company can be moved to another person. */
 export const companyItemIds = async (roundId, company) =>
   (await one(db().from('audit_round_items').select('id').eq('round_id', roundId).eq('company', company).limit(6000))).map((r) => r.id);
+
+// ── counting, Individual Audit and templates (migration 0406 and 0402) ──
+/** The person's own assignments, newest first, with item and counted totals. */
+export const myAssignments = () => one(db().rpc('audit_my_assignments'));
+/** All of one assignment's items with the latest count on each. The database gives pages; this asks until a page comes back short. */
+export async function myItems(assignmentId) {
+  const PAGE = 500;
+  const out = [];
+  for (;;) {
+    const page = await one(
+      db().rpc('audit_my_items', {
+        p_assignment: assignmentId,
+        p_after: out.length ? out[out.length - 1].item_position : 0,
+        p_limit: PAGE,
+      }),
+    );
+    out.push(...page);
+    if (page.length < PAGE) return out;
+  }
+}
+/** Sends counts. Each event carries its own id, so sending the same batch twice changes nothing. Returns { accepted, duplicates }. */
+export const countBatch = (assignmentId, events) => one(db().rpc('audit_count_batch', { p_assignment: assignmentId, p_events: events }));
+export const submitCount = (assignmentId, extraNote) =>
+  one(db().rpc('audit_submit', { p_assignment: assignmentId, p_extra_note: extraNote || null }));
+/** Starts the person's own audit from typed codes or a template. Safe to repeat with the same key. */
+export const startIndividual = ({ key, codes = [], templateId = null }) =>
+  one(db().rpc('audit_individual_start', { p_key: key, p_codes: codes, p_template: templateId }));
+export const listTemplates = () => one(db().from('audit_templates').select('id, name, codes, updated_at').order('name'));
+export const saveTemplate = ({ id = null, name, codes }) =>
+  one(db().rpc('audit_template_save', { p_id: id, p_name: name, p_codes: codes }));
+export const deleteTemplate = (id) => one(db().rpc('audit_template_delete', { p_id: id }));

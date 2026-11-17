@@ -44,6 +44,27 @@ export default {
       load: () => import('./ui/round.js'),
     },
     {
+      path: '/audit/count',
+      title: 'Counting',
+      desc: 'Count the items given to you, even without signal, and submit',
+      anyOf: ['audit.count'],
+      load: () => import('./ui/count.js'),
+    },
+    {
+      path: '/audit/individual',
+      title: 'Individual Audit',
+      desc: 'Pick products yourself and count them',
+      anyOf: ['audit.individual'],
+      load: () => import('./ui/individual.js'),
+    },
+    {
+      path: '/audit/templates',
+      title: 'Templates',
+      desc: 'Saved lists of product codes',
+      anyOf: ['audit.templates', 'audit.individual'],
+      load: () => import('./ui/templates.js'),
+    },
+    {
       path: '/audit/team',
       title: 'Team access',
       desc: 'Give a person the Deputy or Sub-Auditor set of audit permissions, or switch single ones',

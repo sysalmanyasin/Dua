@@ -6,12 +6,14 @@ import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import manifest from '../manifest.js';
 import { errorCard, loadingCard } from './parts.js';
+import { installSignOutGuard } from './signoutGuard.js';
 
 const SCOPE = { full: 'Full stock', selected: 'Selected companies', single: 'One company', template: 'Template', individual: 'Individual' };
 const STATUS = { open: 'Open', archived: 'Archived', closed: 'Closed' };
 
 export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions ?? [];
+  installSignOutGuard(); // counts waiting on this device block signing out (AUD-9)
   render(el, loadingCard());
   let engagements;
   try {

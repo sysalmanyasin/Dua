@@ -117,3 +117,50 @@
 .aud .aud-badge-final {
   color: var(--aud-ok);
 }
+
+/* counting screen */
+.aud .aud-row {
+  display: grid;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-row:first-child {
+  border-top: 0;
+}
+.aud .aud-row-main {
+  display: grid;
+  gap: 2px;
+}
+.aud .aud-row-entry {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.aud .aud-row-entry input {
+  width: 8.5em;
+  font-size: 1.1rem;
+  padding: 10px;
+}
+.aud .aud-diff {
+  font-weight: 600;
+}
+.aud .aud-diff-ok {
+  color: var(--aud-ok);
+}
+.aud .aud-diff-bad {
+  color: var(--aud-crimson);
+}
+.aud .aud-filters {
+  display: grid;
+  gap: 8px;
+}
+.aud .aud-note summary {
+  cursor: pointer;
+  color: var(--muted, inherit);
+  font-size: 0.85rem;
+}
+.aud .aud-note input {
+  width: 100%;
+  margin-top: 6px;
+}
