@@ -16,7 +16,7 @@ const escErr = (e) => e?.message || 'The operation could not be completed. Check
 const fmt = (p) => (p / 100).toFixed(2);
 
 export async function mount(el) {
-  const state = { businessId:'bs-mart', invoiceNumber:'', invoiceDate:todayPkt(), lines:[blankLine()], discount:'0.00', cash:'', change:'', cashier:'', customer:'', shift:'', products:[], busy:false, key:crypto.randomUUID(), saved:null, error:'' };
+  const state = { businessId:'bs-mart', invoiceNumber:'', invoiceDate:todayPkt(), lines:[blankLine()], discount:'0.00', cash:'', change:'', cashier:'', customer:'', shift:'', time:'', products:[], busy:false, key:crypto.randomUUID(), saved:null, error:'' };
   async function loadProducts() {
     try { state.products = await api.listProducts(state.businessId); }
     catch { state.products = []; }
@@ -58,7 +58,9 @@ export async function mount(el) {
         <h2>Receipt fields</h2>
         <div class="id-fields">
           ${state.businessId!=='best-choice-store'?html`<label class="field"><span>Cash received</span><input id="cash" inputmode="decimal" value="${state.cash}" /></label><label class="field"><span>Change</span><input id="change" inputmode="decimal" value="${state.change}" /></label>`:html`<label class="field"><span>Customer</span><input id="customer" value="${state.customer}" /></label><label class="field"><span>Shift</span><input id="shift" value="${state.shift}" /></label>`}
-          ${state.businessId==='safari-book-land'?html`<label class="field"><span>Cashier</span><input id="cashier" value="${state.cashier}" /></label>`:''}
+          ${state.businessId==='safari-book-land'?html`<label class="field"><span>Cashier</span><input id="cashier" value="${state.cashier}" /></label><label class="field"><span>Time</span><input id="time" value="${state.time}" placeholder="16:35:22 PM" /></label>`:''}
+          ${state.businessId==='bs-mart'?html`<label class="field"><span>Cashier</span><input id="cashier" value="${state.cashier}" /></label><label class="field"><span>Shift</span><input id="shift" value="${state.shift}" /></label><label class="field"><span>Time</span><input id="time" value="${state.time}" placeholder="16:45:40 PM" /></label>`:''}
+          ${state.businessId==='best-choice-store'?html`<label class="field"><span>Time</span><input id="time" value="${state.time}" placeholder="17:42:15 PM" /></label>`:''}
         </div>
       </section>
       <section class="card id-total-preview">
@@ -81,6 +83,7 @@ export async function mount(el) {
     else if(t.id==='cashier') state.cashier=t.value;
     else if(t.id==='customer') state.customer=t.value;
     else if(t.id==='shift') state.shift=t.value;
+    else if(t.id==='time') state.time=t.value;
     else return;
     state.saved=null; state.error=''; state.key=crypto.randomUUID();
     el.querySelector('.id-saved-card')?.remove();
@@ -117,7 +120,7 @@ export async function mount(el) {
     if(Object.keys(errors).length){state.error=Object.values(errors)[0];draw();return;}
     state.busy=true;state.error='';draw();
     const template=templateForBusiness(state.businessId);
-    const payload={business_id:state.businessId,invoice_number:state.invoiceNumber,invoice_date:state.invoiceDate,template_id:template.id,template_version:template.version,amount_words:amountInWords(result.grandTotalPaisa),discount:fmt(result.discountPaisa),printed_fields:{cash:state.cash,change:state.change,cashier:state.cashier,customer:state.customer,shift:state.shift}};
+    const payload={business_id:state.businessId,invoice_number:state.invoiceNumber,invoice_date:state.invoiceDate,template_id:template.id,template_version:template.version,amount_words:amountInWords(result.grandTotalPaisa),discount:fmt(result.discountPaisa),printed_fields:{cash:state.cash,change:state.change,cashier:state.cashier,customer:state.customer,shift:state.shift,time:state.time}};
     const lines=result.lines.map(l=>({product_id:state.lines[result.lines.indexOf(l)]?.productId||null,description:l.description.trim(),quantity:String(l.quantity),unit_price:fmt(l.unitPricePaisa)}));
     try{
       const {data,error}=await api.saveInvoice(payload,lines,state.key);if(error)throw error;
