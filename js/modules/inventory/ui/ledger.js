@@ -4,7 +4,7 @@ import { html, render } from '../../../shared/html.js';
 import { loadSettings, saveSettings } from '../data/prefs.js';
 import { computeLedger, DEFAULT_WINDOW_DAYS, sumValue } from '../domain/ledger.js';
 import { filterAndRank, SEARCH_FIELDS } from '../domain/search.js';
-import { downloadCsv, stamp } from './download.js';
+import { exportReport, KINDS } from './export.js';
 import { days, qty, rs } from './fmt.js';
 import { openReport } from './frame.js';
 
@@ -171,7 +171,11 @@ export async function mount(el, { ctx }) {
             <section class="card inv-total">
               <div><b>${qty(list.length)}</b><span>${list.length === 1 ? 'product' : 'products'}</span></div>
               ${total === null ? '' : html`<div><b>${rs(total)}</b><span>value</span></div>`}
-              <button type="button" class="btn btn-sm" data-act="csv" ${ranked.length ? '' : 'disabled'}>Download CSV</button>
+              <span class="inv-exports"
+                ><button type="button" class="btn btn-sm" data-act="xlsx" ${ranked.length ? '' : 'disabled'}>Excel</button
+                ><button type="button" class="btn btn-sm" data-act="pdf" ${ranked.length ? '' : 'disabled'}>PDF</button
+                ><button type="button" class="btn btn-sm" data-act="csv" ${ranked.length ? '' : 'disabled'}>CSV</button></span
+              >
             </section>
             ${query.trim() ? html`<p class="muted inv-hint">${qty(ranked.length)} match “${query.trim()}”</p>` : ''}
             ${
@@ -210,9 +214,15 @@ export async function mount(el, { ctx }) {
           shown += PAGE;
           drawResults();
         }
-        if (act === 'csv') {
+        if (KINDS.includes(act)) {
           const t = TABS[tab];
-          downloadCsv(stamp(`ledger-${tab}`), [t.head, ...current().ranked.map(t.line)]);
+          exportReport(act, {
+            name: `ledger-${tab}`,
+            title: `Stock Ledger: ${t.label}`,
+            filters: `${windowDays}-day window${query.trim() ? `, search "${query.trim()}"` : ''}`,
+            asOf: api.state().meta?.syncedAt ?? null,
+            table: [t.head, ...current().ranked.map(t.line)],
+          });
         }
       });
       body.addEventListener('change', (e) => {

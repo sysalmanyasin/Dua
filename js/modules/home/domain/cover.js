@@ -61,6 +61,37 @@ export function buildKpis(summary) {
   return cards;
 }
 
+// The stock row under the sales cards: four numbers from inventory_cover_summary(), each opening the page that explains it.
+// null (no permission, or it could not load) gives no cards at all, so the Cover never shows a half-empty row.
+export function buildStockCards(cover) {
+  if (!cover || typeof cover !== 'object') return [];
+  const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const part = (o) => ({ count: n(o?.count), value: n(o?.value) });
+  const reorder = part(cover.reorder);
+  const notSold = part(cover.notSold);
+  const excess = part(cover.excess);
+  return [
+    { id: 'stock', label: 'Stock value', value: n(cover.stockValue), sub: 'at selling price', href: '#/inventory/health' },
+    {
+      id: 'reorder',
+      label: 'To reorder',
+      value: reorder.value,
+      count: reorder.count,
+      sub: 'to buy up to 30 days',
+      href: '#/inventory/reorder',
+    },
+    {
+      id: 'notsold',
+      label: 'Not selling',
+      value: notSold.value,
+      count: notSold.count,
+      sub: 'whole packs, 60 days',
+      href: '#/inventory/ledger',
+    },
+    { id: 'excess', label: 'Excess', value: excess.value, count: excess.count, sub: '200+ days of cover', href: '#/inventory/excess' },
+  ];
+}
+
 // Owner alerts that failed to send, or are still unsent after a while. `alerts` is notifications_attention() (or null).
 export function buildAlertItems(alerts, perms) {
   if (!alerts || !Array.isArray(alerts.items)) return [];
