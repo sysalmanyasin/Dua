@@ -26,6 +26,12 @@ export async function mount(el) {
     const lines = state.lines.map((l) => ({ description:l.description, quantity:l.quantity, unitPrice:l.unitPrice }));
     return calculateInvoice(lines, state.businessId === 'best-choice-store' ? toPaisa(state.discount || '0') : 0);
   }
+  function drawTotals(box) {
+    let result=null, calcError='';
+    try { result=totals(); } catch(e) { calcError=e.message; }
+    render(box, html`<h2>Live total</h2>
+      ${result?html`<div class="id-grand"><span>Subtotal</span><strong>Rs. ${fmt(result.subtotalPaisa)}</strong></div>${state.businessId==='best-choice-store'?html`<div class="id-grand"><span>Discount</span><strong>Rs. ${fmt(result.discountPaisa)}</strong></div>`:''}<div class="id-grand"><span>Net payable</span><strong>Rs. ${fmt(result.grandTotalPaisa)}</strong></div><p class="id-words">${amountInWords(result.grandTotalPaisa)}</p>`:html`<p class="note note-error">${calcError}</p>`}`);
+  }
   function draw() {
     let result = null, calcError = '';
     try { result = totals(); } catch(e) { calcError = e.message; }
@@ -76,7 +82,9 @@ export async function mount(el) {
     else if(t.id==='customer') state.customer=t.value;
     else if(t.id==='shift') state.shift=t.value;
     else return;
-    state.saved=null; state.error=''; draw();
+    state.saved=null; state.error='';
+    const totalBox=el.querySelector('#id-total-preview');
+    if(totalBox) drawTotals(totalBox);
   });
   el.addEventListener('change',async(e)=>{
     if(e.target.id==='business') { state.businessId=e.target.value; state.lines=[blankLine()]; state.discount='0.00'; state.saved=null; await loadProducts(); draw(); }
