@@ -46,6 +46,7 @@ describe('Home 2.0 navigation helpers', () => {
     expect(buildDailyProgress(summary, [])).toEqual([]);
     expect(buildDailyProgress(summary, ['checklist.view'])[0]).toMatchObject({
       status: 'Not started',
+      started: false,
       href: '#/sales/checklist',
     });
   });
