@@ -395,7 +395,7 @@
   background: var(--surface-2);
 }
 
- .home-progress-mark.is-started {
+.home-progress-mark.is-started {
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 12%, var(--surface));
 }
