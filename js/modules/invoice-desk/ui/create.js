@@ -67,12 +67,12 @@ export async function mount(el) {
       </section>
       ${state.error?html`<p class="note note-error" role="alert">${state.error}</p>`:''}
       <div class="actions-bar"><button class="btn btn-primary" data-act="save" ${state.busy||!result?'disabled':''}>Save invoice</button></div>
-      ${state.saved?html`<section class="card"><p class="note note-ok">Invoice saved. Internal record: ${state.saved.id}</p><div class="actions"><button class="btn" data-act="print">Print invoice</button><button class="btn" data-act="new">New invoice</button></div><div id="id-preview"></div></section>`:''}`);
+      ${state.saved?html`<section class="card id-saved-card"><p class="note note-ok">Invoice saved. Internal record: ${state.saved.id}</p><div class="actions"><button class="btn" data-act="print">Print invoice</button><button class="btn" data-act="new">New invoice</button></div><div id="id-preview"></div></section>`:''}`);
     if(state.saved) render(el.querySelector('#id-preview'),renderInvoice(state.saved));
   }
   el.addEventListener('input',(e)=>{
     const t=e.target;
-    if(t.closest('[data-line]')) { const i=Number(t.closest('[data-line]').dataset.line); if(t.dataset.field) state.lines[i][t.dataset.field]=t.value; }
+    if(t.closest('[data-line]')) { const i=Number(t.closest('[data-line]').dataset.line); if(t.dataset.field) { state.lines[i][t.dataset.field]=t.value; if(t.dataset.field==='description') state.lines[i].productId=''; } }
     else if(t.id==='invoice-number') state.invoiceNumber=t.value;
     else if(t.id==='invoice-date') state.invoiceDate=t.value;
     else if(t.id==='discount') state.discount=t.value;
@@ -82,7 +82,8 @@ export async function mount(el) {
     else if(t.id==='customer') state.customer=t.value;
     else if(t.id==='shift') state.shift=t.value;
     else return;
-    state.saved=null; state.error='';
+    state.saved=null; state.error=''; state.key=crypto.randomUUID();
+    el.querySelector('.id-saved-card')?.remove();
     const totalBox=el.querySelector('#id-total-preview');
     if(totalBox) drawTotals(totalBox);
   });
