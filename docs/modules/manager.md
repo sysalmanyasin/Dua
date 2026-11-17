@@ -2,7 +2,7 @@
 
 # Manager — brief
 
-Status: **Building** (Session M-A done and merged to `main` 13 Nov 2026 as PR #4; 0101–0103 applied to the live project; awaiting PHONE #1) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
+Status: **Building** (implementation integrated on `main` through M-C; migrations 0101–0107 applied and checked live 17 Nov 2026; Credit Inbox and full acceptance remain) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
 Branch: `module/manager` · Migration range: `0100–0199` · Prefix: `mgmt_` · Permissions: `mgmt.*`, `credit.*` · Route prefix: `/manager` · Nav order: 20
 
 > **Work order:** `docs/modules/manager.next-session.md`. Coordination: `docs/SESSIONS.md`. Progress: `docs/modules/manager.progress.md`.
