@@ -46,9 +46,7 @@ export async function mount(el, { ctx }) {
     if (can.ledgers) jobs.ledgers = safe(() => api.ledgersList());
     if (can.inbox) jobs.inbox = safe(() => api.inboxCount());
 
-    const entries = await Promise.all(
-      Object.entries(jobs).map(async ([key, request]) => [key, await request]),
-    );
+    const entries = await Promise.all(Object.entries(jobs).map(async ([key, request]) => [key, await request]));
     state.data = Object.fromEntries(entries);
     state.loading = false;
     paint();
@@ -87,37 +85,20 @@ export async function mount(el, { ctx }) {
     const data = state.data;
     const cards = [];
     if (can.credit) {
-      cards.push(
-        card(
-          'Staff credit outstanding',
-          data.credit ? moneyValue(total(data.credit, 'net')) : 'Unavailable',
-          '#/manager/credit',
-        ),
-      );
+      cards.push(card('Staff credit outstanding', data.credit ? moneyValue(total(data.credit, 'net')) : 'Unavailable', '#/manager/credit'));
     }
     if (can.salary) {
       cards.push(
         card('Net salary', data.salary ? moneyValue(total(data.salary, 'net')) : 'Unavailable', '#/manager/salary'),
-        card(
-          'Generic final',
-          data.generic ? moneyValue(total(data.generic, 'final')) : 'Unavailable',
-          '#/manager/generic',
-        ),
+        card('Generic final', data.generic ? moneyValue(total(data.generic, 'final')) : 'Unavailable', '#/manager/generic'),
       );
     }
     if (can.incentive) {
-      cards.push(
-        card(
-          'Net incentive',
-          data.incentive ? moneyValue(data.incentive.net_inc) : 'Unavailable',
-          '#/manager/incentive',
-        ),
-      );
+      cards.push(card('Net incentive', data.incentive ? moneyValue(data.incentive.net_inc) : 'Unavailable', '#/manager/incentive'));
     }
     if (can.petty) {
       const pettyAmount = (data.petty || []).reduce(
-        (sum, group) =>
-          sum + (group.lines || []).reduce((sub, item) => sub + (Number(item.amount) || 0), 0),
+        (sum, group) => sum + (group.lines || []).reduce((sub, item) => sub + (Number(item.amount) || 0), 0),
         0,
       );
       cards.push(card('Petty cash', data.petty ? moneyValue(pettyAmount) : 'Unavailable', '#/manager/petty'));
@@ -157,10 +138,7 @@ export async function mount(el, { ctx }) {
             ? markup`${line('Sale commission', moneyValue(data.incentive.sale_comm))}${line(
                 'Generic incentive',
                 moneyValue(data.incentive.gen_inc),
-              )}${line('Net incentive', moneyValue(data.incentive.net_inc))}${line(
-                'Owner share',
-                moneyValue(data.incentive.owner_net),
-              )}`
+              )}${line('Net incentive', moneyValue(data.incentive.net_inc))}${line('Owner share', moneyValue(data.incentive.owner_net))}`
             : markup`<p>Could not load incentive.</p>`,
           '#/manager/incentive',
         )
@@ -169,10 +147,7 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Petty Cash',
           data.petty
-            ? markup`${line('Voucher total', moneyValue(pettyAmountFor(data.petty)))}${line(
-                'Voucher groups',
-                data.petty.length,
-              )}`
+            ? markup`${line('Voucher total', moneyValue(pettyAmountFor(data.petty)))}${line('Voucher groups', data.petty.length)}`
             : markup`<p>Could not load petty cash.</p>`,
           '#/manager/petty',
         )
@@ -184,11 +159,7 @@ export async function mount(el, { ctx }) {
             ? markup`${data.ledgers.map((ledger) => {
                 const balance = balanceMessage(ledger, ledger.balance);
                 const href =
-                  ledger.code === 'expense'
-                    ? '#/manager/expenses'
-                    : ledger.code === 'jazzcash'
-                      ? '#/manager/jazzcash'
-                      : '#/manager/misc';
+                  ledger.code === 'expense' ? '#/manager/expenses' : ledger.code === 'jazzcash' ? '#/manager/jazzcash' : '#/manager/misc';
                 return markup`
                   <a class="md-balance" href="${href}">
                     <span>${ledger.name}</span>
@@ -240,11 +211,7 @@ export async function mount(el, { ctx }) {
   el.addEventListener('click', (event) => {
     if (!event.target.closest('[data-print]')) return;
     document.body.classList.add('printing-manager-dashboard');
-    window.addEventListener(
-      'afterprint',
-      () => document.body.classList.remove('printing-manager-dashboard'),
-      { once: true },
-    );
+    window.addEventListener('afterprint', () => document.body.classList.remove('printing-manager-dashboard'), { once: true });
     window.print();
   });
 
@@ -252,8 +219,5 @@ export async function mount(el, { ctx }) {
 }
 
 function pettyAmountFor(groups) {
-  return (groups || []).reduce(
-    (sum, group) => sum + (group.lines || []).reduce((sub, line) => sub + (Number(line.amount) || 0), 0),
-    0,
-  );
+  return (groups || []).reduce((sum, group) => sum + (group.lines || []).reduce((sub, line) => sub + (Number(line.amount) || 0), 0), 0);
 }
