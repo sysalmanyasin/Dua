@@ -138,7 +138,7 @@ export async function mount(el, { ctx, modules = [] }) {
   }
 
   const stock = buildStockCards(await stockPromise);
-  const kpis = buildKpis(summary);
+  const kpis = buildKpis(summary, perms);
   const attention = buildAttention(summary, perms, hour, alerts);
   const progress = buildDailyProgress(summary, perms);
   const hasAttentionContext = Boolean(summary?.sales || summary?.checklist || alerts);
