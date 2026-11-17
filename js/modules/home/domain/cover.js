@@ -1,7 +1,5 @@
-// What the Cover page shows. Pure functions: the database decides what a person may see;
-// this only turns the summary it returns into cards and to-do items.
+// Pure presentation helpers for the Home command centre. The shell supplies permission-filtered modules.
 import { alertLabel } from '../../../shared/alerts.js';
-
 import { dateNice } from '../../sales/domain/checklist.js';
 
 export function greeting(hourPkt) {
@@ -16,7 +14,6 @@ export const hourInPkt = (now = new Date()) =>
 
 const pct = (now, before) => (before > 0 ? ((now - before) / before) * 100 : null);
 
-// Cards for the top row, in order. A card is left out when the person may not see that figure.
 export function buildKpis(summary) {
   const s = summary?.sales;
   if (!s) return [];
@@ -61,8 +58,6 @@ export function buildKpis(summary) {
   return cards;
 }
 
-// The stock row under the sales cards: four numbers from inventory_cover_summary(), each opening the page that explains it.
-// null (no permission, or it could not load) gives no cards at all, so the Cover never shows a half-empty row.
 export function buildStockCards(cover) {
   if (!cover || typeof cover !== 'object') return [];
   const n = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -72,27 +67,12 @@ export function buildStockCards(cover) {
   const excess = part(cover.excess);
   return [
     { id: 'stock', label: 'Stock value', value: n(cover.stockValue), sub: 'at selling price', href: '#/inventory/health' },
-    {
-      id: 'reorder',
-      label: 'To reorder',
-      value: reorder.value,
-      count: reorder.count,
-      sub: 'to buy up to 30 days',
-      href: '#/inventory/reorder',
-    },
-    {
-      id: 'notsold',
-      label: 'Not selling',
-      value: notSold.value,
-      count: notSold.count,
-      sub: 'whole packs, 60 days',
-      href: '#/inventory/ledger',
-    },
+    { id: 'reorder', label: 'To reorder', value: reorder.value, count: reorder.count, sub: 'to buy up to 30 days', href: '#/inventory/reorder' },
+    { id: 'notsold', label: 'Not selling', value: notSold.value, count: notSold.count, sub: 'whole packs, 60 days', href: '#/inventory/ledger' },
     { id: 'excess', label: 'Excess', value: excess.value, count: excess.count, sub: '200+ days of cover', href: '#/inventory/excess' },
   ];
 }
 
-// Owner alerts that failed to send, or are still unsent after a while. `alerts` is notifications_attention() (or null).
 export function buildAlertItems(alerts, perms) {
   if (!alerts || !Array.isArray(alerts.items)) return [];
   const out = alerts.items.map((n) => {
@@ -109,7 +89,6 @@ export function buildAlertItems(alerts, perms) {
   return out;
 }
 
-// Things that need doing, most urgent first.
 export function buildAttention(summary, perms, hourPkt, alerts = null) {
   const items = buildAlertItems(alerts, perms);
   const can = (p) => perms.includes(p);
@@ -122,11 +101,7 @@ export function buildAttention(summary, perms, hourPkt, alerts = null) {
     });
   }
   if (summary?.checklist && summary.checklist.today_exists === false && hourPkt >= 16 && can('checklist.fill')) {
-    items.push({
-      id: 'checklist',
-      text: "Today's check list has not been started",
-      action: { label: 'Open check list', href: '#/sales/checklist' },
-    });
+    items.push({ id: 'checklist', text: "Today's check list has not been started", action: { label: 'Open check list', href: '#/sales/checklist' } });
   }
   if (s && s.mtd && !s.target && can('targets.manage')) {
     items.push({ id: 'target', text: 'No sales target is set for this month', action: { label: 'Set target', href: '#/sales/report' } });
@@ -134,8 +109,26 @@ export function buildAttention(summary, perms, hourPkt, alerts = null) {
   return items;
 }
 
-// Tiles for every page the person can open, grouped by section. `modules` comes from the app shell,
-// already filtered by permission, so nothing is offered that would be refused.
+// Daily progress is intentionally limited to facts returned by cover_summary().
+export function buildDailyProgress(summary, perms) {
+  const items = [];
+  if (summary?.checklist && (perms.includes('checklist.view') || perms.includes('checklist.fill'))) {
+    const started = summary.checklist.today_exists === true;
+    items.push({
+      id: 'checklist',
+      label: 'Daily check list',
+      status: started ? 'Started' : 'Not started',
+      complete: started,
+      href: perms.includes('checklist.fill') || perms.includes('checklist.view') ? '#/sales/checklist' : null,
+    });
+  }
+  const missing = summary?.sales?.missing_days ?? [];
+  if (perms.includes('sales.view_history') && missing.length) {
+    items.push({ id: 'sales', label: 'Sales entries', status: `${missing.length} day${missing.length === 1 ? '' : 's'} to review`, complete: false, href: perms.includes('sales.enter') ? '#/sales/entry' : null });
+  }
+  return items;
+}
+
 export function buildTiles(modules) {
   return modules
     .filter((m) => m.id !== 'home')
@@ -147,4 +140,19 @@ export function buildTiles(modules) {
       pages: m.routes.filter((r) => r.title).map((r) => ({ title: r.title, desc: r.desc ?? '', href: `#${r.path}` })),
     }))
     .filter((g) => g.pages.length);
+}
+
+export function buildQuickActions(modules, limit = 4) {
+  const pages = buildTiles(modules).flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })));
+  const preferred = pages.filter((page) => /add|new|create|entry|invoice|closing|point of sale|pos/i.test(`${page.title} ${page.desc} ${page.href}`));
+  return (preferred.length ? preferred : pages).slice(0, limit);
+}
+
+export function searchPages(modules, query) {
+  const q = String(query ?? '').trim().toLocaleLowerCase();
+  if (!q) return [];
+  return buildTiles(modules)
+    .flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })))
+    .filter((page) => `${page.title} ${page.module} ${page.desc}`.toLocaleLowerCase().includes(q))
+    .slice(0, 12);
 }
