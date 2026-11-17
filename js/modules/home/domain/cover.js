@@ -213,7 +213,6 @@ export function buildDailyProgress(summary, perms) {
       id: 'sales',
       label: 'Sales entries',
       status: `${missing.length} day${missing.length === 1 ? '' : 's'} to review`,
-      complete: false,
       href: perms.includes('sales.enter') || perms.includes('sales.edit') ? '#/sales/entry' : null,
     });
   }
