@@ -32,8 +32,8 @@ export const getInvoice = async (id) => {
   ]);
   return { ...invoice, lines };
 };
-export const listInvoices = ({ businessId = null, from = null, to = null, search = '', limit = 100 } = {}) => {
-  let q = db().from('invoice_desk_invoices').select('id,business_id,invoice_number,invoice_date,template_id,template_version,subtotal,discount,grand_total,created_at').order('invoice_date', { ascending: false }).order('created_at', { ascending: false }).limit(Math.min(Math.max(Number(limit) || 100, 1), 500));
+export const listInvoices = ({ businessId = null, from = null, to = null, search = '', offset = 0, limit = 100 } = {}) => {
+  let q = db().from('invoice_desk_invoices').select('id,business_id,invoice_number,invoice_date,template_id,template_version,subtotal,discount,grand_total,created_at').order('invoice_date', { ascending: false }).order('created_at', { ascending: false }).range(Math.max(0, Number(offset) || 0), Math.max(0, Number(offset) || 0) + Math.min(Math.max(Number(limit) || 100, 1), 500) - 1);
   if (businessId) q = q.eq('business_id', businessId);
   if (from) q = q.gte('invoice_date', from);
   if (to) q = q.lte('invoice_date', to);
