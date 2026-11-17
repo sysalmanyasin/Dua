@@ -25,7 +25,7 @@ export async function mount(el, { ctx }) {
     incentive: permissions.has('mgmt.incentive'),
     petty: permissions.has('mgmt.petty_cash'),
     ledgers: permissions.has('mgmt.ledgers'),
-    inbox: permissions.has('mgmt.inbox_file'),
+    inbox: permissions.has('mgmt.inbox_file') && permissions.has('credit.view'),
     staff: permissions.has('mgmt.staff_view') || permissions.has('mgmt.staff_edit'),
   };
   const state = { month: currentMonth, data: {}, loading: true };
@@ -174,9 +174,11 @@ export async function mount(el, { ctx }) {
     const inbox = can.inbox
       ? panel(
           'Credit Inbox',
-          markup`
-            <strong class="md-inbox">${Number(data.inbox?.[0]?.count ?? data.inbox?.[0] ?? data.inbox ?? 0)}</strong>
-            <a href="#/manager/inbox">Review inbox →</a>`,
+          data.inbox === null
+            ? markup`<p>Inbox count unavailable.</p>`
+            : markup`
+                <strong class="md-inbox">${Number(data.inbox ?? 0)}</strong>
+                <a href="#/manager/inbox">Review inbox →</a>`,
           '#/manager/inbox',
         )
       : '';
