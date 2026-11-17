@@ -1,6 +1,6 @@
 # Manager — progress
 
-**Current status (17 Nov 2026):** Manager migrations `0101`–`0107` are applied to the live `DuaPharmaPlus` project and present in the live `supabase_migrations.schema_migrations` registry. Migrations `0101`–`0104` pre-date this update; `0105`–`0107` were applied from the exact `main` SQL files in order on 17 Nov and individually registered in the same transactions. The Manager database foundation for Incentive, Petty Cash, ledgers and Balance Tally is now live. The Credit Inbox migration (`0108`) is not present in the current repository and remains unimplemented. Full database-suite verification, UI acceptance and owner phone try-out remain outstanding.
+**Current status (17 Nov 2026):** Manager migrations `0101`–`0108` are in the repository. `0101`–`0107` are live; `0108` (Credit Inbox) is written, tested and pushed, and its live application is recorded in Session M-D below. The full database suite (`bash supabase/tests/run.sh`, 2,434 passing checks, 0 failures) and `npm run verify` (85 files, 1,267 tests) pass. Remaining: owner phone acceptance (try-outs #2, #3, #4), the Credit Inbox tried on real Closing data, and Attendance (deliberately later).
 
 ## Session M-C (14 Nov 2026): built, tested, merged and applied live (0105–0107)
 
@@ -106,3 +106,26 @@ The exact repository files `0105_mgmt_incentive.sql`, `0106_mgmt_petty.sql` and 
 7. Set a **Salary deduction** and a **Less generic**. Net should drop by both.
 8. **Reverse** the 2,000 advance with a reason. Both lines stay (one struck through); the net returns to what it was.
 9. Sharing check: in Users & Access, Allow **only** `credit.view` for a test person. They should see Staff Credit read-only (no add, no reverse), and nothing else in Manager.
+
+
+## Session M-D (17 Nov 2026): Credit Inbox (0108), Reports, DB suite run
+
+| Item | What | Evidence |
+|---|---|---|
+| D1 | `0108_mgmt_inbox.sql`: append-only `mgmt_credit_filings` (event list; the Closing line id is a plain uuid, no foreign key), `mgmt_inbox_lines`, `mgmt_inbox_count`, `mgmt_inbox_file`, `mgmt_inbox_dismiss`, `mgmt_inbox_reopen`. Added to the `0199` exposure whitelist. | 83 DB checks. 17 deliberate breakages: 16 caught, 1 equivalent (the inner read re-checks `credit.view`); that behaviour is now pinned by its own test. |
+| D2 | `/manager/inbox` page, status pill ("Credit inbox: N to file"), `domain/inbox.js`, API calls | 36 UI tests. 10 deliberate breakages, all caught. |
+| D3 | `/manager/reports`: Credit summary, Credit detailed, Salary detail, Generic sheet, with "leave off this print" (R21) | 14 tests |
+| D4 | The full DB suite was run for the first time on a clean Postgres 16 | 2,351 checks before this session's work, 2,434 after |
+
+### Decisions made while building (please confirm)
+1. **Targets are Staff Credit, any ledger (Expense, Jazz Cash, Misc Section) or Dismiss.** There is no separate "Petty" target: MGR-17 says the old Petty ledger is the Expense ledger, and Petty Detail is a monthly voucher, not a ledger.
+2. **Seeing the inbox needs both `mgmt.inbox_file` and `credit.view`**, because Closing's feed (`closing_credit_feed`) is gated by `credit.view` and Manager does not change Closing. Filing also needs the target's key (`mgmt.credit_manage` or `mgmt.ledgers`).
+3. **A negative line** (for example a credit adjustment) can go to Staff Credit or be dismissed, never into a ledger (ledger amounts are always positive).
+4. **Reopen** a filed line reverses its entry (same date, opposite sign, with your reason) and the line becomes unfiled again. A filed entry reversed on the Staff Credit or ledger page also returns its line to the inbox, marked.
+5. **Lines Closing has since removed** cannot be filed, only dismissed, and are not counted in the pill.
+6. The filing writes `source = 'closing_inbox'`, so the ledger and credit pages show the "Closing" chip.
+
+### Findings not fixed here
+- Migration drift: live has `0214_closing_staff_see_all`, which is not in the repository; the repository has `0404_audit_split_order`, which is not live. Neither belongs to Manager. Both need the Closing and Audit owners.
+- Manager docs said 17 `mgmt_` tables; live has 18 (`mgmt_save_keys` included).
+- Ledger pages still offer only a date filter and grouping (no category filter).

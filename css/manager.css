@@ -111,7 +111,8 @@
     background: #fff;
     color: #000;
   }
-  body.printing-payslip dialog.payslip-dlg .actions {
+  body.printing-payslip dialog.payslip-dlg .actions,
+  body.printing-payslip dialog.payslip-dlg .no-print {
     display: none !important;
   }
 }
@@ -133,4 +134,36 @@
 }
 .mg-entry-top strong {
   font-variant-numeric: tabular-nums;
+}
+.mg-inbox-line {
+  display: grid;
+  gap: var(--space-2);
+}
+.mg-changed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* Reports: wide tables scroll on a phone and print in full */
+.rpt-scroll {
+  overflow-x: auto;
+}
+.rpt-table {
+  min-width: 36rem;
+}
+@media print {
+  .rpt-scroll {
+    overflow: visible;
+  }
+  .rpt-table {
+    min-width: 0;
+    font-size: 0.8rem;
+  }
+}
+.mg-hide {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
 }

@@ -3,6 +3,8 @@ export default {
   title: 'Manager',
   icon: 'users',
   nav: { order: 20 },
+  // The status pill counts the Closing credit lines still waiting to be filed (only for people who may open the inbox).
+  status: { anyOf: ['mgmt.inbox_file'], refreshMs: 120_000, load: () => import('./status.js') },
   permission: null, // owner only: each page below lists the keys that may open it (and the database checks them again)
   routes: [
     {
@@ -60,6 +62,20 @@ export default {
       desc: 'Daily ledger and balance tally',
       anyOf: ['mgmt.ledgers'],
       load: () => import('./ui/jazzcash.js'),
+    },
+    {
+      path: '/manager/inbox',
+      title: 'Credit Inbox',
+      desc: 'Credit recorded in Closing, filed by hand',
+      anyOf: ['mgmt.inbox_file'],
+      load: () => import('./ui/inbox.js'),
+    },
+    {
+      path: '/manager/reports',
+      title: 'Reports',
+      desc: 'Print Credit, Salary and Generic for a month',
+      anyOf: ['credit.view', 'mgmt.credit_manage', 'mgmt.salary', 'mgmt.salary_view'],
+      load: () => import('./ui/reports.js'),
     },
     {
       path: '/manager/misc',
