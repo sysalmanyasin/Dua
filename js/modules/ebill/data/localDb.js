@@ -4,11 +4,12 @@
 // If IndexedDB is unavailable (some private-browsing modes) an in-memory copy is used and `durable` is false: the screen then
 // refuses to save offline, because nothing would survive a restart.
 const DB_NAME = 'dua-ebill';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // 2 added the held-bills store; opening an older database keeps its invoices
 
 function memory() {
   const inv = new Map();
   const kv = new Map();
+  const held = new Map();
   const clone = (v) => (v === undefined ? undefined : structuredClone(v));
   return {
     durable: false,
@@ -23,6 +24,16 @@ function memory() {
       return clone(next);
     },
     deleteInvoice: async (id) => void inv.delete(id),
+    putHeld: async (r) => void held.set(r.id, clone(r)),
+    getHeld: async (id) => clone(held.get(id)) ?? null,
+    allHeld: async () => [...held.values()].map(clone),
+    patchHeld: async (id, patch) => {
+      const r = held.get(id);
+      if (!r) return null;
+      held.set(id, clone({ ...r, ...patch }));
+      return clone({ ...r, ...patch });
+    },
+    deleteHeld: async (id) => void held.delete(id),
     kvGet: async (k) => clone(kv.get(k)) ?? null,
     kvSet: async (k, v) => void kv.set(k, clone(v)),
     kvDelete: async (k) => void kv.delete(k),
@@ -38,8 +49,10 @@ export async function openLocalDb(factory = globalThis.indexedDB, name = DB_NAME
     d = await new Promise((resolve, reject) => {
       const req = factory.open(name, DB_VERSION);
       req.onupgradeneeded = () => {
-        req.result.createObjectStore('invoices', { keyPath: 'invoice_id' });
-        req.result.createObjectStore('kv');
+        const names = req.result.objectStoreNames;
+        if (!names.contains('invoices')) req.result.createObjectStore('invoices', { keyPath: 'invoice_id' });
+        if (!names.contains('kv')) req.result.createObjectStore('kv');
+        if (!names.contains('held')) req.result.createObjectStore('held', { keyPath: 'id' });
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
@@ -92,6 +105,26 @@ export async function openLocalDb(factory = globalThis.indexedDB, name = DB_NAME
         t.onerror = () => reject(t.error);
         t.onabort = () => reject(t.error ?? new Error('transaction aborted'));
       }),
+    putHeld: (rec) => tx(['held'], 'readwrite', ({ held }) => void held.put(rec)),
+    getHeld: async (id) => (await req(d.transaction('held').objectStore('held').get(id))) ?? null,
+    allHeld: () => req(d.transaction('held').objectStore('held').getAll()),
+    patchHeld: (id, patch) =>
+      new Promise((resolve, reject) => {
+        const t = d.transaction(['held'], 'readwrite');
+        const store = t.objectStore('held');
+        let next = null;
+        const g = store.get(id);
+        g.onsuccess = () => {
+          if (g.result) {
+            next = { ...g.result, ...patch };
+            store.put(next);
+          }
+        };
+        t.oncomplete = () => resolve(next);
+        t.onerror = () => reject(t.error);
+        t.onabort = () => reject(t.error ?? new Error('transaction aborted'));
+      }),
+    deleteHeld: (id) => tx(['held'], 'readwrite', ({ held }) => void held.delete(id)),
     deleteInvoice: (id) => tx(['invoices'], 'readwrite', ({ invoices }) => void invoices.delete(id)),
     kvGet: async (k) => (await req(d.transaction('kv').objectStore('kv').get(k))) ?? null,
     kvSet: (k, v) => tx(['kv'], 'readwrite', ({ kv }) => void kv.put(v, k)),

@@ -33,7 +33,7 @@ export function createSync({
       synced: by('synced').length,
       others: all.length - mine.length, // waiting for a different login on this device
       lastSyncAt: (await store.kvGet('lastSyncAt')) ?? null,
-      items: [...mine].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 50),
+      items: [...mine].sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0)).slice(0, 50),
     };
   }
 
@@ -50,16 +50,20 @@ export function createSync({
 
     const todo = (await store.allInvoices())
       .filter((r) => r.user_id === uid && r.status === 'pending')
-      .sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+      .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
     let registered = false;
+    const ensureDevice = async () => {
+      if (registered) return;
+      registered = true;
+      await api.registerDevice(deviceId, deviceLabel);
+    };
     for (const rec of todo) {
       const tries = (rec.attempts ?? 0) + 1;
       let res;
       try {
         res = await api.saveInvoice(rec.payload, null);
         if (res?.code === 'device_unknown' && !registered) {
-          registered = true;
-          await api.registerDevice(deviceId, deviceLabel);
+          await ensureDevice();
           res = await api.saveInvoice(rec.payload, null);
         }
       } catch (e) {
@@ -100,10 +104,43 @@ export function createSync({
         out.failed++;
       }
     }
+    await pushHeld(uid, ensureDevice);
     await store.kvSet('lastSyncAt', now().toISOString()); // the server was reached
     await prune();
     if (afterSync) await Promise.resolve(afterSync()).catch(() => {}); // fresh products and settings while we are online
     return { ...out, ...(await tally(uid)) };
+  }
+
+  // Held bills ride the same run: new or changed holds go up, and holds whose bill was saved or deleted are removed from the server.
+  // A hold edited while its upload was in flight is NOT marked uploaded (its updated_at moved), so the newer version goes next time.
+  async function pushHeld(uid, ensureDevice) {
+    if (!api.holdBill || !api.releaseHeld) return;
+    for (const h of (await store.allHeld()).filter((x) => x.user_id === uid)) {
+      try {
+        if (h.release_pending) {
+          await api.releaseHeld(h.id);
+          await store.deleteHeld(h.id);
+        } else if (!h.synced) {
+          let r = await api.holdBill(h.id, h.device_id, h.state, h.label);
+          if (r?.code === 'device_unknown') {
+            await ensureDevice();
+            r = await api.holdBill(h.id, h.device_id, h.state, h.label);
+          }
+          const cur = await store.getHeld(h.id);
+          if (!cur) continue;
+          if (r?.ok) {
+            if (cur.updated_at === h.updated_at) await store.patchHeld(h.id, { synced: true, last_error: null });
+          } else
+            await store.patchHeld(h.id, {
+              last_error: { code: r?.code || 'refused', message: r?.message || 'The server did not accept this held bill.' },
+            });
+        }
+      } catch (e) {
+        const kind = classifyError(e, online());
+        if (kind === 'network' || kind === 'auth') return; // try again next run
+        await store.patchHeld(h.id, { last_error: { code: 'error', message: String(e?.message || e) } }).catch(() => {});
+      }
+    }
   }
 
   async function tally(uid) {

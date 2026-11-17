@@ -13,6 +13,13 @@ export default {
       load: () => import('./ui/pos.js'),
     },
     {
+      path: '/ebill/history',
+      title: 'History',
+      desc: 'Every invoice, with whether it has reached the server',
+      anyOf: ['ebill.use', 'ebill.history_all', 'ebill.manage'],
+      load: () => import('./ui/history.js'),
+    },
+    {
       path: '/ebill/settings',
       title: 'Emergency Billing Settings',
       desc: 'Staff PINs, discount limits and devices',

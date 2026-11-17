@@ -19,16 +19,22 @@ export function ask(host, { title, intro = '', error = '', confirm = 'OK', field
             ${fields.map(
               (f) =>
                 html`<label class="field"
-                  ><span>${f.label}</span
-                  ><input
-                    data-f="${f.id}"
-                    type="${f.type || 'text'}"
-                    value="${f.value ?? ''}"
-                    ${f.inputmode ? `inputmode=${f.inputmode}` : ''}
-                    ${f.maxlength ? `maxlength=${f.maxlength}` : ''}
-                    placeholder="${f.placeholder || ''}"
-                    autocomplete="${f.autocomplete || 'off'}"
-                /></label>`,
+                  ><span>${f.label}</span>${
+                    f.options
+                      ? html`<select data-f="${f.id}">
+                          ${f.options.map((o) => html`<option value="${o}" ${o === f.value ? 'selected' : ''}>${o}</option>`)}
+                        </select>`
+                      : html`<input
+                          data-f="${f.id}"
+                          type="${f.type || 'text'}"
+                          value="${f.value ?? ''}"
+                          ${f.inputmode ? `inputmode=${f.inputmode}` : ''}
+                          ${f.maxlength ? `maxlength=${f.maxlength}` : ''}
+                          placeholder="${f.placeholder || ''}"
+                          autocomplete="${f.autocomplete || 'off'}"
+                        />`
+                  }</label
+                >`,
             )}
           </div>
           <div class="eb-ask-actions">
@@ -62,6 +68,6 @@ export function ask(host, { title, intro = '', error = '', confirm = 'OK', field
       if (act === 'no') done(null);
       if (act === 'yes') done(values());
     });
-    root.querySelector('[data-f]')?.focus();
+    root.querySelector('input[data-f], select[data-f]')?.focus();
   });
 }

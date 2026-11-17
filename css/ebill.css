@@ -561,3 +561,68 @@
 .eb-st-synced {
   color: var(--ok);
 }
+
+/* history, held bills, invoice detail */
+.eb-hist {
+  display: grid;
+  gap: var(--space-3);
+}
+.eb-hist h1 {
+  margin: 0;
+}
+.eb-hist-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+.eb-hist-filters .field {
+  margin: 0;
+}
+.eb-hist-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+.eb-hist-wrap {
+  max-height: 60vh;
+}
+.eb-hist-pager {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+}
+.eb-click {
+  cursor: pointer;
+}
+.eb-click:hover {
+  background: var(--surface-2);
+}
+.eb-row-failed {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+}
+.eb-detail {
+  max-width: 52rem;
+  overflow: auto;
+  display: block;
+}
+.eb-detail > * + * {
+  margin-top: var(--space-3);
+}
+.eb-events {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.eb-held-dlg {
+  max-width: 62rem;
+}
+.eb-net-line {
+  text-align: right;
+  font-size: 1.2rem;
+}

@@ -11,8 +11,20 @@ import { billTotals, lineTotals, payment } from '../domain/calc.js';
 import { emptyState } from '../domain/productFilter.js';
 import { clock, readCopy, refreshCopy } from '../data/products.js';
 import { openProductHelp } from './productHelp.js';
+import { openHeldBills } from './heldBills.js';
 import { ask } from './dialog.js';
-import { currentUserId, myLimits, offlineGrant, registerDevice, saveInvoice } from '../data/api.js';
+import {
+  currentUserId,
+  getHeldState,
+  holdBill,
+  listHeld,
+  myLimits,
+  offlineGrant,
+  registerDevice,
+  releaseHeld,
+  saveInvoice,
+} from '../data/api.js';
+import { createHeld, heldState } from '../data/held.js';
 import { openLocalDb } from '../data/localDb.js';
 import { createKit } from '../data/offlineKit.js';
 import { createSync, startAutoSync } from '../data/sync.js';
@@ -42,7 +54,7 @@ export async function mount(el, { ctx }) {
   const kit = createKit({ store, api: { offlineGrant, myLimits }, deviceId: getDeviceId(), userId: () => ctx.user_id });
   const sync = createSync({
     store,
-    api: { saveInvoice, registerDevice },
+    api: { saveInvoice, registerDevice, holdBill, releaseHeld },
     userId: currentUserId,
     deviceId: getDeviceId(),
     deviceLabel: deviceLabel(),
@@ -51,6 +63,15 @@ export async function mount(el, { ctx }) {
       await kit.refreshLimits(); // ...and fresh limits and PIN rule
     },
   });
+  const held = createHeld({
+    store,
+    api: { listHeld, getHeldState, releaseHeld },
+    userId: async () => ctx.user_id,
+    deviceId: getDeviceId(),
+  });
+  let flash = ''; // a short information line: held, resumed, connection lost / back
+  let flashTimer = null;
+  let closeHeld = null;
   const fresh = () => ({
     customer: '',
     customerDiscountPct: 0,
@@ -64,6 +85,7 @@ export async function mount(el, { ctx }) {
     more: '',
     qty: 1,
     invoiceId: null,
+    heldId: null, // set while a bill that was held is on screen, so saving it releases the hold
   });
   let bill = fresh();
 
@@ -114,9 +136,9 @@ export async function mount(el, { ctx }) {
             />
             <button type="button" class="btn" data-act="help" title="Product Help (F2)" aria-label="Open Product Help">🔍</button>
           </div>
-          <label class="eb-check"><input type="checkbox" disabled title="${SOON}" /> Hold</label>
-          <button type="button" class="btn btn-sm" disabled title="${SOON}">Return</button>
-          <button type="button" class="btn btn-sm" disabled title="${SOON}">Reason</button>
+          <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold bill</button>
+          <button type="button" class="btn btn-sm" disabled title="Refunds are done by a manager from History">Return</button>
+          <button type="button" class="btn btn-sm" disabled title="Refunds are done by a manager from History">Reason</button>
           <div class="eb-group">
             <span class="eb-lbl">Receipt #</span><input class="eb-code" value="Draft" readonly aria-label="Receipt number" />
           </div>
@@ -217,15 +239,16 @@ export async function mount(el, { ctx }) {
 
       <div class="eb-bottom">
         <div class="eb-hold">
-          <span class="eb-lbl">Receipt holding [0 / 6]</span>
+          <span class="eb-lbl">Receipt holding [<span id="eb-held-n">0</span> / 6]</span>
           <div class="eb-navs">
-            <button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="First held bill">«</button
-            ><button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Previous held bill">‹</button
-            ><button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Next held bill">›</button
-            ><button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Last held bill">»</button>
+            <button type="button" class="btn btn-sm" data-held-nav="first" title="First held bill" aria-label="First held bill">«</button
+            ><button type="button" class="btn btn-sm" data-held-nav="prev" title="Previous held bill" aria-label="Previous held bill">
+              ‹</button
+            ><button type="button" class="btn btn-sm" data-held-nav="next" title="Next held bill" aria-label="Next held bill">›</button
+            ><button type="button" class="btn btn-sm" data-held-nav="last" title="Last held bill" aria-label="Last held bill">»</button>
           </div>
           <div class="eb-navs">
-            <button type="button" class="btn btn-sm" disabled title="${SOON}">Hold</button
+            <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button
             ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">Cancel</button>
           </div>
         </div>
@@ -395,7 +418,8 @@ export async function mount(el, { ctx }) {
     );
     render(
       q('#eb-note'),
-      html`${note === 'offline' ? html`<p class="note note-info" role="status">Offline. Using the product copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}. Stock shown may be out of date.</p>` : ''}
+      html`${!online ? html`<p class="note note-info" role="status">You are offline. You can keep billing: bills are saved on this device and upload by themselves when you are back online. Products and stock come from the copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}, so stock may be out of date.</p>` : ''}
+      ${flash ? html`<p class="note note-info" role="status">${flash}</p>` : ''}
       ${note && note !== 'offline' ? html`<p class="note note-error" role="status">${note}</p>` : ''}
       ${saved ? (saved.local ? html`<p class="note note-info" role="status">Saved on this device as <b>${saved.no}</b>. It will upload by itself when you are online.</p>` : html`<p class="note note-info" role="status">Saved as <b>${saved.no}</b>. The invoice is on the server.</p>`) : ''}
       ${device.status === 'deactivated' ? html`<p class="note note-error" role="status">This device has been switched off by the manager. Invoices cannot be saved from it.</p>` : ''}
@@ -498,6 +522,7 @@ export async function mount(el, { ctx }) {
           if (r?.ok) {
             saved = { no: r.invoice_no, local: false };
             note = '';
+            releaseCurrentHold();
             resetBill();
             drawStatus();
             kit.afterOnlineSave(v.pin).then(drawSync); // quietly get this device ready for offline billing
@@ -518,6 +543,7 @@ export async function mount(el, { ctx }) {
         if (r.ok) {
           saved = { no: r.ref, local: true };
           note = '';
+          releaseCurrentHold();
           resetBill();
           drawStatus();
           drawSync();
@@ -654,28 +680,120 @@ export async function mount(el, { ctx }) {
     resetBill();
     drawStatus();
   }
-  function resetBill() {
-    cart = emptyCart();
-    bill = fresh();
+  // Put every input on the screen in step with `bill`.
+  function syncInputs() {
     const set = (id, v) => {
       q(id).value = v;
     };
-    set('#eb-customer', '');
-    set('#eb-qty', '1');
-    set('#eb-cdisc', '0');
-    set('#eb-rdisc', '0');
-    set('#eb-adj', '0');
-    set('#eb-tax', '0');
-    set('#eb-cash', '0');
-    set('#eb-comments', '');
-    set('#eb-more', '');
-    set('#eb-rmode', 'amt');
-    q('#eb-rdon').checked = false;
-    q('#eb-rdisc').disabled = true;
-    q('#eb-rmode').disabled = true;
-    q('input[name="eb-mode"][value="Cash"]').checked = true;
+    set('#eb-customer', bill.customer || '');
+    set('#eb-qty', String(bill.qty));
+    set('#eb-cdisc', String(bill.customerDiscountPct));
+    set('#eb-rdisc', String(bill.receiptDiscount.value));
+    set('#eb-rmode', bill.receiptDiscount.mode);
+    set('#eb-adj', String(bill.adjustment));
+    set('#eb-tax', String(bill.taxPct));
+    set('#eb-cash', String(bill.cash));
+    set('#eb-comments', bill.comments || '');
+    set('#eb-more', bill.more || '');
+    q('#eb-rdon').checked = bill.receiptOn;
+    q('#eb-rdisc').disabled = !bill.receiptOn;
+    q('#eb-rmode').disabled = !bill.receiptOn;
+    const r = q(`input[name="eb-mode"][value="${bill.mode}"]`);
+    if (r) r.checked = true;
+  }
+  function resetBill() {
+    cart = emptyCart();
+    bill = fresh();
+    syncInputs();
     drawLines();
     q('#eb-sku').focus();
+  }
+
+  // ───────── held bills ─────────
+  const say = (text, ms = 8000) => {
+    flash = text;
+    clearTimeout(flashTimer);
+    if (ms) {
+      flashTimer = setTimeout(() => {
+        flash = '';
+        drawStatus();
+      }, ms);
+    }
+    drawStatus();
+  };
+  async function drawHeldCount() {
+    const n = await held.count();
+    const out = q('#eb-held-n');
+    if (out) out.textContent = String(n);
+    for (const b of el.querySelectorAll('[data-held-nav]')) b.disabled = n === 0 && navigator.onLine === false;
+  }
+  /** Park the bill on screen and clear it for the next customer. Works offline: the device keeps it first. */
+  async function holdCurrent() {
+    if (!cart.lines.length) {
+      note = 'There is nothing to hold.';
+      drawStatus();
+      return;
+    }
+    const id = bill.heldId || newInvoiceId();
+    const r = await held.hold({ id, state: heldState({ cart, bill, totals: totals() }) });
+    if (!r.ok) {
+      flash = ''; // an earlier "Bill held" message would contradict this refusal
+      note = r.message;
+      drawStatus();
+      return;
+    }
+    note = '';
+    saved = null;
+    resetBill();
+    say('Bill held. Serve the next customer; open "Held" to bring it back.');
+    drawHeldCount();
+    sync.syncNow().catch(() => {}); // sends the hold to the server when there is a connection
+  }
+  async function resumeHeld(id) {
+    if (cart.lines.length && !window.confirm('Replace the bill on the screen? Hold it first if you want to keep it.')) return;
+    const r = await held.load(id);
+    if (!r.ok) {
+      note = r.message;
+      drawStatus();
+      return;
+    }
+    note = '';
+    saved = null;
+    cart = { lines: r.state.lines };
+    bill = { ...fresh(), ...r.state.bill, invoiceId: null, heldId: id, qty: 1 };
+    syncInputs();
+    drawLines();
+    say('Held bill brought back. Saving it will remove the hold.');
+    q('#eb-sku').focus();
+  }
+  function openHeld(start) {
+    if (closeHeld) return;
+    closeHeld = openHeldBills({
+      host: q('#eb-help'),
+      held,
+      start,
+      currentId: bill.heldId,
+      onResume: (id) => resumeHeld(id),
+      onDeleted: (id) => {
+        if (bill.heldId === id) bill.heldId = null;
+        drawHeldCount();
+        sync.syncNow().catch(() => {});
+      },
+      onClose: () => {
+        closeHeld = null;
+        drawHeldCount();
+        q('#eb-sku')?.focus();
+      },
+    });
+  }
+  /** The bill on screen was saved: its hold (if it had one) is no longer needed. */
+  function releaseCurrentHold() {
+    const id = bill.heldId;
+    if (!id) return;
+    held.release(id).then(() => {
+      drawHeldCount();
+      sync.syncNow().catch(() => {});
+    });
   }
 
   // ───────── events ─────────
@@ -690,6 +808,8 @@ export async function mount(el, { ctx }) {
     e.target.value = '';
   });
   q('[data-act="help"]').addEventListener('click', () => openHelp());
+  for (const b of el.querySelectorAll('[data-act="hold"]')) b.addEventListener('click', holdCurrent);
+  for (const b of el.querySelectorAll('[data-held-nav]')) b.addEventListener('click', () => openHeld(b.dataset.heldNav));
   q('#eb-save').addEventListener('click', save);
   for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
   q('[data-act="new"]').addEventListener('click', newBill);
@@ -779,7 +899,16 @@ export async function mount(el, { ctx }) {
     stops.forEach((f) => f());
     clearInterval(clockTimer);
   }, 30_000);
-  const onNet = () => el.isConnected && (drawStatus(), drawSync());
+  const onNet = () => {
+    if (!el.isConnected) return;
+    if (navigator.onLine === false) say('Connection lost. Carry on: nothing on the screen is lost, and bills are saved on this device.');
+    else {
+      say('Back online. Anything saved on this device is being uploaded.');
+      sync.syncNow().catch(() => {});
+    }
+    drawSync();
+    drawHeldCount();
+  };
   window.addEventListener('online', onNet);
   window.addEventListener('offline', onNet);
   stops.push(() => {
@@ -818,6 +947,7 @@ export async function mount(el, { ctx }) {
   drawStatus();
   drawLines();
   drawSync();
+  drawHeldCount();
   q('#eb-sku').focus();
   registerServiceWorker(); // lets the page open offline; nothing breaks if it is unsupported
   registerThisDevice(); // quietly, when online; the owner sees this device in Settings

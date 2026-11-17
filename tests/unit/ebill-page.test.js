@@ -57,6 +57,10 @@ vi.mock('../../js/modules/ebill/data/offline.js', () => ({
 }));
 vi.mock('../../js/modules/ebill/data/api.js', () => ({
   currentUserId: vi.fn(async () => 'u1'),
+  holdBill: vi.fn(async () => ({ ok: true, code: 'held' })),
+  releaseHeld: vi.fn(async () => ({ ok: true })),
+  listHeld: vi.fn(async () => []),
+  getHeldState: vi.fn(async () => null),
   myLimits: vi.fn(async () => ({ max_pct: 10, max_amount: 1000, override: false, pin_required: true, has_pin: true })),
   offlineGrant: vi.fn(async () => ({ ok: true, secret: 'S3CRET', pin_set_at: '2026-11-01T00:00:00Z' })),
   registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),
@@ -92,7 +96,10 @@ describe('registration', () => {
     expect(manifest.id).toBe('ebill');
     expect(manifest.routes[0].path).toBe('/ebill');
     expect(manifest.routes[0].permission).toBe('ebill.use');
-    expect(manifest.routes[1].anyOf).toEqual(['ebill.set_pin', 'ebill.manage']);
+    expect(manifest.routes.map((r) => r.path)).toEqual(['/ebill', '/ebill/history', '/ebill/settings']);
+    const by = Object.fromEntries(manifest.routes.map((r) => [r.path, r]));
+    expect(by['/ebill/history'].anyOf).toEqual(['ebill.use', 'ebill.history_all', 'ebill.manage']);
+    expect(by['/ebill/settings'].anyOf).toEqual(['ebill.set_pin', 'ebill.manage']);
   });
 });
 

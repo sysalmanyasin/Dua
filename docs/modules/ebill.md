@@ -29,7 +29,11 @@ Migrations, all inside 0600–0699, applied by hand per RUNBOOK §4 and register
 | `0611_ebill_save_invoice` | the only way an invoice is saved: server recomputes the totals, checks device, discount limit and PIN, is idempotent on `invoice_id`, records stock seen (never blocks on it) |
 | `0620_ebill_devices` | register a device; manager deactivates it (a deactivated device is told so and cannot save) |
 | `0621_ebill_staff_list` | staff list for the settings page (never returns a hash) |
+| `0612_ebill_offline` | offline grants and proof of PIN; `ebill_my_limits` (Phase 3) |
 | `0622_ebill_search_path` | fixed search path on helper functions |
+| `0630_ebill_held_bills` | `ebill_held_bills` + `ebill_hold_bill` (idempotent, max 10 per person) and `ebill_release_held` |
+| `0631_ebill_events` | append-only `ebill_invoice_events`; manager-only `ebill_refund_invoice` (one per invoice, enforced by an index) and `ebill_correct_invoice` (customer, payment mode, comments only); reason required; audited |
+| `0632_ebill_history` | `ebill_history` (filters, paging, totals excluding refunded) and `ebill_invoice_detail`, with refunds and corrections applied on top of the saved record |
 
 Not yet built (later phases): offline queue and sync, held bills, history, refunds and corrections (`ebill_invoice_events`), reports and exports, receipt settings and printing.
 
@@ -72,3 +76,14 @@ Open question for the owner: the product copy's `price` is treated as the price 
 - Stock offline is the device's saved copy, always labelled as such. Discount limit and PIN are checked on the device, then again by the server.
 - Someone with the device and enough skill can clear browser data to reset the local PIN counter. The protection that matters is the server: it will not take an offline invoice without the grant, and the owner can switch the device off.
 - The owner sees which invoices were PIN-checked on a device (`pin_check`) once history exists (Phase 4).
+
+## Phase 4: held bills, history, refunds and corrections (built)
+
+**Rule for all of it (owner, 16 Nov 2026): start online; if the internet drops mid-work, carry on offline.** The screen shows "Connection lost" and "Back online" messages and never clears the bill. Billing, Product Help, holding bills and viewing invoices on the device all work offline; only manager actions that need the server (refund, correct) wait for a connection.
+
+- **Held bills** (`data/held.js`, `ui/heldBills.js`): the device keeps the hold first, the server copy follows through the same single sync, so a bill can also be picked up from another device. Six at most (the Candela `[0 / 6]`). Resuming puts the bill back exactly as it was (items, discounts, cash, payment mode); saving it releases the hold, cancelling it does not. A hold edited while its upload is in flight is not wrongly marked as uploaded.
+- **History** (`ui/history.js`, tab "History"): filters (dates, search, status, payment, sync), paging, totals that exclude refunded money, and each invoice's state **Synced / Pending / Failed**. Invoices still only on this device are listed first and called out as **not included** in the server totals. Managers also see the device and where the PIN was checked. Offline, it shows what the device holds.
+- **Refund** (manager only): the whole invoice, one per invoice, reason required. **Correct** (manager only): customer, payment mode and comments only; for an amount, refund and bill again. Neither edits the saved invoice: each adds an event (who, when, why, what changed), shown in the detail and written to the audit log. The history overlays events on the saved record.
+- **Return / Reason** buttons on the billing screen stay off: refunds are a manager action in History.
+
+Still to build (Phase 5): receipt printing and print settings, device/limits/receipt settings in one place, and CSV / Excel / PDF exports of the history.

@@ -37,6 +37,10 @@ vi.mock('../../js/modules/ebill/data/device.js', () => ({
 }));
 vi.mock('../../js/modules/ebill/data/api.js', () => ({
   currentUserId: vi.fn(async () => 'u1'),
+  holdBill: vi.fn(async () => ({ ok: true, code: 'held' })),
+  releaseHeld: vi.fn(async () => ({ ok: true })),
+  listHeld: vi.fn(async () => []),
+  getHeldState: vi.fn(async () => null),
   myLimits: vi.fn(async () => ({ max_pct: 10, max_amount: 1000, override: false, pin_required: true, has_pin: true })),
   offlineGrant: vi.fn(async () => ({ ok: true, secret: 'S3CRET', pin_set_at: '2026-11-01T00:00:00Z' })),
   registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),

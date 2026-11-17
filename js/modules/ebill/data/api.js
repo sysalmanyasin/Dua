@@ -23,6 +23,37 @@ export const offlineGrant = (deviceId, pin) => one(db().rpc('ebill_offline_grant
 /** This person's discount limits and PIN rule, for the offline check. */
 export const myLimits = () => one(db().rpc('ebill_my_limits'));
 
+export const holdBill = (id, deviceId, state, label) =>
+  one(db().rpc('ebill_hold_bill', { p_id: id, p_device: deviceId, p_state: state, p_label: label || '' }));
+export const releaseHeld = (id) => one(db().rpc('ebill_release_held', { p_id: id }));
+/** This person's holds on the server (without the bill itself). */
+export const listHeld = () =>
+  one(
+    db()
+      .from('ebill_held_bills')
+      .select('id, label, customer, item_count, net_total, device_id, created_at, updated_at')
+      .order('updated_at', { ascending: false }),
+  );
+export const getHeldState = async (id) =>
+  (await one(db().from('ebill_held_bills').select('state').eq('id', id).maybeSingle()))?.state ?? null;
+
+export const history = (f = {}) =>
+  one(
+    db().rpc('ebill_history', {
+      p_from: f.from || null,
+      p_to: f.to || null,
+      p_text: f.text || null,
+      p_status: f.status || null,
+      p_mode: f.mode || null,
+      p_limit: f.limit ?? 50,
+      p_offset: f.offset ?? 0,
+    }),
+  );
+export const invoiceDetail = (id) => one(db().rpc('ebill_invoice_detail', { p_invoice: id }));
+export const refundInvoice = (id, reason) => one(db().rpc('ebill_refund_invoice', { p_invoice: id, p_reason: reason }));
+export const correctInvoice = (id, changes, reason) =>
+  one(db().rpc('ebill_correct_invoice', { p_invoice: id, p_changes: changes, p_reason: reason }));
+
 export const listStaff = () => one(db().rpc('ebill_staff_list'));
 export const setPin = (userId, pin) => one(db().rpc('ebill_set_pin', { p_user: userId, p_pin: pin }));
 export const removePin = (userId) => one(db().rpc('ebill_remove_pin', { p_user: userId }));
