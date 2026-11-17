@@ -1,7 +1,7 @@
 export default {
   id: 'invoice-desk',
   title: 'Invoice Desk',
-  icon: 'receipt',
+  icon: 'chart',
   nav: { order: 85 },
   permission: null,
   routes: [
