@@ -27,7 +27,7 @@ export async function mount(el,{ctx}){
  const links=html`<nav class='md-links'>${can.staff?html`<a href='#/manager/staff'>Staff Registry</a>`:''}${can.credit?html`<a href='#/manager/credit'>Staff Credit</a>`:''}${can.salary?html`<a href='#/manager/reports'>Reports</a>`:''}${can.petty?html`<a href='#/manager/petty'>Petty Cash</a>`:''}${can.ledgers?html`<a href='#/manager/misc'>Misc Sections</a>`:''}</nav>`;
  render(el,html`${head}<div class='md-intro'><span>MONTHLY SNAPSHOT</span><h2>Your branch, at a glance.</h2><p>Live figures from existing Manager records.</p></div><div class='md-kpis'>${c}</div><div class='md-columns'>${cr}${sal}${inc}${pet}${led}${inbox}</div>${panel('Quick Access',links,'#/manager')}`);
  }
- el.addEventListener('change',e=>{if(e.target.matches('[data-month]')&&/^\\d{4}-\\d{2}$/.test(e.target.value)){s.month=e.target.value+'-01';load();}});
+ el.addEventListener('change',e=>{if(e.target.matches('[data-month]')&&/^\d{4}-\d{2}$/.test(e.target.value)){s.month=e.target.value+'-01';load();}});
  el.addEventListener('click',e=>{if(e.target.closest('[data-print]')){document.body.classList.add('printing-manager-dashboard');window.addEventListener('afterprint',()=>document.body.classList.remove('printing-manager-dashboard'),{once:true});window.print();}});
  await load();
 }
