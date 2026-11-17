@@ -70,7 +70,7 @@ export async function mount(el, { ctx }) {
     const actions = markup`
       <label class="md-month">
         Month
-        <input type="month" data-month value='${state.month.slice(0, 7)}" max='${currentMonth.slice(0, 7)}' />
+        <input type="month" data-month value="${state.month.slice(0, 7)}" max="${currentMonth.slice(0, 7)}" />
       </label>
       <button class="btn btn-ghost" data-print>Print / PDF</button>`;
     const heading = hero({
