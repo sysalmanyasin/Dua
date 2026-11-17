@@ -20,6 +20,8 @@ export const loadById = (id) => one(db().from('closings').select(DRAFT_SELECT).e
 
 /** The person's own drafts and submitted closings, newest first (closing_my_recent). */
 export const myRecent = (limit = 30) => one(db().rpc('closing_my_recent', { p_limit: limit }));
+/** Every submitted closing, light rows (anyone with closing access may read them). */
+export const savedList = (limit = 100) => one(db().rpc('closing_saved_list', { p_limit: limit }));
 /** Active staff as [{ id, name }] for the "who is responsible" choice (CLS-14). */
 export const staffChoices = () => one(db().rpc('closing_staff_choices'));
 
