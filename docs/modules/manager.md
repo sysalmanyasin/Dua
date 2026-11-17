@@ -1,4 +1,4 @@
-> **Status note (13 Nov 2026):** Manager is implemented on `main` for Staff Registry and Staff Credit. Migrations 0101–0103 are reported applied and verified live. Payslips, petty cash and other remaining brief scope are not complete; see `docs/modules/manager.progress.md` and `docs/PROJECT_STATUS.md`.
+> **Status note (17 Nov 2026):** Manager feature work through Incentive, Petty Cash, Expenses, Jazz Cash, Misc Sections and Balance Tally is integrated on `main`; migrations `0101`–`0107` are applied and verified in the live `DuaPharmaPlus` registry. Credit Inbox (`0108`) remains unimplemented. Full database-suite verification and owner phone acceptance remain pending; see `docs/modules/manager.progress.md`, `docs/modules/manager.next-session.md` and `docs/PROJECT_STATUS.md`.
 
 # Manager — brief
 
