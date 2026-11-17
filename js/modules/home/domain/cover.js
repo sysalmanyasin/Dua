@@ -81,7 +81,7 @@ export function buildAlertItems(alerts, perms) {
     return {
       id: `alert-${n.id}`,
       text: `${what} (${note})`,
-      action: perms.includes('notifications.view') ? { label: 'Review', href: '#/tools' } : null,
+      action: perms.includes('notifications.view') && perms.includes('tools.view') ? { label: 'Review', href: '#/tools' } : null,
     };
   });
   const more = Number(alerts.failed ?? 0) + Number(alerts.stuck ?? 0) - out.length;
@@ -103,7 +103,7 @@ export function buildAttention(summary, perms, hourPkt, alerts = null) {
   if (summary?.checklist && summary.checklist.today_exists === false && hourPkt >= 16 && can('checklist.fill')) {
     items.push({ id: 'checklist', text: "Today's check list has not been started", action: { label: 'Open check list', href: '#/sales/checklist' } });
   }
-  if (s && s.mtd && !s.target && can('targets.manage')) {
+  if (s && s.mtd && !s.target && can('targets.manage') && can('sales.view_history')) {
     items.push({ id: 'target', text: 'No sales target is set for this month', action: { label: 'Set target', href: '#/sales/report' } });
   }
   return items;
