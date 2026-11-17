@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAlertItems, buildAttention, buildKpis, buildTiles, greeting, hourInPkt } from '../../js/modules/home/domain/cover.js';
+import {
+  buildAlertItems,
+  buildAttention,
+  buildKpis,
+  buildStockCards,
+  buildTiles,
+  greeting,
+  hourInPkt,
+} from '../../js/modules/home/domain/cover.js';
 
 const full = {
   sales: {
@@ -112,17 +120,49 @@ describe('tiles', () => {
   });
 });
 
+const stockCover = {
+  asOf: '2026-11-17T08:00:00Z',
+  stockValue: 98765432.1,
+  reorder: { count: 412, value: 2345678 },
+  notSold: { count: 1, value: 1500 },
+  excess: { count: 0, value: 0 },
+};
+
+describe('stock cards', () => {
+  it('gives the four numbers in order, each linking to the page that explains it', () => {
+    const c = buildStockCards(stockCover);
+    expect(c.map((x) => x.id)).toEqual(['stock', 'reorder', 'notsold', 'excess']);
+    expect(c.map((x) => x.href)).toEqual(['#/inventory/health', '#/inventory/reorder', '#/inventory/ledger', '#/inventory/excess']);
+    expect(c[0]).toMatchObject({ value: 98765432.1 });
+    expect(c[1]).toMatchObject({ count: 412, value: 2345678 });
+    expect(c[3]).toMatchObject({ count: 0, value: 0 });
+  });
+  it('gives nothing when there is no summary, so the Cover never shows a half-empty row', () => {
+    expect(buildStockCards(null)).toEqual([]);
+    expect(buildStockCards(undefined)).toEqual([]);
+    expect(buildStockCards('x')).toEqual([]);
+  });
+  it('treats missing or odd parts as zero instead of showing NaN', () => {
+    const c = buildStockCards({ stockValue: 'abc', reorder: { count: null } });
+    expect(c[0].value).toBe(0);
+    expect(c[1]).toMatchObject({ count: 0, value: 0 });
+    expect(c[2]).toMatchObject({ count: 0, value: 0 });
+  });
+});
+
 describe('Cover page', () => {
   const api = { coverSummary: vi.fn(async () => full) };
   vi.mock('../../js/modules/home/data/api.js', () => ({
     coverSummary: (...a) => globalThis.__cover(...a),
     notificationsAttention: (...a) => globalThis.__alerts(...a),
+    inventoryCover: (...a) => globalThis.__inv(...a),
   }));
   beforeEach(() => {
     document.body.innerHTML = '<div id="p"></div>';
     sessionStorage.clear();
     globalThis.__cover = api.coverSummary;
     globalThis.__alerts = async () => null;
+    globalThis.__inv = async () => stockCover;
     api.coverSummary.mockImplementation(async () => full);
   });
   const ctx = { full_name: 'Salman Yasin', username: 'owner', permissions: ['sales.enter', 'checklist.fill'] };
@@ -155,6 +195,37 @@ describe('Cover page', () => {
     expect(t).toContain('have not been entered');
     expect(el.querySelector('.tile').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
+  });
+
+  it('shows the stock numbers to a person who may view inventory', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const el = document.getElementById('p');
+    await mount(el, { ctx: { ...ctx, permissions: [...ctx.permissions, 'inventory.view'] }, modules });
+    const t = el.textContent.replace(/\s+/g, ' ');
+    expect(t).toContain('Stock value');
+    expect(t).toContain('₨ 98,765,432');
+    expect(t).toContain('412 products');
+    expect(t).toMatch(/1 product(?!s)/);
+    expect(el.querySelector('a.kpi[href="#/inventory/reorder"]')).not.toBeNull();
+  });
+  it('does not ask for or show stock numbers without inventory.view', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const asked = vi.fn(async () => stockCover);
+    globalThis.__inv = asked;
+    const el = document.getElementById('p');
+    await mount(el, { ctx, modules });
+    expect(asked).not.toHaveBeenCalled();
+    expect(el.textContent).not.toContain('Stock value');
+  });
+  it('still shows the rest of the Cover when the stock numbers fail to load', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    globalThis.__inv = async () => {
+      throw new Error('boom');
+    };
+    const el = document.getElementById('p');
+    await mount(el, { ctx: { ...ctx, permissions: [...ctx.permissions, 'inventory.view'] }, modules });
+    expect(el.textContent).toContain('This month so far');
+    expect(el.textContent).not.toContain('Stock value');
   });
 
   it('"Add entry" remembers which day to open', async () => {

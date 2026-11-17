@@ -4,8 +4,8 @@ import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
 import { hero } from '../../../shared/ui.js';
 import { BRAND } from '../../../core/config.js';
-import { coverSummary, notificationsAttention } from '../data/api.js';
-import { buildAttention, buildKpis, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
+import { coverSummary, inventoryCover, notificationsAttention } from '../data/api.js';
+import { buildAttention, buildKpis, buildStockCards, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
 
 const arrow = (v) => (v === null ? '' : `${v >= 0 ? '▲' : '▼'} ${Math.abs(v).toFixed(1)}%`);
 const tone = (v) => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
@@ -29,6 +29,13 @@ function kpiBody(k) {
   }
 }
 
+function stockCard(c) {
+  const lead = c.count === undefined ? '' : html`<span class="ks">${money(c.count)} product${c.count === 1 ? '' : 's'}</span>`;
+  return html`<a class="kpi" href="${c.href}"
+    ><span class="kl">${c.label}</span><strong class="kv">₨ ${money(c.value)}</strong>${lead}<span class="ks">${c.sub}</span></a
+  >`;
+}
+
 function kpiCard(k) {
   const inner = html`<span class="kl">${k.label}</span>${kpiBody(k)}`;
   return k.href ? html`<a class="kpi" href="${k.href}">${inner}</a>` : html`<div class="kpi">${inner}</div>`;
@@ -50,6 +57,8 @@ export async function mount(el, { ctx, modules = [] }) {
       </section>`,
   );
 
+  // Started now so the stock call runs alongside the sales call instead of after it.
+  const stockPromise = ctx.permissions.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
   let summary = null;
   let failed = false;
   try {
@@ -66,6 +75,8 @@ export async function mount(el, { ctx, modules = [] }) {
       alerts = null;
     }
   }
+  // Stock numbers are separate and optional too: only for people who may view inventory, and a failure leaves them out.
+  const stock = buildStockCards(await stockPromise);
   const kpis = buildKpis(summary);
   const todo = buildAttention(summary, ctx.permissions, hour, alerts);
 
@@ -73,6 +84,12 @@ export async function mount(el, { ctx, modules = [] }) {
     el,
     html`${head} ${failed ? html`<p class="note note-error">Today's numbers could not be loaded. The rest of the app still works.</p>` : ''}
       ${kpis.length ? html`<section class="kpis" aria-label="Key numbers">${kpis.map(kpiCard)}</section>` : ''}
+      ${
+        stock.length
+          ? html`<h2 class="sec-label">Stock</h2>
+              <section class="kpis" aria-label="Stock numbers">${stock.map(stockCard)}</section>`
+          : ''
+      }
       ${
         summary
           ? html`<section class="card">
