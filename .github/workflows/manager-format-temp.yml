@@ -1,0 +1,28 @@
+name: Temporary Manager formatting
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.event.pull_request.head.ref == 'feature/manager-dashboard'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --write js/modules/manager/ui/dashboard.js js/modules/manager/manifest.js
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/modules/manager/ui/dashboard.js js/modules/manager/manifest.js
+          git commit -m 'Format Manager dashboard files'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
