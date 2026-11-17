@@ -160,6 +160,7 @@ describe('Cover page', () => {
   beforeEach(() => {
     document.body.innerHTML = '<div id="p"></div>';
     sessionStorage.clear();
+    localStorage.clear();
     globalThis.__cover = api.coverSummary;
     globalThis.__alerts = async () => null;
     globalThis.__inv = async () => stockCover;
@@ -174,6 +175,41 @@ describe('Cover page', () => {
       routes: [{ path: '/sales/entry', title: 'Add Entry', desc: 'Record or correct one day of sales' }],
     },
   ];
+
+  it('keeps the staff landing page limited to the summary and modules supplied by permissions', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const staffModules = [{
+      id: 'sales',
+      title: 'Sales',
+      icon: 'chart',
+      routes: [{ path: '/sales/yesterday', title: 'Last Day', desc: 'The latest closed day' }],
+    }];
+    const staffSummary = { sales: { last_day: { date: '2026-11-16', total: 120000 } } };
+    api.coverSummary.mockImplementation(async () => staffSummary);
+    const el = document.getElementById('p');
+    await mount(el, {
+      ctx: { full_name: 'Test Staff', username: 'staff', permissions: ['sales.view_last_day'] },
+      modules: staffModules,
+    });
+    expect(el.textContent).toContain('Latest sale');
+    expect(el.textContent).not.toContain('This month so far');
+    expect(el.textContent).not.toContain('Customers');
+    expect(el.textContent).not.toContain('Manager');
+    expect(el.querySelectorAll('.home-module').length).toBe(1);
+    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/yesterday');
+  });
+
+  it('lets a person pin and unpin only accessible pages', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const el = document.getElementById('p');
+    await mount(el, { ctx, modules });
+    const pin = el.querySelector('[data-pin="#/sales/entry"]');
+    pin.click();
+    expect(el.querySelector('#home-favourites').textContent).toContain('Add Entry');
+    expect(localStorage.getItem('dua.home.favourites.owner')).toContain('#/sales/entry');
+    el.querySelector('[data-unpin="#/sales/entry"]').click();
+    expect(el.querySelector('#home-favourites').textContent).toContain('Pin the pages you use most');
+  });
 
   it('still shows the Cover when owner alerts fail to load', async () => {
     const { mount } = await import('../../js/modules/home/ui/page.js');
