@@ -156,7 +156,7 @@ export function buildAttention(summary, perms, hourPkt, alerts = null) {
     items.push({
       id: `missing-${day}`,
       text: `Sales for ${dateNice(day)} have not been entered`,
-      action: can('sales.enter')
+      action: can('sales.enter') || can('sales.edit')
         ? { label: 'Add entry', href: '#/sales/entry', handoff: day }
         : null,
     });
@@ -202,7 +202,7 @@ export function buildDailyProgress(summary, perms) {
       id: 'checklist',
       label: 'Daily check list',
       status: started ? 'Started' : 'Not started',
-      complete: started,
+      started,
       href: '#/sales/checklist',
     });
   }
@@ -214,7 +214,7 @@ export function buildDailyProgress(summary, perms) {
       label: 'Sales entries',
       status: `${missing.length} day${missing.length === 1 ? '' : 's'} to review`,
       complete: false,
-      href: perms.includes('sales.enter') ? '#/sales/entry' : null,
+      href: perms.includes('sales.enter') || perms.includes('sales.edit') ? '#/sales/entry' : null,
     });
   }
 
