@@ -1,0 +1,25 @@
+// Small UI helpers for the Audit pages. Audit keeps its own copy so it never imports from another module (MODULES section 3.1).
+import { html } from '../../../shared/html.js';
+
+export function toast(message, kind = 'ok') {
+  let box = document.getElementById('toasts');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'toasts';
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-live', 'polite');
+    document.body.append(box);
+  }
+  const t = document.createElement('div');
+  t.className = `toast toast-${kind}`;
+  t.textContent = message;
+  box.append(t);
+  setTimeout(() => t.remove(), kind === 'error' ? 6000 : 3500);
+}
+
+export const loadingCard = () => html`<div class="card aud-card"><p class="muted">Loading…</p></div>`;
+export const errorCard = (what = 'this page', message = '') =>
+  html`<div class="card aud-card">
+    <h2>Could not load ${what}</h2>
+    <p class="muted">${message || 'Check your connection and try again. If it keeps happening, tell the owner.'}</p>
+  </div>`;

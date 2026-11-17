@@ -1,0 +1,95 @@
+/* Audit module. Everything is scoped under .aud so it cannot touch other pages.
+   The original Audit Hub's crimson accent is kept here only (owner decision AUD-12); the rest follows the shared tokens. */
+.aud {
+  --aud-crimson: #b3213a;
+  --aud-crimson-bg: #fbe9ec;
+  --aud-ok: #1b7f5c;
+  --aud-warn: #b9660f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .aud {
+    --aud-crimson: #f27085;
+    --aud-crimson-bg: #2b1419;
+    --aud-ok: #5fd0a5;
+    --aud-warn: #f2b84b;
+  }
+}
+:root[data-theme='dark'] .aud {
+  --aud-crimson: #f27085;
+  --aud-crimson-bg: #2b1419;
+  --aud-ok: #5fd0a5;
+  --aud-warn: #f2b84b;
+}
+.aud .aud-card h2 {
+  border-left: 4px solid var(--aud-crimson);
+  padding-left: 0.6rem;
+}
+.aud .aud-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.aud .aud-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  min-height: 44px;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-list li:first-child {
+  border-top: 0;
+}
+.aud .aud-list li > span:first-child {
+  display: flex;
+  flex-direction: column;
+}
+.aud .aud-badge,
+.aud .aud-chip {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: var(--aud-crimson-bg);
+  color: var(--aud-crimson);
+  margin: 0 0.35rem 0.35rem 0;
+}
+.aud .aud-badge-open,
+.aud .aud-chip-full {
+  color: var(--aud-ok);
+}
+.aud .aud-chip-partial {
+  color: var(--aud-warn);
+}
+.aud .aud-link {
+  display: flex;
+  flex-direction: column;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0.5rem 0;
+  text-decoration: none;
+  color: inherit;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-link:first-of-type {
+  border-top: 0;
+}
+.aud .aud-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.aud .aud-person {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.aud .aud-person > div {
+  display: flex;
+  flex-direction: column;
+}
+.aud .aud-keys {
+  margin-top: 0.75rem;
+}
