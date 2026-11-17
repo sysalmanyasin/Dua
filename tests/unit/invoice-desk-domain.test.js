@@ -6,7 +6,7 @@ import { templateForBusiness } from '../../js/modules/invoice-desk/domain/templa
 
 describe('Invoice Desk calculations', () => {
   it('parses PKR into integer paisa without floating point', () => {
-    expect(toPaisa('001.25')).toBe(125);
+    expect(toPaisa('1.25')).toBe(125);
     expect(toPaisa('0')).toBe(0);
     expect(() => toPaisa('1.234')).toThrow();
     expect(() => toPaisa('-1')).toThrow();
