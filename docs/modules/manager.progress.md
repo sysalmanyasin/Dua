@@ -1,8 +1,8 @@
 # Manager — progress
 
-**Current status (13 Nov 2026):** the Manager implementation is integrated into `main`; migrations 0101–0103 are applied and checked live. The earlier phrase “nothing applied to the live project” below describes the initial Session M-A build snapshot and is superseded by the later live-application section. Owner phone try-out and later Manager slices remain pending.
+**Current status (17 Nov 2026):** Manager migrations `0101`–`0107` are applied to the live `DuaPharmaPlus` project and present in the live `supabase_migrations.schema_migrations` registry. Migrations `0101`–`0104` pre-date this update; `0105`–`0107` were applied from the exact `main` SQL files in order on 17 Nov and individually registered in the same transactions. The Manager database foundation for Incentive, Petty Cash, ledgers and Balance Tally is now live. The Credit Inbox migration (`0108`) is not present in the current repository and remains unimplemented. Full database-suite verification, UI acceptance and owner phone try-out remain outstanding.
 
-## Session M-C (14 Nov 2026): built and tested, NOT yet applied to the live project
+## Session M-C (14 Nov 2026): built, tested, merged and applied live (0105–0107)
 
 | Step | What | Evidence |
 |---|---|---|
@@ -16,11 +16,8 @@
 
 **Lessons recorded (so the next session does not repeat them):** (1) never write `x or true` in a `perform` test (Postgres folds it and never runs the call); (2) after every `git checkout`-style restore of a *new* file use a saved copy, not git; (3) chain verification with `&&` and stop on failure.
 
-### Ready to apply to the live project (owner says when; RUNBOOK §4, by hand, repo version, in this order)
-1. `supabase/migrations/0105_mgmt_incentive.sql`: replaces two functions, adds one table and three rate rows, loosens two check constraints (rate keys, sheet kinds).
-2. `supabase/migrations/0106_mgmt_petty.sql`: one table, three functions.
-3. `supabase/migrations/0107_mgmt_ledgers.sql`: five tables, 15 functions, seeds the two built-in ledgers, their 12 categories and 6 tally accounts (no money, no people).
-After each: the RUNBOOK §4.4 checks (including the exposure whitelist query) and the security advisor.
+### Applied to the live project (DuaPharmaPlus, 17 Nov 2026)
+The exact repository files `0105_mgmt_incentive.sql`, `0106_mgmt_petty.sql` and `0107_mgmt_ledgers.sql` were applied in numerical order. Each SQL body and its matching `schema_migrations` registration (`0105 mgmt_incentive`, `0106 mgmt_petty`, `0107 mgmt_ledgers`) ran in one transaction. The post-apply migration listing and direct registry query both show `0101`–`0107` in order. Live checks found 17 `mgmt_` tables with RLS enabled, no direct table grants to `anon`, no direct authenticated write grants, no `anon` execute grants on Manager functions, and fixed `search_path` on all Manager functions. The Manager RPCs are callable by `authenticated` as intended by the app's permission-gated RPC design; the exposure check found no authenticated-executable Manager RPC outside the expected callable allowlist used for this check. Seed verification returned 4 rate rows, 2 ledgers and 6 tally accounts. No staff, ledger transaction or tally activity records were imported. Note: the security advisor reports the expected service-only `mgmt_save_keys` RLS/no-policy finding; this is not a direct table-access grant.
 
 ### PHONE #3: what to try (after applying and merging)
 **Important:** ledger entries and tally counts cannot be deleted, only reversed or revised. Do the experiments in a **Misc Section called "Test drawer"** and in a **past month** for Incentive and Petty. In Expenses and Jazz Cash enter **real** figures only (opening is zero, so your first real entry is the start).
