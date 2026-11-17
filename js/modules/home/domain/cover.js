@@ -51,7 +51,7 @@ export function buildKpis(summary, perms = []) {
       days: s.mtd.days,
       vsLastYear: pct(total, Number(s.mtd.last_year_total)),
       month: s.month,
-      href: '#/sales',
+      href: perms.includes('sales.view_history') ? '#/sales' : null,
     });
 
     if (s.target) {
@@ -63,7 +63,7 @@ export function buildKpis(summary, perms = []) {
         value: total,
         pct: Math.min(100, Math.round((total / target) * 100)),
         remaining: Math.max(0, target - total),
-        href: '#/sales/report',
+        href: perms.includes('sales.view_history') ? '#/sales/report' : null,
       });
     }
   }
