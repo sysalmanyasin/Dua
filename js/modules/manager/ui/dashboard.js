@@ -103,9 +103,7 @@ export async function mount(el, { ctx }) {
     const miscTotal = miscLedgers.reduce((sum, ledger) => sum + (Number(ledger.balance) || 0), 0);
     const grandTotal = staffTotal + jazzBalance + expenseBalance + miscTotal;
 
-    const jazzRows = jazz
-      ? [detailRow(jazz.name, signedMoney(jazzBalance), `${Number(jazz.entry_count) || 0} entries`)]
-      : [];
+    const jazzRows = jazz ? [detailRow(jazz.name, signedMoney(jazzBalance), `${Number(jazz.entry_count) || 0} entries`)] : [];
     const expenseRows = expense
       ? [detailRow(expense.name, signedMoney(expenseBalance), `${Number(expense.entry_count) || 0} entries`)]
       : [];
@@ -120,27 +118,39 @@ export async function mount(el, { ctx }) {
     );
 
     const topCards = markup`
-      ${can.credit ? ledgerCard({
-        title: `Staff Credit — ${monthLabel(state.month)}`,
-        value: signedMoney(staffTotal),
-        rows: staffRows,
-        href: '#/manager/credit',
-        tone: 'staff',
-      }) : ''}
-      ${can.ledgers && jazz ? ledgerCard({
-        title: 'Jazz Cash (all-time)',
-        value: signedMoney(jazzBalance),
-        rows: jazzRows,
-        href: '#/manager/jazzcash',
-        tone: 'jazz',
-      }) : ''}
-      ${can.ledgers && expense ? ledgerCard({
-        title: 'Patty / Expenses (all-time)',
-        value: signedMoney(expenseBalance),
-        rows: expenseRows,
-        href: '#/manager/expenses',
-        tone: 'expense',
-      }) : ''}
+      ${
+        can.credit
+          ? ledgerCard({
+              title: `Staff Credit — ${monthLabel(state.month)}`,
+              value: signedMoney(staffTotal),
+              rows: staffRows,
+              href: '#/manager/credit',
+              tone: 'staff',
+            })
+          : ''
+      }
+      ${
+        can.ledgers && jazz
+          ? ledgerCard({
+              title: 'Jazz Cash (all-time)',
+              value: signedMoney(jazzBalance),
+              rows: jazzRows,
+              href: '#/manager/jazzcash',
+              tone: 'jazz',
+            })
+          : ''
+      }
+      ${
+        can.ledgers && expense
+          ? ledgerCard({
+              title: 'Patty / Expenses (all-time)',
+              value: signedMoney(expenseBalance),
+              rows: expenseRows,
+              href: '#/manager/expenses',
+              tone: 'expense',
+            })
+          : ''
+      }
     `;
 
     const working = [];
@@ -166,32 +176,54 @@ export async function mount(el, { ctx }) {
           <span class="md-month-label">${monthLabel(state.month)}</span>
         </div>
         <div class="md-ledger-grid md-ledger-primary">${topCards}</div>
-        ${can.ledgers && miscCards.length ? markup`
+        ${
+          can.ledgers && miscCards.length
+            ? markup`
           ${sectionTitle('MISC SECTIONS', 'All-time balances')}
-          <div class="md-ledger-grid md-ledger-misc">${miscCards}</div>` : ''}
-        ${(can.credit || can.ledgers) ? markup`
+          <div class="md-ledger-grid md-ledger-misc">${miscCards}</div>`
+            : ''
+        }
+        ${
+          can.credit || can.ledgers
+            ? markup`
           <section class="md-total-band">
             <div>
               <strong>TOTAL OUTSTANDING CREDITS</strong>
               <small>Staff (${monthLabel(state.month)}) + Jazz Cash + Patty/Expenses + Misc Sections, all-time</small>
             </div>
             <b>${signedMoney(grandTotal)}</b>
-          </section>` : ''}
-        ${working.length ? markup`
+          </section>`
+            : ''
+        }
+        ${
+          working.length
+            ? markup`
           ${sectionTitle('WORKING SUMMARY')}
           <div class="md-working-grid">
-            ${working.map((item) => markup`
+            ${working.map(
+              (item) => markup`
               <a class="md-working-item" href="${item.href}">
                 <strong>${item.value}</strong><span>${item.label}</span>
-              </a>`)}
-          </div>` : ''}
-        ${can.inbox ? markup`
+              </a>`,
+            )}
+          </div>`
+            : ''
+        }
+        ${
+          can.inbox
+            ? markup`
           <a class="md-inbox-link" href="#/manager/inbox">
             <span>Credit Inbox</span><strong>${Number(data.inbox) || 0} pending</strong><span>Review →</span>
-          </a>` : ''}
-        ${quick.length ? markup`
+          </a>`
+            : ''
+        }
+        ${
+          quick.length
+            ? markup`
           ${sectionTitle('QUICK ACCESS')}
-          <nav class="md-quick-links">${quick.map(([label, href]) => markup`<a href="${href}">${label}</a>`)}</nav>` : ''}`,
+          <nav class="md-quick-links">${quick.map(([label, href]) => markup`<a href="${href}">${label}</a>`)}</nav>`
+            : ''
+        }`,
     );
   }
 
