@@ -9,13 +9,12 @@ import { computeRowTimeDelta, truncateExtraNote } from '../domain/compile.js';
 import { filterItems, parseQty, rowView, rupees, summarize } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, setView } from '../domain/nav.js';
-import { flushOutbox, latestByItem, makeEvent } from '../domain/outbox.js';
+import { flushOutbox, latestByItem, makeEvent, timing } from '../domain/outbox.js';
 import { errorCard, loadingCard, toast } from './parts.js';
 import { installSignOutGuard } from './signoutGuard.js';
 
 const ROUND = { draft: 'being set up', locked: 'locked, not started', counting: 'counting', compiled: 'compiled', final: 'final' };
 const PAGE = 100;
-const FLUSH_EVERY_MS = 20000;
 const q = (n) => String(Number(n));
 
 const label = (a) => `${a.engagement_name} · Round ${a.round_number}${a.round_suffix ?? ''}`;
@@ -367,7 +366,7 @@ async function mountCounting(el, assignmentId, ctx) {
   let timer = null;
   const scheduleFlush = () => {
     clearTimeout(timer);
-    timer = setTimeout(() => flush(false), 800);
+    timer = setTimeout(() => flush(false), timing.flushDelayMs);
   };
 
   async function flush(manual) {
@@ -495,7 +494,7 @@ async function mountCounting(el, assignmentId, ctx) {
       clearInterval(every);
       window.removeEventListener('online', onOnline);
     } else if (s.waiting > 0) flush(false);
-  }, FLUSH_EVERY_MS);
+  }, timing.pollMs);
 
   drawShell();
   if (s.waiting > 0 && !s.fromCache) flush(false);

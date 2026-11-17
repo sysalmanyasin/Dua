@@ -49,6 +49,18 @@ export const MESSAGES = {
   template_name_taken: 'Another template already has that name.',
   template_not_found: 'That template could not be found. Reload and try again.',
   too_many_codes: 'That is too many products for one Individual Audit (500 at most).',
+  round_not_compiled: 'The round is not compiled yet.',
+  item_not_in_round: 'That item is not in this round.',
+  correction_pending: 'A correction for this item is already waiting for a decision.',
+  correction_not_found: 'That correction could not be found. Reload and try again.',
+  correction_decided: 'That correction was already decided.',
+  invalid_decision: 'Choose approve or reject.',
+  invalid_side: 'Choose which count to keep.',
+  conflict_not_found: 'That conflict could not be found. Reload and try again.',
+  conflict_resolved: 'That conflict is already settled.',
+  invalid_mode: 'Choose a valid option.',
+  invalid_sample: 'The sample size must be between 1 and 1000.',
+  suffix_exhausted: 'There are no more lettered rounds (A to Z) for this round.',
   version_conflict: 'Someone else changed this. Reload and try again.',
 };
 

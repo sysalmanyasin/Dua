@@ -164,3 +164,25 @@
   width: 100%;
   margin-top: 6px;
 }
+
+/* review screen */
+.aud .aud-block {
+  padding: 8px 0;
+  border-top: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-block:first-of-type {
+  border-top: 0;
+}
+.aud .aud-form {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  margin-top: 6px;
+  border-left: 3px solid var(--aud-crimson);
+}
+.aud .aud-radio {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 0;
+}

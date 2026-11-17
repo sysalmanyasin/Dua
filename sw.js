@@ -49,6 +49,7 @@ const PRECACHE = [
   "js/modules/audit/domain/outbox.js",
   "js/modules/audit/domain/split.js",
   "js/modules/audit/manifest.js",
+  "js/modules/audit/ui/compile.js",
   "js/modules/audit/ui/count.js",
   "js/modules/audit/ui/engagement.js",
   "js/modules/audit/ui/engagements.js",

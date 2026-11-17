@@ -173,6 +173,13 @@ export async function mount(el, { ctx } = {}) {
   };
 
   const stateCard = (round, unassigned, people) => {
+    if (['counting', 'compiled', 'final'].includes(round.state)) {
+      return html`<section class="card aud-card" aria-label="Progress and results">
+        <h2>Progress and results</h2>
+        <p class="muted small">Who has counted, compile, corrections, conflicts and the next round.</p>
+        <a class="btn btn-primary" href="#/audit/compile">Open the review</a>
+      </section>`;
+    }
     if (!canManage) return '';
     if (round.state === 'draft') {
       return html`<section class="card aud-card" aria-label="Lock">

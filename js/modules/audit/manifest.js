@@ -65,6 +65,12 @@ export default {
       load: () => import('./ui/templates.js'),
     },
     {
+      path: '/audit/compile',
+      desc: 'Progress, compile, differences, corrections, conflicts and the next round',
+      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.view', 'audit.manage', 'audit.report'],
+      load: () => import('./ui/compile.js'),
+    },
+    {
       path: '/audit/team',
       title: 'Team access',
       desc: 'Give a person the Deputy or Sub-Auditor set of audit permissions, or switch single ones',

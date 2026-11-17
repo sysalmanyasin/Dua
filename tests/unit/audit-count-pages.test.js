@@ -19,6 +19,8 @@ const { mount: mountTemplates } = await import('../../js/modules/audit/ui/templa
 const { installSignOutGuard } = await import('../../js/modules/audit/ui/signoutGuard.js');
 const { createMemoryStore, useStore } = await import('../../js/modules/audit/data/outboxStore.js');
 const { setView } = await import('../../js/modules/audit/domain/nav.js');
+const { timing } = await import('../../js/modules/audit/domain/outbox.js');
+timing.flushDelayMs = 10;
 
 const asg = (over = {}) => ({
   assignment_id: 'asg1',
@@ -78,7 +80,7 @@ const items = () => [
 ];
 const tick = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 const until = async (fn) => {
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 200; i++) {
     if (fn()) return;
     await tick(25);
   }

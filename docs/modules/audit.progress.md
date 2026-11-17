@@ -68,5 +68,16 @@
 - Not built: the calculator, barcode and hybrid counting (C2), a count seen by the owner while counting (live progress, B1). A note on an item must follow its count.
 - Counter variance visibility (R21) uses the assignment's own items only.
 
+## Done (slice B1, review, corrections, conflicts, follow-up rounds)
+- `supabase/migrations/0407_audit_review_followup.sql` (applied live 17 Nov 2026): `audit_correction_propose/decide`, `audit_conflict_resolve` (with a carry-over trigger so a choice survives a recompile, in either direction), `audit_force_submit` (as counted, or mark the rest as matching), `audit_round_next` (differences, whole company, random sample from a stored seed), `audit_compile_overview` (one read with names), and `audit_person_name`.
+- `/audit/compile` (`ui/compile.js`): who has counted, Force Submit, reopen, compile and recompile (with the explicit "compile anyway" choice), result with value and counter notes, the differing items with search and paging, correction proposals and decisions, conflicts, and the next round. A link from the round page opens it.
+- Tests: DB 0407 (53 checks); `tests/unit/audit-compile-page.test.js`; the error-message test covers every new code. Also made the A5 page tests independent of timing (`timing` in `domain/outbox.js`).
+
+## Notes from B1
+- Decision to confirm: a follow-up round keeps the **system quantity and price of the compiled round** for the items it carries (it does not take a new Inventory snapshot). That keeps differences comparable and needs no Inventory interface. If the owner wants a fresh snapshot for follow-ups, it is a change to `audit_round_next`.
+- An approved correction takes effect at the **next compile** (the screen says so). A conflict choice is recorded only; it feeds the Final Snapshot in B2.
+- Reading the review needs `audit.view` (or `audit.review`/`audit.report`) **and** being a member of the engagement; a person with only `audit.compile` can compile but not see the screen. Give delegates `audit.view` too.
+- PHONE 2 (two people, two rounds, end to end) is still to do on real phones.
+
 ## Next
-- B1: compile screen, corrections, conflicts, sub-rounds, Force Submit and reopen buttons.
+- B2: Final Snapshot, reports with print / PDF, audit trail view, owner alerts.

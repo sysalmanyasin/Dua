@@ -3,6 +3,9 @@
 // whose answer was lost is simply sent again and the database ignores the repeats: nothing is lost, nothing is doubled.
 import { friendlyError } from './errors.js';
 
+/** How long the counting screen waits before sending, and how often it retries. Tests shorten these. */
+export const timing = { flushDelayMs: 800, pollMs: 20000 };
+
 export const BATCH_SIZE = 200; // the database accepts 500 per call; smaller batches finish faster on a weak connection
 
 /** One count as it is kept on the device. `qty` is ignored when `auto` is true (the database uses the system quantity). */
