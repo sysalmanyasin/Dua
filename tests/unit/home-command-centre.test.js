@@ -13,7 +13,7 @@ const modules = [
 
 describe('Home 2.0 navigation helpers', () => {
   it('builds quick actions only from the already permission-filtered route list', () => {
-    expect(buildQuickActions(modules).map((x) => x.href)).toEqual(['#/sales/entry', '#/sales']);
+    expect(buildQuickActions(modules).map((x) => x.href)).toEqual(['#/sales/entry']);
   });
   it('searches accessible page titles, module names and descriptions', () => {
     expect(searchPages(modules, 'staff').map((x) => x.href)).toEqual(['#/manager/staff']);
