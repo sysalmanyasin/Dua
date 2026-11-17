@@ -99,3 +99,10 @@
   .home-spinner { animation: none; }
   .home-quick, .home-kpis .kpi { transition: none; }
 }
+
+.home-page-row { display: flex; align-items: center; gap: 2px; min-width: 0; border-radius: 9px; }
+.home-page-row:hover { background: var(--surface-2); }
+.home-page-row .home-page-link { flex: 1; min-width: 0; }
+.home-page-row .home-page-link:hover { background: transparent; }
+.home-pin { flex: none; width: 44px; height: 44px; border: 0; border-radius: 9px; color: var(--amber); background: transparent; cursor: pointer; font-size: 1.2rem; }
+.home-pin:hover { background: var(--surface-2); }
