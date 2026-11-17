@@ -236,7 +236,9 @@ ${card.f.private[key] ?? ''}</textarea>`
         details: detailsView,
         credit: creditView,
         notes: notesView,
-        payslip: () => html`<p class="muted">Payslips arrive with the Salary pages.</p>`,
+        payslip: () =>
+          html`<p class="muted">Open this month’s salary sheet to see or print a payslip.</p>
+            <p><a class="link" href="#/manager/salary">Open Salary</a></p>`,
       }[card.tab]();
       return html`<h2>${card.f.full_name || 'New person'}</h2>
         ${
