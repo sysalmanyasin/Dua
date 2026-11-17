@@ -20,11 +20,11 @@ export async function mount(el){
   el.addEventListener('click',async e=>{
     const b=e.target.closest('[data-act]');if(!b)return;
     if(b.dataset.act==='clear'){s.editing=null;s.name='';s.price='0.00';s.key=crypto.randomUUID();draw();}
-    if(b.dataset.act==='edit'){const p=s.rows.find(x=>x.id===b.dataset.id);if(p){s.editing=p.id;s.name=p.name;s.price=Number(p.suggested_price).toFixed(2);draw();}}
+    if(b.dataset.act==='edit'){const p=s.rows.find(x=>x.id===b.dataset.id);if(p){s.editing=p.id;s.name=p.name;s.price=Number(p.suggested_price).toFixed(2);s.key=crypto.randomUUID();draw();}}
     if(b.dataset.act==='save'){
       if(!s.name.trim()||!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(s.price)){s.error='Enter a product name and valid non-negative price.';return draw();}
       s.busy=true;draw();
-      try{const {error}=await api.saveProduct({id:s.editing,business_id:s.businessId,name:s.name.trim(),suggested_price:s.price,active:true},s.key);if(error)throw error;s.editing=null;s.name='';s.price='0.00';await load();}
+      try{const {error}=await api.saveProduct({id:s.editing,business_id:s.businessId,name:s.name.trim(),suggested_price:s.price,active:true},s.key);if(error)throw error;s.editing=null;s.name='';s.price='0.00';s.key=crypto.randomUUID();await load();}
       catch(err){s.error=err.message||'Could not save product.';s.busy=false;draw();}
     }
     if(b.dataset.act==='toggle'){
