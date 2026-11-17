@@ -145,6 +145,7 @@ export async function mount(el, { ctx, modules = [] }) {
   const kpis = buildKpis(summary);
   const attention = buildAttention(summary, perms, hour, alerts);
   const progress = buildDailyProgress(summary, perms);
+  const hasAttentionContext = Boolean(summary?.sales || summary?.checklist || alerts);
 
   const renderFavourites = () => {
     const saved = allPages.filter((page) => favourites.includes(page.href));
@@ -276,7 +277,7 @@ export async function mount(el, { ctx, modules = [] }) {
             </div>
           </section>`
         : ''}
-      ${summary
+      ${hasAttentionContext
         ? html`<section class="home-section home-attention">
             <div class="home-section-head">
               <div><span class="home-kicker">PRIORITY</span><h2>Needs attention</h2></div>
