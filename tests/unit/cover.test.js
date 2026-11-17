@@ -33,7 +33,7 @@ describe('key numbers', () => {
   it('owner sees latest sale, month so far, target and customers', () => {
     const k = buildKpis(full);
     expect(k.map((c) => c.id)).toEqual(['latest', 'mtd', 'target', 'customers']);
-    expect(k[0]).toMatchObject({ value: 614758, diff: 24977 });
+    expect(k[0]).toMatchObject({ value: 614758, diff: 24977, href: null });
     expect(k[1].vsLastYear).toBeCloseTo(58.56, 1);
     expect(k[2]).toMatchObject({ pct: 19, remaining: 13328799 });
   });
@@ -41,6 +41,12 @@ describe('key numbers', () => {
     const k = buildKpis({ sales: { last_day: { date: '2026-11-04', total: 614758 } } });
     expect(k.map((c) => c.id)).toEqual(['latest']);
     expect(k[0].diff).toBeNull();
+    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_last_day'])[0].href).toBe(
+      '#/sales/yesterday',
+    );
+    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_history'])[0].href).toBe(
+      '#/sales',
+    );
   });
   it('no target, no last-year figure, no data: cards are simply left out or blank', () => {
     expect(
