@@ -99,9 +99,7 @@ export async function mount(el, { ctx, modules = [] }) {
   const hour = hourInPkt();
   const tiles = buildTiles(modules);
   const quick = buildQuickActions(modules);
-  const allPages = tiles.flatMap((group) =>
-    group.pages.map((page) => ({ ...page, module: group.title })),
-  );
+  const allPages = tiles.flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })));
   const validHrefs = new Set(allPages.map((page) => page.href));
   const prefKey = `dua.home.favourites.${String(ctx.username ?? 'user')}`;
   let favourites = safeRead(prefKey).filter((href) => validHrefs.has(href));
@@ -120,9 +118,7 @@ export async function mount(el, { ctx, modules = [] }) {
       <span class="home-spinner"></span> Loading your business overview…
     </section>`);
 
-  const stockPromise = perms.includes('inventory.view')
-    ? inventoryCover().catch(() => null)
-    : Promise.resolve(null);
+  const stockPromise = perms.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
 
   let summary = null;
   let failed = false;
@@ -333,9 +329,7 @@ export async function mount(el, { ctx, modules = [] }) {
 
     if (pin) {
       const href = pin.dataset.pin;
-      favourites = favourites.includes(href)
-        ? favourites.filter((item) => item !== href)
-        : [...favourites, href].slice(-12);
+      favourites = favourites.includes(href) ? favourites.filter((item) => item !== href) : [...favourites, href].slice(-12);
       safeWrite(prefKey, favourites);
       renderFavourites();
       syncPins();
