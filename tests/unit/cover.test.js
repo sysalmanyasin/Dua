@@ -88,14 +88,14 @@ describe('owner alerts in needs attention', () => {
     ],
   };
   it('puts failed and unsent alerts first, with a link for people who can view them', () => {
-    const t = buildAttention(full, ['notifications.view'], 9, alerts);
+    const t = buildAttention(full, ['notifications.view', 'tools.view'], 9, alerts);
     expect(t[0]).toMatchObject({ id: 'alert-a1', text: 'The daily backup failed (the alert could not be delivered)' });
-    expect(t[0].action).toMatchObject({ href: '#/tools' });
+    expect(t[0].action).toBeNull();
     expect(t[1].text).toContain('has not been sent yet');
     expect(t.at(2).id).toBe('alert-more');
   });
   it('shows no link to someone without the permission', () => {
-    expect(buildAlertItems(alerts, [])[0].action).toBeNull();
+    expect(buildAlertItems(alerts, ['notifications.view'])[0].action).toBeNull();
   });
   it('shows nothing when there are no alerts, or when they could not be loaded', () => {
     expect(buildAlertItems(null, ['notifications.view'])).toEqual([]);
@@ -193,7 +193,7 @@ describe('Cover page', () => {
     expect(t).toContain('₨ 614,758');
     expect(t).toContain('This month so far');
     expect(t).toContain('have not been entered');
-    expect(el.querySelector('.tile').getAttribute('href')).toBe('#/sales/entry');
+    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
   });
 
@@ -246,7 +246,7 @@ describe('Cover page', () => {
     const el = document.getElementById('p');
     await mount(el, { ctx, modules });
     expect(el.textContent).toContain('could not be loaded');
-    expect(el.querySelector('.tile')).not.toBeNull();
+    expect(el.querySelector('.home-module')).not.toBeNull();
   });
 
   it("escapes the person's name", async () => {
