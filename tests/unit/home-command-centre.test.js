@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  buildDailyProgress,
-  buildQuickActions,
-  searchPages,
-} from '../../js/modules/home/domain/cover.js';
+import { buildDailyProgress, buildQuickActions, searchPages } from '../../js/modules/home/domain/cover.js';
 
 const modules = [
   { id: 'home', title: 'Home', routes: [{ path: '/home', title: 'Home' }] },
