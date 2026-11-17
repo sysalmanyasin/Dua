@@ -55,26 +55,26 @@ export async function mount(el, { ctx }) {
   }
 
   const card = (label, value, href) => html`
-    <a class='md-kpi' href='${href}'>
+    <a class="md-kpi" href="${href}">
       <small>${label}</small>
       <strong>${value}</strong>
       <span>Open details ↗</span>
     </a>`;
   const line = (label, value) => html`
-    <div class='md-line'><span>${label}</span><strong>${value}</strong></div>`;
+    <div class="md-line"><span>${label}</span><strong>${value}</strong></div>`;
   const panel = (label, body, href) => html`
-    <section class='md-panel'>
-      <header><h2>${label}</h2><a href='${href}'>View →</a></header>
+    <section class="md-panel">
+      <header><h2>${label}</h2><a href="${href}">View →</a></header>
       ${body}
     </section>`;
 
   function paint() {
     const actions = html`
-      <label class='md-month'>
+      <label class="md-month">
         Month
-        <input type='month' data-month value='${state.month.slice(0, 7)}' max='${currentMonth.slice(0, 7)}' />
+        <input type="month" data-month value='${state.month.slice(0, 7)}" max='${currentMonth.slice(0, 7)}' />
       </label>
-      <button class='btn btn-ghost' data-print>Print / PDF</button>`;
+      <button class="btn btn-ghost" data-print>Print / PDF</button>`;
     const heading = hero({
       label: 'MANAGER WORKSPACE',
       title: 'Manager Overview',
@@ -190,7 +190,7 @@ export async function mount(el, { ctx }) {
                       ? '#/manager/jazzcash'
                       : '#/manager/misc';
                 return html`
-                  <a class='md-balance' href='${href}'>
+                  <a class="md-balance" href="${href}">
                     <span>${ledger.name}</span>
                     <strong>${balance.amount ? moneyValue(balance.amount) : 'Settled'}</strong>
                     <small>${balance.text} · ${ledger.entry_count} entries</small>
@@ -204,30 +204,30 @@ export async function mount(el, { ctx }) {
       ? panel(
           'Credit Inbox',
           html`
-            <strong class='md-inbox'>${Number(data.inbox?.[0]?.count ?? data.inbox?.[0] ?? data.inbox ?? 0)}</strong>
-            <a href='#/manager/inbox'>Review inbox →</a>`,
+            <strong class="md-inbox">${Number(data.inbox?.[0]?.count ?? data.inbox?.[0] ?? data.inbox ?? 0)}</strong>
+            <a href="#/manager/inbox">Review inbox →</a>`,
           '#/manager/inbox',
         )
       : '';
     const links = html`
-      <nav class='md-links'>
-        ${can.staff ? html`<a href='#/manager/staff'>Staff Registry</a>` : ''}
-        ${can.credit ? html`<a href='#/manager/credit'>Staff Credit</a>` : ''}
-        ${can.salary ? html`<a href='#/manager/reports'>Reports</a>` : ''}
-        ${can.petty ? html`<a href='#/manager/petty'>Petty Cash</a>` : ''}
-        ${can.ledgers ? html`<a href='#/manager/misc'>Misc Sections</a>` : ''}
+      <nav class="md-links">
+        ${can.staff ? html`<a href="#/manager/staff">Staff Registry</a>` : ''}
+        ${can.credit ? html`<a href="#/manager/credit">Staff Credit</a>` : ''}
+        ${can.salary ? html`<a href="#/manager/reports">Reports</a>` : ''}
+        ${can.petty ? html`<a href="#/manager/petty">Petty Cash</a>` : ''}
+        ${can.ledgers ? html`<a href="#/manager/misc">Misc Sections</a>` : ''}
       </nav>`;
 
     render(
       el,
       html`${heading}
-        <div class='md-intro'>
+        <div class="md-intro">
           <span>MONTHLY SNAPSHOT</span>
           <h2>Your branch, at a glance.</h2>
           <p>Live figures from existing Manager records.</p>
         </div>
-        <div class='md-kpis'>${cards}</div>
-        <div class='md-columns'>${credit}${payroll}${incentive}${petty}${ledgers}${inbox}</div>
+        <div class="md-kpis">${cards}</div>
+        <div class="md-columns">${credit}${payroll}${incentive}${petty}${ledgers}${inbox}</div>
         ${panel('Quick Access', links, '#/manager')}`,
     );
   }
