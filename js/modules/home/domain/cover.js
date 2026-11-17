@@ -21,11 +21,16 @@ export const hourInPkt = (now = new Date()) =>
 const pct = (now, before) => (before > 0 ? ((now - before) / before) * 100 : null);
 
 // Cards appear only when the database summary contains data for this person's permissions.
-export function buildKpis(summary) {
+export function buildKpis(summary, perms = []) {
   const s = summary?.sales;
   if (!s) return [];
 
   const cards = [];
+  const lastDayHref = perms.includes('sales.view_last_day')
+    ? '#/sales/yesterday'
+    : perms.includes('sales.view_history')
+      ? '#/sales'
+      : null;
   if (s.last_day) {
     cards.push({
       id: 'latest',
@@ -33,7 +38,7 @@ export function buildKpis(summary) {
       value: Number(s.last_day.total),
       date: s.last_day.date,
       diff: s.last_day.has_comp === true ? Number(s.last_day.diff) : null,
-      href: '#/sales/yesterday',
+      href: lastDayHref,
     });
   }
 
