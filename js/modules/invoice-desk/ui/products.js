@@ -15,7 +15,7 @@ export async function mount(el){
     </section>
     ${s.error?html`<p class="note note-error">${s.error}</p>`:''}
     <section class="card"><h2>Products (${s.rows.length})</h2>${s.rows.map(p=>html`<div class="row"><div><strong>${p.name}</strong><div class="muted small">Rs. ${Number(p.suggested_price).toFixed(2)} · ${p.active?'Active':'Inactive'}</div></div><div class="actions"><button class="btn btn-sm" data-act="edit" data-id="${p.id}">Edit</button><button class="btn btn-sm" data-act="toggle" data-id="${p.id}">${p.active?'Deactivate':'Activate'}</button></div></div>` )}</section>`);}
-  el.addEventListener('change',async e=>{if(e.target.id==='business'){s.businessId=e.target.value;s.editing=null;s.name='';s.price='0.00';s.key=crypto.randomUUID();await load();}});
+  el.addEventListener('change',async e=>{if(e.target.id==='business'){s.businessId=e.target.value;s.editing=null;s.name='';s.price='0.00';s.key=crypto.randomUUID();s.busy=false;await load();}});
   el.addEventListener('input',e=>{if(e.target.id==='name'){s.name=e.target.value;s.key=crypto.randomUUID();}if(e.target.id==='price'){s.price=e.target.value;s.key=crypto.randomUUID();}});
   el.addEventListener('click',async e=>{
     const b=e.target.closest('[data-act]');if(!b)return;
