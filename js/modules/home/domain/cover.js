@@ -10,11 +10,13 @@ export function greeting(hourPkt) {
 }
 
 export const hourInPkt = (now = new Date()) =>
-  Number(new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Asia/Karachi',
-    hour: '2-digit',
-    hour12: false,
-  }).format(now)) % 24;
+  Number(
+    new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Karachi',
+      hour: '2-digit',
+      hour12: false,
+    }).format(now),
+  ) % 24;
 
 const pct = (now, before) => (before > 0 ? ((now - before) / before) * 100 : null);
 
@@ -122,16 +124,18 @@ export function buildAlertItems(alerts, perms) {
 
   const out = alerts.items.map((notification) => {
     const what = alertLabel(notification.kind);
-    const note = notification.status === 'failed'
-      ? 'the alert could not be delivered'
-      : 'the alert has not been sent yet';
+    const note =
+      notification.status === 'failed'
+        ? 'the alert could not be delivered'
+        : 'the alert has not been sent yet';
 
     return {
       id: `alert-${notification.id}`,
       text: `${what} (${note})`,
-      action: perms.includes('notifications.view') && perms.includes('tools.view')
-        ? { label: 'Review', href: '#/tools' }
-        : null,
+      action:
+        perms.includes('notifications.view') && perms.includes('tools.view')
+          ? { label: 'Review', href: '#/tools' }
+          : null,
     };
   });
 
@@ -213,7 +217,10 @@ export function buildDailyProgress(summary, perms) {
       id: 'sales',
       label: 'Sales entries',
       status: `${missing.length} day${missing.length === 1 ? '' : 's'} to review`,
-      href: perms.includes('sales.enter') || perms.includes('sales.edit') ? '#/sales/entry' : null,
+      href:
+        perms.includes('sales.enter') || perms.includes('sales.edit')
+          ? '#/sales/entry'
+          : null,
     });
   }
 
@@ -240,9 +247,7 @@ export function buildTiles(modules) {
 }
 
 export function buildQuickActions(modules, limit = 4) {
-  const pages = buildTiles(modules).flatMap((group) =>
-    group.pages.map((page) => ({ ...page, module: group.title })),
-  );
+  const pages = buildTiles(modules).flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })));
   const preferred = pages.filter((page) =>
     /add|new|create|entry|invoice|closing|point of sale|pos/i.test(
       `${page.title} ${page.desc} ${page.href}`,
