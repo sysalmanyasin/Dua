@@ -39,8 +39,11 @@ function stockCard(c) {
   return html`<a class="kpi" href="${c.href}"><span class="kl">${c.label}</span><strong class="kv">₨ ${money(c.value)}</strong>${lead}<span class="ks">${c.sub}</span></a>`;
 }
 
-const pageLink = (page, extra = '') =>
-  html`<a class="home-page-link" href="${page.href}" ${extra}><span><strong>${page.title}</strong><small>${page.module}${page.desc ? ` · ${page.desc}` : ''}</small></span><span aria-hidden="true">↗</span></a>`;
+const pageLink = (page) =>
+  html`<a class="home-page-link" href="${page.href}"><span><strong>${page.title}</strong><small>${page.module}${page.desc ? ` · ${page.desc}` : ''}</small></span><span aria-hidden="true">↗</span></a>`;
+
+const pageRow = (page, favourites) =>
+  html`<div class="home-page-row">${pageLink(page)}<button class="home-pin" type="button" data-pin="${page.href}" aria-label="${favourites.includes(page.href) ? 'Remove' : 'Add'} ${page.title} ${favourites.includes(page.href) ? 'from' : 'to'} favourites" title="${favourites.includes(page.href) ? 'Remove favourite' : 'Add to favourites'}">${favourites.includes(page.href) ? '★' : '☆'}</button></div>`;
 
 const safeRead = (key) => {
   try {
@@ -105,7 +108,7 @@ export async function mount(el, { ctx, modules = [] }) {
     const matches = searchPages(modules, query);
     render(host, query.trim()
       ? matches.length
-        ? html`<div class="home-search-list">${matches.map((p) => pageLink(p))}</div>`
+        ? html`<div class="home-search-list">${matches.map((p) => pageRow(p, favourites))}</div>`
         : html`<p class="home-empty">No accessible page matches “${query.trim()}”.</p>`
       : html`<p class="home-search-hint">Search only includes pages you are allowed to open.</p>`);
   };
@@ -115,12 +118,12 @@ export async function mount(el, { ctx, modules = [] }) {
     ${kpis.length ? html`<section class="home-section" aria-label="Business snapshot"><div class="home-section-head"><div><span class="home-kicker">THE NUMBERS</span><h2>Business snapshot</h2></div><span class="home-live-label">Live data</span></div><div class="kpis home-kpis">${kpis.map(kpiCard)}</div></section>` : ''}
     ${stock.length ? html`<section class="home-section"><div class="home-section-head"><div><span class="home-kicker">INVENTORY</span><h2>Stock snapshot</h2></div></div><div class="kpis home-kpis">${stock.map(stockCard)}</div></section>` : ''}
     <section class="home-section home-search-section"><div class="home-section-head"><div><span class="home-kicker">FIND IT FAST</span><h2>Search Dua</h2></div></div>
-      <label class="home-search-box"><span class="sr-only">Search accessible pages and actions</span><span class="home-search-icon">${icon('search')}</span><input id="home-search" type="search" autocomplete="off" placeholder="Search modules, pages and tasks…" /><kbd>⌕</kbd></label>
+      <label class="home-search-box"><span class="sr-only">Search accessible pages and actions</span><span class="home-search-icon" aria-hidden="true">⌕</span><input id="home-search" type="search" autocomplete="off" placeholder="Search modules, pages and tasks…" /><kbd>⌕</kbd></label>
       <div id="home-search-results" aria-live="polite"><p class="home-search-hint">Search only includes pages you are allowed to open.</p></div>
     </section>
-    ${quick.length ? html`<section class="home-section"><div class="home-section-head"><div><span class="home-kicker">ONE-TAP ACCESS</span><h2>Quick actions</h2></div></div><div class="home-quick-grid">${quick.map((p) => html`<a class="home-quick" href="${p.href}"><span class="home-quick-icon">${icon('arrow-up-right')}</span><strong>${p.title}</strong><small>${p.module}</small></a>`)}</div></section>` : ''}
+    ${quick.length ? html`<section class="home-section"><div class="home-section-head"><div><span class="home-kicker">ONE-TAP ACCESS</span><h2>Quick actions</h2></div></div><div class="home-quick-grid">${quick.map((p) => html`<a class="home-quick" href="${p.href}"><span class="home-quick-icon" aria-hidden="true">↗</span><strong>${p.title}</strong><small>${p.module}</small></a>`)}</div></section>` : ''}
     <section class="home-section"><div class="home-section-head"><div><span class="home-kicker">YOUR WORKSPACE</span><h2>Explore modules</h2></div><span class="home-count">${tiles.length} available</span></div>
-      ${tiles.length ? html`<div class="home-module-grid">${tiles.map((g) => html`<details class="home-module"><summary><span class="home-module-icon">${icon(g.icon)}</span><span class="home-module-copy"><strong>${g.title}</strong><small>${g.pages.length} accessible page${g.pages.length === 1 ? '' : 's'}</small></span><span class="home-module-chevron">⌄</span></summary><div class="home-module-pages">${g.pages.map((p) => pageLink({ ...p, module: g.title }))}</div></details>`)}</div>` : html`<p class="home-empty">No additional modules are currently available to this account.</p>`}
+      ${tiles.length ? html`<div class="home-module-grid">${tiles.map((g) => html`<details class="home-module"><summary><span class="home-module-icon">${icon(g.icon)}</span><span class="home-module-copy"><strong>${g.title}</strong><small>${g.pages.length} accessible page${g.pages.length === 1 ? '' : 's'}</small></span><span class="home-module-chevron">⌄</span></summary><div class="home-module-pages">${g.pages.map((p) => pageRow({ ...p, module: g.title }, favourites))}</div></details>`)}</div>` : html`<p class="home-empty">No additional modules are currently available to this account.</p>`}
     </section>
     ${progress.length ? html`<section class="home-section"><div class="home-section-head"><div><span class="home-kicker">TODAY</span><h2>Daily progress</h2></div></div><div class="home-progress-list">${progress.map((p) => html`<div class="home-progress-row"><span class="home-progress-mark ${p.complete ? 'is-done' : ''}">${p.complete ? '✓' : '•'}</span><span class="home-progress-copy"><strong>${p.label}</strong><small>${p.status}</small></span>${p.href ? html`<a class="home-text-link" href="${p.href}">Open</a>` : ''}</div>`)}</div></section>` : ''}
     ${summary ? html`<section class="home-section home-attention"><div class="home-section-head"><div><span class="home-kicker">PRIORITY</span><h2>Needs attention</h2></div><span class="home-count">${attention.length ? `${attention.length} item${attention.length === 1 ? '' : 's'}` : 'All clear'}</span></div>
