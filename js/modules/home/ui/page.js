@@ -266,7 +266,7 @@ export async function mount(el, { ctx, modules = [] }) {
             </div>
             <div class="home-progress-list">
               ${progress.map((item) => html`<div class="home-progress-row">
-                <span class="home-progress-mark ${item.complete ? 'is-done' : ''}">${item.complete ? '✓' : '•'}</span>
+                <span class="home-progress-mark ${item.started ? 'is-started' : ''}">${item.started ? '◷' : '•'}</span>
                 <span class="home-progress-copy">
                   <strong>${item.label}</strong>
                   <small>${item.status}</small>
