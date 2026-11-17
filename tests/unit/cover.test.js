@@ -65,7 +65,7 @@ describe('needs attention', () => {
   });
   it('shows a missing day without a button when the person cannot enter sales', () => {
     const t = buildAttention({ sales: { missing_days: ['2026-11-03'] } }, [], 12);
-    expect(t[0].action).toBeNull();
+    expect(t[0].action).toMatchObject({ href: '#/tools' });
   });
   it('is empty when everything is done', () => {
     expect(
