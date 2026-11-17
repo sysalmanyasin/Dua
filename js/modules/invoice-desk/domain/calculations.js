@@ -18,7 +18,9 @@ export function quantityMilli(value) {
 export function lineTotalPaisa(quantity, unitPricePaisa) {
   const q = typeof quantity === 'number' ? quantity : quantityMilli(quantity);
   if (!Number.isSafeInteger(q) || q <= 0 || !Number.isSafeInteger(unitPricePaisa) || unitPricePaisa < 0) throw new Error('Invalid quantity or price.');
-  return Math.floor((q * unitPricePaisa + 500) / 1000);
+  const product = q * unitPricePaisa;
+  if (!Number.isSafeInteger(product)) throw new Error('Line total is too large.');
+  return Math.floor((product + 500) / 1000);
 }
 export function calculateInvoice(lines, discountPaisa = 0) {
   if (!Array.isArray(lines) || lines.length === 0) throw new Error('Add at least one invoice item.');
@@ -28,7 +30,11 @@ export function calculateInvoice(lines, discountPaisa = 0) {
     const total = lineTotalPaisa(q, price);
     return { ...line, quantityMilli: q, unitPricePaisa: price, lineTotalPaisa: total };
   });
-  const subtotalPaisa = normalized.reduce((sum, line) => sum + line.lineTotalPaisa, 0);
+  const subtotalPaisa = normalized.reduce((sum, line) => {
+    const next = sum + line.lineTotalPaisa;
+    if (!Number.isSafeInteger(next)) throw new Error('Invoice total is too large.');
+    return next;
+  }, 0);
   if (!Number.isSafeInteger(discountPaisa) || discountPaisa < 0 || discountPaisa > subtotalPaisa) throw new Error('Discount must be between zero and subtotal.');
   return { lines: normalized, subtotalPaisa, discountPaisa, grandTotalPaisa: subtotalPaisa - discountPaisa };
 }
