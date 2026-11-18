@@ -8,7 +8,7 @@ const one = async (query) => {
   return data;
 };
 
-const DRAFT_SELECT = '*, closing_slots(business_date, kind, seq), closing_hs_rows(*), closing_strip_lines(*), closing_mediq_orders(*)';
+const DRAFT_SELECT = '*, closing_slots(business_date, kind, seq), closing_hs_rows(*), closing_strip_lines(*), closing_mediq_orders(*), closing_misc_rows(*)';
 
 /** Active strips from the catalogue, in the order the owner set. */
 export const listStrips = () =>
