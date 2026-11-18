@@ -101,8 +101,8 @@ export const countBatch = (assignmentId, events) => one(db().rpc('audit_count_ba
 export const submitCount = (assignmentId, extraNote) =>
   one(db().rpc('audit_submit', { p_assignment: assignmentId, p_extra_note: extraNote || null }));
 /** Starts the person's own audit from typed codes or a template. Safe to repeat with the same key. */
-export const startIndividual = ({ key, codes = [], templateId = null }) =>
-  one(db().rpc('audit_individual_start', { p_key: key, p_codes: codes, p_template: templateId }));
+export const startIndividual = ({ key, codes = [], templateId = null, companies = [] }) =>
+  one(db().rpc('audit_individual_start', { p_key: key, p_codes: codes, p_template: templateId, p_companies: companies }));
 export const listTemplates = () => one(db().from('audit_templates').select('id, name, codes, updated_at').order('name'));
 export const saveTemplate = ({ id = null, name, codes }) =>
   one(db().rpc('audit_template_save', { p_id: id, p_name: name, p_codes: codes }));

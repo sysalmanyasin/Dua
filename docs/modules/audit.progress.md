@@ -74,10 +74,17 @@
 - Tests: DB 0407 (53 checks); `tests/unit/audit-compile-page.test.js`; the error-message test covers every new code. Also made the A5 page tests independent of timing (`timing` in `domain/outbox.js`).
 
 ## Notes from B1
-- Decision to confirm: a follow-up round keeps the **system quantity and price of the compiled round** for the items it carries (it does not take a new Inventory snapshot). That keeps differences comparable and needs no Inventory interface. If the owner wants a fresh snapshot for follow-ups, it is a change to `audit_round_next`.
+- Superseded by 0408 (owner decision 17 Nov 2026): every new round takes **fresh stock** from Inventory; follow-ups no longer keep the compiled round's quantities.
 - An approved correction takes effect at the **next compile** (the screen says so). A conflict choice is recorded only; it feeds the Final Snapshot in B2.
 - Reading the review needs `audit.view` (or `audit.review`/`audit.report`) **and** being a member of the engagement; a person with only `audit.compile` can compile but not see the screen. Give delegates `audit.view` too.
 - PHONE 2 (two people, two rounds, end to end) is still to do on real phones.
+
+## Done (0408, fresh stock and Individual by company)
+- `supabase/migrations/0408_audit_fresh_stock.sql` (applied live 18 Nov 2026): `audit_round_next` rebases carried items on today's stock and price by company+code (discontinued codes keep old figures; company mode adds new SKUs flagged `is_new`); `prev_counted`/`prev_variance` only for really counted rows. `audit_individual_start` also takes `p_companies` (template > codes > companies). `audit_my_items` returns `prev_variance`, `prev_counted`, `is_new`.
+- Counting screen: "Last round: counted X", "New product since the last round", "Same as last" button.
+- Individual Audit is one rolling engagement per month (as in the old app), one round per self-pick.
+- Tests: DB 0408 (28 checks) with an Inventory stub.
+- **Still missing in the live Inventory:** `inventory_products_for_scope(jsonb)` (and `inventory_companies()` for a picker). Until then creating rounds, Individual Audits and follow-ups refuses with `inventory_interface_missing`.
 
 ## Next
 - B2: Final Snapshot, reports with print / PDF, audit trail view, owner alerts.

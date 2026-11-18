@@ -220,6 +220,23 @@ describe('counting screen', () => {
   });
 });
 
+describe('follow-up round items', () => {
+  it('shows last round’s count and a new-product flag, and "Same as last" counts that number as confirmed', async () => {
+    const list = items();
+    list[0] = { ...list[0], prev_counted: 7, prev_variance: -3 };
+    list[1] = { ...list[1], is_new: true };
+    api.myItems.mockResolvedValue(list);
+    await mountCount(root(), { ctx: {} });
+    expect(root().textContent).toContain('Last round: counted 7 (-3)');
+    expect(root().textContent).toContain('New product since the last round');
+    expect(root().querySelector('button[data-same="i2"]')).toBeNull(); // nothing to repeat for a new product
+    click('button[data-same="i1"]');
+    expect(root().querySelector('input[data-qty="i1"]').value).toBe('7');
+    await until(() => api.countBatch.mock.calls.length === 1);
+    expect(api.countBatch.mock.calls[0][1][0]).toMatchObject({ item: 'i1', qty: 7, auto: false, confirmed: true });
+  });
+});
+
 describe('sign-out guard (AUD-9)', () => {
   it('blocks signing out while counts are unsent; discarding clears them and lets it through', async () => {
     document.body.innerHTML = '<div id="root"></div><button data-action="signout">Sign out</button>';
@@ -259,6 +276,22 @@ describe('individual audit page', () => {
     expect(second.codes).toEqual(['A1', 'A2', 'B9']);
     await until(() => location.hash === '#/audit/count');
     expect(JSON.parse(sessionStorage.getItem('dua.audit.view')).assignment).toBe('asgX');
+  });
+
+  it('starts from whole companies typed one per line', async () => {
+    api.myAssignments.mockResolvedValue([]);
+    api.startIndividual.mockResolvedValueOnce({ assignment_id: 'asgC', items: 9, requested: null });
+    await mountIndividual(root(), { ctx: {} });
+    const by = root().querySelector('select[data-f="by"]');
+    by.value = 'companies';
+    by.dispatchEvent(new Event('change', { bubbles: true }));
+    const box = root().querySelector('textarea[data-f="companies"]');
+    box.value = 'Acme Pharma\nBeta Ltd; Acme Pharma';
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(root().querySelector('[data-count]').textContent).toBe('2 companies');
+    click('button[data-act="start"]');
+    await until(() => api.startIndividual.mock.calls.length === 1);
+    expect(api.startIndividual.mock.calls[0][0]).toMatchObject({ codes: [], companies: ['Acme Pharma', 'Beta Ltd'], templateId: null });
   });
 
   it('offers to continue an open one instead of starting another', async () => {

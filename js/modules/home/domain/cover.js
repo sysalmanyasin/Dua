@@ -26,11 +26,7 @@ export function buildKpis(summary, perms = []) {
   if (!s) return [];
 
   const cards = [];
-  const lastDayHref = perms.includes('sales.view_last_day')
-    ? '#/sales/yesterday'
-    : perms.includes('sales.view_history')
-      ? '#/sales'
-      : null;
+  const lastDayHref = perms.includes('sales.view_last_day') ? '#/sales/yesterday' : perms.includes('sales.view_history') ? '#/sales' : null;
   if (s.last_day) {
     cards.push({
       id: 'latest',
@@ -129,18 +125,12 @@ export function buildAlertItems(alerts, perms) {
 
   const out = alerts.items.map((notification) => {
     const what = alertLabel(notification.kind);
-    const note =
-      notification.status === 'failed'
-        ? 'the alert could not be delivered'
-        : 'the alert has not been sent yet';
+    const note = notification.status === 'failed' ? 'the alert could not be delivered' : 'the alert has not been sent yet';
 
     return {
       id: `alert-${notification.id}`,
       text: `${what} (${note})`,
-      action:
-        perms.includes('notifications.view') && perms.includes('tools.view')
-          ? { label: 'Review', href: '#/tools' }
-          : null,
+      action: perms.includes('notifications.view') && perms.includes('tools.view') ? { label: 'Review', href: '#/tools' } : null,
     };
   });
 
@@ -165,18 +155,11 @@ export function buildAttention(summary, perms, hourPkt, alerts = null) {
     items.push({
       id: `missing-${day}`,
       text: `Sales for ${dateNice(day)} have not been entered`,
-      action: can('sales.enter') || can('sales.edit')
-        ? { label: 'Add entry', href: '#/sales/entry', handoff: day }
-        : null,
+      action: can('sales.enter') || can('sales.edit') ? { label: 'Add entry', href: '#/sales/entry', handoff: day } : null,
     });
   }
 
-  if (
-    summary?.checklist &&
-    summary.checklist.today_exists === false &&
-    hourPkt >= 16 &&
-    can('checklist.fill')
-  ) {
+  if (summary?.checklist && summary.checklist.today_exists === false && hourPkt >= 16 && can('checklist.fill')) {
     items.push({
       id: 'checklist',
       text: "Today's check list has not been started",
@@ -184,13 +167,7 @@ export function buildAttention(summary, perms, hourPkt, alerts = null) {
     });
   }
 
-  if (
-    sales &&
-    sales.mtd &&
-    !sales.target &&
-    can('targets.manage') &&
-    can('sales.view_history')
-  ) {
+  if (sales && sales.mtd && !sales.target && can('targets.manage') && can('sales.view_history')) {
     items.push({
       id: 'target',
       text: 'No sales target is set for this month',
@@ -222,10 +199,7 @@ export function buildDailyProgress(summary, perms) {
       id: 'sales',
       label: 'Sales entries',
       status: `${missing.length} day${missing.length === 1 ? '' : 's'} to review`,
-      href:
-        perms.includes('sales.enter') || perms.includes('sales.edit')
-          ? '#/sales/entry'
-          : null,
+      href: perms.includes('sales.enter') || perms.includes('sales.edit') ? '#/sales/entry' : null,
     });
   }
 
@@ -254,22 +228,20 @@ export function buildTiles(modules) {
 export function buildQuickActions(modules, limit = 4) {
   const pages = buildTiles(modules).flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })));
   const preferred = pages.filter((page) =>
-    /add|new|create|entry|invoice|closing|point of sale|pos/i.test(
-      `${page.title} ${page.desc} ${page.href}`,
-    ),
+    /add|new|create|entry|invoice|closing|point of sale|pos/i.test(`${page.title} ${page.desc} ${page.href}`),
   );
 
   return (preferred.length ? preferred : pages).slice(0, limit);
 }
 
 export function searchPages(modules, query) {
-  const q = String(query ?? '').trim().toLocaleLowerCase();
+  const q = String(query ?? '')
+    .trim()
+    .toLocaleLowerCase();
   if (!q) return [];
 
   return buildTiles(modules)
     .flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })))
-    .filter((page) =>
-      `${page.title} ${page.module} ${page.desc}`.toLocaleLowerCase().includes(q),
-    )
+    .filter((page) => `${page.title} ${page.module} ${page.desc}`.toLocaleLowerCase().includes(q))
     .slice(0, 12);
 }
