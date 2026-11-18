@@ -3,7 +3,16 @@
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
 import { describe, expect, it } from 'vitest';
-import { filterItems, parseCodes, parseQty, rowView, rupees, summarize, toPaisa } from '../../js/modules/audit/domain/count.js';
+import {
+  filterItems,
+  parseCodes,
+  parseCompanies,
+  parseQty,
+  rowView,
+  rupees,
+  summarize,
+  toPaisa,
+} from '../../js/modules/audit/domain/count.js';
 import { BATCH_SIZE, flushOutbox, latestByItem, makeEvent, toWire } from '../../js/modules/audit/domain/outbox.js';
 import { createIdbStore, createMemoryStore } from '../../js/modules/audit/data/outboxStore.js';
 
@@ -23,6 +32,9 @@ describe('reading what was typed', () => {
     expect(parseQty(' 2.5 ')).toBe(2.5);
     expect(parseQty('0')).toBe(0);
     for (const bad of ['', '-1', '1,5', '1.2345', 'abc', '1e3', '١٢', '1000000000']) expect(parseQty(bad)).toBeNull();
+  });
+  it('splits company names on lines and semicolons only, since a name can contain a comma', () => {
+    expect(parseCompanies('Acme, Inc\nBeta;Acme, Inc\n ')).toEqual(['Acme, Inc', 'Beta']);
   });
   it('splits codes on spaces, commas, semicolons and lines, keeping the first of any repeat', () => {
     expect(parseCodes('A1, A2;A3\nA1  B9\n')).toEqual(['A1', 'A2', 'A3', 'B9']);

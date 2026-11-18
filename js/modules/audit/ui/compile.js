@@ -351,7 +351,10 @@ export async function mount(el, { ctx } = {}) {
     if (!canCompile || round.state !== 'compiled' || !c) return '';
     return html`<section class="card aud-card" aria-label="Next round">
       <h2>Count again</h2>
-      <p class="muted small">Makes the next lettered round from this result. Assign and start it like any round.</p>
+      <p class="muted small">
+        Makes the next lettered round from this result, on today's stock: current quantities and prices, and new products in the companies
+        when you choose whole companies. Assign and start it like any round.
+      </p>
       <label class="field"
         ><span>Which items?</span>
         <select data-f="nextMode">
@@ -496,7 +499,9 @@ export async function mount(el, { ctx } = {}) {
           const r = await api.nextRound({ key: s.nextKey, baseRoundId: view.round, mode: s.nextMode, sample });
           s.nextKey = newKey();
           setView({ ...(getView() ?? {}), round: r.round_id });
-          toast(`Round ${r.round_number ?? ''}${r.round_suffix ?? ''} made with ${r.items ?? ''} items.`);
+          toast(
+            `Round ${r.round_number ?? ''}${r.round_suffix ?? ''} made with ${r.items ?? ''} items${r.new_items ? `, ${r.new_items} of them new` : ''}.`,
+          );
           location.hash = '#/audit/round';
         } catch (err) {
           const f = friendlyError(err);

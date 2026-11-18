@@ -4,6 +4,7 @@ import { computeEffectiveRow, varianceValuePaisa } from './compile.js';
 
 export const MAX_QTY = 999999999;
 export const MAX_CODES = 500;
+export const MAX_COMPANIES = 20;
 
 /** Retail price from the database (rupees, up to 2 decimals) to integer paisa. */
 export const toPaisa = (price) => Math.round(Number(price ?? 0) * 100);
@@ -21,6 +22,20 @@ export function parseCodes(text) {
   const seen = new Set();
   const out = [];
   for (const raw of String(text ?? '').split(/[\s,;]+/)) {
+    const c = raw.trim();
+    if (c && !seen.has(c)) {
+      seen.add(c);
+      out.push(c);
+    }
+  }
+  return out;
+}
+
+/** Company names typed one per line (or separated by semicolons, since a name can contain a comma). Distinct, in the order given. */
+export function parseCompanies(text) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of String(text ?? '').split(/[\n;]+/)) {
     const c = raw.trim();
     if (c && !seen.has(c)) {
       seen.add(c);

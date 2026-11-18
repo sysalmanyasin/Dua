@@ -61,6 +61,7 @@ export const MESSAGES = {
   invalid_mode: 'Choose a valid option.',
   invalid_sample: 'The sample size must be between 1 and 1000.',
   suffix_exhausted: 'There are no more lettered rounds (A to Z) for this round.',
+  too_many_companies: 'Pick 20 companies or fewer for one Individual Audit.',
   version_conflict: 'Someone else changed this. Reload and try again.',
 };
 

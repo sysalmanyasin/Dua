@@ -3,7 +3,7 @@
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
-import { MAX_CODES, parseCodes } from '../domain/count.js';
+import { MAX_CODES, MAX_COMPANIES, parseCodes, parseCompanies } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, newKey, setView } from '../domain/nav.js';
 import { errorCard, loadingCard, toast } from './parts.js';
@@ -32,10 +32,17 @@ export async function mount(el, { ctx } = {}) {
     return render(el, errorCard('Individual Audit', friendlyError(e).message));
   }
   const open = mine.find((a) => a.method === 'individual-self-pick' && a.status !== 'submitted' && a.status !== 'revoked');
-  const s = { codes: '', template: '', busy: false, error: null, note: null };
+  const s = { by: templates.length ? 'template' : 'codes', codes: '', companies: '', template: '', busy: false, error: null, note: null };
+  const ready = () => {
+    if (s.busy) return false;
+    if (s.by === 'template') return !!s.template;
+    if (s.by === 'codes') return parseCodes(s.codes).length > 0 && parseCodes(s.codes).length <= MAX_CODES;
+    return parseCompanies(s.companies).length > 0 && parseCompanies(s.companies).length <= MAX_COMPANIES;
+  };
 
   function draw() {
-    const typed = parseCodes(s.codes);
+    const nCodes = parseCodes(s.codes).length;
+    const nCompanies = parseCompanies(s.companies).length;
     render(
       el,
       html`<div class="aud">
@@ -50,37 +57,51 @@ export async function mount(el, { ctx } = {}) {
               </section>`
             : html`<section class="card aud-card" aria-label="Start">
                 <h2>Start an Individual Audit</h2>
+                <p class="muted small">Your pick joins this month's Individual audits. Quantities and prices are today's stock.</p>
                 ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
-                ${s.note ? html`<p class="note" role="status">${s.note}</p>` : ''}
+                <label class="field"
+                  ><span>Pick by</span
+                  ><select data-f="by">
+                    ${templates.length ? html`<option value="template" ${s.by === 'template' ? 'selected' : ''}>A saved template</option>` : ''}
+                    <option value="codes" ${s.by === 'codes' ? 'selected' : ''}>Product codes</option>
+                    <option value="companies" ${s.by === 'companies' ? 'selected' : ''}>Whole companies</option>
+                  </select></label
+                >
                 ${
-                  templates.length
+                  s.by === 'template'
                     ? html`<label class="field"
-                        ><span>From a template</span
+                        ><span>Template</span
                         ><select data-f="template">
-                          <option value="">None, I will type codes</option>
+                          <option value="">Choose one</option>
                           ${templates.map((t) => html`<option value="${t.id}" ${s.template === t.id ? 'selected' : ''}>${t.name} (${t.codes.length})</option>`)}
                         </select></label
                       >`
                     : ''
                 }
                 ${
-                  s.template
-                    ? ''
-                    : html`<label class="field"
+                  s.by === 'codes'
+                    ? html`<label class="field"
                           ><span>Product codes (spaces, commas or new lines)</span
                           ><textarea data-f="codes" rows="5" autocomplete="off" spellcheck="false">${s.codes}</textarea>
                         </label>
-                        <p class="muted small">
-                          ${typed.length}
-                          ${typed.length === 1 ? 'code' : 'codes'}${typed.length > MAX_CODES ? ` — too many, ${MAX_CODES} at most` : ''}
+                        <p class="muted small" data-count>
+                          ${nCodes} ${nCodes === 1 ? 'code' : 'codes'}${nCodes > MAX_CODES ? ` — too many, ${MAX_CODES} at most` : ''}
                         </p>`
+                    : ''
                 }
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  data-act="start"
-                  ${s.busy || (!s.template && (typed.length === 0 || typed.length > MAX_CODES)) ? 'disabled' : ''}
-                >
+                ${
+                  s.by === 'companies'
+                    ? html`<label class="field"
+                          ><span>Company names, one per line, as they appear in Inventory</span
+                          ><textarea data-f="companies" rows="4" autocomplete="off" spellcheck="false">${s.companies}</textarea>
+                        </label>
+                        <p class="muted small" data-count>
+                          ${nCompanies}
+                          ${nCompanies === 1 ? 'company' : 'companies'}${nCompanies > MAX_COMPANIES ? ` — too many, ${MAX_COMPANIES} at most` : ''}
+                        </p>`
+                    : ''
+                }
+                <button type="button" class="btn btn-primary" data-act="start" ${ready() ? '' : 'disabled'}>
                   ${s.busy ? 'Starting…' : 'Start counting'}
                 </button>
               </section>`
@@ -89,19 +110,31 @@ export async function mount(el, { ctx } = {}) {
     );
   }
 
-  el.oninput = (e) => {
-    if (e.target.dataset?.f === 'codes') {
-      s.codes = e.target.value;
+  const refresh = () => {
+    const btn = el.querySelector('button[data-act="start"]');
+    if (btn) btn.disabled = !ready();
+    const c = el.querySelector('[data-count]');
+    if (!c) return;
+    if (s.by === 'codes') {
       const n = parseCodes(s.codes).length;
-      const btn = el.querySelector('button[data-act="start"]');
-      if (btn) btn.disabled = s.busy || n === 0 || n > MAX_CODES;
-      const hint = el.querySelector('textarea[data-f="codes"] ~ p');
-      if (hint) hint.textContent = `${n} ${n === 1 ? 'code' : 'codes'}${n > MAX_CODES ? ` — too many, ${MAX_CODES} at most` : ''}`;
+      c.textContent = `${n} ${n === 1 ? 'code' : 'codes'}${n > MAX_CODES ? ` — too many, ${MAX_CODES} at most` : ''}`;
+    } else if (s.by === 'companies') {
+      const n = parseCompanies(s.companies).length;
+      c.textContent = `${n} ${n === 1 ? 'company' : 'companies'}${n > MAX_COMPANIES ? ` — too many, ${MAX_COMPANIES} at most` : ''}`;
+    }
+  };
+  el.oninput = (e) => {
+    const f = e.target.dataset?.f;
+    if (f === 'codes' || f === 'companies') {
+      s[f] = e.target.value; // typing never redraws, so the cursor stays where it is
+      refresh();
     }
   };
   el.onchange = (e) => {
-    if (e.target.dataset?.f === 'template') {
-      s.template = e.target.value;
+    const f = e.target.dataset?.f;
+    if (f === 'by' || f === 'template') {
+      s[f] = e.target.value;
+      s.error = null;
       draw();
     }
   };
@@ -120,8 +153,9 @@ export async function mount(el, { ctx } = {}) {
     try {
       const r = await api.startIndividual({
         key: currentKey(),
-        codes: s.template ? [] : parseCodes(s.codes),
-        templateId: s.template || null,
+        codes: s.by === 'codes' ? parseCodes(s.codes) : [],
+        companies: s.by === 'companies' ? parseCompanies(s.companies) : [],
+        templateId: s.by === 'template' ? s.template : null,
       });
       forgetKey();
       setView({ ...(getView() ?? {}), assignment: r.assignment_id });

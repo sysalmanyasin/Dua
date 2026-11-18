@@ -172,6 +172,14 @@ async function mountCounting(el, assignmentId, ctx) {
         <strong>${it.name || it.code}</strong>
         <span class="muted small">${it.code ? `${it.code} · ` : ''}${it.company}</span>
         <span class="muted small">System ${q(it.system_qty)} · ${rupees(Math.round(Number(it.retail_price) * 100))} each</span>
+        ${it.is_new ? html`<span class="small aud-diff-bad">New product since the last round</span>` : ''}
+        ${
+          it.prev_counted !== null && it.prev_counted !== undefined
+            ? html`<span class="muted small"
+                >Last round: counted ${q(it.prev_counted)} (${Number(it.prev_variance) > 0 ? '+' : ''}${q(it.prev_variance)})</span
+              >`
+            : ''
+        }
       </div>
       <div class="aud-row-entry">
         <input
@@ -184,6 +192,11 @@ async function mountCounting(el, assignmentId, ctx) {
           ${open() ? '' : 'disabled'}
         />
         ${open() ? html`<button type="button" class="btn btn-ghost btn-sm" data-match="${id}">Matches</button>` : ''}
+        ${
+          open() && it.prev_counted !== null && it.prev_counted !== undefined
+            ? html`<button type="button" class="btn btn-ghost btn-sm" data-same="${id}">Same as last</button>`
+            : ''
+        }
       </div>
       <div class="aud-diff ${d.cls}" data-diff="${id}">${d.text}</div>
       ${
@@ -329,7 +342,7 @@ async function mountCounting(el, assignmentId, ctx) {
   };
 
   // ── saving and sending ──
-  async function record(id, { qty = null, auto = false, note }, quiet = false) {
+  async function record(id, { qty = null, auto = false, note, confirmed = false }, quiet = false) {
     const it = s.byId.get(id);
     if (!it || !open()) return;
     const now = Date.now();
@@ -339,7 +352,7 @@ async function mountCounting(el, assignmentId, ctx) {
     const nextQty = auto ? Number(it.system_qty) : qty;
     const noteText = note ?? s.notes[id] ?? '';
     if (prev && !auto && !prev.auto && prev.qty === nextQty && (s.notes[id] ?? '') === noteText) return; // nothing changed
-    const event = makeEvent({ assignmentId, itemId: id, qty: nextQty, auto, note: noteText, rowSeconds });
+    const event = makeEvent({ assignmentId, itemId: id, qty: nextQty, auto, note: noteText, confirmed, rowSeconds });
     // shown at once; if the device cannot keep it, it is taken back and the person is told
     const before = { entry: prev, note: s.notes[id] };
     s.entries[id] = { qty: nextQty, auto };
@@ -437,6 +450,10 @@ async function mountCounting(el, assignmentId, ctx) {
       return drawList();
     }
     if (b.dataset.match) return void record(b.dataset.match, { auto: true });
+    if (b.dataset.same) {
+      const it = s.byId.get(b.dataset.same);
+      return void record(b.dataset.same, { qty: Number(it.prev_counted), confirmed: true });
+    }
     switch (b.dataset.act) {
       case 'back':
         setView({ ...(getView() ?? {}), assignment: null });
