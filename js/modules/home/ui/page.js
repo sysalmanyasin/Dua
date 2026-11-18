@@ -22,10 +22,12 @@ const tone = (value) => (value > 0 ? 'pos' : value < 0 ? 'neg' : '');
 function kpiBody(kpi) {
   switch (kpi.id) {
     case 'latest':
-      return html`<strong class="kv">₨ ${money(kpi.value)}</strong><span class="ks">${longDate(kpi.date)}</span>
+      return html`<strong class="kv">₨ ${money(kpi.value)}</strong
+        ><span class="ks">${longDate(kpi.date)}</span>
         ${kpi.diff === null ? '' : html`<span class="kchip ${tone(kpi.diff)}">${signed(kpi.diff)} vs COMP</span>`}`;
     case 'mtd':
-      return html`<strong class="kv">₨ ${money(kpi.value)}</strong><span class="ks">${monthLabel(kpi.month)} · ${kpi.days} day${kpi.days === 1 ? '' : 's'}</span>
+      return html`<strong class="kv">₨ ${money(kpi.value)}</strong
+        ><span class="ks">${monthLabel(kpi.month)} · ${kpi.days} day${kpi.days === 1 ? '' : 's'}</span>
         ${kpi.vsLastYear === null ? '' : html`<span class="kchip ${tone(kpi.vsLastYear)}">${arrow(kpi.vsLastYear)} vs same days last year</span>`}`;
     case 'target':
       return html`<strong class="kv">${kpi.pct}%</strong><span class="ks">of ₨ ${money(kpi.target)}</span>
@@ -38,15 +40,11 @@ function kpiBody(kpi) {
 
 function kpiCard(kpi) {
   const inner = html`<span class="kl">${kpi.label}</span>${kpiBody(kpi)}`;
-  return kpi.href
-    ? html`<a class="kpi" href="${kpi.href}">${inner}</a>`
-    : html`<div class="kpi">${inner}</div>`;
+  return kpi.href ? html`<a class="kpi" href="${kpi.href}">${inner}</a>` : html`<div class="kpi">${inner}</div>`;
 }
 
 function stockCard(card) {
-  const count = card.count === undefined
-    ? ''
-    : html`<span class="ks">${money(card.count)} product${card.count === 1 ? '' : 's'}</span>`;
+  const count = card.count === undefined ? '' : html`<span class="ks">${money(card.count)} product${card.count === 1 ? '' : 's'}</span>`;
 
   return html`<a class="kpi" href="${card.href}">
     <span class="kl">${card.label}</span>
@@ -56,10 +54,11 @@ function stockCard(card) {
   </a>`;
 }
 
-const pageLink = (page) => html`<a class="home-page-link" href="${page.href}">
-  <span><strong>${page.title}</strong><small>${page.module}${page.desc ? ` · ${page.desc}` : ''}</small></span>
-  <span aria-hidden="true">↗</span>
-</a>`;
+const pageLink = (page) =>
+  html`<a class="home-page-link" href="${page.href}">
+    <span><strong>${page.title}</strong><small>${page.module}${page.desc ? ` · ${page.desc}` : ''}</small></span>
+    <span aria-hidden="true">↗</span>
+  </a>`;
 
 const pageRow = (page, favourites) => {
   const pinned = favourites.includes(page.href);
@@ -72,7 +71,9 @@ const pageRow = (page, favourites) => {
       data-pin-title="${page.title}"
       aria-label="${pinned ? 'Remove' : 'Add'} ${page.title} ${pinned ? 'from' : 'to'} favourites"
       title="${pinned ? 'Remove favourite' : 'Add to favourites'}"
-    >${pinned ? '★' : '☆'}</button>
+    >
+      ${pinned ? '★' : '☆'}
+    </button>
   </div>`;
 };
 
@@ -95,7 +96,9 @@ const safeWrite = (key, value) => {
 
 export async function mount(el, { ctx, modules = [] }) {
   const perms = Array.isArray(ctx.permissions) ? ctx.permissions : [];
-  const first = String(ctx.full_name ?? ctx.username ?? 'there').trim().split(/\s+/)[0];
+  const first = String(ctx.full_name ?? ctx.username ?? 'there')
+    .trim()
+    .split(/\s+/)[0];
   const hour = hourInPkt();
   const tiles = buildTiles(modules);
   const quick = buildQuickActions(modules);
@@ -113,10 +116,11 @@ export async function mount(el, { ctx, modules = [] }) {
     <div class="home-welcome-mark" aria-hidden="true">${icon('home')}</div>
   </section>`;
 
-  render(el, html`${head}
-    <section class="home-loading" aria-live="polite">
-      <span class="home-spinner"></span> Loading your business overview…
-    </section>`);
+  render(
+    el,
+    html`${head}
+      <section class="home-loading" aria-live="polite"><span class="home-spinner"></span> Loading your business overview…</section>`,
+  );
 
   const stockPromise = perms.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
 
@@ -152,16 +156,21 @@ export async function mount(el, { ctx, modules = [] }) {
       host,
       saved.length
         ? html`<div class="home-favourite-grid">
-            ${saved.map((page) => html`<div class="home-favourite-item">
-              ${pageLink(page)}
-              <button
-                class="home-unpin"
-                type="button"
-                data-unpin="${page.href}"
-                aria-label="Remove ${page.title} from favourites"
-                title="Remove favourite"
-              >★</button>
-            </div>`)}
+            ${saved.map(
+              (page) =>
+                html`<div class="home-favourite-item">
+                  ${pageLink(page)}
+                  <button
+                    class="home-unpin"
+                    type="button"
+                    data-unpin="${page.href}"
+                    aria-label="Remove ${page.title} from favourites"
+                    title="Remove favourite"
+                  >
+                    ★
+                  </button>
+                </div>`,
+            )}
           </div>`
         : html`<p class="home-empty">Pin the pages you use most. Your favourites stay on this device.</p>`,
     );
@@ -185,29 +194,44 @@ export async function mount(el, { ctx, modules = [] }) {
   render(
     el,
     html`${head}
-      ${failed
-        ? html`<p class="note note-error" role="status">Business figures could not be loaded. Your navigation is still available.</p>`
-        : ''}
-      ${kpis.length
-        ? html`<section class="home-section" aria-label="Business snapshot">
-            <div class="home-section-head">
-              <div><span class="home-kicker">THE NUMBERS</span><h2>Business snapshot</h2></div>
-              <span class="home-live-label">Live data</span>
-            </div>
-            <div class="kpis home-kpis">${kpis.map(kpiCard)}</div>
-          </section>`
-        : ''}
-      ${stock.length
-        ? html`<section class="home-section">
-            <div class="home-section-head">
-              <div><span class="home-kicker">INVENTORY</span><h2>Stock snapshot</h2></div>
-            </div>
-            <div class="kpis home-kpis">${stock.map(stockCard)}</div>
-          </section>`
-        : ''}
+      ${
+        failed
+          ? html`<p class="note note-error" role="status">Business figures could not be loaded. Your navigation is still available.</p>`
+          : ''
+      }
+      ${
+        kpis.length
+          ? html`<section class="home-section" aria-label="Business snapshot">
+              <div class="home-section-head">
+                <div>
+                  <span class="home-kicker">THE NUMBERS</span>
+                  <h2>Business snapshot</h2>
+                </div>
+                <span class="home-live-label">Live data</span>
+              </div>
+              <div class="kpis home-kpis">${kpis.map(kpiCard)}</div>
+            </section>`
+          : ''
+      }
+      ${
+        stock.length
+          ? html`<section class="home-section">
+              <div class="home-section-head">
+                <div>
+                  <span class="home-kicker">INVENTORY</span>
+                  <h2>Stock snapshot</h2>
+                </div>
+              </div>
+              <div class="kpis home-kpis">${stock.map(stockCard)}</div>
+            </section>`
+          : ''
+      }
       <section class="home-section home-search-section">
         <div class="home-section-head">
-          <div><span class="home-kicker">FIND IT FAST</span><h2>Search Dua</h2></div>
+          <div>
+            <span class="home-kicker">FIND IT FAST</span>
+            <h2>Search Dua</h2>
+          </div>
         </div>
         <label class="home-search-box">
           <span class="sr-only">Search accessible pages and actions</span>
@@ -219,86 +243,128 @@ export async function mount(el, { ctx, modules = [] }) {
           <p class="home-search-hint">Search only includes pages you are allowed to open.</p>
         </div>
       </section>
-      ${quick.length
-        ? html`<section class="home-section">
-            <div class="home-section-head">
-              <div><span class="home-kicker">ONE-TAP ACCESS</span><h2>Quick actions</h2></div>
-            </div>
-            <div class="home-quick-grid">
-              ${quick.map((page) => html`<a class="home-quick" href="${page.href}">
-                <span class="home-quick-icon" aria-hidden="true">↗</span>
-                <strong>${page.title}</strong>
-                <small>${page.module}</small>
-              </a>`)}
-            </div>
-          </section>`
-        : ''}
+      ${
+        quick.length
+          ? html`<section class="home-section">
+              <div class="home-section-head">
+                <div>
+                  <span class="home-kicker">ONE-TAP ACCESS</span>
+                  <h2>Quick actions</h2>
+                </div>
+              </div>
+              <div class="home-quick-grid">
+                ${quick.map(
+                  (page) =>
+                    html`<a class="home-quick" href="${page.href}">
+                      <span class="home-quick-icon" aria-hidden="true">↗</span>
+                      <strong>${page.title}</strong>
+                      <small>${page.module}</small>
+                    </a>`,
+                )}
+              </div>
+            </section>`
+          : ''
+      }
       <section class="home-section">
         <div class="home-section-head">
-          <div><span class="home-kicker">YOUR WORKSPACE</span><h2>Explore modules</h2></div>
+          <div>
+            <span class="home-kicker">YOUR WORKSPACE</span>
+            <h2>Explore modules</h2>
+          </div>
           <span class="home-count">${tiles.length} available</span>
         </div>
-        ${tiles.length
-          ? html`<div class="home-module-grid">
-              ${tiles.map((group) => html`<details class="home-module">
-                <summary>
-                  <span class="home-module-icon">${icon(group.icon)}</span>
-                  <span class="home-module-copy">
-                    <strong>${group.title}</strong>
-                    <small>${group.pages.length} accessible page${group.pages.length === 1 ? '' : 's'}</small>
-                  </span>
-                  <span class="home-module-chevron">⌄</span>
-                </summary>
-                <div class="home-module-pages">
-                  ${group.pages.map((page) => pageRow({ ...page, module: group.title }, favourites))}
-                </div>
-              </details>`)}
-            </div>`
-          : html`<p class="home-empty">No additional modules are currently available to this account.</p>`}
+        ${
+          tiles.length
+            ? html`<div class="home-module-grid">
+                ${tiles.map(
+                  (group) =>
+                    html`<details class="home-module">
+                      <summary>
+                        <span class="home-module-icon">${icon(group.icon)}</span>
+                        <span class="home-module-copy">
+                          <strong>${group.title}</strong>
+                          <small>${group.pages.length} accessible page${group.pages.length === 1 ? '' : 's'}</small>
+                        </span>
+                        <span class="home-module-chevron">⌄</span>
+                      </summary>
+                      <div class="home-module-pages">
+                        ${group.pages.map((page) => pageRow({ ...page, module: group.title }, favourites))}
+                      </div>
+                    </details>`,
+                )}
+              </div>`
+            : html`<p class="home-empty">No additional modules are currently available to this account.</p>`
+        }
       </section>
-      ${progress.length
-        ? html`<section class="home-section">
-            <div class="home-section-head">
-              <div><span class="home-kicker">TODAY</span><h2>Daily progress</h2></div>
-            </div>
-            <div class="home-progress-list">
-              ${progress.map((item) => html`<div class="home-progress-row">
-                <span class="home-progress-mark ${item.started ? 'is-started' : ''}">${item.started ? '◷' : '•'}</span>
-                <span class="home-progress-copy">
-                  <strong>${item.label}</strong>
-                  <small>${item.status}</small>
-                </span>
-                ${item.href ? html`<a class="home-text-link" href="${item.href}">Open</a>` : ''}
-              </div>`)}
-            </div>
-          </section>`
-        : ''}
-      ${hasAttentionContext
-        ? html`<section class="home-section home-attention">
-            <div class="home-section-head">
-              <div><span class="home-kicker">PRIORITY</span><h2>Needs attention</h2></div>
-              <span class="home-count">${attention.length
-                ? `${attention.length} item${attention.length === 1 ? '' : 's'}`
-                : 'All clear'}</span>
-            </div>
-            ${attention.length
-              ? html`<div class="home-attention-list">
-                  ${attention.map((item) => html`<div class="home-attention-row">
-                    <span class="home-attention-dot"></span>
-                    <span>${item.text}</span>
-                    ${item.action
-                      ? html`<a class="btn btn-sm" href="${item.action.href}" ${item.action.handoff
-                        ? html`data-handoff="${item.action.handoff}"`
-                        : ''}>${item.action.label}</a>`
-                      : ''}
-                  </div>`)}
-                </div>`
-              : html`<p class="home-clear">✓ No outstanding items were reported.</p>`}
-          </section>`
-        : ''}
+      ${
+        progress.length
+          ? html`<section class="home-section">
+              <div class="home-section-head">
+                <div>
+                  <span class="home-kicker">TODAY</span>
+                  <h2>Daily progress</h2>
+                </div>
+              </div>
+              <div class="home-progress-list">
+                ${progress.map(
+                  (item) =>
+                    html`<div class="home-progress-row">
+                      <span class="home-progress-mark ${item.started ? 'is-started' : ''}">${item.started ? '◷' : '•'}</span>
+                      <span class="home-progress-copy">
+                        <strong>${item.label}</strong>
+                        <small>${item.status}</small>
+                      </span>
+                      ${item.href ? html`<a class="home-text-link" href="${item.href}">Open</a>` : ''}
+                    </div>`,
+                )}
+              </div>
+            </section>`
+          : ''
+      }
+      ${
+        hasAttentionContext
+          ? html`<section class="home-section home-attention">
+              <div class="home-section-head">
+                <div>
+                  <span class="home-kicker">PRIORITY</span>
+                  <h2>Needs attention</h2>
+                </div>
+                <span class="home-count"
+                  >${attention.length ? `${attention.length} item${attention.length === 1 ? '' : 's'}` : 'All clear'}</span
+                >
+              </div>
+              ${
+                attention.length
+                  ? html`<div class="home-attention-list">
+                      ${attention.map(
+                        (item) =>
+                          html`<div class="home-attention-row">
+                            <span class="home-attention-dot"></span>
+                            <span>${item.text}</span>
+                            ${
+                              item.action
+                                ? html`<a
+                                    class="btn btn-sm"
+                                    href="${item.action.href}"
+                                    ${item.action.handoff ? html`data-handoff="${item.action.handoff}"` : ''}
+                                    >${item.action.label}</a
+                                  >`
+                                : ''
+                            }
+                          </div>`,
+                      )}
+                    </div>`
+                  : html`<p class="home-clear">✓ No outstanding items were reported.</p>`
+              }
+            </section>`
+          : ''
+      }
       <section class="home-section">
         <div class="home-section-head">
-          <div><span class="home-kicker">PERSONAL SPACE</span><h2>Favourites</h2></div>
+          <div>
+            <span class="home-kicker">PERSONAL SPACE</span>
+            <h2>Favourites</h2>
+          </div>
         </div>
         <div id="home-favourites"></div>
       </section>
@@ -313,10 +379,7 @@ export async function mount(el, { ctx, modules = [] }) {
       const pinned = favourites.includes(button.dataset.pin);
       button.textContent = pinned ? '★' : '☆';
       button.title = pinned ? 'Remove favourite' : 'Add to favourites';
-      button.setAttribute(
-        'aria-label',
-        `${pinned ? 'Remove' : 'Add'} ${button.dataset.pinTitle} ${pinned ? 'from' : 'to'} favourites`,
-      );
+      button.setAttribute('aria-label', `${pinned ? 'Remove' : 'Add'} ${button.dataset.pinTitle} ${pinned ? 'from' : 'to'} favourites`);
     });
   };
 
