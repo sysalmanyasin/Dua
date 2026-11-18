@@ -106,13 +106,32 @@ export async function mount(el, { ctx } = {}) {
     if (row.status !== 'draft') {
       return render(el, errorCard('this closing', 'It is already submitted. Reopen it from Closing to correct it.'));
     }
-    adopt(row);
-    // typing that never reached the server (connection dropped) comes back if it is newer than the saved draft
+    // Capture the local recovery snapshot before refreshing: the carry RPC may update
+    // the row timestamp, but that must not make newer unsent typing look stale.
+    const savedDraftUpdatedAt = row.updated_at;
     const local = loadLocal(S.key);
-    if (local?.dirty && local.version === S.version && local.form && local.savedAt > row.updated_at) {
-      S.form = local.form;
+    // Reconcile carry-forward on every draft open. This is a server-side, idempotent
+    // operation: it refreshes balances and merges outstanding misc charges without
+    // replacing the cashier's saved fields or struck-through rows.
+    if (!row.is_opening) {
+      try {
+        await api.refreshDraftCarry(row.id);
+        row = await api.loadById(row.id);
+      } catch (e) {
+        return render(el, errorCard('refreshing this draft', friendlyError(e).message));
+      }
+    }
+    adopt(row);
+    // Typing that never reached the server (connection dropped) comes back if it is newer
+    // than the saved draft. Merge in any newly carried misc rows from the refreshed server row.
+    if (local?.dirty && local.version === S.version && local.form && local.savedAt > savedDraftUpdatedAt) {
+      const localForm = local.form;
+      const localMisc = Array.isArray(localForm.misc) ? localForm.misc : [];
+      const haveCharges = new Set(localMisc.map((r) => r.charge_id).filter(Boolean));
+      const newlyCarried = S.form.misc.filter((r) => r.charge_id && !haveCharges.has(r.charge_id));
+      S.form = { ...localForm, misc: [...localMisc, ...newlyCarried] };
       S.status = 'dirty';
-      toast('Restored your unsent typing.');
+      toast('Restored your unsent typing and refreshed carried charges.');
     }
   } else {
     // a new draft is created at once so the slot rules and the carried figures are checked before anything is typed
