@@ -106,6 +106,10 @@ export async function mount(el, { ctx } = {}) {
     if (row.status !== 'draft') {
       return render(el, errorCard('this closing', 'It is already submitted. Reopen it from Closing to correct it.'));
     }
+    // Capture the local recovery snapshot before refreshing: the carry RPC may update
+    // the row timestamp, but that must not make newer unsent typing look stale.
+    const savedDraftUpdatedAt = row.updated_at;
+    const local = loadLocal(S.key);
     // Reconcile carry-forward on every draft open. This is a server-side, idempotent
     // operation: it refreshes balances and merges outstanding misc charges without
     // replacing the cashier's saved fields or struck-through rows.
@@ -120,8 +124,7 @@ export async function mount(el, { ctx } = {}) {
     adopt(row);
     // Typing that never reached the server (connection dropped) comes back if it is newer
     // than the saved draft. Merge in any newly carried misc rows from the refreshed server row.
-    const local = loadLocal(S.key);
-    if (local?.dirty && local.version === S.version && local.form && local.savedAt > row.updated_at) {
+    if (local?.dirty && local.version === S.version && local.form && local.savedAt > savedDraftUpdatedAt) {
       const localForm = local.form;
       const localMisc = Array.isArray(localForm.misc) ? localForm.misc : [];
       const haveCharges = new Set(localMisc.map((r) => r.charge_id).filter(Boolean));
