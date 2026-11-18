@@ -3,12 +3,7 @@ import { html, render } from '../../../shared/html.js';
 import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
 import { BRAND } from '../../../core/config.js';
-import {
-  coverSummary,
-  inventoryCover,
-  lifetimeSalesMonths,
-  notificationsAttention,
-} from '../data/api.js';
+import { coverSummary, inventoryCover, lifetimeSalesMonths, notificationsAttention } from '../data/api.js';
 import {
   buildAttention,
   buildDailyProgress,
@@ -110,9 +105,7 @@ export async function mount(el, { ctx, modules = [] }) {
 
   const stockPromise = perms.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
   // This is a separate, permission-gated read: staff with last-day-only access never request history.
-  const lifetimePromise = perms.includes('sales.view_history')
-    ? lifetimeSalesMonths().catch(() => null)
-    : Promise.resolve(null);
+  const lifetimePromise = perms.includes('sales.view_history') ? lifetimeSalesMonths().catch(() => null) : Promise.resolve(null);
 
   let summary = null;
   let failed = false;
@@ -195,8 +188,7 @@ export async function mount(el, { ctx, modules = [] }) {
 
   render(
     el,
-    html`${head}
-      ${lifetimeHero}
+    html`${head} ${lifetimeHero}
       ${
         failed
           ? html`<p class="note note-error" role="status">Business figures could not be loaded. Your navigation is still available.</p>`

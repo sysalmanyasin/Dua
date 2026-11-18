@@ -1,6 +1,6 @@
 # Project status — canonical snapshot
 
-**Snapshot date:** 17 November 2026  
+**Snapshot date:** 18 November 2026  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
 **Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
@@ -21,12 +21,15 @@ This file is the current status summary. Older dated entries in `PROJECT_PROGRES
 | Foundation / authentication / permissions | Integrated | Live and owner-accepted | Operational hardening and separate production environment remain |
 | Sales | Integrated; core pages, reports, targets, fields, Cover and Gmail-send flow are implemented | Sales migrations and imported history are live | Owner's full real-device try-out; Google Cloud origin / real Gmail send verification; remaining dependent features below |
 | Manager | Integrated on `main`; Staff Registry, Staff Credit, Salary, Generic Sheet, Incentive, Petty Cash, Expenses, Jazz Cash, Misc Sections and Balance Tally implementation is recorded in the module progress file | Migrations 0101–0107 applied and checked live on 17 Nov 2026; `0108` Credit Inbox pushed 17 Nov (live status in `docs/modules/manager.progress.md`, Session M-D) | Owner phone acceptance (try-outs #2–#4); try the inbox on real Closing data; Attendance later |
-| Closing | Integrated on `main`; module shell and partial guided ledger are present | Database work through the documented 020x slices is in the repository; verify exact live registry before further apply | Sections 6–14, submit flow, ledgers/feed, print and remaining screens; owner phone try-out |
+| Closing | Integrated on `main`; module shell and partial guided ledger are present. `feat/closing-staff-mobile-ux` (PR #32: staff-only ledger access, mobile swipe) was merged on 18 Nov 2026 and its branch removed; its changes already matched `main` | Database work through the documented 020x slices is in the repository; verify exact live registry before further apply | Sections 6–14, submit flow, ledgers/feed, print and remaining screens; owner phone try-out |
 | Inventory feed | Integrated; migrations 0301–0307 and Edge Function v23 source are on `main` | Live and registered; hourly sync at minute 0 | `0307` (17 Nov 2026) ended the hourly statement-timeout failures and was applied by hand, then registered. The function still falls back to the old call if `0307` is missing; remove the fallback after a few clean days |
 | Inventory screens / local copy / reports | Integrated: six screens, phone-local copy, Stock row on Home, Excel / PDF / CSV exports | Live; no migration needed for the screens | Real-phone check of the PDF print dialog on the pharmacy phones is still worth doing |
 | Candela Sales | Integrated on `main`: owner screens (Overview, Daily History, Credit by Customer, Reports) and the staff-safe "Candela today" status pill | Migration 0900 applied by hand and registered on 14 Nov; first capture of the 4 feed days and 8 customer rows checked | Owner phone try-out; confirm the next hourly sync adds days; optional import of days before 11 Nov if a source exists |
 | STR | Specification and decisions recorded in Inventory progress/brief | Existing STR source tables arrive through the feed | Separate STR module (0500–0599) is planned; not complete |
-| Audit Hub, Emergency Billing, unified Reports, assistant, Android widgets | Planned | Not live as Dua modules | Future roadmap |
+| Audit | Integrated on `main` (18 Nov 2026): A1–A5 (core, counting, compile, shell/team, outbox/counting screen), B1 (review, corrections, conflicts, follow-up rounds), `0408` fresh stock, Individual Audit by company | Migrations `0401`–`0408` and Inventory `0308` recorded as applied live on 17–18 Nov in `docs/modules/audit.progress.md`; verify the live registry before the next apply | B2 (Final Snapshot, print/PDF reports, audit-trail view, owner alerts); real-phone tests PHONE 1 and PHONE 2; Foundation request OD-6 (shared outbox / sign-out guard) |
+| Emergency Billing (`ebill`) | Integrated on `main`: Phases 1–4 (billing screen, PIN-checked save, devices, offline billing and sync, held bills, history, refunds and corrections) | `0601`–`0622` applied by hand on 15 Nov 2026 per `docs/modules/ebill.md`; confirm the live registry for `0612` and `0630`–`0632` before relying on them | Phase 5: receipt printing and print settings, one settings page, CSV / Excel / PDF exports of history; owner try-out on a real device |
+| Workspace (Notes & Sheets) | Brief and Phase 2 database core (`1100_workspace_core.sql` plus its DB test) merged into `main` on 18 Nov 2026; no screens yet | **Not applied live.** Owner action: read the live registry, apply `1100` by hand and register it as `1100` | CI run on the branch; Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone); Phase 3 `1101_workspace_notes.sql` (note revisions) |
+| Unified Reports, assistant, Android widgets | Planned | Not live as Dua modules | Future roadmap |
 
 ## Operational status
 
@@ -44,15 +47,21 @@ This file is the current status summary. Older dated entries in `PROJECT_PROGRES
 
 The latest main-branch project progress entry (13 Nov) reports **357 unit/jsdom tests** and a full database suite including Closing, Manager and Inventory. Module progress files contain counts from different branch snapshots (for example Manager's 294 and Closing's 351); do not add those numbers together or present them as one current total. Run the current main CI and `bash supabase/tests/run.sh` to establish the exact reproducible counts before release.
 
+## Known test failures on `main` (18 Nov 2026)
+
+Run on the merged tree and, separately, on untouched `main`: `npm run lint` passes; `npm run format:check` passes after Prettier was applied to six files from the Home/shell redesign (`css/home.css`, `css/responsive-fixes.css`, `css/shell.css`, `css/tokens.css`, `js/core/shell.js`, `js/modules/home/ui/page.js`); `npm test` reports **15 failing of 1,366** in three files, **identical on `main` before the merge**: `tests/unit/cover.test.js` (4), `tests/unit/service-worker.test.js` (7), `tests/unit/shell.test.js` (4). One failure is `startShell` reading `.path` of an undefined first page (`js/core/shell.js:28`). These tests predate the Home redesign and have not been updated for it. Fix them before the next release. Database tests were not re-run locally here; CI's `database` and `functions` jobs passed on the branch heads.
+
 ## Branch integration status at this snapshot
 
-- `main` is the documentation and integration baseline.
-- `module/closing` and `module/manager` have no commits ahead of main in the checked comparison.
-- `module/inventory` is fully merged into `main` and its branch can be deleted. The progress record is `docs/modules/inventory.progress.md`.
-- `foundation/inventory-feed`, `docs/session-plans` and `design/inventory-delta-sync` are divergent branches; compare and selectively reconcile rather than blindly merging.
-- `foundation/operations-hardening` has no commits ahead of main in the checked comparison.
+Cleaned up on 18 Nov 2026. `main` is the integration baseline. Only three working branches remain:
 
-Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
+| Branch | Purpose | State |
+|---|---|---|
+| `module/audit-a5` | Audit module (active session) | Merged into `main`; kept for continued Audit work |
+| `feature/backup-emergency-pos` | Emergency Billing | Merged into `main`; kept for Phase 5 |
+| `module/workspace` | Dua Workspace, Notes & Sheets (active session) | Phase 2 merged into `main`; kept for Phase 3 onward |
+
+Every other branch was merged or superseded and deleted (see `docs/CHANGELOG.md`, 18 Nov 2026). Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
 
 ## Manager (17 Nov 2026)\n\n- Live `DuaPharmaPlus` migration registry contains Manager migrations `0101`–`0107` in order. `0105`–`0107` were applied from the exact `main` SQL files on 17 Nov 2026 and registered under their repository versions.\n- Live post-apply checks: 17 Manager tables have RLS enabled; no direct `anon` table grants, no direct authenticated write grants, no `anon` execution of Manager RPCs, and fixed search paths on Manager functions. Manager data access is through permission-checked RPCs, not direct table policies.\n- Built-in seed state checked: 4 rates, 2 ledgers, 6 tally accounts. No business transactions or staff records were imported.\n- `0108` / Credit Inbox is not in the current main migration directory and remains outstanding. Full local DB suite, current `npm run verify`, and owner phone acceptance still need to be run. See `docs/modules/manager.progress.md`.\n\n## Candela Sales (14 Nov 2026)
 
@@ -64,7 +73,7 @@ Branch divergence can change; re-check before merging. A migration being live do
 
 ## Immediate priorities
 
-1. Confirm a clean CI run and a clean full database test run on the resulting main.
+1. Fix the 15 failing unit tests on `main` (cover, service-worker, shell), then confirm a clean CI run and a clean full database test run.
 2. Perform a restore drill using a real encrypted Drive backup into a separate empty Supabase project.
 3. Complete the owner phone try-outs for Sales, Manager and Closing; verify real Gmail sending.
 4. Finish Closing, then proceed to STR and the later planned modules.

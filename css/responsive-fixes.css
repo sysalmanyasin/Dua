@@ -1,29 +1,105 @@
 /* Mobile-first full-width dashboard, inspired by the compact BT Sales layout. */
-html,body,#app{width:100%;min-width:0;max-width:100%;margin:0}
-body{overflow-x:hidden}
-.app-shell,.app-workspace,.workspace-main{width:100%;min-width:0;max-width:100%}
-.workspace-main{flex:1 1 auto}
-.workspace-main .content{display:block;width:100%;max-width:none;margin:0 auto;min-width:0}
-.workspace-main .page{width:100%;max-width:none;min-width:0}
-@media(max-width:850px){
- .app-workspace{display:block;width:100%}
- .workspace-main{display:flex;width:100%;max-width:100%;min-width:0}
- .workspace-main .content{width:100%;max-width:none;padding:16px 13px 32px}
- .workspace-crumb{padding:13px 14px 0}
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
 }
-@media(max-width:600px){
- .home-welcome{width:100%;min-height:142px;margin-bottom:19px;padding:19px 16px;border-radius:15px}
- .home-welcome h1{font-size:1.35rem}
- .home-welcome-mark{width:44px;height:44px}
- .home-section{margin:19px 0 22px}
- .home-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
- .home-kpis .kpi{min-width:0;min-height:112px;padding:13px 12px}
- .home-kpis .kv{font-size:clamp(1.05rem,4.6vw,1.4rem);overflow-wrap:anywhere}
- .home-kpis .kl{font-size:.65rem;letter-spacing:.08em}
- .home-kpis .ks{font-size:.76rem}
+body {
+  overflow-x: hidden;
 }
-@media(max-width:360px){
- .workspace-main .content{padding-inline:10px}
- .home-kpis{gap:7px}
- .home-kpis .kpi{padding:11px 9px}
+.app-shell,
+.app-workspace,
+.workspace-main {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+.workspace-main {
+  flex: 1 1 auto;
+}
+.workspace-main .content {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  min-width: 0;
+}
+.workspace-main .page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+@media (max-width: 850px) {
+  .app-workspace {
+    display: block;
+    width: 100%;
+  }
+  .workspace-main {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .workspace-main .content {
+    width: 100%;
+    max-width: none;
+    padding: 16px 13px 32px;
+  }
+  .workspace-crumb {
+    padding: 13px 14px 0;
+  }
+}
+@media (max-width: 600px) {
+  .home-welcome {
+    width: 100%;
+    min-height: 142px;
+    margin-bottom: 19px;
+    padding: 19px 16px;
+    border-radius: 15px;
+  }
+  .home-welcome h1 {
+    font-size: 1.35rem;
+  }
+  .home-welcome-mark {
+    width: 44px;
+    height: 44px;
+  }
+  .home-section {
+    margin: 19px 0 22px;
+  }
+  .home-kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+  }
+  .home-kpis .kpi {
+    min-width: 0;
+    min-height: 112px;
+    padding: 13px 12px;
+  }
+  .home-kpis .kv {
+    font-size: clamp(1.05rem, 4.6vw, 1.4rem);
+    overflow-wrap: anywhere;
+  }
+  .home-kpis .kl {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+  }
+  .home-kpis .ks {
+    font-size: 0.76rem;
+  }
+}
+@media (max-width: 360px) {
+  .workspace-main .content {
+    padding-inline: 10px;
+  }
+  .home-kpis {
+    gap: 7px;
+  }
+  .home-kpis .kpi {
+    padding: 11px 9px;
+  }
 }

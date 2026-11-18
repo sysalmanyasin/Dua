@@ -1,6 +1,6 @@
 # Audit module: handover for the next session
 
-**State on 18 Nov 2026.** Branch `module/audit-a5` = PR #31 into `main` (A5, B1, 0408 fresh stock, 0308 Inventory interface, plus formatting of 16 files `main` left unformatted). Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` (what each slice did) first.
+**State on 18 Nov 2026.** Branch `module/audit-a5` (merged into `main` on 18 Nov 2026 and kept as the working branch; the old `module/audit` branch was deleted) (A5, B1, 0408 fresh stock, 0308 Inventory interface, plus formatting of 16 files `main` left unformatted). Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` (what each slice did) first.
 
 ## What exists
 - **Database** `0401`–`0408` (Audit) and `0308` (Inventory interface), all applied live on project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`) and registered in `supabase_migrations.schema_migrations`. Live migrations are applied by hand with `execute_sql` plus a registry insert; the file in `supabase/migrations/` is the source.
@@ -8,7 +8,7 @@
 - **Rules to keep:** every new round takes fresh stock from Inventory and freezes it; no blind counting (AUD-4); counters see system qty, price, variance, value for their own assignment (AUD-5); compile writes a new revision each time; conflicts are never auto-resolved; approved corrections apply at the next compile.
 
 ## Check before anything else
-1. PR #31 CI: the "app" job failed only on Prettier for files from `main`; now fixed and pushed. Confirm all three CI jobs are green, then merge. (Earlier PRs #22/#23 are superseded.)
+1. Merged into `main` on 18 Nov 2026. `main`'s `app` job was red on Prettier (fixed) and on 15 unit tests in cover, service-worker and shell that are not Audit's; see `docs/PROJECT_STATUS.md`.
 2. Commit `0308` + test changes are the last local work; confirm `git ls-remote origin module/audit-a5` equals local HEAD. If not, push.
 3. The session proxy may not hold a GitHub credential for the repo; the owner supplies a PAT when needed (use it once via `git -c http.extraheader=...`, never store it, ask the owner to revoke it).
 

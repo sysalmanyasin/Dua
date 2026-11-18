@@ -1,6 +1,6 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-18
+Updated: 2026-11-18 (merged into `main` the same day; `module/workspace` stays open for Phase 3 onward)
 
 ## Completed
 
@@ -14,7 +14,7 @@ Updated: 2026-11-18
 ## In progress / not yet accepted
 
 - [ ] Apply `1100` to the shared project by hand and register it under version `1100` (owner action; see MODULES.md §12 and `docs/ops/f6-registry-reconciliation.md`). Read the live registry immediately before applying.
-- [ ] CI run of `npm run verify` and `npm run test:db` on the branch.
+- [ ] CI run of `npm run verify` and `npm run test:db`. After the merge into `main`, lint and the format check pass; `npm test` has 15 failures that also fail on `main` (cover, service-worker, shell), none in Workspace.
 - [ ] Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone) before Phases 4 and 9.
 
 ## Next
