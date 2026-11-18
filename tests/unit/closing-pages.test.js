@@ -293,42 +293,69 @@ describe('Closing ledger', () => {
     expect(document.getElementById('toasts').textContent.length).toBeGreaterThan(5);
   });
 
-  it('supports horizontal swipe navigation while ignoring vertical scrolling and form controls', async () => {
+  it('swipes between sections from anywhere on the cards, with an ordinary swipe', async () => {
     openTarget();
-    const originalScrollTo = window.scrollTo;
-    window.scrollTo = vi.fn();
+    await ledger();
+    const touch = (target, type, x, y) => {
+      const event = new Event(type, { bubbles: true });
+      Object.defineProperty(event, type === 'touchstart' ? 'touches' : 'changedTouches', {
+        value: [{ clientX: x, clientY: y }],
+      });
+      target.dispatchEvent(event);
+    };
+    const swipe = (target, x1, y1, x2, y2) => {
+      touch(target, 'touchstart', x1, y1);
+      touch(target, 'touchend', x2, y2);
+    };
+    const current = () => el.querySelector('[aria-current="step"][data-jump]').dataset.jump;
+
+    swipe(el.querySelector('.cls-sec'), 180, 100, 100, 105);
+    expect(current()).toBe('1');
+    swipe(el.querySelector('.cls-sec'), 100, 100, 180, 105);
+    expect(current()).toBe('0');
+
+    // an ordinary, slightly slanted swipe still counts (45 px across, 30 px down)
+    swipe(el.querySelector('.cls-sec'), 150, 100, 105, 130);
+    expect(current()).toBe('1');
+    swipe(el.querySelector('.cls-sec'), 100, 100, 145, 130);
+    expect(current()).toBe('0');
+
+    // starting on a field, a row label or the staff card works too
+    swipe(el.querySelector('#f-sys_cash'), 180, 100, 100, 105);
+    expect(current()).toBe('1');
+    swipe(el.querySelector('.cls-sec h2'), 100, 100, 180, 105);
+    expect(current()).toBe('0');
+    swipe(el.querySelector('#cls-staff'), 180, 100, 100, 105);
+    expect(current()).toBe('1');
+    swipe(el.querySelector('.cls-prev'), 100, 100, 180, 105);
+    expect(current()).toBe('0');
+
+    // a vertical scroll, a tiny move, and a swipe on the jump chips do nothing
+    swipe(el.querySelector('.cls-sec'), 180, 100, 100, 170);
+    swipe(el.querySelector('.cls-sec'), 180, 100, 160, 100);
+    swipe(el.querySelector('.cls-jump'), 180, 100, 100, 105);
+    expect(current()).toBe('0');
+  });
+
+  it('opens on the cards, not the top of the page, and returns there on each section change', async () => {
+    const original = Element.prototype.scrollIntoView;
+    const spy = vi.fn();
+    Element.prototype.scrollIntoView = spy;
+    const raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = (fn) => fn();
     try {
+      openTarget();
       await ledger();
-      const touch = (type, x, y) => {
-        const event = new Event(type, { bubbles: true });
-        Object.defineProperty(event, type === 'touchstart' ? 'touches' : 'changedTouches', {
-          value: [{ clientX: x, clientY: y }],
-        });
-        el.querySelector('.cls-sec').dispatchEvent(event);
-      };
-
-      touch('touchstart', 180, 100);
-      touch('touchend', 100, 105);
-      expect(el.querySelector('[data-jump="1"]').getAttribute('aria-current')).toBe('step');
-
-      touch('touchstart', 100, 100);
-      touch('touchend', 180, 105);
-      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
-
-      touch('touchstart', 180, 100);
-      touch('touchend', 100, 170); // vertical scroll, not a section swipe
-      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
-
-      const input = el.querySelector('#f-sys_cash');
-      const start = new Event('touchstart', { bubbles: true });
-      Object.defineProperty(start, 'touches', { value: [{ clientX: 180, clientY: 100 }] });
-      input.dispatchEvent(start);
-      const end = new Event('touchend', { bubbles: true });
-      Object.defineProperty(end, 'changedTouches', { value: [{ clientX: 100, clientY: 105 }] });
-      input.dispatchEvent(end);
-      expect(el.querySelector('[data-jump="0"]').getAttribute('aria-current')).toBe('step');
+      expect(spy).toHaveBeenCalledTimes(1);
+      expect(spy.mock.instances[0].classList.contains('cls-anchor')).toBe(true);
+      el.querySelector('[data-act="next"]').click();
+      expect(spy).toHaveBeenCalledTimes(2);
+      // tapping a jump chip keeps the position, as before
+      el.querySelector('[data-jump="3"]').click();
+      expect(spy).toHaveBeenCalledTimes(2);
     } finally {
-      window.scrollTo = originalScrollTo;
+      Element.prototype.scrollIntoView = original;
+      window.requestAnimationFrame = raf;
     }
   });
 

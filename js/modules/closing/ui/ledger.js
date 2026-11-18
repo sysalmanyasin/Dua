@@ -741,7 +741,7 @@ export async function mount(el, { ctx } = {}) {
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
     render(
       el,
-      html`<div class="cls">
+      html`<div class="cls cls-swipe">
         <p class="cls-backrow"><button type="button" class="btn btn-sm" data-act="leave">‹ Back to days</button></p>
         ${hero({
           label: 'Closing',
@@ -749,6 +749,7 @@ export async function mount(el, { ctx } = {}) {
           sub: `${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}`,
           actions: html`<span id="cls-chip" class="cls-chip" role="status" tabindex="0"></span>`,
         })}
+        <div class="cls-anchor" aria-hidden="true"></div>
         <div class="cls-bar">
           <div class="cls-progress" aria-hidden="true"><span style="width: ${pct}%"></span></div>
           <nav class="cls-jump" aria-label="Sections">
@@ -801,28 +802,33 @@ export async function mount(el, { ctx } = {}) {
     paintTotals();
   }
 
+  // Bring the section cards (progress bar, jump chips, card) to the top of the screen,
+  // so the hero and the back link are scrolled past instead of the person landing on them.
+  const scrollToCards = () => {
+    const anchor = el.querySelector('.cls-anchor');
+    if (anchor?.scrollIntoView) anchor.scrollIntoView({ block: 'start' });
+    else window.scrollTo?.(0, 0);
+  };
   const go = (i, scroll = true) => {
     S.section = clampSection(i);
     S.seen.add(S.section);
     draw();
-    if (scroll) window.scrollTo?.(0, 0);
+    if (scroll) scrollToCards();
   };
   const moveSection = (direction) => {
     const next = clampSection(S.section + direction);
     if (next !== S.section) go(next);
   };
 
-  // Match the old Closing app's swipe navigation without hijacking vertical
-  // scrolling, text selection, form controls, or the horizontally scrolling chips.
+  // Swipe left / right anywhere on the cards moves one section, like the old Closing app.
+  // An ordinary swipe is enough (40 px, clearly more sideways than up or down). It starts on any card,
+  // row, label or field, but not on the jump chips (they scroll sideways on their own).
   let swipeStart = null;
   el.addEventListener(
     'touchstart',
     (e) => {
-      if (e.touches.length !== 1 || !e.target.closest?.('.cls-sec')) {
-        swipeStart = null;
-        return;
-      }
-      if (e.target.closest('input, select, textarea, button, a, [contenteditable="true"], .cls-jump, .cls-nav')) {
+      const root = e.target.closest?.('.cls-swipe');
+      if (e.touches.length !== 1 || !root || e.target.closest('.cls-jump')) {
         swipeStart = null;
         return;
       }
@@ -840,7 +846,7 @@ export async function mount(el, { ctx } = {}) {
       if (!touch) return;
       const dx = touch.clientX - start.x;
       const dy = touch.clientY - start.y;
-      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
       moveSection(dx < 0 ? 1 : -1);
     },
     { passive: true },
@@ -1031,6 +1037,7 @@ export async function mount(el, { ctx } = {}) {
   });
 
   draw();
+  window.requestAnimationFrame?.(scrollToCards);
   if (S.status === 'dirty') queueSave(500);
   else refreshPreview();
 }
