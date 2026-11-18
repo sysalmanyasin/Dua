@@ -1,13 +1,12 @@
 # Roadmap — remaining work
 
-**Status snapshot:** 13 November 2026. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the integrated/live/branch distinction. Items below are remaining work, not a list of all planned features.
+**Status snapshot:** 13 November 2026 (Inventory entries updated 17 November 2026). See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the integrated/live/branch distinction. Items below are remaining work, not a list of all planned features.
 
 ## P0 — Reconcile live state with Git before more releases
 
-1. **Integrate Inventory's live source changes.** Review `module/inventory` against current `main`; bring in migrations 0301–0304, Edge Function v14, tests and current progress docs. The progress file says these changes are already applied live. Do not re-apply them; verify source hashes, registry versions and deployed function before merging.
-2. **Run current main checks** after integration: `npm run verify`, `bash supabase/tests/run.sh`, and confirm the GitHub Actions run is green.
-3. **Real backup restore drill.** Download a real encrypted Drive backup and restore into a separate empty Supabase project. The local 39/39 restore test is not a substitute for this.
-4. **Owner security housekeeping:** revoke any GitHub token pasted into chat or otherwise exposed; rotate any credential that may have been exposed. Confirm the backup environment secrets are current.
+1. **Run current main checks:** `npm run verify`, `bash supabase/tests/run.sh`, and confirm the GitHub Actions run is green.
+2. **Real backup restore drill.** Download a real encrypted Drive backup and restore into a separate empty Supabase project. The local 39/39 restore test is not a substitute for this.
+3. **Owner security housekeeping:** revoke any GitHub token pasted into chat or otherwise exposed; rotate any credential that may have been exposed. Confirm the backup environment secrets are current.
 
 ## P1 — Before relying on the app day to day
 
@@ -19,10 +18,8 @@
 ## P2 — Finish active modules
 
 ### Inventory
-- I-B: phone-local product copy, feed paging/recovery and reorder maths with shared golden fixtures.
-- I-C: Inventory reports/screens (Stock Ledger, Excess, Reorder, Health) and exports.
-- I-D: Home summary numbers, permission review and egress review.
-- Complete source integration first; the live feed is not the same thing as completed Inventory screens.
+- Done and live (17 Nov 2026): phone-local copy, delta feed, Stock Ledger, Reorder, Excess Working, Health, Sync, Home stock row, Excel / PDF / CSV exports.
+- Left: real-phone check of the PDF print dialog; remove the old-call fallback in the sync function after a few clean days; check the failed-sync count after a few days at minute 0; consider an owner alert after repeated failed syncs (today the feed watchdog alerts after 3 hours without a success).
 - STR is a separate module (route `/str`, migration range 0500–0599) and follows the Inventory interfaces.
 
 ### Closing

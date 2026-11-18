@@ -41,7 +41,7 @@ A Claude session remembers nothing from another session. The repository is the o
   - `sysalmanyasin/Random` — Audit Hub (stock audits, barcode, expiry, Android app).
 - **No data import from the old apps.** We copy **rules, structure and layout** only. New modules start empty. Where a module needs a running balance (carried closing values, staff credit balance, petty cash balance), it provides an **opening-balance entry** screen/function instead. (The Sales history import done earlier is a finished one-off and is not repeated.)
 - **Inventory data** still comes from Candela → Dropbox → an Edge Function → Supabase tables. Candela stays the source of truth (D-07). The sync function moves into this project (Foundation task F3), and only the **latest** stock is kept (§8.4).
-- **Status of the foundation:** login, roles, permissions, shell, router, module loader and Sales are integrated; Manager is integrated; Closing has a partial guided ledger; Inventory's base feed is live and its enhanced feed source is awaiting integration from `module/inventory`. See `docs/PROJECT_STATUS.md`, `PROJECT_PROGRESS.md` and each module progress file.
+- **Status of the foundation:** login, roles, permissions, shell, router, module loader and Sales are integrated; Manager is integrated; Closing has a partial guided ledger; Inventory is complete and integrated (feed, six screens, Home numbers and exports). See `docs/PROJECT_STATUS.md`, `PROJECT_PROGRESS.md` and each module progress file.
 
 ---
 

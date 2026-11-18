@@ -1,6 +1,6 @@
 # Inventory — progress
 
-Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0306 and the Edge Function are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026, 0306 on 16 Nov 2026; owner instruction: "apply by yourself"). The Inventory overview screen goes live with the merge of this branch to `main` (owner instruction, 14 Nov 2026).
+Branch `module/inventory` (fully merged into `main`; the branch can be deleted). Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0307 and the Edge Function (v23) are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026, 0306 on 16 Nov 2026, 0307 and function v23 on 17 Nov 2026; owner instruction: "apply by yourself"; `0307` was applied by hand and registered). All six screens, the Home stock numbers and the Excel / PDF / CSV exports are on `main`. **Status: complete (17 Nov 2026)**; what is left is listed at the end of this file.
 
 ## Session I-A (12 Nov 2026)
 
@@ -29,7 +29,7 @@ Branch `module/inventory`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`
 | `0303` | heartbeat log row (see "Found while applying") | hash equal; 3 mutations caught |
 | `0304` | renumber counters 1..N and unique counter indexes (see "Found while applying") | 5,883 distinct counters, indexes present |
 | `0305` (14 Nov) | `pack_valid` flag (INV-18) | all 12 function hashes equal the repo; 5,911 of 5,911 stored hashes consistent; upgrade path rehearsed on 6,000 products (identical sync unchanged in both payload shapes, flagging 100 products writes exactly 100 rows and moves only the stock counter); 5 mutations caught |
-| Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`; v21 on 14 Nov adds one retry on a statement timeout) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
+| Edge Function `sync-inventory-from-dropbox` (v14 on 12 Nov; v20 on 14 Nov adds `pack_valid`; v21 on 14 Nov adds one retry on a statement timeout; v22 and v23 on 17 Nov add the whole-body call `inventory_apply_sync_body` from migration 0307, with a fallback to the old call if it is missing) | hash shortcut, busy/refused answers, pack flag | `verify_jwt` stays `false`; ran from the same call as the hourly job; v20 differs from v14 by exactly two lines. Versions 15–19 were deployed by someone else in between; the function file on `main` never changed after F3 except through this branch, so no repository change was overwritten |
 
 Live registry: Foundation `0001`–`0013`, Closing `02xx`, Inventory `0301`–`0306`, STR `0500`–`0504`, e-bill `06xx`, Candela history `0900`. Foundation completed F6 (`0009`, `0011`, `0012`) between my first and second apply; those files live on `origin/foundation/operations-hardening` and are not on `main` yet. They do not conflict with mine (different numbers and files).
 
@@ -107,7 +107,9 @@ Six hourly syncs have ever failed with "canceling statement due to statement tim
 - Left to the owner: moving the hourly job a few minutes past the hour (for example `:05`) would also avoid the backup minute and the `:00` watchdog. I did not change the schedule because Candela's export time is not known to me.
 - Check later: if timeouts continue after v21 (look for failed rows in `inventory_sync_log`), the next step is to look at the server's own logs for what runs at those minutes.
 
-### Update 17 Nov 2026: the timeouts are not solved, and the retry did not fix them
+### Update 17 Nov 2026: the timeouts: diagnosis, the fix (`0307`) and the cron history
+
+**Solved by `0307` and function v23 (see "Fix for the timeouts" below).** The first part of this section is the diagnosis as it stood before the cause was found, kept as the record; its "root cause not found" and its options (1)–(3) are superseded.
 
 Nine hourly syncs have now failed with "statement timeout" since 12 Nov (about 7% of runs); every one kept the previous data and the next hour succeeded; no alert was raised.
 - **The retry (v21, 14 Nov 12:30) runs but does not help.** Before it, failures were logged 27–42 s after the hour; after it, 43–56 s: the first attempt times out at 8 s, the function waits 5 s, the second attempt times out too (the Postgres log shows two timeout errors 26 s apart at 16 Nov 02:00). So when the database is slow it stays slow for more than 13 s; it is not a momentary blip.
@@ -129,6 +131,12 @@ Nine hourly syncs have now failed with "statement timeout" since 12 Nov (about 7
 2. **INV-18, keep the raw pack signal (option b): built.** `0305` adds `pack_valid` (stock group, in the row hash, last column `packValid` of the stock feed). The Edge Function sends it (true when the file's pack size is a real number above zero); `conversion_factor` is unchanged (1 when missing), so existing readers keep working. The ledger treats `packValid: false` as a pack issue; the screen says "pack size unknown" instead of inventing a pack breakdown.
    **Finding on the live data:** after the first full pass only **one** active product has an unusable pack size in the Candela file (stock worth Rs 69,300). The 2,706 in-stock products with pack size 1 (Rs 14.0M) really are single-unit packs, so the Dead Stock and Never Sold numbers were sounder than the earlier worry suggested. The flag now guards every future sync.
 3. **Go live:** merged to `main` on 14 Nov 2026 by the Inventory session on the owner's instruction, after every gate passed on the merged tree.
+
+### Owner decisions (17 Nov 2026)
+
+1. **INV-19, exports: Excel, PDF and CSV on Stock Ledger, Reorder and Excess Working.** Excel has values only, no formulas (the old app's formulas are not carried over); PDF goes through the browser's print dialog, landscape, first 1,500 rows with a note pointing to the Excel file; CSV is unchanged. Built (`domain/xlsx.js`, `ui/export.js`, `ui/print.js`).
+2. **INV-20, Home shows a Stock row:** stock value, to reorder, not selling, excess, each opening the page that explains it, for people with `inventory.view`. If the call fails the row is left out and the rest of Home is unchanged. Built (three small Foundation files, changed with the owner's approval: `home/data/api.js`, `home/domain/cover.js`, `home/ui/page.js`).
+3. **INV-21, hourly sync stays at minute 0.** Minute 7 was tried for a few hours on 17 Nov and reversed on the owner's instruction (see "Cron history" above).
 
 ### Requests for Foundation (I may not edit these files)
 
@@ -175,7 +183,14 @@ Decisions (owner, 12 Nov 2026) on **STR-Q1** and its consequences:
 
 ## Still to do (next sessions)
 
-All Inventory screens are built and live (I-A to I-D). Home now shows the stock numbers and every report exports to Excel, PDF and CSV (this pull request). What remains is the first real-phone check, including the PDF print dialog on the phones the team actually uses.
+Inventory is complete (I-A to I-D): the feed, six screens, the Home stock numbers and the Excel / PDF / CSV exports are live on `main`. The owner reported on 17 Nov 2026 that everything was checked and works. Because the Home and export code had first been merged into the wrong branch (see the RUNBOOK incident log) and was then re-merged to `main`, it is worth one more look on the live site that the Home Stock row and the Excel / PDF / CSV buttons are present.
+
+Small items that remain:
+1. After a few clean days at minute 0, remove the old-call fallback in `supabase/functions/sync-inventory-from-dropbox/index.ts` (a small edit, then redeploy and update the version here).
+2. Check `inventory_sync_log` for failed rows a few days after 17 Nov, and that the slowest `inventory_apply_sync_body` call stays well under the 8-second limit.
+3. Find out when Candela writes the Dropbox file; it is still unknown.
+4. Consider an owner alert after repeated failed syncs (today the feed watchdog alerts after 3 hours without a success).
+5. Delete the merged branches `module/inventory`, `foundation/inventory-feed` and `design/inventory-delta-sync`.
 
 ## Handoff
 See the brief, §10.

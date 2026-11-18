@@ -34,11 +34,11 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. GitHub Actio
 - The historical Sales import covered 2,379 days. The project record says 2,378 totals reproduce exactly under the signed rule; 79 of 80 monthly totals matched, with the documented September 2026 difference of 5,674.
 - Closing uses hand-worked fixtures in `tests/fixtures/closing-cases.json` and `closing-period-cases.json`; database and JavaScript calculations are compared against those fixtures.
 - Manager credit maths uses `tests/fixtures/manager-credit-cases.json` in both SQL and browser tests.
-- Inventory's delta-feed tests include paging, permissions, tombstones, removal guard, heartbeat and unique sequence counters. See `docs/modules/inventory.progress.md`; the progress record is mirrored on `main`, while the implementation source remains on `module/inventory`.
+- Inventory's delta-feed tests include paging, permissions, tombstones, removal guard, heartbeat and unique sequence counters. The 17 Nov additions are `tests/unit/inventory-xlsx.test.js` (the Excel writer: zip checksums, XML, text-never-a-formula, leading zeros, Unicode, sheet names), `tests/unit/inventory-export.test.js` (file names, export kinds, print limit and number formatting), the Excel / PDF cases in `tests/unit/inventory-screens.test.js`, and the Stock row cases in `tests/unit/cover.test.js`. The database test for `0307` is `supabase/tests/0307_inventory_apply_body_test.sql`. See `docs/modules/inventory.progress.md`.
 
 ## Live verification recorded
 
-- Inventory progress reports migrations 0301–0304 and Edge Function v14 applied and verified on DuaPharmaPlus on 12 Nov 2026, with hourly sync checks and a full first-install feed test. The source branch still needs integration into `main`.
+- Inventory migrations 0301–0304 and Edge Function v14 were applied and verified on DuaPharmaPlus on 12 Nov 2026, with hourly sync checks and a full first-install feed test. Migrations 0305–0306 followed. On 17 Nov 2026 `0307` and Edge Function v23 were applied; the live function body matches the file (same length and hash), the function is granted to the service role only, and five scheduled syncs in a row succeeded afterwards. The `0307` database test file has **not** been run against a database yet (no local Postgres was available when it was written); run `bash supabase/tests/run.sh` before treating it as passed.
 - Manager progress reports migrations 0101–0103 applied and checked live on 13 Nov 2026.
 - Foundation progress reports the first successful encrypted Drive backup on 13 Nov 2026.
 - A local backup restore round-trip passed 39/39 checks. This does **not** prove restoration from an actual Drive backup into a separate Supabase project.
