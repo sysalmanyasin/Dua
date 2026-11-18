@@ -45,7 +45,7 @@ select public.set_user_permission('00000000-0000-0000-0000-0000000000c2', 'audit
 reset role;
 
 create table public.fx_items (scope text, ord int, code text, name text, company text, qty numeric, price numeric);
-create function public.inventory_products_for_scope(p_scope jsonb)
+create or replace function public.inventory_products_for_scope(p_scope jsonb)
 returns table (code text, name text, company text, qty numeric, price numeric) language sql as $$
   select f.code, f.name, f.company, f.qty, f.price from public.fx_items f where f.scope = p_scope ->> 'fx' order by f.ord $$;
 insert into public.fx_items values ('t', 1, 'P1', 'Lower one', 'apple', 1, 1), ('t', 2, 'P2', 'Upper one', 'Zed', 1, 1),

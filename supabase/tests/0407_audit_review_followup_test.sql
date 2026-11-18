@@ -45,7 +45,7 @@ select public.set_user_permission('00000000-0000-0000-0000-0000000000d1', 'audit
 select public.set_user_permission('00000000-0000-0000-0000-0000000000d1', 'audit.suggest', 'grant', 'test');
 reset role;
 
-create function public.inventory_products_for_scope(p_scope jsonb)
+create or replace function public.inventory_products_for_scope(p_scope jsonb)
 returns table (code text, name text, company text, qty numeric, price numeric) language sql as $$
   select v.code, v.name, v.company, v.qty, v.price from (values
     ('A1', 'Alpha one', 'Acme', 10::numeric, 100.50::numeric), ('A2', 'Alpha two', 'Acme', 5::numeric, 20::numeric),

@@ -84,7 +84,7 @@
 - Counting screen: "Last round: counted X", "New product since the last round", "Same as last" button.
 - Individual Audit is one rolling engagement per month (as in the old app), one round per self-pick.
 - Tests: DB 0408 (28 checks) with an Inventory stub.
-- **Still missing in the live Inventory:** `inventory_products_for_scope(jsonb)` (and `inventory_companies()` for a picker). Until then creating rounds, Individual Audits and follow-ups refuses with `inventory_interface_missing`.
+- `0308_inventory_products_for_scope.sql` (applied live 18 Nov 2026) now provides `inventory_products_for_scope(jsonb)` and `inventory_companies()`, so rounds, Individual Audits and follow-ups can be created. Audit DB tests replace it with a stand-in (`create or replace`); 0401 drops the real one inside its own transaction to test the missing-interface message.
 
 ## Next
 - B2: Final Snapshot, reports with print / PDF, audit trail view, owner alerts.

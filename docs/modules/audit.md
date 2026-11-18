@@ -137,7 +137,7 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 
 **Consumes**
 - `inventory_search(p_text, p_limit, p_offset)` and `inventory_balances(p_codes)`: on `main` (`0301`/`0302`).
-- `inventory_products_for_scope(p_scope jsonb)`: **not built yet** (Inventory slice I4). Until it exists, slices A1–A4 use fixtures; creating a real round waits for it. **Request to Inventory/owner:** confirm its shape (capped product list with code, name, company, qty, retail price).
+- `inventory_products_for_scope(p_scope jsonb)` and `inventory_companies()`: on `main` once PR #31 merges (`0308`, applied live 18 Nov 2026). Scope shapes: `{type:'full'}`, `{type:'selected'|'single',companies:[...]}`, `{type:'template',codes:[...]}`; a scope that names nothing returns nothing.
 - Core: `staff`, `profiles`, `has_perm`, `log_activity`, `notify_owner`, `set_user_permission`, `settings`.
 
 **Provides:** nothing to other modules yet.
