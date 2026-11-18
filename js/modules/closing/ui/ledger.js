@@ -903,7 +903,6 @@ export async function mount(el, { ctx } = {}) {
       ? shiftSaleOverride : calculatedShiftSale;
     const shownCustomers = customersOverride !== null && !Number.isNaN(customersOverride)
       ? customersOverride : calculatedCustomers;
-    set('shiftInfo', `${money(shownShiftSale)} · ${shownCustomers}`);
     set('till', money(rupees(t.till), { decimals: true }));
     set('vault', money(rupees(t.vault), { decimals: true }));
     set('debt', money(rupees(t.debt), { decimals: true }));
@@ -911,11 +910,10 @@ export async function mount(el, { ctx } = {}) {
     const p = S.preview;
     if (p && S.status === 'saved') {
       set('netSale', money(p.net_sale, { decimals: true }), p.net_sale < 0);
-      set('shiftInfo', `${money(p.shift_sale, { decimals: true })} · ${p.customers}`);
     } else {
       set('netSale', S.status === 'saved' ? '–' : 'updates after saving');
-      set('shiftInfo', '–');
     }
+    set('shiftInfo', `${money(shownShiftSale)} · ${shownCustomers}`);
     if (p && S.status === 'saved') {
       const fig = previewFigures(p, S.period, S.form, S.mode);
       Object.entries(fig).forEach(([k, v]) => set(k, v.text, v.neg));
