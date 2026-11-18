@@ -11,8 +11,8 @@
   border-radius: 20px;
   color: #fff;
   background:
-    radial-gradient(circle at 85% 15%, rgb(24 169 153 / 34%), transparent 34%),
-    linear-gradient(120deg, #101b2d 0%, #172c45 54%, #0e625e 100%);
+    radial-gradient(circle at 85% 15%, rgb(59 130 246 / 32%), transparent 34%),
+    linear-gradient(120deg, #142b4a 0%, #1b3b63 54%, #2563eb 100%);
   box-shadow: 0 12px 30px rgb(16 27 45 / 16%);
 }
 
@@ -44,7 +44,7 @@
 }
 
 .home-eyebrow {
-  color: #9ee6dc;
+  color: #bfdbfe;
   margin-bottom: 10px;
 }
 
@@ -63,7 +63,7 @@
 
 .home-dot {
   padding: 0 7px;
-  color: #8be0d5;
+  color: #bfdbfe;
 }
 
 .home-welcome-mark {
@@ -76,7 +76,7 @@
   margin-right: 4%;
   border: 1px solid rgb(255 255 255 / 24%);
   border-radius: 24px;
-  color: #b9f1e9;
+  color: #dbeafe;
   background: rgb(255 255 255 / 8%);
 }
 
@@ -615,3 +615,6 @@
     transition: none;
   }
 }
+
+/* Navigation is global; Home stays focused on business intelligence. */
+.home-module-grid,.home-search-section{display:none}

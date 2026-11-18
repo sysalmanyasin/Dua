@@ -5,12 +5,12 @@
 
 ## Implemented
 
-- Responsive navy/teal welcome panel with the signed-in person's greeting, branch and Pakistan business date.
+- Responsive navy/blue welcome panel with the signed-in person's greeting, branch and Pakistan business date.
 - Business snapshot from the existing `cover_summary()` RPC; the database remains the authority for which sales figures are returned.
 - Inventory snapshot from `inventory_cover_summary()`, requested only when the person has `inventory.view`.
-- Universal search across the page routes supplied by the permission-filtered module registry.
+- Navigation search is not duplicated on Home; global navigation is the primary route to modules.
 - Quick actions derived from accessible create/entry routes.
-- Expandable module explorer with page-level shortcuts.
+- Module exploration moved into the persistent, permission-filtered application navigation.
 - Daily progress based only on checklist and sales facts returned by the existing summary.
 - Existing attention signals, with action links gated by the permissions needed for their destination.
 - Per-device favourites, capped at 12 and revalidated against the current user's accessible routes.
@@ -30,7 +30,7 @@
 
 The current Home data contracts do not provide a permission-safe business activity feed or a verified branch-operational-status signal. Therefore, a Recent Activity feed and an online/open business status indicator are not displayed. Adding those requires an explicit, permission-checked data contract; the Home page must not read the raw audit log or invent status.
 
-Favourites are stored on the current device, not synchronized between devices. Recently visited pages are not recorded because the existing shell does not expose a page-visit hook and changing the foundation shell is outside this module's approved scope.
+Favourites are stored on the current device, not synchronized between devices. Recently visited pages are not yet recorded; this redesign keeps the Home focused on business information rather than module discovery.
 
 ## Verification
 

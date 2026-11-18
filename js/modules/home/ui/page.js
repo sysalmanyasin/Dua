@@ -1,4 +1,4 @@
-// Dua Home 2.0 — permission-aware business command centre.
+// Dua Home 2.0 — executive business overview; navigation lives in the application shell.
 import { html, render } from '../../../shared/html.js';
 import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
@@ -13,7 +13,6 @@ import {
   buildTiles,
   greeting,
   hourInPkt,
-  searchPages,
 } from '../domain/cover.js';
 
 const arrow = (value) => (value === null ? '' : `${value >= 0 ? '▲' : '▼'} ${Math.abs(value).toFixed(1)}%`);
@@ -101,7 +100,6 @@ export async function mount(el, { ctx, modules = [] }) {
     .split(/\s+/)[0];
   const hour = hourInPkt();
   const tiles = buildTiles(modules);
-  const quick = buildQuickActions(modules);
   const allPages = tiles.flatMap((group) => group.pages.map((page) => ({ ...page, module: group.title })));
   const validHrefs = new Set(allPages.map((page) => page.href));
   const prefKey = `dua.home.favourites.${String(ctx.username ?? 'user')}`;
@@ -111,7 +109,7 @@ export async function mount(el, { ctx, modules = [] }) {
     <div class="home-welcome-copy">
       <div class="home-eyebrow">${BRAND.title} · ${BRAND.branch}</div>
       <h1>${greeting(hour)}, ${first}</h1>
-      <p>${longDate(todayPkt())} <span class="home-dot">•</span> Your business at a glance</p>
+      <p>${longDate(todayPkt())} <span class="home-dot">•</span> Executive business overview</p>
     </div>
     <div class="home-welcome-mark" aria-hidden="true">${icon('home')}</div>
   </section>`;
@@ -176,21 +174,6 @@ export async function mount(el, { ctx, modules = [] }) {
     );
   };
 
-  const renderSearch = (query) => {
-    const host = el.querySelector('#home-search-results');
-    if (!host) return;
-
-    const matches = searchPages(modules, query);
-    render(
-      host,
-      query.trim()
-        ? matches.length
-          ? html`<div class="home-search-list">${matches.map((page) => pageRow(page, favourites))}</div>`
-          : html`<p class="home-empty">No accessible page matches “${query.trim()}”.</p>`
-        : html`<p class="home-search-hint">Search only includes pages you are allowed to open.</p>`,
-    );
-  };
-
   render(
     el,
     html`${head}
@@ -226,76 +209,6 @@ export async function mount(el, { ctx, modules = [] }) {
             </section>`
           : ''
       }
-      <section class="home-section home-search-section">
-        <div class="home-section-head">
-          <div>
-            <span class="home-kicker">FIND IT FAST</span>
-            <h2>Search Dua</h2>
-          </div>
-        </div>
-        <label class="home-search-box">
-          <span class="sr-only">Search accessible pages and actions</span>
-          <span class="home-search-icon" aria-hidden="true">⌕</span>
-          <input id="home-search" type="search" autocomplete="off" placeholder="Search modules, pages and tasks…" />
-          <kbd>⌕</kbd>
-        </label>
-        <div id="home-search-results" aria-live="polite">
-          <p class="home-search-hint">Search only includes pages you are allowed to open.</p>
-        </div>
-      </section>
-      ${
-        quick.length
-          ? html`<section class="home-section">
-              <div class="home-section-head">
-                <div>
-                  <span class="home-kicker">ONE-TAP ACCESS</span>
-                  <h2>Quick actions</h2>
-                </div>
-              </div>
-              <div class="home-quick-grid">
-                ${quick.map(
-                  (page) =>
-                    html`<a class="home-quick" href="${page.href}">
-                      <span class="home-quick-icon" aria-hidden="true">↗</span>
-                      <strong>${page.title}</strong>
-                      <small>${page.module}</small>
-                    </a>`,
-                )}
-              </div>
-            </section>`
-          : ''
-      }
-      <section class="home-section">
-        <div class="home-section-head">
-          <div>
-            <span class="home-kicker">YOUR WORKSPACE</span>
-            <h2>Explore modules</h2>
-          </div>
-          <span class="home-count">${tiles.length} available</span>
-        </div>
-        ${
-          tiles.length
-            ? html`<div class="home-module-grid">
-                ${tiles.map(
-                  (group) =>
-                    html`<details class="home-module">
-                      <summary>
-                        <span class="home-module-icon">${icon(group.icon)}</span>
-                        <span class="home-module-copy">
-                          <strong>${group.title}</strong>
-                          <small>${group.pages.length} accessible page${group.pages.length === 1 ? '' : 's'}</small>
-                        </span>
-                        <span class="home-module-chevron">⌄</span>
-                      </summary>
-                      <div class="home-module-pages">
-                        ${group.pages.map((page) => pageRow({ ...page, module: group.title }, favourites))}
-                      </div>
-                    </details>`,
-                )}
-              </div>`
-            : html`<p class="home-empty">No additional modules are currently available to this account.</p>`
-        }
-      </section>
       ${
         progress.length
           ? html`<section class="home-section">
@@ -372,7 +285,6 @@ export async function mount(el, { ctx, modules = [] }) {
   );
 
   renderFavourites();
-  el.querySelector('#home-search')?.addEventListener('input', (event) => renderSearch(event.target.value));
 
   const syncPins = () => {
     el.querySelectorAll('[data-pin]').forEach((button) => {
