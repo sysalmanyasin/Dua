@@ -27,7 +27,7 @@ export function buildLifetimeSales(rows, todayIso) {
   const currentMonth = String(todayIso ?? '').slice(0, 7);
   const months = rows.filter((row) => {
     const key = String(row.month ?? '').slice(0, 7);
-    return /^\\d{4}-\\d{2}$/.test(key) && key >= '2020-04' && (!currentMonth || key <= currentMonth);
+    return /^\d{4}-\d{2}$/.test(key) && key >= '2020-04' && (!currentMonth || key <= currentMonth);
   });
   if (!months.length) return null;
   return {
