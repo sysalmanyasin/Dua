@@ -13,8 +13,8 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Foundation, authentication, permissions and Sales | Integrated; live |
 | Manager | Integrated; migrations 0101–0103 applied and checked live; owner phone try-out pending |
 | Closing | Integrated; guided ledger is partially implemented; submit, remaining sections and ledgers still pending |
-| Candela / Dropbox inventory feed | Base feed live; enhanced feed 0301–0304 and Edge Function v14 are live according to Inventory progress, but their source changes are not yet integrated into `main` |
-| Inventory screens and local product copy | In progress on `module/inventory` |
+| Candela / Dropbox inventory feed | Integrated and live: hourly changed-rows-only sync (migrations 0301–0307, Edge Function v23) |
+| Inventory screens and local product copy | Integrated and live: Overview, Stock Ledger, Reorder, Excess Working, Health, Sync; a Stock row on Home; Excel, PDF and CSV exports |
 | Daily encrypted backups | Workflow live; first successful Drive backup recorded 13 Nov; real Drive-to-separate-Supabase restore drill still pending |
 | Candela Sales | Integrated; migration 0900 applied and checked live 14 Nov; owner phone try-out pending |
 | STR, Audit Hub, Emergency Billing, unified Reports, assistant and Android widgets | Planned / later phases |

@@ -47,7 +47,7 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 - **Sales:** implemented; see the User Guide for available pages.
 - **Manager:** Staff Registry and Staff Credit are implemented. Migrations 0101–0103 are live. Owner phone acceptance and later slices (including payslips and petty cash) remain outstanding. See `docs/modules/manager.progress.md`.
 - **Closing:** partially implemented. The guided ledger is in progress; remaining sections, submit flow, ledgers and print are not complete. See `docs/modules/closing.progress.md`.
-- **Inventory:** Candela feed is live; enhanced feed migrations 0301–0304 and Edge Function v14 are reported live, but their source changes still need integration into `main`. Inventory screens/local copy are incomplete. Do not reapply those live migrations.
+- **Inventory:** live and complete. The Candela feed syncs every hour (migrations 0301–0307, Edge Function v23). Screens: Overview, Stock Ledger, Reorder, Excess Working, Health, Sync. Home shows a Stock row to people with `inventory.view`. Reports export to Excel, PDF and CSV. Do not reapply the migrations. The sync schedule is a pg_cron job (`inventory-hourly-sync`); see `docs/RUNBOOK.md`.
 
 ## 3. Sales settings
 - **Sales → Fields (Manage Fields):** add your own bank or client column, rename a field, tick whether it appears on the Add Entry page, move it up/down, or **switch it off** (kept in history, not usable for new days). Once a field has saved figures its **type (adds / deducts / info only) and section cannot change**; hide it and add a new field instead.

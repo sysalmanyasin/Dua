@@ -1,6 +1,6 @@
 # Inventory sync and reads: change-only design (egress-safe)
 
-Status: **Proposed (revision 2), awaiting owner approval. Nothing here is built yet.**
+Status: **Approved and built (17 Nov 2026).** This is revision 2 of the design as it was proposed on 11 Nov; section 11 lists what was built and where it differs. Sections 1–10 are kept as the original reasoning.
 Applies to: the Inventory module (migrations `0301`–`0399`; the feed itself was Foundation F3 in `0009`) and Inventory Part B (screens). Work order: `docs/modules/inventory.next-session.md`.
 Revision 2 replaces revision 1 after reading the old BT-Sale-Data2 inventory code, the Android widgets, the briefing function and the reports.
 
@@ -138,3 +138,20 @@ Per device per month: about 15 MB for a reports user, about 3 MB for a counter u
 | INV-13 | Scope of "inventory related": Inventory module first; STR as its own session after the interfaces exist | **Ask owner** |
 | INV-14 | Product-level sales quantities and values may sit on the phones of users who hold `inventory.view` | **Ask owner** |
 | INV-15 | The local copy is wiped at sign-out | **Proposed** |
+
+## 11. As built (17 Nov 2026)
+
+| Piece | Migration | What it does |
+|---|---|---|
+| Interfaces first | `0301` | `inventory_balances` and the other published reads |
+| Changed-rows feed | `0302` | row hashes, per-group counters, tombstones; `inventory_apply_sync` writes only rows whose hash differs |
+| Heartbeat | `0303` | a scheduled "checked, file unchanged" check writes one `ok/unchanged` log row, so Foundation's 3-hour watchdog does not see a healthy feed as dead |
+| Unique counters | `0304` | counter renumbering found while applying |
+| Pack flag | `0305` | `pack_valid` in the feed (decision INV-18) |
+| Reports | `0306` | `inventory_in_transit()`, the shared Excess retain list and settings, `inventory_cover_summary()` for Home |
+| Whole-body entry point | `0307` | `inventory_apply_sync_body(jsonb)`: one unnamed jsonb parameter, so the 6.7 MB body is not re-parsed by PostgREST before the function starts (that parse was a mean 4.8 s of the 8 s limit); options travel in `meta`; it calls `inventory_apply_sync` unchanged; service role only |
+
+- **Edge Function** `sync-inventory-from-dropbox` v23: layer 1 (content hash) as designed; calls `inventory_apply_sync_body`; falls back to the old call if `0307` is missing (remove after a few clean days); one retry after a statement timeout (v21; it did not help, the real cause was the body parse).
+- **Schedule:** pg_cron job `inventory-hourly-sync`, every hour at minute 0 (see `docs/RUNBOOK.md`, "Inventory hourly sync").
+- **The caveat in section 5.1 was answered by real runs:** the first five hourly syncs on 12 Nov each changed only 41–68 of about 5,883 products (before `0302` every sync rewrote all of them), so layers 2 and 3 do the saving even when the file itself changes every hour.
+- **Phones** read the changed-rows feed into a local copy (IndexedDB) and run the report maths there; the screens and the egress review are in `docs/modules/inventory.progress.md`.

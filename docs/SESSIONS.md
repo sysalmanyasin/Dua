@@ -7,7 +7,7 @@ Three Claude sessions run at the same time. Sessions have no memory (MODULES.md 
 
 | # | Session | Branch | Migrations | Prefix | Work order (read this first) | First deliverable |
 |---|---|---|---|---|---|---|
-| 1 | **Inventory** (feed, interfaces, screens) | `module/inventory` | `0300`–`0399` | `inventory_` | `docs/modules/inventory.next-session.md` | Published interfaces (`inventory_balances` etc.), then the delta feed |
+| 1 | **Inventory** (feed, interfaces, screens, reports) | merged into `main` (17 Nov 2026) | `0300`–`0399` | `inventory_` | `docs/modules/inventory.progress.md` | Complete. Published interfaces (`inventory_balances` etc.), delta feed, six screens, Home numbers, exports |
 | 2 | **Closing** (shifts, ledgers, books) | `module/closing` (exists) | `0200`–`0299` | `closing_` | `docs/modules/closing.next-session.md` (on that branch) | Hardening migration `0203`, then the first screens |
 | 3 | **Manager** (staff and finance, owner only) | `module/manager` (create it) | `0100`–`0199` | `mgmt_` | `docs/modules/manager.next-session.md` | Staff Registry and the credit ledger |
 

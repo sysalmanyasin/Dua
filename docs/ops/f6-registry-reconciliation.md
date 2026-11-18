@@ -82,4 +82,14 @@ Only the registry is touched by Step 2, so there is no data to restore. Drop the
 
 ## Secrets
 Nothing in this file or in `0011` is a secret. Vault holds `inventory_sync_secret` today. F4/F7 add `ops_function_base_url` and `notify_drain_secret` (names only here; values are created by the owner in the dashboard and never written to Git or chat).
-\n\n## Status update — 13 Nov 2026\nThe core D-35 reconciliation is complete. The Inventory session subsequently reports migrations 0301–0304 applied and registered by repository version, and the live feed verified. At this date those source files are still on `module/inventory`, not `main`. Reconcile the branch and confirm the exact live registry before further migration work. Do not rerun 0301–0304 against the live database. See `docs/PROJECT_STATUS.md` and `docs/modules/inventory.progress.md`.
+
+## Status update — 13 Nov 2026
+The core D-35 reconciliation is complete. The Inventory session reported migrations 0301–0304 applied and registered by repository version, and the live feed verified. (Their source reached `main` afterwards; see the 17 Nov update.) Do not rerun them against the live database.
+
+## Status update — 17 Nov 2026 (registry compared with `main`)
+Read-only comparison of the live registry with `supabase/migrations/` on `main`:
+- **Matches:** every numbered file on `main` is registered under its repo number, including Inventory `0301`–`0307` (`0307` was applied by hand and registered on 17 Nov) and Audit `0401`–`0407`.
+- **`0214_closing_staff_see_all` was live and registered but its file was not on `main`** when this comparison was first made; the source was only on the unmerged branch `feature/closing-familiar-ux`. The Closing session then added the file to `main` (commit `bae4f90`, 17 Nov). The file is byte-identical to the branch copy, and the three functions it defines (`closing_can_read`, `closing_book_own`, `closing_saved_list`) were checked against the live database: same body length and hash, same grants. Do not rerun it (`closing_saved_list` is a plain `create function` and would fail).
+- **`0404_audit_split_order` was in the repo but not live on 13 Nov;** it is now registered, and the live `audit_assign_auto` body is identical to the file (same length and hash). Nothing to apply.
+- **Four registry rows have timestamp versions, the same pattern as D-35:** `20261117135131` (`1000_invoice_desk_core`), `20261117135645` (`1001_invoice_desk_integrity`), `20261117135716` (`1002_invoice_desk_amount_words_fix`) and `20261117140223` (`1003_invoice_desk_product_scope`). They were registered by a tool, not under the repo numbers `1000`–`1003`. They sort after the numbered rows, so Supabase's automatic apply may refuse new numbered files. They belong to the Invoice Desk work; renumbering them is the same kind of registry change as Step 2 above (back up first, owner approval).
+- **Reminder:** the backup table `supabase_migrations.schema_migrations_backup_20261112` was due to be dropped after one clean week (about 19 Nov 2026).
