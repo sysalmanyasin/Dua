@@ -6,6 +6,7 @@
 ## Implemented
 
 - Responsive navy/blue welcome panel with the signed-in person's greeting, branch and Pakistan business date.
+- Branded all-time cumulative-sales hero above the snapshot cards. It reads `v_monthly_full` only for `sales.view_history`, includes monthly-only history without double-counting, and totals from April 2020 through the current Pakistan month. A failed history read hides only the hero.
 - Business snapshot from the existing `cover_summary()` RPC; the database remains the authority for which sales figures are returned.
 - Inventory snapshot from `inventory_cover_summary()`, requested only when the person has `inventory.view`.
 - Navigation search is not duplicated on Home; global navigation is the primary route to modules.

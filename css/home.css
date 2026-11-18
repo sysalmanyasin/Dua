@@ -1,4 +1,166 @@
 /* Home 2.0 — styles are scoped to the Home module. */
+
+/* All-time sales hero: intentionally isolated from the other module cards. */
+.home-lifetime-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: clamp(18px, 3vw, 26px);
+  padding: clamp(20px, 3.5vw, 32px);
+  margin: 0 0 26px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 20px;
+  color: #fff;
+  background:
+    radial-gradient(ellipse at 88% 8%, rgb(45 212 191 / 24%), transparent 34%),
+    radial-gradient(ellipse at 8% 100%, rgb(245 190 90 / 13%), transparent 38%),
+    linear-gradient(118deg, #10243e 0%, #173b59 55%, #125c61 100%);
+  box-shadow: 0 14px 34px rgb(12 35 54 / 20%);
+}
+.home-lifetime-hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: 310px;
+  height: 310px;
+  right: -112px;
+  top: -180px;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgb(255 255 255 / 4%), 0 0 0 58px rgb(255 255 255 / 3%);
+}
+.home-lifetime-top,
+.home-lifetime-brand,
+.home-lifetime-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.home-lifetime-brand {
+  justify-content: flex-start;
+  min-width: 0;
+}
+.home-lifetime-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgb(255 255 255 / 24%);
+  border-radius: 13px;
+  color: #f5d28a;
+  background: rgb(255 255 255 / 9%);
+  font-size: 1.2rem;
+  font-weight: 850;
+  letter-spacing: -0.06em;
+}
+.home-lifetime-brand-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.home-lifetime-brand-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-lifetime-brand-copy small {
+  color: rgb(226 242 245 / 68%);
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+}
+.home-lifetime-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 7px 10px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 99px;
+  color: #e8fbf5;
+  background: rgb(255 255 255 / 8%);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.home-lifetime-pill i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6ee7b7;
+  box-shadow: 0 0 0 4px rgb(110 231 183 / 14%);
+}
+.home-lifetime-main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 7px;
+}
+.home-lifetime-label {
+  color: #f4d28d;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.16em;
+}
+.home-lifetime-main h2 {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  color: #fff;
+  font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+.home-lifetime-amount {
+  display: block;
+  color: #fff;
+  font-family: var(--mono);
+  font-size: clamp(1.8rem, 5.8vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.home-lifetime-main p {
+  margin: 0;
+  color: rgb(232 245 247 / 76%);
+  font-size: 0.82rem;
+}
+.home-lifetime-foot {
+  position: relative;
+  z-index: 1;
+  flex-wrap: wrap;
+  padding-top: 13px;
+  border-top: 1px solid rgb(255 255 255 / 15%);
+  color: rgb(232 245 247 / 72%);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+.home-lifetime-orbit {
+  position: absolute;
+  z-index: -1;
+  right: 8%;
+  bottom: 12%;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.home-lifetime-orbit-two {
+  right: 4%;
+  bottom: 2%;
+  width: 220px;
+  height: 220px;
+  border-color: rgb(255 255 255 / 6%);
+}
+
 .home-welcome {
   position: relative;
   overflow: hidden;

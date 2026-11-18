@@ -4,6 +4,7 @@ import {
   buildAlertItems,
   buildAttention,
   buildKpis,
+  buildLifetimeSales,
   buildStockCards,
   buildTiles,
   greeting,
@@ -26,6 +27,21 @@ describe('greeting', () => {
     expect([2, 9, 14, 19].map(greeting)).toEqual(['Good night', 'Good morning', 'Good afternoon', 'Good evening']);
     expect(hourInPkt(new Date('2026-11-05T18:30:00Z'))).toBe(23);
     expect(hourInPkt(new Date('2026-11-05T19:05:00Z'))).toBe(0);
+  });
+});
+
+describe('lifetime sales', () => {
+  it('adds daily and monthly-only history once, from April 2020 through the current month', () => {
+    expect(buildLifetimeSales([
+      { month: '2020-03-01', days: 31, total: 999 },
+      { month: '2020-04-01', days: 30, total: 1000 },
+      { month: '2020-05-01', days: 0, total: 250 },
+      { month: '2026-12-01', days: 31, total: 5000 },
+    ], '2026-11-18')).toEqual({ total: 1250, months: 2, recordedDays: 30 });
+  });
+  it('returns no hero when there are no eligible months', () => {
+    expect(buildLifetimeSales([], '2026-11-18')).toBeNull();
+    expect(buildLifetimeSales([{ month: '2020-03-01', total: 1 }], '2026-11-18')).toBeNull();
   });
 });
 
@@ -158,6 +174,7 @@ describe('Cover page', () => {
     coverSummary: (...a) => globalThis.__cover(...a),
     notificationsAttention: (...a) => globalThis.__alerts(...a),
     inventoryCover: (...a) => globalThis.__inv(...a),
+    lifetimeSalesMonths: (...a) => globalThis.__lifetime(...a),
   }));
   beforeEach(() => {
     document.body.innerHTML = '<div id="p"></div>';
@@ -166,6 +183,7 @@ describe('Cover page', () => {
     globalThis.__cover = api.coverSummary;
     globalThis.__alerts = async () => null;
     globalThis.__inv = async () => stockCover;
+    globalThis.__lifetime = async () => [{ month: '2026-11-01', days: 5, total: 1234567 }];
     api.coverSummary.mockImplementation(async () => full);
   });
   const ctx = {
@@ -203,6 +221,7 @@ describe('Cover page', () => {
     expect(el.textContent).not.toContain('This month so far');
     expect(el.textContent).not.toContain('Customers');
     expect(el.textContent).not.toContain('Manager');
+    expect(el.querySelector('.home-lifetime-hero')).toBeNull();
     expect(el.querySelectorAll('.home-module').length).toBe(1);
     expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/yesterday');
   });
@@ -237,6 +256,10 @@ describe('Cover page', () => {
     expect(t).toContain('₨ 614,758');
     expect(t).toContain('This month so far');
     expect(t).toContain('have not been entered');
+    expect(t).toContain('TOTAL CUMULATIVE SALES');
+    expect(t).toContain('₨ 1,234,567');
+    expect(t).toContain('Since April 2020');
+    expect(el.querySelector('.home-lifetime-hero').compareDocumentPosition(el.querySelector('.home-section')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
   });

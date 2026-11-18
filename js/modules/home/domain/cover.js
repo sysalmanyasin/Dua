@@ -20,6 +20,23 @@ export const hourInPkt = (now = new Date()) =>
 
 const pct = (now, before) => (before > 0 ? ((now - before) / before) * 100 : null);
 
+// Sum the same permission-protected monthly view used by the Sales Dashboard. The view
+// includes monthly-only history without double-counting months that have daily detail.
+export function buildLifetimeSales(rows, todayIso) {
+  if (!Array.isArray(rows)) return null;
+  const currentMonth = String(todayIso ?? '').slice(0, 7);
+  const months = rows.filter((row) => {
+    const key = String(row.month ?? '').slice(0, 7);
+    return /^\\d{4}-\\d{2}$/.test(key) && key >= '2020-04' && (!currentMonth || key <= currentMonth);
+  });
+  if (!months.length) return null;
+  return {
+    total: months.reduce((sum, row) => sum + (Number.isFinite(Number(row.total)) ? Number(row.total) : 0), 0),
+    months: months.length,
+    recordedDays: months.reduce((sum, row) => sum + (Number.isFinite(Number(row.days)) ? Number(row.days) : 0), 0),
+  };
+}
+
 // Cards appear only when the database summary contains data for this person's permissions.
 export function buildKpis(summary, perms = []) {
   const s = summary?.sales;
