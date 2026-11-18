@@ -379,7 +379,11 @@ export async function mount(el, { ctx } = {}) {
           label: 'Audit',
           title: `${roundLabel(round)} · review`,
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items`,
-          actions: html`<a class="btn btn-ghost btn-sm" href="#/audit/round">Back to the round</a>`,
+          actions: html`${
+              round.state === 'compiled' || round.state === 'final'
+                ? html`<a class="btn btn-sm" href="#/audit/final">${round.state === 'final' ? 'Final' : 'Final snapshot'}</a> `
+                : ''
+            }<a class="btn btn-ghost btn-sm" href="#/audit/round">Back to the round</a>`,
         })}
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''} ${progress()} ${compileCard()} ${results()}
         ${rowsCard()} ${correctionsCard()} ${conflictsCard()} ${nextCard()}

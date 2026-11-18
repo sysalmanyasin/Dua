@@ -86,5 +86,22 @@
 - Tests: DB 0408 (28 checks) with an Inventory stub.
 - `0308_inventory_products_for_scope.sql` (applied live 18 Nov 2026) now provides `inventory_products_for_scope(jsonb)` and `inventory_companies()`, so rounds, Individual Audits and follow-ups can be created. Audit DB tests replace it with a stand-in (`create or replace`); 0401 drops the real one inside its own transaction to test the missing-interface message.
 
+## Done (slice B2, Final Snapshot, reports, audit trail, owner alerts)
+- `supabase/migrations/0409_audit_final_reports.sql` (applied live 18 Nov 2026 as `0409_audit_final_reports`):
+  - `audit_finals` + `audit_final_lines`: the immutable snapshot (append-only, read through `audit_can_see_results`). A line keeps the compiled count (`counted_qty`) and the quantity that counts (`final_qty`); a settled conflict decides `final_qty`, and the line records which side was kept.
+  - `audit_finalize(round, version, note)`: owner only (`audit.finalize`). Refuses with `round_not_compiled`, `compile_stale` (a count or an approved correction is newer than the compile), `corrections_pending`, `conflicts_unresolved`, `round_final`, `version_conflict`. Header and lines are written in one statement; the round becomes `final`.
+  - Reads: `audit_final_overview`, `audit_final_lines_page` (paged, at most 1000, `total` on each row), `audit_report_engagement`, `audit_trail` (needs `audit.report`, `audit.review` or `audit.manage`, and membership; newest first, paged by id).
+  - Owner alerts by trigger (compile and submit functions untouched): `audit.submitted`, `audit.compiled`, `audit.conflict` (statement-level, only for new unsettled conflicts), `audit.finalized`. One alert per round while the earlier one is unacknowledged. Payloads carry only the dedupe key. Wording in `supabase/functions/_shared/ntfy.ts` and `js/shared/alerts.js`.
+  - **Fix to 0407:** `audit_conflict_resolve` refused when either round was final, so a conflict against an already-final earlier round could never be settled. Now only the round that owns the conflict (the one being compiled) blocks it.
+- App: `/audit/final` (make a compiled round final with a two-step confirm; after that totals, companies, conflict choices, lines with a differences filter, Print / Save as PDF, Download CSV) and `/audit/reports` (rounds with totals, who counted what, audit trail with Show older, Print / Save as PDF). The review page links to the final. `domain/report.js` builds the CSV (text cells starting with = + - @ get an apostrophe, numbers are left alone) and the trail wording; `ui/print.js` prints a separate block and removes it afterwards.
+- Tests: DB 0409 (about 55 checks: guards, snapshot values, conflict choice in the snapshot, immutability, alerts, access for member / non-member / counter); `tests/unit/audit-report.test.js`, `tests/unit/audit-final-pages.test.js`, alert wording in `notify-ntfy.test.js`.
+
+## Notes from B2
+- Print and PDF use the browser's print dialog (Save as PDF). The printed page lists the rows that differ; the CSV has every row.
+- A final round cannot be reopened or recounted. A later round can still be compiled against it and conflicts settled (the earlier final round is never changed).
+- `audit.report` is needed for Print and CSV (or `audit.review` / `audit.manage`). Anyone who can see the audit's results can read the final on screen.
+- Not built: charts, a combined report across several finals (rounds can overlap on the same product, so figures are shown per round), and the push-notification text for names or amounts (kept generic on purpose).
+
 ## Next
-- B2: Final Snapshot, reports with print / PDF, audit trail view, owner alerts.
+- PHONE 1 / PHONE 2 on real phones.
+- C1 / C2 (expiry log, barcode, hybrid counting) as in `audit.md`.

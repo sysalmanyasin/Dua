@@ -144,3 +144,28 @@ export const resolveConflict = ({ id, side, reason }) =>
   one(db().rpc('audit_conflict_resolve', { p_conflict: id, p_side: side, p_reason: reason }));
 export const nextRound = ({ key, baseRoundId, mode, sample = null, seed = null }) =>
   one(db().rpc('audit_round_next', { p_key: key, p_base_round: baseRoundId, p_mode: mode, p_sample: sample, p_seed: seed }));
+
+// ── final snapshot, reports and audit trail (migration 0409) ──
+/** Creates the Final Snapshot of a compiled round (owner only). The round can never change afterwards. */
+export const finalizeRound = ({ roundId, version, note }) =>
+  one(db().rpc('audit_finalize', { p_round: roundId, p_expected_version: version, p_note: note || null }));
+/** Totals, companies and conflict choices of a final round. Refuses with final_not_found before the final. */
+export const finalOverview = (roundId) => one(db().rpc('audit_final_overview', { p_round: roundId }));
+/** One page of the final lines (at most 1000). Each row also carries `total`, the count of rows that match. */
+export const finalLines = ({ roundId, onlyVariance = false, limit = 500, offset = 0 }) =>
+  one(db().rpc('audit_final_lines_page', { p_round: roundId, p_only_variance: onlyVariance, p_limit: limit, p_offset: offset }));
+/** Every final line of a round, for a file download. Asks page by page until a page comes back short. */
+export async function finalLinesAll(roundId, onlyVariance = false) {
+  const PAGE = 1000;
+  const out = [];
+  for (;;) {
+    const page = await finalLines({ roundId, onlyVariance, limit: PAGE, offset: out.length });
+    out.push(...page);
+    if (page.length < PAGE) return out;
+  }
+}
+/** One audit's report: rounds with totals, and who counted what. */
+export const reportEngagement = (engagementId) => one(db().rpc('audit_report_engagement', { p_engagement: engagementId }));
+/** One audit's trail, newest first. Pass the smallest id you already have as `before` for the next page. */
+export const auditTrail = ({ engagementId, limit = 100, before = null }) =>
+  one(db().rpc('audit_trail', { p_engagement: engagementId, p_limit: limit, p_before: before }));

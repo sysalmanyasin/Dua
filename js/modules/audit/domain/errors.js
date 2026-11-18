@@ -62,6 +62,10 @@ export const MESSAGES = {
   invalid_sample: 'The sample size must be between 1 and 1000.',
   suffix_exhausted: 'There are no more lettered rounds (A to Z) for this round.',
   too_many_companies: 'Pick 20 companies or fewer for one Individual Audit.',
+  compile_stale: 'Something changed after the last compile. Compile again, then create the final.',
+  corrections_pending: 'A correction is still waiting for a decision. Approve or reject it first.',
+  conflicts_unresolved: 'A conflict is not settled yet. Choose which count to keep for each one.',
+  final_not_found: 'This round has no final snapshot yet.',
   version_conflict: 'Someone else changed this. Reload and try again.',
 };
 
