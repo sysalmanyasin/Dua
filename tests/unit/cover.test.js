@@ -32,12 +32,13 @@ describe('greeting', () => {
 
 describe('lifetime sales', () => {
   it('adds daily and monthly-only history once, from April 2020 through the current month', () => {
-    expect(buildLifetimeSales([
+    const rows = [
       { month: '2020-03-01', days: 31, total: 999 },
       { month: '2020-04-01', days: 30, total: 1000 },
       { month: '2020-05-01', days: 0, total: 250 },
       { month: '2026-12-01', days: 31, total: 5000 },
-    ], '2026-11-18')).toEqual({ total: 1250, months: 2, recordedDays: 30 });
+    ];
+    expect(buildLifetimeSales(rows, '2026-11-18')).toEqual({ total: 1250, months: 2, recordedDays: 30 });
   });
   it('returns no hero when there are no eligible months', () => {
     expect(buildLifetimeSales([], '2026-11-18')).toBeNull();
@@ -259,10 +260,9 @@ describe('Cover page', () => {
     expect(t).toContain('TOTAL CUMULATIVE SALES');
     expect(t).toContain('₨ 1,234,567');
     expect(t).toContain('Since April 2020');
-    expect(
-      el.querySelector('.home-lifetime-hero').compareDocumentPosition(el.querySelector('.home-section')) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const hero = el.querySelector('.home-lifetime-hero');
+    const firstSection = el.querySelector('.home-section');
+    expect(hero.compareDocumentPosition(firstSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
   });
