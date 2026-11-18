@@ -38,5 +38,5 @@ Current corrections:
 - Daily encrypted backups are live; first successful Drive backup recorded 13 Nov. A real Drive-to-separate-Supabase restore drill remains pending.
 - Manager migrations 0101–0103 are applied and checked live; Manager source/screens are integrated on main, with owner phone acceptance and later slices pending.
 - Closing has a partial guided ledger UI; it is not complete.
-- Inventory 0301–0304 and Edge Function v14 are recorded as live, but the source changes remain on `module/inventory` and must be reconciled into main. Do not reapply live migrations.
+- Inventory 0301–0306 and the Edge Function are live, and the module (all screens) is merged into `main` (17 Nov 2026). Do not reapply live migrations. Hourly sync schedule moved to minute 7 on 17 Nov (see docs/modules/inventory.progress.md).
 - The latest main progress entry reports 357 unit/jsdom tests. Module-specific counts are snapshots and must not be summed.

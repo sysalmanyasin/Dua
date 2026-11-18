@@ -182,3 +182,67 @@
   font-size: 0.78rem;
   color: var(--text-muted);
 }
+
+/* Excel / PDF / CSV buttons sit together at the end of the totals card. */
+.inv-exports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+/* Printing a report (the PDF button): only the report is printed, the app around it is hidden. */
+#inv-print-root {
+  display: none;
+}
+@media print {
+  body.inv-printing > *:not(#inv-print-root) {
+    display: none !important;
+  }
+  body.inv-printing #inv-print-root {
+    display: block;
+    color: #000;
+    background: #fff;
+    font:
+      8.5pt/1.3 system-ui,
+      sans-serif;
+  }
+  #inv-print-root h1 {
+    margin: 0 0 2pt;
+    font-size: 14pt;
+  }
+  #inv-print-root .inv-print-sub {
+    margin: 0 0 8pt;
+    color: #333;
+  }
+  #inv-print-root table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #inv-print-root thead {
+    display: table-header-group;
+  }
+  #inv-print-root tr {
+    break-inside: avoid;
+  }
+  #inv-print-root th,
+  #inv-print-root td {
+    padding: 2pt 4pt;
+    border-bottom: 0.5pt solid #bbb;
+    text-align: left;
+    vertical-align: top;
+  }
+  #inv-print-root th {
+    border-bottom: 1pt solid #000;
+    background: #eee;
+  }
+  #inv-print-root td.num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  #inv-print-root .inv-print-foot {
+    margin-top: 8pt;
+    color: #333;
+    font-size: 8pt;
+  }
+}

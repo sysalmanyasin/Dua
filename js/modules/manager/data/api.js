@@ -104,3 +104,20 @@ export const tallyGet = async (date) => (await one(db().rpc('mgmt_tally_get', { 
 export const tallyList = (limit = 30) => one(db().rpc('mgmt_tally_list', { p_limit: limit }));
 export const tallySave = (date, accounts, appTotal, reason, key) =>
   db().rpc('mgmt_tally_save', { p_date: date, p_accounts: accounts, p_app_total: appTotal, p_reason: reason || null, p_key: key });
+
+// ── Credit Inbox (lines recorded in Closing, filed by hand) ──
+export const inboxLines = (state = null) => one(db().rpc('mgmt_inbox_lines', { p_state: state }));
+export const inboxCount = () => one(db().rpc('mgmt_inbox_count'));
+export const inboxFile = (lineId, target, { staffId = null, ledgerId = null, categoryId = null, shift = null, description = null }, key) =>
+  db().rpc('mgmt_inbox_file', {
+    p_line_id: lineId,
+    p_target: target,
+    p_staff_id: staffId,
+    p_ledger: ledgerId,
+    p_category: categoryId,
+    p_shift: shift,
+    p_description: description,
+    p_key: key,
+  });
+export const inboxDismiss = (lineId, reason, key) => db().rpc('mgmt_inbox_dismiss', { p_line_id: lineId, p_reason: reason, p_key: key });
+export const inboxReopen = (lineId, reason, key) => db().rpc('mgmt_inbox_reopen', { p_line_id: lineId, p_reason: reason, p_key: key });

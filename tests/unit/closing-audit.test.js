@@ -47,6 +47,7 @@ const api = {
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
   computePreview: vi.fn(async () => ({})),
   myRecent: vi.fn(async () => []),
+  savedList: vi.fn(async () => []),
   listCreditAccounts: vi.fn(async () => []),
   readAuditRequired: vi.fn(async () => true),
   setAuditRequired: vi.fn(async () => ({})),

@@ -16,7 +16,8 @@ do $t$ declare bad text; n int;
     'mgmt_petty_month','mgmt_petty_save','mgmt_petty_copy',
     'mgmt_ledgers_list','mgmt_ledger_view','mgmt_ledger_add','mgmt_ledger_reverse','mgmt_ledger_section_create','mgmt_ledger_category_add',
     'mgmt_ledger_category_retire','mgmt_tally_accounts_list','mgmt_tally_account_add','mgmt_tally_account_retire','mgmt_tally_get',
-    'mgmt_tally_list','mgmt_tally_save'];
+    'mgmt_tally_list','mgmt_tally_save',
+    'mgmt_inbox_lines','mgmt_inbox_count','mgmt_inbox_file','mgmt_inbox_dismiss','mgmt_inbox_reopen'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

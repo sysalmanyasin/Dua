@@ -7,7 +7,7 @@ import { loadSettings, saveSettings } from '../data/prefs.js';
 import { applyRecalcFilters, computeExcessRows, retainKey, summarizeExcess } from '../domain/excess.js';
 import { computeLedger } from '../domain/ledger.js';
 import { filterAndRank } from '../domain/search.js';
-import { downloadCsv, stamp } from './download.js';
+import { exportReport, KINDS } from './export.js';
 import { days, qty, rs } from './fmt.js';
 import { openReport } from './frame.js';
 
@@ -122,7 +122,11 @@ export async function mount(el, { ctx }) {
           $('#ex-out'),
           html`<section class="card inv-total">
               <div><b>${qty(list.length)}</b><span>shown</span></div>
-              <button type="button" class="btn btn-sm" data-act="csv" ${list.length ? '' : 'disabled'}>Download CSV</button>
+              <span class="inv-exports"
+                ><button type="button" class="btn btn-sm" data-act="xlsx" ${list.length ? '' : 'disabled'}>Excel</button
+                ><button type="button" class="btn btn-sm" data-act="pdf" ${list.length ? '' : 'disabled'}>PDF</button
+                ><button type="button" class="btn btn-sm" data-act="csv" ${list.length ? '' : 'disabled'}>CSV</button></span
+              >
             </section>
             ${
               list.length
@@ -211,7 +215,7 @@ export async function mount(el, { ctx }) {
           shown += PAGE;
           draw();
         }
-        if (act === 'csv') {
+        if (KINDS.includes(act)) {
           const head = [
             'Code',
             'Name',
@@ -240,7 +244,13 @@ export async function mount(el, { ctx }) {
             r.excessContribution,
             r.stockDays === null ? '' : Math.round(r.stockDays),
           ]);
-          downloadCsv(stamp('excess-working'), [head, ...rows]);
+          exportReport(act, {
+            name: 'excess-working',
+            title: 'Excess Working',
+            filters: misc > 0 ? `Misc ${misc} subtracted` : '',
+            asOf: api.state().meta?.syncedAt ?? null,
+            table: [head, ...rows],
+          });
         }
         if (act === 'save') {
           const m = Number($('#ex-misc').value || 0);

@@ -124,6 +124,7 @@ const api = {
   setClosingSetting: vi.fn(async () => null),
   setAuditRequired: vi.fn(async () => null),
   myRecent: vi.fn(async () => []),
+  savedList: vi.fn(async () => []),
 };
 vi.mock('../../js/modules/closing/data/api.js', () => api);
 
