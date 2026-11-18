@@ -1,68 +1,11 @@
-/* Design tokens: navy + teal, light and dark. Components use only these variables. */
+/* Dua brand system: executive navy + blue. Semantic status colours remain independent. */
 :root {
-  /* Brand (from the original BT app): navy #101B2D, teal #18A999, AA-safe teal, amber, slate */
-  --navy-900: #101b2d;
-  --navy-700: #1b2c47;
-  --teal-brand: #18a999;
-  --teal-600: #0e8074;
-  --teal-500: #14998b;
-  --amber: #f2b84b;
-  --slate: #465166;
-  --bg: #f4f7fa;
-  --surface: #ffffff;
-  --surface-2: #eef2f6;
-  --text: #0f1b2d;
-  --text-muted: #465166;
-  --border: #d5dde6;
-  --primary: var(--teal-600);
-  --primary-text: #ffffff;
-  --sidebar-bg: var(--navy-900);
-  --sidebar-text: #dce6f2;
-  --danger: #b42318;
-  --ok: #067647;
-  --focus: #1d6fe0;
-  --radius: 10px;
-  --radius-lg: 16px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
-  --hero-from: #101b2d;
-  --hero-to: #0e8074;
-  --shadow: 0 1px 2px rgb(11 31 58 / 8%), 0 2px 8px rgb(11 31 58 / 6%);
+ --navy-950:#0b1730;--navy-900:#142b4a;--navy-800:#1b3b63;--blue-700:#1d4ed8;--blue-600:#2563eb;--blue-500:#3b82f6;--blue-400:#60a5fa;--blue-100:#dbeafe;--blue-50:#eff6ff;
+ --amber:#f2b84b;--slate:#475569;--bg:#f4f7fb;--surface:#fff;--surface-2:#edf2f8;--text:#12233d;--text-muted:#586a82;--border:#d9e2ee;
+ --primary:var(--blue-700);--primary-text:#fff;--sidebar-bg:var(--navy-950);--sidebar-text:#dce8f8;--danger:#b42318;--ok:#067647;--focus:#2563eb;
+ --radius:10px;--radius-lg:16px;--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;
+ --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;--mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+ --hero-from:#142b4a;--hero-to:#2563eb;--shadow:0 1px 2px rgb(11 31 58 / 7%),0 8px 24px rgb(11 31 58 / 5%);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #0a1424;
-    --surface: #101e33;
-    --surface-2: #17283f;
-    --text: #e6edf6;
-    --text-muted: #94a6bd;
-    --border: #243650;
-    --primary: var(--teal-500);
-    --primary-text: #04201d;
-    --sidebar-bg: #07101e;
-    --danger: #f97066;
-    --ok: #47cd89;
-    --focus: #6aa8ff;
-    --shadow: none;
-  }
-}
-:root[data-theme='dark'] {
-  --bg: #0a1424;
-  --surface: #101e33;
-  --surface-2: #17283f;
-  --text: #e6edf6;
-  --text-muted: #94a6bd;
-  --border: #243650;
-  --primary: var(--teal-500);
-  --primary-text: #04201d;
-  --sidebar-bg: #07101e;
-  --danger: #f97066;
-  --ok: #47cd89;
-  --focus: #6aa8ff;
-  --shadow: none;
-}
+@media(prefers-color-scheme:dark){:root:not([data-theme='light']){--bg:#091426;--surface:#101f35;--surface-2:#172b46;--text:#e8eff9;--text-muted:#a0b2c9;--border:#293e5b;--primary:#60a5fa;--primary-text:#081a34;--sidebar-bg:#07101e;--danger:#f97066;--ok:#47cd89;--focus:#8bbcff;--shadow:none;}}
+:root[data-theme='dark']{--bg:#091426;--surface:#101f35;--surface-2:#172b46;--text:#e8eff9;--text-muted:#a0b2c9;--border:#293e5b;--primary:#60a5fa;--primary-text:#081a34;--sidebar-bg:#07101e;--danger:#f97066;--ok:#47cd89;--focus:#8bbcff;--shadow:none;}
