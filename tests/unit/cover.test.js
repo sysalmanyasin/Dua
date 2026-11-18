@@ -41,12 +41,8 @@ describe('key numbers', () => {
     const k = buildKpis({ sales: { last_day: { date: '2026-11-04', total: 614758 } } });
     expect(k.map((c) => c.id)).toEqual(['latest']);
     expect(k[0].diff).toBeNull();
-    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_last_day'])[0].href).toBe(
-      '#/sales/yesterday',
-    );
-    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_history'])[0].href).toBe(
-      '#/sales',
-    );
+    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_last_day'])[0].href).toBe('#/sales/yesterday');
+    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_history'])[0].href).toBe('#/sales');
   });
   it('no target, no last-year figure, no data: cards are simply left out or blank', () => {
     expect(
@@ -62,11 +58,7 @@ describe('key numbers', () => {
 describe('needs attention', () => {
   it('lists missing days, an unstarted check list in the evening, and a missing target, only for people who can act', () => {
     const noTarget = { ...full, sales: { ...full.sales, target: null } };
-    const t = buildAttention(
-      noTarget,
-      ['sales.view_history', 'sales.enter', 'checklist.fill', 'targets.manage'],
-      19,
-    );
+    const t = buildAttention(noTarget, ['sales.view_history', 'sales.enter', 'checklist.fill', 'targets.manage'], 19);
     expect(t.map((i) => i.id)).toEqual(['missing-2026-11-03', 'checklist', 'target']);
     expect(t[0].action).toMatchObject({ href: '#/sales/entry', handoff: '2026-11-03' });
   });
@@ -212,9 +204,7 @@ describe('Cover page', () => {
     expect(el.textContent).not.toContain('Customers');
     expect(el.textContent).not.toContain('Manager');
     expect(el.querySelectorAll('.home-module').length).toBe(1);
-    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe(
-      '#/sales/yesterday',
-    );
+    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/yesterday');
   });
 
   it('lets a person pin and unpin only accessible pages', async () => {
