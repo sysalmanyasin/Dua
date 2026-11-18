@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildAlertItems, buildAttention, buildKpis, buildTiles, greeting, hourInPkt } from '../../js/modules/home/domain/cover.js';
+import {
+  buildAlertItems,
+  buildAttention,
+  buildKpis,
+  buildStockCards,
+  buildTiles,
+  greeting,
+  hourInPkt,
+} from '../../js/modules/home/domain/cover.js';
 
 const full = {
   sales: {
@@ -23,9 +31,9 @@ describe('greeting', () => {
 
 describe('key numbers', () => {
   it('owner sees latest sale, month so far, target and customers', () => {
-    const k = buildKpis(full);
+    const k = buildKpis(full, ['sales.view_history', 'sales.view_last_day']);
     expect(k.map((c) => c.id)).toEqual(['latest', 'mtd', 'target', 'customers']);
-    expect(k[0]).toMatchObject({ value: 614758, diff: 24977 });
+    expect(k[0]).toMatchObject({ value: 614758, diff: 24977, href: '#/sales/yesterday' });
     expect(k[1].vsLastYear).toBeCloseTo(58.56, 1);
     expect(k[2]).toMatchObject({ pct: 19, remaining: 13328799 });
   });
@@ -33,6 +41,8 @@ describe('key numbers', () => {
     const k = buildKpis({ sales: { last_day: { date: '2026-11-04', total: 614758 } } });
     expect(k.map((c) => c.id)).toEqual(['latest']);
     expect(k[0].diff).toBeNull();
+    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_last_day'])[0].href).toBe('#/sales/yesterday');
+    expect(buildKpis({ sales: { last_day: { date: '2026-11-04', total: 1 } } }, ['sales.view_history'])[0].href).toBe('#/sales');
   });
   it('no target, no last-year figure, no data: cards are simply left out or blank', () => {
     expect(
@@ -48,7 +58,7 @@ describe('key numbers', () => {
 describe('needs attention', () => {
   it('lists missing days, an unstarted check list in the evening, and a missing target, only for people who can act', () => {
     const noTarget = { ...full, sales: { ...full.sales, target: null } };
-    const t = buildAttention(noTarget, ['sales.enter', 'checklist.fill', 'targets.manage'], 19);
+    const t = buildAttention(noTarget, ['sales.view_history', 'sales.enter', 'checklist.fill', 'targets.manage'], 19);
     expect(t.map((i) => i.id)).toEqual(['missing-2026-11-03', 'checklist', 'target']);
     expect(t[0].action).toMatchObject({ href: '#/sales/entry', handoff: '2026-11-03' });
   });
@@ -80,14 +90,14 @@ describe('owner alerts in needs attention', () => {
     ],
   };
   it('puts failed and unsent alerts first, with a link for people who can view them', () => {
-    const t = buildAttention(full, ['notifications.view'], 9, alerts);
+    const t = buildAttention(full, ['notifications.view', 'tools.view'], 9, alerts);
     expect(t[0]).toMatchObject({ id: 'alert-a1', text: 'The daily backup failed (the alert could not be delivered)' });
     expect(t[0].action).toMatchObject({ href: '#/tools' });
     expect(t[1].text).toContain('has not been sent yet');
     expect(t.at(2).id).toBe('alert-more');
   });
   it('shows no link to someone without the permission', () => {
-    expect(buildAlertItems(alerts, [])[0].action).toBeNull();
+    expect(buildAlertItems(alerts, ['notifications.view'])[0].action).toBeNull();
   });
   it('shows nothing when there are no alerts, or when they could not be loaded', () => {
     expect(buildAlertItems(null, ['notifications.view'])).toEqual([]);
@@ -108,7 +118,37 @@ describe('tiles', () => {
       { id: 'sales', title: 'Sales', icon: 'chart', routes: [{ path: '/sales', title: 'Index', desc: 'x' }, { path: '/sales/hidden' }] },
       { id: 'empty', title: 'Empty', icon: 'chart', routes: [{ path: '/e' }] },
     ]);
-    expect(t).toEqual([{ id: 'sales', title: 'Sales', icon: 'chart', pages: [{ title: 'Index', desc: 'x', href: '#/sales' }] }]);
+    expect(t).toEqual([{ id: 'sales', title: 'Sales', icon: 'chart', blurb: '', pages: [{ title: 'Index', desc: 'x', href: '#/sales' }] }]);
+  });
+});
+
+const stockCover = {
+  asOf: '2026-11-17T08:00:00Z',
+  stockValue: 98765432.1,
+  reorder: { count: 412, value: 2345678 },
+  notSold: { count: 1, value: 1500 },
+  excess: { count: 0, value: 0 },
+};
+
+describe('stock cards', () => {
+  it('gives the four numbers in order, each linking to the page that explains it', () => {
+    const c = buildStockCards(stockCover);
+    expect(c.map((x) => x.id)).toEqual(['stock', 'reorder', 'notsold', 'excess']);
+    expect(c.map((x) => x.href)).toEqual(['#/inventory/health', '#/inventory/reorder', '#/inventory/ledger', '#/inventory/excess']);
+    expect(c[0]).toMatchObject({ value: 98765432.1 });
+    expect(c[1]).toMatchObject({ count: 412, value: 2345678 });
+    expect(c[3]).toMatchObject({ count: 0, value: 0 });
+  });
+  it('gives nothing when there is no summary, so the Cover never shows a half-empty row', () => {
+    expect(buildStockCards(null)).toEqual([]);
+    expect(buildStockCards(undefined)).toEqual([]);
+    expect(buildStockCards('x')).toEqual([]);
+  });
+  it('treats missing or odd parts as zero instead of showing NaN', () => {
+    const c = buildStockCards({ stockValue: 'abc', reorder: { count: null } });
+    expect(c[0].value).toBe(0);
+    expect(c[1]).toMatchObject({ count: 0, value: 0 });
+    expect(c[2]).toMatchObject({ count: 0, value: 0 });
   });
 });
 
@@ -117,15 +157,22 @@ describe('Cover page', () => {
   vi.mock('../../js/modules/home/data/api.js', () => ({
     coverSummary: (...a) => globalThis.__cover(...a),
     notificationsAttention: (...a) => globalThis.__alerts(...a),
+    inventoryCover: (...a) => globalThis.__inv(...a),
   }));
   beforeEach(() => {
     document.body.innerHTML = '<div id="p"></div>';
     sessionStorage.clear();
+    localStorage.clear();
     globalThis.__cover = api.coverSummary;
     globalThis.__alerts = async () => null;
+    globalThis.__inv = async () => stockCover;
     api.coverSummary.mockImplementation(async () => full);
   });
-  const ctx = { full_name: 'Salman Yasin', username: 'owner', permissions: ['sales.enter', 'checklist.fill'] };
+  const ctx = {
+    full_name: 'Salman Yasin',
+    username: 'owner',
+    permissions: ['sales.view_history', 'sales.view_last_day', 'sales.enter', 'checklist.fill', 'targets.manage'],
+  };
   const modules = [
     {
       id: 'sales',
@@ -134,6 +181,43 @@ describe('Cover page', () => {
       routes: [{ path: '/sales/entry', title: 'Add Entry', desc: 'Record or correct one day of sales' }],
     },
   ];
+
+  it('keeps the staff landing page limited to the summary and modules supplied by permissions', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const staffModules = [
+      {
+        id: 'sales',
+        title: 'Sales',
+        icon: 'chart',
+        routes: [{ path: '/sales/yesterday', title: 'Last Day', desc: 'The latest closed day' }],
+      },
+    ];
+    const staffSummary = { sales: { last_day: { date: '2026-11-16', total: 120000 } } };
+    api.coverSummary.mockImplementation(async () => staffSummary);
+    const el = document.getElementById('p');
+    await mount(el, {
+      ctx: { full_name: 'Test Staff', username: 'staff', permissions: ['sales.view_last_day'] },
+      modules: staffModules,
+    });
+    expect(el.textContent).toContain('Latest sale');
+    expect(el.textContent).not.toContain('This month so far');
+    expect(el.textContent).not.toContain('Customers');
+    expect(el.textContent).not.toContain('Manager');
+    expect(el.querySelectorAll('.home-module').length).toBe(1);
+    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/yesterday');
+  });
+
+  it('lets a person pin and unpin only accessible pages', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const el = document.getElementById('p');
+    await mount(el, { ctx, modules });
+    const pin = el.querySelector('[data-pin="#/sales/entry"]');
+    pin.click();
+    expect(el.querySelector('#home-favourites').textContent).toContain('Add Entry');
+    expect(localStorage.getItem('dua.home.favourites.owner')).toContain('#/sales/entry');
+    el.querySelector('[data-unpin="#/sales/entry"]').click();
+    expect(el.querySelector('#home-favourites').textContent).toContain('Pin the pages you use most');
+  });
 
   it('still shows the Cover when owner alerts fail to load', async () => {
     const { mount } = await import('../../js/modules/home/ui/page.js');
@@ -153,8 +237,39 @@ describe('Cover page', () => {
     expect(t).toContain('₨ 614,758');
     expect(t).toContain('This month so far');
     expect(t).toContain('have not been entered');
-    expect(el.querySelector('.tile').getAttribute('href')).toBe('#/sales/entry');
+    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
+  });
+
+  it('shows the stock numbers to a person who may view inventory', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const el = document.getElementById('p');
+    await mount(el, { ctx: { ...ctx, permissions: [...ctx.permissions, 'inventory.view'] }, modules });
+    const t = el.textContent.replace(/\s+/g, ' ');
+    expect(t).toContain('Stock value');
+    expect(t).toContain('₨ 98,765,432');
+    expect(t).toContain('412 products');
+    expect(t).toMatch(/1 product(?!s)/);
+    expect(el.querySelector('a.kpi[href="#/inventory/reorder"]')).not.toBeNull();
+  });
+  it('does not ask for or show stock numbers without inventory.view', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    const asked = vi.fn(async () => stockCover);
+    globalThis.__inv = asked;
+    const el = document.getElementById('p');
+    await mount(el, { ctx, modules });
+    expect(asked).not.toHaveBeenCalled();
+    expect(el.textContent).not.toContain('Stock value');
+  });
+  it('still shows the rest of the Cover when the stock numbers fail to load', async () => {
+    const { mount } = await import('../../js/modules/home/ui/page.js');
+    globalThis.__inv = async () => {
+      throw new Error('boom');
+    };
+    const el = document.getElementById('p');
+    await mount(el, { ctx: { ...ctx, permissions: [...ctx.permissions, 'inventory.view'] }, modules });
+    expect(el.textContent).toContain('This month so far');
+    expect(el.textContent).not.toContain('Stock value');
   });
 
   it('"Add entry" remembers which day to open', async () => {
@@ -175,7 +290,7 @@ describe('Cover page', () => {
     const el = document.getElementById('p');
     await mount(el, { ctx, modules });
     expect(el.textContent).toContain('could not be loaded');
-    expect(el.querySelector('.tile')).not.toBeNull();
+    expect(el.querySelector('.home-module')).not.toBeNull();
   });
 
   it("escapes the person's name", async () => {

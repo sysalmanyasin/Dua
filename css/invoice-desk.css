@@ -1,0 +1,208 @@
+/* Invoice Desk forms, original-style business receipts and 80mm printer output. */
+.id-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+.id-line {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(78px, 0.6fr) minmax(110px, 0.8fr) auto;
+  gap: var(--space-2);
+  align-items: end;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.id-line .field {
+  margin: 0;
+}
+.id-section-head,
+.id-grand,
+.id-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.id-section-head h2 {
+  margin: 0;
+}
+.id-grand {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.id-grand strong {
+  font-family: var(--mono);
+}
+.id-grand:last-of-type {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+.id-words {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: var(--space-3);
+}
+.id-history-row {
+  align-items: center;
+}
+.id-paper {
+  width: min(100%, 720px);
+  margin: 12px auto;
+  padding: 22px;
+  background: #fff;
+  color: #111;
+  border: 1px solid #aaa;
+  font-family: Cambria, Georgia, serif;
+}
+.id-copy {
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  margin-bottom: 6px;
+}
+.id-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  margin: 5px 0;
+}
+.id-policy {
+  font-size: 0.68rem;
+  text-align: center;
+  line-height: 1.25;
+  margin: 8px 0;
+}
+.id-thanks {
+  text-align: center;
+  font-weight: 700;
+  margin: 8px 0;
+}
+.id-summary {
+  margin-top: 8px;
+}
+.id-summary > div {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.id-paper header {
+  text-align: center;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+.id-paper header h2 {
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+.id-paper header p {
+  margin: 3px 0;
+  font-weight: 700;
+}
+.id-paper table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.id-paper th,
+.id-paper td {
+  padding: 6px 4px;
+  border-bottom: 1px solid #bbb;
+  text-align: left;
+  vertical-align: top;
+}
+.id-paper .id-num {
+  text-align: right;
+  white-space: nowrap;
+}
+.id-paper .id-total {
+  padding: 10px 0;
+  border-top: 2px solid #111;
+  border-bottom: 2px solid #111;
+  margin-top: 8px;
+}
+.id-paper .id-words {
+  color: #111;
+  font-weight: 600;
+}
+.id-receipt-pay {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-weight: 700;
+}
+.id-small {
+  text-align: center;
+  font-size: 0.78rem;
+  margin: 8px 0;
+}
+.id-best {
+  font-family: 'Courier New', monospace;
+}
+.id-best header h2 {
+  font-family: 'Comic Sans MS', cursive;
+}
+.id-safari header {
+  font-family: Cambria, Georgia, serif;
+}
+#print-root {
+  display: none;
+}
+@page invoice-thermal {
+  size: 80mm auto;
+  margin: 2mm;
+}
+@media (max-width: 640px) {
+  .id-line {
+    grid-template-columns: 1fr 1fr;
+  }
+  .id-line .id-desc {
+    grid-column: 1/-1;
+  }
+  .id-line button {
+    grid-column: 1/-1;
+  }
+}
+@media print {
+  body.printing-invoice > *:not(#print-root) {
+    display: none !important;
+  }
+  body.printing-invoice #print-root {
+    display: block !important;
+    page: invoice-thermal;
+    width: 76mm;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #000;
+    font:
+      10px/1.25 'Courier New',
+      monospace;
+  }
+  body.printing-invoice .id-paper {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+  }
+  body.printing-invoice .id-paper header h2 {
+    font-size: 13px;
+  }
+  body.printing-invoice .id-paper table {
+    font-size: 9px;
+  }
+  body.printing-invoice .id-paper th,
+  body.printing-invoice .id-paper td {
+    padding: 3px 1px;
+  }
+  body.printing-invoice .id-paper .id-small {
+    font-size: 8px;
+  }
+}

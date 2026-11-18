@@ -100,6 +100,7 @@ const api = {
     closed: [{ charge_id: 'm3', label: 'Courier', amount: 500, first_date: '2026-11-07', last_date: '2026-11-08', age_days: 1 }],
   })),
   myRecent: vi.fn(async () => []),
+  savedList: vi.fn(async () => []),
 };
 vi.mock('../../js/modules/closing/data/api.js', () => api);
 

@@ -66,3 +66,104 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.mg-head-static {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+/* Payslip: on screen it is a card in a dialog; when printing, only the payslip is shown. */
+.payslip-head {
+  display: grid;
+  gap: 2px;
+  margin-bottom: var(--space-3);
+}
+.payslip-head h2 {
+  margin: var(--space-2) 0 0;
+}
+.payslip-net td {
+  border-top: 2px solid var(--border);
+}
+.payslip-sign {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--space-6, 2.5rem);
+  color: var(--text-muted);
+}
+.payslip-sign span {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-1);
+  min-width: 40%;
+  text-align: center;
+}
+@media print {
+  body.printing-payslip > *:not(dialog) {
+    display: none !important;
+  }
+  body.printing-payslip dialog.payslip-dlg {
+    position: static;
+    inset: auto;
+    width: 100%;
+    max-width: none;
+    max-height: none;
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+    color: #000;
+  }
+  body.printing-payslip dialog.payslip-dlg .actions,
+  body.printing-payslip dialog.payslip-dlg .no-print {
+    display: none !important;
+  }
+}
+.mg-line {
+  display: grid;
+  grid-template-columns: 1fr 7rem auto;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.mg-line input {
+  min-width: 0;
+}
+.mg-entry-top,
+.mg-entry-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.mg-entry-top strong {
+  font-variant-numeric: tabular-nums;
+}
+.mg-inbox-line {
+  display: grid;
+  gap: var(--space-2);
+}
+.mg-changed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* Reports: wide tables scroll on a phone and print in full */
+.rpt-scroll {
+  overflow-x: auto;
+}
+.rpt-table {
+  min-width: 36rem;
+}
+@media print {
+  .rpt-scroll {
+    overflow: visible;
+  }
+  .rpt-table {
+    min-width: 0;
+    font-size: 0.8rem;
+  }
+}
+.mg-hide {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}

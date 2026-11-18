@@ -1,0 +1,447 @@
+{
+  "_readme": "Shared by tests/unit/audit-compile.test.js (browser maths) and supabase/tests/0402_audit_compile_test.sql (database). Quantities are units, prices are integer paisa. Expected figures were worked out by hand from docs/modules/audit.md rules R1-R7 and the old Audit Hub tests named in oldTest. 'item' is the index in the round's items list; 'submissions' lists revisions oldest first, the last one counts. Conflicts are checked on the round compiled last.",
+  "cases": [
+    {
+      "name": "an item nobody counted reads as 0 and is flagged missing",
+      "oldTest": "compile: items with no submission stay missing:true / uncounted-rule: untouched item",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 34, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [] }],
+          "allowMissing": true,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 0, "variance": -34, "value_paisa": -34000, "missing": true, "auto": false, "corrected": false }
+            ],
+            "variances": 1,
+            "value_paisa": -34000,
+            "withMissing": true,
+            "missingAssignments": 1,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "compile is refused while an assignment has not submitted, unless the owner chooses to go on",
+      "oldTest": "compile: Compile With Missing Assignments (override)",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [] }],
+          "allowMissing": false,
+          "expect": { "refused": "missing_assignments" }
+        }
+      ]
+    },
+    {
+      "name": "a submitted count fills in the count and clears missing",
+      "oldTest": "compile: a submitted count fills in countedQty and clears missing",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 12 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 12, "variance": 2, "value_paisa": 2000, "missing": false, "auto": false, "corrected": false }],
+            "variances": 1,
+            "value_paisa": 2000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "the newest revision of a submission wins over the older one",
+      "oldTest": "compile: after reassignment, the newer submission wins",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 9 } }, { "counts": { "0": 10 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 10, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "an untouched item inside a submitted assignment is a full shortage and stays flagged missing",
+      "oldTest": "compile: an untouched item counts as a full variance (countedQty=0), not excluded",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "C1", "name": "Widget", "qty": 34, "price_paisa": 1000 },
+            { "company": "Acme", "code": "C2", "name": "Gadget", "qty": 5, "price_paisa": 1000 }
+          ],
+          "assignments": [{ "auditor": "c1", "items": [0, 1], "submissions": [{ "counts": { "1": 5 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 0, "variance": -34, "value_paisa": -34000, "missing": true, "auto": false, "corrected": false },
+              { "item": 1, "counted": 5, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 1,
+            "value_paisa": -34000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "an auto-matched item reads as the system quantity but stays flagged missing",
+      "oldTest": "compile: auto-matched items resolve to system qty but stay flagged missing",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 34, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "auto": [0] }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 34, "variance": 0, "value_paisa": 0, "missing": true, "auto": true, "corrected": false }],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "a real count that equals the system quantity is not missing and not an auto-match",
+      "oldTest": "compile: a real count is never flagged autoMatched / uncounted-rule: real match",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 34, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 34 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 34, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "a typed zero is a real finding, not missing",
+      "oldTest": "uncounted-rule: a real typed count (even 0) is not missing",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 34, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 0 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 0, "variance": -34, "value_paisa": -34000, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 1,
+            "value_paisa": -34000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "system quantity 0 and no count gives zero variance but is still flagged missing",
+      "oldTest": "uncounted-rule: system qty of 0 with no count entered",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "C1", "name": "Widget", "qty": 0, "price_paisa": 1000 },
+            { "company": "Acme", "code": "C2", "name": "Gadget", "qty": 3, "price_paisa": 1000 }
+          ],
+          "assignments": [{ "auditor": "c1", "items": [0, 1], "submissions": [{ "counts": { "1": 3 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 0, "variance": 0, "value_paisa": 0, "missing": true, "auto": false, "corrected": false },
+              { "item": 1, "counted": 3, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "an approved correction overrides the submitted count",
+      "oldTest": "variance-corrections: an approved correction overrides the submitted count",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 12 } }] }],
+          "corrections": { "0": 9 },
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 9, "variance": -1, "value_paisa": -1000, "missing": false, "auto": false, "corrected": true }],
+            "variances": 1,
+            "value_paisa": -1000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "an approved correction can fill an item nobody counted",
+      "oldTest": "variance-corrections: a correction can fill an item nobody submitted",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 },
+            { "company": "Acme", "code": "C2", "name": "Gadget", "qty": 4, "price_paisa": 1000 }
+          ],
+          "assignments": [{ "auditor": "c1", "items": [0, 1], "submissions": [{ "counts": { "1": 4 } }] }],
+          "corrections": { "0": 10 },
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 10, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": true },
+              { "item": 1, "counted": 4, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "a correction is never an auto-match even when it equals the system quantity",
+      "oldTest": "variance-corrections: a correction is never treated as autoMatched",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "auto": [0] }] }],
+          "corrections": { "0": 10 },
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 10, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": true }],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "variance value is rounded to the paisa, halves away from zero",
+      "oldTest": "new rule R12/R20: money is rounded in one place, the same in the browser and the database",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "C1", "name": "Loose A", "qty": 3, "price_paisa": 101 },
+            { "company": "Acme", "code": "C2", "name": "Loose B", "qty": 3, "price_paisa": 101 },
+            { "company": "Acme", "code": "C3", "name": "Loose C", "qty": 1, "price_paisa": 333 }
+          ],
+          "assignments": [{ "auditor": "c1", "items": [0, 1, 2], "submissions": [{ "counts": { "0": 2.5, "1": 3.5, "2": 0.333 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 2.5, "variance": -0.5, "value_paisa": -51, "missing": false, "auto": false, "corrected": false },
+              { "item": 1, "counted": 3.5, "variance": 0.5, "value_paisa": 51, "missing": false, "auto": false, "corrected": false },
+              { "item": 2, "counted": 0.333, "variance": -0.667, "value_paisa": -222, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 3,
+            "value_paisa": -222,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "an auditor's free-text note is collected; a blank note is skipped",
+      "oldTest": "compile: collectAuditorNotes skips blank notes",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "C1", "name": "Widget", "qty": 1, "price_paisa": 1000 },
+            { "company": "Beta", "code": "B1", "name": "Gadget", "qty": 1, "price_paisa": 1000 }
+          ],
+          "assignments": [
+            { "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 1 }, "extraNote": "Found 6 units of X not in system" }] },
+            { "auditor": "c2", "items": [1], "submissions": [{ "counts": { "1": 1 }, "extraNote": "   " }] }
+          ],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 1, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false },
+              { "item": 1, "counted": 1, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0,
+            "notes": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "two auditors: one submitted and one missing, compiled with the missing choice stored",
+      "oldTest": "compile: Compile With Missing Assignments (override)",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 },
+            { "company": "Beta", "code": "B1", "name": "Gadget", "qty": 6, "price_paisa": 500 }
+          ],
+          "assignments": [
+            { "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 8 } }] },
+            { "auditor": "c2", "items": [1], "submissions": [] }
+          ],
+          "allowMissing": true,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 8, "variance": -2, "value_paisa": -2000, "missing": false, "auto": false, "corrected": false },
+              { "item": 1, "counted": 0, "variance": -6, "value_paisa": -3000, "missing": true, "auto": false, "corrected": false }
+            ],
+            "variances": 2,
+            "value_paisa": -5000,
+            "withMissing": true,
+            "missingAssignments": 1,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "the same product counted differently in another compiled round is a conflict",
+      "oldTest": "compile: different counted values for the same company+code IS a conflict",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 12, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 10 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 10, "variance": -2, "value_paisa": -2000, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 1,
+            "value_paisa": -2000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        },
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 12, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c2", "items": [0], "submissions": [{ "counts": { "0": 7 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 7, "variance": -5, "value_paisa": -5000, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 1,
+            "value_paisa": -5000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 1
+          }
+        }
+      ]
+    },
+    {
+      "name": "identical counts in two rounds are not a conflict",
+      "oldTest": "compile: identical counted values across rounds are NOT a conflict",
+      "rounds": [
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c1", "items": [0], "submissions": [{ "counts": { "0": 10 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 10, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        },
+        {
+          "items": [{ "company": "Acme", "code": "C1", "name": "Widget", "qty": 10, "price_paisa": 1000 }],
+          "assignments": [{ "auditor": "c2", "items": [0], "submissions": [{ "counts": { "0": 10 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [{ "item": 0, "counted": 10, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "uncounted and codeless rows never make a conflict",
+      "oldTest": "compile: missing/uncounted or codeless rows never generate a conflict",
+      "rounds": [
+        {
+          "items": [
+            { "company": "Acme", "code": "", "name": "No SKU item", "qty": 10, "price_paisa": 1000 },
+            { "company": "Acme", "code": "C2", "name": "Not yet counted", "qty": 3, "price_paisa": 1000 }
+          ],
+          "assignments": [{ "auditor": "c1", "items": [0, 1], "submissions": [{ "counts": { "0": 10 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 10, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false },
+              { "item": 1, "counted": 0, "variance": -3, "value_paisa": -3000, "missing": true, "auto": false, "corrected": false }
+            ],
+            "variances": 1,
+            "value_paisa": -3000,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        },
+        {
+          "items": [
+            { "company": "Acme", "code": "", "name": "No SKU item", "qty": 99, "price_paisa": 1000 },
+            { "company": "Acme", "code": "C2", "name": "Not yet counted", "qty": 5, "price_paisa": 1000 }
+          ],
+          "assignments": [{ "auditor": "c2", "items": [0, 1], "submissions": [{ "counts": { "0": 99, "1": 5 } }] }],
+          "allowMissing": false,
+          "expect": {
+            "rows": [
+              { "item": 0, "counted": 99, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false },
+              { "item": 1, "counted": 5, "variance": 0, "value_paisa": 0, "missing": false, "auto": false, "corrected": false }
+            ],
+            "variances": 0,
+            "value_paisa": 0,
+            "withMissing": false,
+            "missingAssignments": 0,
+            "conflicts": 0
+          }
+        }
+      ]
+    }
+  ]
+}

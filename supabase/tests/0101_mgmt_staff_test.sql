@@ -49,7 +49,7 @@ do $t$ declare tot int; tot_d int; r jsonb; r2 jsonb; pid uuid; pid2 uuid; nid u
   a text := '00000000-0000-0000-0000-0000000000a1'; j text := '00000000-0000-0000-0000-0000000000b1';
 begin
   -- 0. the permissions exist and no role preset holds any Manager key
-  perform pg_temp.ok((select count(*) from public.permissions where key like 'mgmt.%' or key like 'credit.%') = 14, '14 Manager permissions are seeded (11 new + 3 reserved)');
+  perform pg_temp.ok((select count(*) from public.permissions where key = any (array['mgmt.staff_view','mgmt.staff_private','mgmt.staff_edit','mgmt.notes','mgmt.credit_manage','mgmt.openings','mgmt.salary_view','mgmt.incentive','mgmt.ledgers','mgmt.inbox_file','mgmt.close_month','credit.view','mgmt.salary','mgmt.petty_cash'])) = 14, 'the 14 permissions of 0101 are seeded (11 new + 3 reserved)');
   perform pg_temp.ok((select count(*) from public.role_permissions where perm_key like 'mgmt.%' or perm_key like 'credit.%') = 0, 'no role preset holds a Manager permission');
 
   -- 1. the owner (MFA) builds data

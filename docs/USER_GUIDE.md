@@ -56,7 +56,15 @@ Staff with the basic permission see only the **latest closed day's total** (toda
 - **Manager → Staff Registry:** the owner can add and view staff records, private details and notes. A staff record does not automatically create a login; login access is managed separately in Users & Access.
 - **Manager → Staff Credit:** the owner can set an opening balance, add entries, record deductions and reverse an entry with a reason. Access is permission-controlled.
 - **Closing:** the guided ledger is still being built. Only the sections currently shown in the app are available; later sections and the submit workflow are not complete yet. Do not treat a saved draft as a submitted closing.
-- **Inventory:** the feed is running, but the Inventory screens/local product copy are not yet complete.
+- **Inventory** (for people with `inventory.view`): the Candela stock feed updates every hour and your phone keeps its own copy, so search works even with no signal. The header shows when the stock data was last updated.
+  - **Home** has a **Stock** row: stock value, to reorder, not selling, and excess. Tap a card to open the page that explains it.
+  - **Overview:** search any product by name, code or supplier. Open the menu for the other screens you may see.
+  - **Stock Ledger:** tabs for Never sold, Dead stock, Excess, Zero stock and Pack issues. Choose the window (30–365 days, default 60), search and sort.
+  - **Reorder:** what to buy, by supplier or as a top-sellers list, with the cover days and sales window you choose; units already on the way are counted.
+  - **Excess Working:** products with more stock than needed, with a retain list that is shared across devices.
+  - **Health:** the four Home numbers, a chart by class and by supplier, and the best sellers.
+  - **Sync** (for people with `inventory.sync`): see the last check and the last runs, or press **Sync now**.
+  - **Excel, PDF and CSV:** Stock Ledger, Reorder and Excess Working have three buttons at the end of the totals card. The file holds exactly what is on screen after your tab, search and settings. Excel (all rows) has a second sheet, About, with the settings and the data time. PDF opens the print window: choose *Save as PDF*; it prints the first 1,500 rows and says so, so use Excel for the full list. CSV is the plain table.
 
 ## 6. Users & Access (owner)
 See the Admin Guide.

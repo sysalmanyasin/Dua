@@ -26,12 +26,22 @@ const api = {
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
   computePreview: vi.fn(async () => ({ net_sale: 1234, shift_sale: 1000, customers: 7 })),
   myRecent: vi.fn(async () => []),
+  savedList: vi.fn(async () => []),
   startOpening: vi.fn(async () => ({ closing_id: 'o1' })),
   listCreditAccounts: vi.fn(async () => [
     { id: 'a1', kind: 'named', label: 'Ali Traders' },
     { id: 't1', kind: 'tier_name', tier_no: 1, label: 'Staff' },
   ]),
   readAuditRequired: vi.fn(async () => true),
+  readAudit: vi.fn(async () => ({
+    verified_at: '2026-11-10T10:00:00Z',
+    data_as_of: '2026-11-10T09:00:00Z',
+    codes_checked: 3,
+    not_found: [],
+    items: [],
+  })),
+  prevPage: vi.fn(async () => null),
+  ownBook: vi.fn(async () => []),
   setAuditRequired: vi.fn(async () => ({})),
   periodFor: vi.fn(async () => ({})),
   submit: vi.fn(async () => ({ already: false })),
@@ -78,6 +88,22 @@ describe('Closing start page', () => {
     await mount(el, { ctx: { permissions: perms } });
     await tick();
   };
+  it("shows other people's saved closings to staff, with Open and PDF", async () => {
+    api.savedList.mockImplementationOnce(async () => [
+      {
+        closing_id: 'c-other',
+        business_date: '2026-11-08',
+        kind: 'morning',
+        seq: 20,
+        mode: 'shift',
+        status: 'submitted',
+        is_opening: false,
+      },
+    ]);
+    await start(['closing.enter_own']);
+    expect(el.querySelector('[data-act="view"][data-id="c-other"]')).not.toBeNull();
+    expect(el.querySelector('[data-act="pdf"][data-id="c-other"]')).not.toBeNull();
+  });
   it('lists drafts to continue and hands the chosen one to the ledger', async () => {
     api.myRecent.mockImplementationOnce(async () => [
       { key: 'kd', business_date: '2026-11-09', kind: 'evening', seq: 9999, mode: 'shift', status: 'draft', is_opening: false },
@@ -90,11 +116,10 @@ describe('Closing start page', () => {
   });
   it('keeps Credit and Misc ledgers off the ordinary staff closing home', async () => {
     await start(['closing.enter_own']);
-    expect(el.textContent).not.toContain('Ledgers');
     expect(el.textContent).not.toContain('Credit Ledger');
     expect(el.textContent).not.toContain('Misc Ledger');
     await start(['closing.enter_own', 'closing.view_all']);
-    expect(el.textContent).toContain('Ledgers');
+    expect(el.textContent).toContain('Credit Ledger');
   });
   it('shows the opening card only to someone who may change closing settings', async () => {
     await start();
@@ -237,6 +262,19 @@ describe('Closing ledger', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(api.submit).toHaveBeenCalledWith('k1');
     expect(el.textContent).toContain('Closing submitted');
+  });
+  it('sends you to the Inventory Audit instead of the review when the audit is required and not verified', async () => {
+    api.readAudit.mockImplementationOnce(async () => null);
+    openTarget();
+    await ledger();
+    el.querySelector('#cls-staff').value = 'st1';
+    el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(3000);
+    el.querySelector('[data-jump="13"]').click();
+    el.querySelector('[data-act="submit"]').click();
+    expect(document.querySelector('dialog')).toBeNull();
+    expect(el.querySelector('[data-jump="5"]').getAttribute('aria-current')).toBe('step');
+    expect(api.submit).not.toHaveBeenCalled();
   });
   it('maps a refusal to plain words and stays on the ledger', async () => {
     openTarget();

@@ -1,7 +1,7 @@
 # Business Rules (Phase 0) — Fazal Din's Pharma Plus
 
 Source: read directly from the old code (Closing `actions.js` calc(), `state.js`; BT-Sale-Data2 `platform/config.js`, `shared/summary-calc.js`; READMEs; Audit Hub blueprint).
-Status: Sales rules are implemented (see §11). Closing has database/domain implementation and a partial guided-ledger UI; its remaining screens and workflows are still in progress. Inventory feed rules are implemented in the live feed, while Inventory screens and STR remain incomplete. Audit Hub and Emergency Billing remain planned. See `docs/PROJECT_STATUS.md` and the module progress files for current delivery status. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
+Status: Sales rules are implemented (see §11). Closing has database/domain implementation and a partial guided-ledger UI; its remaining screens and workflows are still in progress. Inventory (feed rules and screens) is implemented and live, while STR remains incomplete. Audit Hub and Emergency Billing remain planned. See `docs/PROJECT_STATUS.md` and the module progress files for current delivery status. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
 Tags: KEEP / IMPROVE / DROP / ASK.
 
 ## 1. Time and dates
@@ -61,6 +61,7 @@ Known trap in old data: a shift record's saved `finalDiff` was once the *cumulat
 - Settings changes are versioned and restorable. [KEEP]
 
 ## 8. Inventory / STR / Audit (from READMEs; code details to be confirmed in Phase 4/7)
+- **As built (Inventory, 17 Nov 2026):** the rules below were reproduced in the screens and proved against the old app with golden fixtures (see `docs/modules/inventory.progress.md`). Details that differ from or settle the text below: the Stock Ledger window is 30–365 days, default 60; Excess (standard) means received at least 90 days ago and at least 200 days of cover, or everything above target; the Never sold headline on Home counts whole packs only and equals the Stock Ledger's Never sold list plus its Dead stock list for the same window (INV-17); a pack size of 0 or missing is kept as a flag, `pack_valid`, rather than hidden (INV-18). Exports (Excel, PDF, CSV) hold exactly the rows shown (INV-19).
 - Stock, products, STR and "Sale Payments" come **read-only from the Candela POS → Dropbox → Supabase pipeline**. Candela stays the source of truth (D-07, confirmed). V2 stores dated snapshots.
 - Never Sold: has stock, no sale record, received > 60 days ago. Dead Stock: has a sale record, none in 60 days, received > 60 days ago. Pack down-rounding by conversion factor. Excess = stock − (net 90-day qty ÷ 90 × 100), only if net90 > 0 and stock ≥ 4 (old Excess Working default view: 90+ days cover). Reorder windows 30/60/90 days; inbound STR = In Transit.
 - STR lifecycle derived from dispatch/receive state: Awaited / Dispatched / Received; Zero Dispatch = STR qty > 0 and dispatch qty = 0.

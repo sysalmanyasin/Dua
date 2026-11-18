@@ -20,6 +20,8 @@ export const loadById = (id) => one(db().from('closings').select(DRAFT_SELECT).e
 
 /** The person's own drafts and submitted closings, newest first (closing_my_recent). */
 export const myRecent = (limit = 30) => one(db().rpc('closing_my_recent', { p_limit: limit }));
+/** Every submitted closing, light rows (anyone with closing access may read them). */
+export const savedList = (limit = 100) => one(db().rpc('closing_saved_list', { p_limit: limit }));
 /** Active staff as [{ id, name }] for the "who is responsible" choice (CLS-14). */
 export const staffChoices = () => one(db().rpc('closing_staff_choices'));
 
@@ -80,6 +82,12 @@ export const miscLedger = (closedLimit = 100) => one(db().rpc('closing_misc_ledg
 /** One page per submitted closing, newest first, with every live row and the stored results. */
 export const closingBook = ({ from = null, to = null, limit = 60 } = {}) =>
   one(db().rpc('closing_book', { p_from: from, p_to: to, p_limit: limit }));
+
+/** Pages like closingBook, but for staff too: everyone with view-all gets every closing, a cashier gets the ones they entered (migration 0212). */
+export const ownBook = ({ from = null, to = null, limit = 60, closing = null } = {}) =>
+  one(db().rpc('closing_book_own', { p_from: from, p_to: to, p_limit: limit, p_closing: closing }));
+/** The submitted closing a draft carries from, as a book page, or null (migration 0212). */
+export const prevPage = (closingId) => one(db().rpc('closing_prev_page', { p_closing: closingId }));
 
 /** Catalogs for the settings screen, including the ones switched off. */
 export const listStripsAll = () =>

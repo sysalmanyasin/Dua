@@ -24,8 +24,13 @@ describe('Inventory module rules', () => {
     expect(offenders((t, p) => /core\/supabase\.js/.test(t) && !p.startsWith('data/'))).toEqual([]);
   });
 
-  it('nothing reads an inventory table directly: phones use the feed functions', () => {
-    expect(offenders((t) => /\.from\(\s*['"`]inventory_/.test(t))).toEqual([]);
+  it('the products table is never read directly (phones use the feed functions); the few small tables are read only inside data/', () => {
+    expect(offenders((t) => /\.from\(\s*['"`]inventory_products/.test(t))).toEqual([]);
+    expect(offenders((t, p) => /\.from\(\s*['"`]inventory_/.test(t) && !p.startsWith('data/'))).toEqual([]);
+    const allowed = new Set(['inventory_excess_retained', 'inventory_excess_settings', 'inventory_sync_log']);
+    for (const s of sources)
+      for (const [, table] of code(s.text).matchAll(/\.from\(\s*['"`](inventory_[a-z_]+)/g))
+        expect(allowed.has(table), `${s.path} reads ${table}`).toBe(true);
   });
 
   it('nothing selects every column', () => {
@@ -49,7 +54,7 @@ describe('Inventory module rules', () => {
     const calls = [...feed.matchAll(/call\(\s*'(inventory_[a-z_]+)'\s*(?:,\s*\{([^}]*)\})?/g)];
     expect(calls.length).toBeGreaterThanOrEqual(3);
     for (const [, name, args] of calls) {
-      if (/^inventory_(changes_|search|balances)/.test(name)) expect(args ?? '', `${name} needs p_limit`).toContain('p_limit');
+      if (/^inventory_(changes_|search|balances|in_transit)/.test(name)) expect(args ?? '', `${name} needs p_limit`).toContain('p_limit');
     }
   });
 
@@ -59,11 +64,18 @@ describe('Inventory module rules', () => {
 });
 
 describe('manifest', () => {
-  it('has one overview route guarded by inventory.search, a status pill, and the nav slot reserved for Inventory', () => {
+  it('lists the Inventory screens with who may open each, a status pill, and the nav slot reserved for Inventory', () => {
     expect(manifest.id).toBe('inventory');
     expect(manifest.nav.order).toBe(40);
     expect(manifest.status.anyOf).toEqual(['inventory.search']);
-    expect(manifest.routes.map((r) => [r.path, r.permission])).toEqual([['/inventory', 'inventory.search']]);
+    expect(manifest.routes.map((r) => [r.path, r.permission])).toEqual([
+      ['/inventory', 'inventory.search'],
+      ['/inventory/ledger', 'inventory.view'],
+      ['/inventory/reorder', 'inventory.view'],
+      ['/inventory/excess', 'inventory.view'],
+      ['/inventory/health', 'inventory.view'],
+      ['/inventory/sync', 'inventory.sync'],
+    ]);
     for (const r of manifest.routes) expect(r.path.startsWith('/inventory')).toBe(true);
   });
 });

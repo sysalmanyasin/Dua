@@ -1,0 +1,272 @@
+[
+  {
+    "name": "a full month, hand-worked",
+    "inputs": {
+      "sale": 1000000,
+      "generic_sale": 200000,
+      "pilferage": 500,
+      "till_short": 200,
+      "cash_target": 3000,
+      "excess_fine": 100,
+      "plus_fine": 50,
+      "paper_fine": 25,
+      "panel_fine": 1000,
+      "tax": 700
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 5000,
+      "gen_inc": 9000,
+      "total_comm": 4300,
+      "total_gen": 8900,
+      "grand_total": 16200,
+      "pre_panel": 16125,
+      "net_inc": 15125,
+      "owner_net": 6863
+    }
+  },
+  {
+    "name": "nothing entered",
+    "inputs": {
+      "sale": 0,
+      "generic_sale": 0,
+      "pilferage": 0,
+      "till_short": 0,
+      "cash_target": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0,
+      "panel_fine": 0,
+      "tax": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 0,
+      "gen_inc": 0,
+      "total_comm": 0,
+      "total_gen": 0,
+      "grand_total": 0,
+      "pre_panel": 0,
+      "net_inc": 0,
+      "owner_net": 0
+    }
+  },
+  {
+    "name": "only a pilferage loss: a negative net, half of -100 is -50",
+    "inputs": {
+      "sale": 0,
+      "generic_sale": 0,
+      "pilferage": 100,
+      "till_short": 0,
+      "cash_target": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0,
+      "panel_fine": 0,
+      "tax": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 0,
+      "gen_inc": 0,
+      "total_comm": -100,
+      "total_gen": 0,
+      "grand_total": -100,
+      "pre_panel": -100,
+      "net_inc": -100,
+      "owner_net": -50
+    }
+  },
+  {
+    "name": "a net of -101: half is -50.5 which rounds up to -50, like Math.round",
+    "inputs": {
+      "sale": 0,
+      "generic_sale": 0,
+      "pilferage": 101,
+      "till_short": 0,
+      "cash_target": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0,
+      "panel_fine": 0,
+      "tax": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 0,
+      "gen_inc": 0,
+      "total_comm": -101,
+      "total_gen": 0,
+      "grand_total": -101,
+      "pre_panel": -101,
+      "net_inc": -101,
+      "owner_net": -50
+    }
+  },
+  {
+    "name": "61.725 rounds to 62 and 112.5 rounds to 113; the half of 175 is 87.5 which becomes 88",
+    "inputs": {
+      "sale": 12345,
+      "generic_sale": 2500,
+      "pilferage": 0,
+      "till_short": 0,
+      "cash_target": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0,
+      "panel_fine": 0,
+      "tax": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 62,
+      "gen_inc": 113,
+      "total_comm": 62,
+      "total_gen": 113,
+      "grand_total": 175,
+      "pre_panel": 175,
+      "net_inc": 175,
+      "owner_net": 88
+    }
+  },
+  {
+    "name": "a sale commission of exactly 0.5 rounds up to 1",
+    "inputs": {
+      "sale": 100,
+      "generic_sale": 0,
+      "pilferage": 0,
+      "till_short": 0,
+      "cash_target": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0,
+      "panel_fine": 0,
+      "tax": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 1,
+      "gen_inc": 0,
+      "total_comm": 1,
+      "total_gen": 0,
+      "grand_total": 1,
+      "pre_panel": 1,
+      "net_inc": 1,
+      "owner_net": 1
+    }
+  },
+  {
+    "name": "every typed figure is rounded to a whole rupee first (sale 12345.5 becomes 12346)",
+    "inputs": {
+      "sale": 12345.5,
+      "generic_sale": 999.5,
+      "tax": 0.5,
+      "pilferage": 10.4,
+      "till_short": 0,
+      "cash_target": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0,
+      "panel_fine": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 62,
+      "gen_inc": 45,
+      "total_comm": 52,
+      "total_gen": 45,
+      "grand_total": 97,
+      "pre_panel": 97,
+      "net_inc": 97,
+      "owner_net": 48
+    }
+  },
+  {
+    "name": "different rates, same formula",
+    "inputs": {
+      "sale": 500000,
+      "generic_sale": 120000,
+      "cash_target": 2000,
+      "panel_fine": 300,
+      "tax": 150,
+      "pilferage": 0,
+      "till_short": 0,
+      "excess_fine": 0,
+      "plus_fine": 0,
+      "paper_fine": 0
+    },
+    "rates": {
+      "sale_commission": 0.006,
+      "generic_pool": 0.05,
+      "owner_share": 0.4
+    },
+    "expect": {
+      "sale_comm": 3000,
+      "gen_inc": 6000,
+      "total_comm": 3000,
+      "total_gen": 6000,
+      "grand_total": 11000,
+      "pre_panel": 11000,
+      "net_inc": 10700,
+      "owner_net": 4130
+    }
+  },
+  {
+    "name": "fines and tax larger than the commission give a negative owner's net",
+    "inputs": {
+      "sale": 10000,
+      "generic_sale": 0,
+      "excess_fine": 500,
+      "plus_fine": 300,
+      "tax": 250,
+      "pilferage": 0,
+      "till_short": 0,
+      "cash_target": 0,
+      "paper_fine": 0,
+      "panel_fine": 0
+    },
+    "rates": {
+      "sale_commission": 0.005,
+      "generic_pool": 0.045,
+      "owner_share": 0.5
+    },
+    "expect": {
+      "sale_comm": 50,
+      "gen_inc": 0,
+      "total_comm": 50,
+      "total_gen": -500,
+      "grand_total": -450,
+      "pre_panel": -750,
+      "net_inc": -750,
+      "owner_net": -625
+    }
+  }
+]

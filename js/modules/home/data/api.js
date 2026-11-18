@@ -12,3 +12,11 @@ export async function notificationsAttention() {
   if (error) throw error;
   return data;
 }
+
+// The four stock numbers, worked out inside the database (inventory_cover_summary). Needs inventory.view; the Cover only
+// asks when the person has it, and a failure here never breaks the rest of the Cover.
+export async function inventoryCover() {
+  const { data, error } = await db().rpc('inventory_cover_summary');
+  if (error) throw error;
+  return data;
+}

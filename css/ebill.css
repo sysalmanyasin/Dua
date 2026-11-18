@@ -1,0 +1,628 @@
+/* Emergency Billing: desktop-first POS laid out like the Candela Sale and Return screen, in Dua's colours (tokens.css). */
+.content:has(.eb) {
+  max-width: none;
+} /* the POS uses the whole screen; other pages keep the narrow column */
+.eb {
+  display: grid;
+  gap: var(--space-3);
+  --eb-edit: color-mix(in srgb, var(--primary) 9%, var(--surface));
+}
+.eb input,
+.eb select,
+.eb textarea {
+  font: inherit;
+}
+.eb-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: var(--space-2);
+}
+.eb-tab {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-radius: var(--radius) var(--radius) 0 0;
+  padding: 0.25rem 0.9rem;
+  font-weight: 700;
+}
+.eb-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.eb-status {
+  font-size: 0.9em;
+}
+.eb-grow {
+  flex: 1 1 auto;
+}
+
+.eb-top {
+  display: grid;
+  gap: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+}
+.eb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  align-items: center;
+}
+.eb-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.eb-lbl {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.eb-code {
+  width: 6rem;
+}
+.eb-wide {
+  width: 14rem;
+}
+.eb-wide.eb-grow {
+  flex: 1;
+  min-width: 10rem;
+}
+.eb-qtyin {
+  width: 4.5rem;
+  background: var(--eb-edit);
+  text-align: center;
+  font-weight: 700;
+}
+.eb-sku {
+  width: 26rem;
+  max-width: 100%;
+  background: var(--eb-edit);
+}
+.eb-date {
+  width: 7.5rem;
+}
+.eb-time {
+  width: 5.5rem;
+}
+.eb-bal {
+  min-width: 4rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.35rem 0.5rem;
+  background: var(--surface-2);
+}
+.eb-check {
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+  white-space: nowrap;
+}
+.eb-top input[readonly],
+.eb-top input:disabled {
+  background: var(--surface-2);
+}
+
+.eb-main {
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+.eb-grid {
+  min-width: 0;
+}
+.eb-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.eb-lines-wrap {
+  min-height: 18rem;
+  max-height: 52vh;
+}
+.eb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+.eb-table th,
+.eb-table td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+.eb-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--primary);
+  color: var(--primary-text);
+  z-index: 1;
+  white-space: nowrap;
+}
+.eb-table tfoot td {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-2);
+  font-weight: 700;
+  border-top: 2px solid var(--primary);
+}
+.eb-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.eb-table .neg {
+  color: var(--danger);
+}
+.eb-table input,
+.eb-table select {
+  max-width: 6.5rem;
+}
+.eb-edit {
+  background: var(--eb-edit);
+  width: 5rem;
+  text-align: right;
+}
+.eb-disc {
+  white-space: nowrap;
+}
+.eb-disc input {
+  width: 4.5rem;
+}
+.eb-del {
+  all: unset;
+  cursor: pointer;
+  color: var(--primary);
+  text-decoration: underline;
+  font-size: 0.9em;
+}
+.eb-del:focus-visible {
+  outline: 2px solid var(--focus);
+}
+.eb-sub {
+  font-size: 0.82em;
+  color: var(--text-muted);
+}
+.eb-empty {
+  text-align: center !important;
+  padding: var(--space-5) !important;
+}
+.eb-warn {
+  color: var(--danger);
+  font-size: 0.85em;
+}
+.eb-tag {
+  font-size: 0.75em;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 0 0.3rem;
+}
+
+.eb-side {
+  position: sticky;
+  top: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+.eb-totals {
+  margin: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.eb-totals > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+.eb-totals dt {
+  color: var(--text-muted);
+}
+.eb-totals dd {
+  margin: 0;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+.eb-totals output {
+  min-width: 5.5rem;
+  text-align: right;
+}
+.eb-num {
+  width: 4.5rem;
+  text-align: right;
+  background: var(--eb-edit);
+}
+.eb-cash {
+  width: 9rem;
+  text-align: right;
+  font-size: 1.15rem;
+  font-weight: 700;
+  background: var(--eb-edit);
+}
+.eb-netlabel {
+  text-align: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-top: var(--space-2);
+}
+.eb-net {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3);
+  text-align: right;
+}
+.eb-net output {
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.eb-receipt {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+.eb-receipt legend {
+  font-weight: 700;
+  padding: 0 var(--space-1);
+}
+.eb-change {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ok);
+}
+
+.eb-bottom {
+  display: grid;
+  grid-template-columns: auto auto 1fr 1fr auto auto;
+  gap: var(--space-3);
+  align-items: start;
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+.eb-hold,
+.eb-print,
+.eb-rtype {
+  display: grid;
+  gap: var(--space-2);
+}
+.eb-navs {
+  display: flex;
+  gap: var(--space-1);
+}
+.eb-pay {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+.eb-pay legend {
+  font-weight: 700;
+  padding: 0 var(--space-1);
+}
+.eb-area {
+  display: grid;
+  gap: var(--space-1);
+}
+.eb-area textarea {
+  width: 100%;
+  resize: vertical;
+  background: var(--eb-edit);
+}
+.eb-copies {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.eb-copies input {
+  width: 4rem;
+}
+.eb-toolbar {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.eb-pill-off {
+  background: var(--danger);
+  color: #fff;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+@media (max-width: 1100px) {
+  .eb-bottom {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 1000px) {
+  .eb-main {
+    grid-template-columns: 1fr;
+  }
+  .eb-side {
+    position: static;
+  }
+  .eb-sku {
+    width: 100%;
+  }
+  .eb-group {
+    flex-wrap: wrap;
+  }
+}
+
+/* Product Help */
+.eb-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(0 0 0 / 0.5);
+  display: grid;
+  place-items: center;
+  padding: var(--space-3);
+}
+.eb-dlg {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  width: min(1300px, 100%);
+  max-height: 94vh;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+.eb-dlg-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.eb-dlg-head h2 {
+  margin: 0;
+}
+.eb-dlg .eb-table-wrap {
+  max-height: none;
+  min-height: 0;
+}
+.eb-filter-row th {
+  top: 2.1rem;
+  padding: 0.25rem;
+}
+.eb-filter-row select,
+.eb-filter-row input {
+  width: 100%;
+  max-width: none;
+  margin-bottom: 2px;
+  font-size: 0.85em;
+}
+.eb-sort {
+  all: unset;
+  cursor: pointer;
+  font-weight: 700;
+}
+.eb-sort:focus-visible {
+  outline: 2px solid var(--focus);
+}
+.eb-table tr.sel {
+  background: var(--surface-2);
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+.eb-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.eb-chip {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.eb-dlg-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 1000px) {
+  .eb-main {
+    grid-template-columns: 1fr;
+  }
+  .eb-side {
+    position: static;
+  }
+}
+
+/* small question dialog (PIN, reason, number) */
+.eb-ask {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  width: min(26rem, 100%);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+.eb-ask h2 {
+  margin: 0;
+}
+.eb-ask-fields {
+  display: grid;
+  gap: var(--space-3);
+}
+.eb-ask-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* settings page */
+.ebs {
+  display: grid;
+  gap: var(--space-4);
+}
+.ebs section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+}
+.ebs h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.ebs .eb-table-wrap {
+  max-height: none;
+}
+.ebs td .btn {
+  margin-right: var(--space-1);
+}
+.ebs-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+/* sync strip */
+.eb-sync {
+  display: grid;
+  gap: var(--space-2);
+}
+.eb-sync-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+.eb-sync-why {
+  margin: 0;
+  font-size: 0.9em;
+}
+.eb-sync-list summary {
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+.eb-sync-list .eb-table-wrap {
+  max-height: 16rem;
+}
+.eb-st {
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0 0.6rem;
+  font-size: 0.85em;
+  background: var(--surface-2);
+}
+.eb-st-failed {
+  background: var(--danger);
+  color: #fff;
+}
+.eb-st-synced {
+  color: var(--ok);
+}
+
+/* history, held bills, invoice detail */
+.eb-hist {
+  display: grid;
+  gap: var(--space-3);
+}
+.eb-hist h1 {
+  margin: 0;
+}
+.eb-hist-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+.eb-hist-filters .field {
+  margin: 0;
+}
+.eb-hist-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+.eb-hist-wrap {
+  max-height: 60vh;
+}
+.eb-hist-pager {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: center;
+}
+.eb-click {
+  cursor: pointer;
+}
+.eb-click:hover {
+  background: var(--surface-2);
+}
+.eb-row-failed {
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+}
+.eb-detail {
+  max-width: 52rem;
+  overflow: auto;
+  display: block;
+}
+.eb-detail > * + * {
+  margin-top: var(--space-3);
+}
+.eb-events {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+.eb-held-dlg {
+  max-width: 62rem;
+}
+.eb-net-line {
+  text-align: right;
+  font-size: 1.2rem;
+}

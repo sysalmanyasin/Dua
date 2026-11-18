@@ -1,6 +1,6 @@
 # Project status — canonical snapshot
 
-**Snapshot date:** 13 November 2026  
+**Snapshot date:** 17 November 2026  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
 **Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
@@ -20,10 +20,10 @@ This file is the current status summary. Older dated entries in `PROJECT_PROGRES
 |---|---|---|---|
 | Foundation / authentication / permissions | Integrated | Live and owner-accepted | Operational hardening and separate production environment remain |
 | Sales | Integrated; core pages, reports, targets, fields, Cover and Gmail-send flow are implemented | Sales migrations and imported history are live | Owner's full real-device try-out; Google Cloud origin / real Gmail send verification; remaining dependent features below |
-| Manager | Integrated on `main`; staff registry and staff-credit screens are implemented | Migrations 0101–0103 applied and checked on 13 Nov | Phone try-out; remaining Manager slices (payslips, petty cash and other planned items) |
+| Manager | Integrated on `main`; Staff Registry, Staff Credit, Salary, Generic Sheet, Incentive, Petty Cash, Expenses, Jazz Cash, Misc Sections and Balance Tally implementation is recorded in the module progress file | Migrations 0101–0107 applied and checked live on 17 Nov 2026; `0108` Credit Inbox pushed 17 Nov (live status in `docs/modules/manager.progress.md`, Session M-D) | Owner phone acceptance (try-outs #2–#4); try the inbox on real Closing data; Attendance later |
 | Closing | Integrated on `main`; module shell and partial guided ledger are present | Database work through the documented 020x slices is in the repository; verify exact live registry before further apply | Sections 6–14, submit flow, ledgers/feed, print and remaining screens; owner phone try-out |
-| Inventory feed | Base Candela/Dropbox feed is integrated | Feed is live; hourly sync and inventory data were checked | Enhanced changed-row feed/interface migrations 0301–0304 and Edge Function v14 are recorded as applied live by the Inventory session, but their source branch is not yet integrated into `main`; reconcile and merge before treating repository as reproducible |
-| Inventory screens / local copy / reports | In progress on `module/inventory` | Feed is live; screen work is not complete | I-B local copy and reorder maths, I-C reports, I-D Home numbers and egress review |
+| Inventory feed | Integrated; migrations 0301–0307 and Edge Function v23 source are on `main` | Live and registered; hourly sync at minute 0 | `0307` (17 Nov 2026) ended the hourly statement-timeout failures and was applied by hand, then registered. The function still falls back to the old call if `0307` is missing; remove the fallback after a few clean days |
+| Inventory screens / local copy / reports | Integrated: six screens, phone-local copy, Stock row on Home, Excel / PDF / CSV exports | Live; no migration needed for the screens | Real-phone check of the PDF print dialog on the pharmacy phones is still worth doing |
 | Candela Sales | Integrated on `main`: owner screens (Overview, Daily History, Credit by Customer, Reports) and the staff-safe "Candela today" status pill | Migration 0900 applied by hand and registered on 14 Nov; first capture of the 4 feed days and 8 customer rows checked | Owner phone try-out; confirm the next hourly sync adds days; optional import of days before 11 Nov if a source exists |
 | STR | Specification and decisions recorded in Inventory progress/brief | Existing STR source tables arrive through the feed | Separate STR module (0500–0599) is planned; not complete |
 | Audit Hub, Emergency Billing, unified Reports, assistant, Android widgets | Planned | Not live as Dua modules | Future roadmap |
@@ -48,13 +48,13 @@ The latest main-branch project progress entry (13 Nov) reports **357 unit/jsdom 
 
 - `main` is the documentation and integration baseline.
 - `module/closing` and `module/manager` have no commits ahead of main in the checked comparison.
-- `module/inventory` is ahead of main and contains the enhanced inventory feed implementation. Its progress record is mirrored at `docs/modules/inventory.progress.md` on main; implementation source still needs review and integration.
+- `module/inventory` is fully merged into `main` and its branch can be deleted. The progress record is `docs/modules/inventory.progress.md`.
 - `foundation/inventory-feed`, `docs/session-plans` and `design/inventory-delta-sync` are divergent branches; compare and selectively reconcile rather than blindly merging.
 - `foundation/operations-hardening` has no commits ahead of main in the checked comparison.
 
 Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
 
-## Candela Sales (14 Nov 2026)
+## Manager (17 Nov 2026)\n\n- Live `DuaPharmaPlus` migration registry contains Manager migrations `0101`–`0107` in order. `0105`–`0107` were applied from the exact `main` SQL files on 17 Nov 2026 and registered under their repository versions.\n- Live post-apply checks: 17 Manager tables have RLS enabled; no direct `anon` table grants, no direct authenticated write grants, no `anon` execution of Manager RPCs, and fixed search paths on Manager functions. Manager data access is through permission-checked RPCs, not direct table policies.\n- Built-in seed state checked: 4 rates, 2 ledgers, 6 tally accounts. No business transactions or staff records were imported.\n- `0108` / Credit Inbox is not in the current main migration directory and remains outstanding. Full local DB suite, current `npm run verify`, and owner phone acceptance still need to be run. See `docs/modules/manager.progress.md`.\n\n## Candela Sales (14 Nov 2026)
 
 - The Candela feed carries only the last 4 days and `inventory_apply_sync` replaces `sales_payment_summary` and `sales_credit_by_customer` on every run. Migration 0900 adds statement triggers on those two tables that copy every incoming day into `candela_daily_payments` and `candela_credit_daily` in the same transaction, so history is permanent and the Inventory-owned sync function is unchanged.
 - History starts at the first capture (11 Nov 2026); earlier days exist only in backups.
@@ -64,12 +64,11 @@ Branch divergence can change; re-check before merging. A migration being live do
 
 ## Immediate priorities
 
-1. Reconcile and integrate Inventory source (0301–0304, Edge Function v14, tests and progress docs) with current main without re-applying already-live migrations.
-2. Confirm a clean CI run and a clean full database test run on the resulting main.
-3. Perform a restore drill using a real encrypted Drive backup into a separate empty Supabase project.
-4. Complete the owner phone try-outs for Sales, Manager and Closing; verify real Gmail sending.
-5. Finish Closing and Inventory screens, then proceed to STR and the later planned modules.
-6. Create a separate production Supabase project before launch; complete Playwright, Sentry, accessibility and low-end-device checks.
+1. Confirm a clean CI run and a clean full database test run on the resulting main.
+2. Perform a restore drill using a real encrypted Drive backup into a separate empty Supabase project.
+3. Complete the owner phone try-outs for Sales, Manager and Closing; verify real Gmail sending.
+4. Finish Closing, then proceed to STR and the later planned modules.
+5. Create a separate production Supabase project before launch; complete Playwright, Sentry, accessibility and low-end-device checks.
 
 ## Source-of-truth documents
 

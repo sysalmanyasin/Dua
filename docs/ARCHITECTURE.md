@@ -51,7 +51,7 @@ Add Entry page → `domain/entry.js` parses what was typed → `data/api.js` cal
 - Because the policy blocks inline styles, widths and positions are set from script (`style.width = …`), never as `style="…"` attributes.
 
 ## Inventory data flow
-The base Candela → Dropbox → Edge Function feed is live. The enhanced changed-row feed and interfaces (migrations 0301–0304, Edge Function v14) are recorded as live by the Inventory session, but their source changes remain on `module/inventory` and are not yet integrated into `main` at the 13 Nov 2026 status snapshot. Inventory screens and the phone-local copy are still in progress. See `docs/PROJECT_STATUS.md` and `docs/modules/inventory.progress.md` (progress mirrored on main; source still on the work branch).
+The Candela → Dropbox → Edge Function feed is live and integrated. Every hour the function checks Dropbox's content hash and, only when the file changed, sends it to the database in one request body (`inventory_apply_sync_body`, migration 0307), which compares row hashes and writes only changed rows (migrations 0301–0307, Edge Function v23). Phones read a changed-rows feed into a local copy, never the products table. All six Inventory screens and the Stock row on Home are integrated. See `docs/PROJECT_STATUS.md`, `docs/modules/inventory.md` and `docs/modules/inventory-sync-design.md`.
 
 ## Offline behaviour
 Only the Daily Check List keeps working through a dropped connection: it saves a copy on the phone and retries. Everything else needs a connection and says so. The copy is removed at sign-out. A general offline queue for closing and audit counting is planned (see the roadmap).

@@ -1,4 +1,5 @@
 import { loadContext } from './auth.js';
+import { loadOfflineContext } from './offlineContext.js';
 import { getConfig } from './config.js';
 import { installGlobalHandlers, log } from './logger.js';
 import { loadManifests, setBrokenHandler } from './registry.js';
@@ -14,9 +15,11 @@ async function route() {
   stopRouter = null;
   const { db } = await import('./supabase.js');
   const { data } = await db().auth.getSession();
-  if (!data.session) return showLogin(root, { onDone: route });
+  // The saved login token has expired and there is no connection to renew it: open Emergency Billing from the small saved context.
+  const away = !data.session && navigator.onLine === false ? loadOfflineContext() : null;
+  if (!data.session && !away) return showLogin(root, { onDone: route });
 
-  const ctx = await loadContext();
+  const ctx = away ?? (await loadContext());
   if (!ctx) return showBlocked(root, 'This account is not active. Ask the owner to enable it.');
   if (!ctx.mfa_ok) {
     return showMfa(root, { onDone: route });

@@ -104,6 +104,7 @@ export function shiftSheet(p) {
     row('Sale Book 2', fmt(i.book_bill_2)),
     row('Customers', fmt(r.customers)),
     row('Last Bill #', String(Math.round(num(i.last_bill_no)))),
+    row('Last Bill Amount', fmt(i.last_bill_amt)),
   ];
   const cc = [
     row('Bank Alfalah', fmt(i.alfalah)),

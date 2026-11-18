@@ -6,11 +6,24 @@ import { hero } from '../../../shared/ui.js';
 import { longDate, money, parseAmount } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { conflictVersion, friendlyError } from '../domain/errors.js';
-import { emptyForm, emptyRow, formFromRow, localTotals, payloadFromForm, rowExtra, rupees, stripLineTotal } from '../domain/form.js';
-import { SECTIONS, clampSection } from '../domain/sections.js';
+import {
+  emptyForm,
+  emptyRow,
+  formFromRow,
+  localTotals,
+  namedEntry,
+  payloadFromForm,
+  rowExtra,
+  rupees,
+  stripLineTotal,
+} from '../domain/form.js';
+import { overviewValue, prevTitle, snapshotRows } from '../domain/snapshot.js';
+import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
+import { SECTIONS, clampSection, sectionIndex } from '../domain/sections.js';
 import { slotLabel } from '../domain/slots.js';
 import { clearLocal, getOpen, loadLocal, saveLocal } from '../domain/store.js';
 import { errorCard, loadingCard, openDialog, toast } from './parts.js';
+import { saveBlob } from './book.js';
 import { lateSections, previewFigures } from './sections-late.js';
 
 const SAVE_DELAY = 2500;
@@ -65,6 +78,9 @@ export async function mount(el, { ctx } = {}) {
     tierNames: [1, 2, 3].map((n) => accounts.filter((a) => a.kind === 'tier_name' && a.tier_no === n).map((a) => a.label)),
     submitting: false,
     done: null,
+    seen: new Set([0]),
+    prev: null,
+    showWarn: false,
     status: 'saved', // saved | saving | dirty | offline | failed | conflict | invalid
     invalid: [],
     preview: null,
@@ -135,6 +151,18 @@ export async function mount(el, { ctx } = {}) {
       /* it simply shows as not verified yet */
     }
   }
+
+  // what the closing before this one entered (read-only card under each section); absent when there is none or it cannot be read
+  async function loadPrev() {
+    S.prev = null;
+    if (S.opening || !S.carry?.from) return;
+    try {
+      S.prev = await api.prevPage(S.id);
+    } catch {
+      /* the card simply does not show */
+    }
+  }
+  await loadPrev();
 
   async function auditSync() {
     if (['syncing', 'verifying'].includes(S.audit.phase)) return;
@@ -324,20 +352,55 @@ export async function mount(el, { ctx } = {}) {
     for (let n = 0; n < 40 && S.saving; n++) await new Promise((r) => setTimeout(r, 100));
     return S.status === 'saved';
   }
+  // variance wording and tone, as the old review screen: up to Rs. 100 is fine, up to Rs. 1,000 a warning, above that bad (Plus is never bad)
+  const varianceTone = (v) => {
+    const a = Math.abs(v);
+    return v >= 0 || a <= 100 ? 'ok' : a <= 1000 ? 'warn' : 'bad';
+  };
+  const unopened = () => SECTIONS.filter((s, i) => !S.seen.has(i) && !(S.opening && s.key === 'invaudit')).map((s) => s.label);
+  function auditBlocks() {
+    return !S.opening && S.auditRequired === true && !S.audit.snap;
+  }
   function askSubmit() {
-    if (!S.opening && !S.form.responsible_staff_id) return toast('Choose the responsible staff member first.', 'error');
+    if (auditBlocks()) {
+      toast('Inventory Audit is not done. Tap Sync & audit, then Verify & confirm.', 'error');
+      S.section = sectionIndex('invaudit');
+      return draw();
+    }
+    if (!S.opening && !S.form.responsible_staff_id) {
+      S.showWarn = true;
+      toast('Choose the responsible staff member first.', 'error');
+      draw();
+      return el.querySelector('#cls-staff')?.focus();
+    }
     const p = S.preview;
+    const final = S.mode === 'final';
+    const v = p ? Number(final ? p.final_net_cash : p.shift_variance) : null;
+    const tone = v === null ? 'ok' : varianceTone(v);
+    const who = staff.find((x) => x.id === S.form.responsible_staff_id)?.name;
+    const skipped = unopened();
     const dlg = openDialog(
-      html`<h3>Submit this closing?</h3>
-        <p>${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}</p>
+      html`<h3>Review closing</h3>
+        <p>${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}${who ? html` · ${who}` : ''}</p>
         ${
           p
-            ? html`<p>
-                Net sale ${money(p.net_sale, { decimals: true })} · Grand total ${money(p.grand, { decimals: true })} · Net cash
-                ${money(p.net_cash, { decimals: true })}
-              </p>`
-            : ''
+            ? html`<div class="cls-review">
+                <div class="cls-review-row">
+                  <span>Target Net Sales</span><strong>${money(final ? p.final_net_sale : p.net_sale, { decimals: true })}</strong>
+                </div>
+                <div class="cls-review-row">
+                  <span>Net Cash Available</span
+                  ><strong>${money(final ? p.final_net_cash + p.final_net_sale : p.net_cash + p.net_sale, { decimals: true })}</strong>
+                </div>
+                <div class="cls-review-row cls-var-${tone}">
+                  <span>${v === 0 ? '✓ Variance' : v > 0 ? '▲ Plus' : '▼ Less'}</span
+                  ><strong>${money(Math.abs(v), { decimals: true })}</strong>
+                </div>
+              </div>`
+            : html`<p class="cls-meta">The figures are still being worked out. You can submit; the saved closing will have them.</p>`
         }
+        ${tone !== 'ok' ? html`<p class="cls-warn" role="alert">⚠ This is a ${tone === 'bad' ? 'large ' : ''}shortage. Recount the till and check credit and deposits before submitting.</p>` : ''}
+        ${skipped.length ? html`<p class="cls-warn">Some sections were not opened: ${skipped.join(', ')}. You can still submit, but check them first.</p>` : ''}
         <p class="cls-meta">After submitting, the closing is locked and the next shift picks up its carried values.</p>
         <div class="actions">
           <button type="button" class="btn" data-close>Not yet</button>
@@ -369,9 +432,14 @@ export async function mount(el, { ctx } = {}) {
     } catch (e) {
       S.submitting = false;
       const f = friendlyError(e);
+      if (f.code === 'audit_not_verified') {
+        S.section = sectionIndex('invaudit');
+        draw();
+      }
       if (f.code === 'carry_changed') {
         try {
           adopt(await api.loadById(S.id));
+          await loadPrev();
           refreshPreview();
         } catch {
           /* the message below still tells them what to do */
@@ -379,6 +447,18 @@ export async function mount(el, { ctx } = {}) {
         draw();
       }
       toast(f.message, 'error');
+    }
+  }
+  async function sheetPdf(open) {
+    try {
+      const pages = await api.ownBook({ closing: S.id, limit: 1 });
+      if (!pages?.length) return toast('The sheet is not available yet. Find it later under Saved records.', 'error');
+      const name = pdfFileName(pages);
+      const blob = buildClosingBookPdf(pages, { title: name.replace(/\.pdf$/, '') }).toBlob();
+      if (open) window.open(URL.createObjectURL(blob), '_blank');
+      else saveBlob(blob, name);
+    } catch (e) {
+      toast(friendlyError(e).message, 'error');
     }
   }
   const successScreen = () =>
@@ -396,7 +476,11 @@ export async function mount(el, { ctx } = {}) {
               </p>`
             : ''
         }
-        <p><a class="btn btn-primary" href="#/closing">Back to Closing</a></p>
+        <div class="actions">
+          <button type="button" class="btn" data-act="pdf">Download PDF</button>
+          <button type="button" class="btn" data-act="pdf-open">Open to print</button>
+          <a class="btn btn-primary" href="#/closing">Back to Closing</a>
+        </div>
       </div>
     </div>`;
 
@@ -440,7 +524,8 @@ export async function mount(el, { ctx } = {}) {
   const sectionPos = () =>
     html`<h2>1 · POS</h2>
       ${field('sys_cash', 'System Cash Sales Total')} ${field('last_bill_no', 'Last Bill Number')}
-      ${field('comp_sale', 'Computer Card Sale')} ${field('alfalah', 'Bank Alfalah Card Machine')} ${field('keenu', 'Keenu Card Machine')}
+      ${field('last_bill_amt', 'Last Bill Amount')} ${field('comp_sale', 'Computer Card Sale')}
+      ${field('alfalah', 'Bank Alfalah Card Machine')} ${field('keenu', 'Keenu Card Machine')}
       <h3 class="sec-label">Returns / Refunds</h3>
       ${field('ret_manual.0', 'Return 1', { cls: 'cls-return' })} ${field('ret_manual.1', 'Return 2', { cls: 'cls-return' })}
       ${field('ret_manual.2', 'Return 3', { cls: 'cls-return' })} ${field('ret_system', 'System Return', { cls: 'cls-return' })}
@@ -539,20 +624,51 @@ export async function mount(el, { ctx } = {}) {
       <div class="actions"><button type="button" class="btn btn-sm" data-act="add" data-list="hs">＋ Add Row</button></div>
       ${total('Total HS (A)', 'hs')}`;
 
-  const sectionStrips = () =>
-    html`<h2>5 · Strips</h2>
+  const groupOf = (r) => (r.strip_id ? (strips.find((x) => x.id === r.strip_id)?.group_name ?? '') : '');
+  const sectionStrips = () => {
+    let lastGroup = null;
+    return html`<h2>5 · Strips</h2>
+      <p class="cls-meta">Item names and prices are fixed by the owner. Enter only the quantity sold.</p>
       <div class="cls-table" style="--cols: 3">
         <div class="cls-trow is-head"><span>Item</span><span>Price</span><span>Qty</span><span>Total</span><span></span></div>
-        ${S.form.strips.map(
-          (r) =>
-            html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 3">
-              ${textCell('strips', r, 'label', 'Item')} ${numCell('strips', r, 'price', 'Price')} ${numCell('strips', r, 'qty', 'Qty')}
-              <span class="cls-meta" data-line="${r.id}">${money(rupees(stripLineTotal(r)))}</span> ${strike('strips', r)}
-            </div>`,
-        )}
+        ${S.form.strips.map((r) => {
+          const fixed = Boolean(r.strip_id);
+          const g = groupOf(r);
+          const header = fixed && g !== lastGroup && g ? html`<h3 class="sec-label cls-group">${g}</h3>` : '';
+          if (fixed) lastGroup = g;
+          return html`${header}
+            <div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 3">
+              ${
+                fixed
+                  ? html`<span class="cls-name">${r.label}</span
+                      ><span class="cls-fixed">${money(r.price === '' ? 0 : Number(r.price))}</span>`
+                  : html`${textCell('strips', r, 'label', 'Extra item')} ${numCell('strips', r, 'price', 'Price')}`
+              }
+              ${numCell('strips', r, 'qty', 'Qty')}
+              <span class="cls-meta" data-line="${r.id}">${money(rupees(stripLineTotal(r)))}</span>
+              ${fixed ? html`<span></span>` : strike('strips', r)}
+            </div>`;
+        })}
       </div>
-      <div class="actions"><button type="button" class="btn btn-sm" data-act="add" data-list="strips">＋ Add Row</button></div>
+      <div class="actions"><button type="button" class="btn btn-sm" data-act="add" data-list="strips">＋ Add extra item</button></div>
       ${total('Total Inventory Revenue (B)', 'strips')}`;
+  };
+
+  const signedCell = (list, r, k, label) =>
+    html`<div class="cls-signed">
+      <button
+        type="button"
+        class="btn btn-sm"
+        data-act="signrow"
+        data-list="${list}"
+        data-id="${r.id}"
+        data-k="${k}"
+        aria-label="Toggle positive or negative"
+      >
+        ±
+      </button>
+      ${numCell(list, r, k, label)}
+    </div>`;
 
   const late = lateSections({
     S,
@@ -560,6 +676,7 @@ export async function mount(el, { ctx } = {}) {
     total,
     textCell,
     numCell,
+    signed: signedCell,
     strike,
     listOf,
     bad: (path) => bad(S.invalid, path),
@@ -575,12 +692,57 @@ export async function mount(el, { ctx } = {}) {
           <div class="cls-soon">This section is built in the next session. Nothing here is saved yet.</div>`;
   };
 
+  const prevCard = () => {
+    if (S.opening) return '';
+    const def = SECTIONS[S.section];
+    if (!S.prev) return html`<section class="card cls-prev"><div class="cls-meta">No previous closing on record yet.</div></section>`;
+    const rows = snapshotRows(def.key, S.prev);
+    return html`<section class="card cls-prev" aria-label="Previous closing">
+      <div class="cls-prev-head">📋 ${prevTitle(S.prev)}</div>
+      <div class="cls-prev-rows">
+        ${
+          rows.length
+            ? rows.map(([l, v]) => html`<div class="cls-prev-row"><span>${l}</span><span>${v}</span></div>`)
+            : html`<div class="cls-meta">Nothing for this section.</div>`
+        }
+      </div>
+    </section>`;
+  };
+
+  function viewAll() {
+    const t = localTotals(S.form, S.carry ?? {});
+    const dlg = openDialog(
+      html`<h3>All sections</h3>
+        <p class="cls-meta">Typed so far. Tap a section to go to it.</p>
+        <ul class="cls-list cls-viewall">
+          ${SECTIONS.map(
+            (sec, i) =>
+              html`<li>
+                <button type="button" class="cls-va-row" data-go="${i}" aria-current="${i === S.section ? 'step' : 'false'}">
+                  <span>${sec.icon} ${sec.label}</span><strong>${overviewValue(sec.key, t, S.form) || '—'}</strong>
+                  <span class="cls-meta">${i === S.section ? 'you are here' : S.seen.has(i) ? '✓' : '›'}</span>
+                </button>
+              </li>`,
+          )}
+        </ul>
+        <div class="actions"><button type="button" class="btn" data-close>Close</button></div>`,
+      { label: 'All sections' },
+    );
+    dlg.querySelectorAll('[data-go]').forEach((b) =>
+      b.addEventListener('click', () => {
+        dlg.close();
+        go(Number(b.dataset.go));
+      }),
+    );
+  }
+
   function draw() {
     if (S.done) return render(el, successScreen());
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
     render(
       el,
       html`<div class="cls">
+        <p class="cls-backrow"><button type="button" class="btn btn-sm" data-act="leave">‹ Back to days</button></p>
         ${hero({
           label: 'Closing',
           title: `${slotLabel(S.kind, S.seq)} closing`,
@@ -612,9 +774,15 @@ export async function mount(el, { ctx } = {}) {
                 ${staff.map((s) => html`<option value="${s.id}" ${s.id === S.form.responsible_staff_id ? 'selected' : ''}>${s.name}</option>`)}
               </select>
             </div>
+            ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
+        <div class="cls-tools">
+          <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
+          <button type="button" class="btn" data-act="viewall">⊞ View all</button>
+        </div>
+        <p class="cls-meta">Back to days saves your draft first. Continue it later from the calendar or Saved records.</p>
         <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>← Back</button>
@@ -626,18 +794,22 @@ export async function mount(el, { ctx } = {}) {
               : html`<button type="button" class="btn btn-primary" data-act="next">Next →</button>`
           }
         </div>
+        ${prevCard()}
       </div>`,
     );
     paintChip();
     paintTotals();
   }
 
+  const go = (i, scroll = true) => {
+    S.section = clampSection(i);
+    S.seen.add(S.section);
+    draw();
+    if (scroll) window.scrollTo?.(0, 0);
+  };
   const moveSection = (direction) => {
     const next = clampSection(S.section + direction);
-    if (next === S.section) return;
-    S.section = next;
-    draw();
-    window.scrollTo?.(0, 0);
+    if (next !== S.section) go(next);
   };
 
   // Match the old Closing app's swipe navigation without hijacking vertical
@@ -764,6 +936,12 @@ export async function mount(el, { ctx } = {}) {
     else if (!i.classList.contains('cls-text')) i.setAttribute('aria-invalid', 'false');
     touched();
   });
+  // tapping a number box selects what is in it, so the first key replaces it (as in the old app)
+  el.addEventListener('focusin', (e) => {
+    const i = e.target;
+    if (i.tagName === 'INPUT' && i.classList.contains('cls-in') && !i.readOnly && !i.classList.contains('cls-text'))
+      setTimeout(() => i.select?.(), 0);
+  });
   el.addEventListener('change', (e) => {
     if (e.target.id !== 'cls-staff') return;
     S.form.responsible_staff_id = e.target.value;
@@ -776,10 +954,7 @@ export async function mount(el, { ctx } = {}) {
       if (['failed', 'offline', 'dirty', 'invalid'].includes(S.status)) doSave();
       return;
     }
-    if (b.dataset.jump !== undefined) {
-      S.section = clampSection(Number(b.dataset.jump));
-      return draw();
-    }
+    if (b.dataset.jump !== undefined) return go(Number(b.dataset.jump), false);
     const act = b.dataset.act;
     if (act === 'prev' || act === 'next') {
       moveSection(act === 'next' ? 1 : -1);
@@ -792,6 +967,37 @@ export async function mount(el, { ctx } = {}) {
       return draw();
     }
     if (act === 'submit') return askSubmit();
+    if (act === 'viewall') return viewAll();
+    if (act === 'pdf' || act === 'pdf-open') return sheetPdf(act === 'pdf-open');
+    if (act === 'leave') {
+      return (S.status === 'saved' ? Promise.resolve() : doSave()).then(() => {
+        const kept = S.status === 'saved' || S.status === 'offline';
+        if (kept || globalThis.confirm('Your latest changes could not be saved. Leave anyway?')) location.hash = '#/closing';
+      });
+    }
+    if (act === 'draft') {
+      return doSave().then(() => {
+        if (S.status === 'saved') toast('Draft saved ✓');
+      });
+    }
+    if (act === 'signrow') {
+      const r = rowOf(b.dataset.list, b.dataset.id);
+      if (r) {
+        const cur = String(r[b.dataset.k]).trim();
+        r[b.dataset.k] = cur.startsWith('-') || cur.startsWith('−') ? cur.slice(1) : cur === '' ? '-' : `-${cur}`;
+        touched();
+        draw();
+        el.querySelector(`input[data-id="${b.dataset.id}"][data-k="${b.dataset.k}"]`)?.focus();
+      }
+      return;
+    }
+    if (act === 'add-named') {
+      const list = S.form.credit.named;
+      const last = list.map((x) => x.account_id).lastIndexOf(b.dataset.acc);
+      list.splice(last + 1, 0, namedEntry(b.dataset.acc, b.dataset.label));
+      touched();
+      return draw();
+    }
     if (act === 'audit-toggle') return changeAudit(b.dataset.to === 'on');
     if (act === 'audit-sync') return auditSync();
     if (act === 'audit-verify') return auditVerify();
