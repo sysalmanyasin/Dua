@@ -44,6 +44,8 @@ const api = {
   staffChoices: vi.fn(async () => []),
   loadByKey: vi.fn(),
   loadById: vi.fn(async () => ROW),
+  refreshDraftCarry: vi.fn(async () => ({ refreshed: true })),
+  prevPage: vi.fn(async () => null),
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
   computePreview: vi.fn(async () => ({})),
   myRecent: vi.fn(async () => []),
