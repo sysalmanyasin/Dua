@@ -174,10 +174,12 @@ Migrations are applied in filename order, on a clean database, by CI (`supabase/
 | `0700`–`0799` | Reports / Cover signals / Herald |
 | `0800`–`0899` | AI / Intelligence |
 | `0900`–`0999` | Candela Sales (assigned by the owner, 14 Nov 2026) |
+| `1000`–`1099` | Invoice Desk (assigned by the owner; recorded here 18 Nov 2026) |
+| `1100`–`1199` | Dua Workspace (assigned by the owner, 18 Nov 2026) |
 
 File name: `<4-digit number>_<module>_<what>.sql`, e.g. `0201_closing_tables.sql`. Test name: `<same number>_<module>_<what>_test.sql` (the runner picks up every `*_test.sql`).
 
-**Table names:** every new table, view and function carries your module prefix: `mgmt_…`, `closing_…`, `audit_…`, `inventory_…`, `str_…`, `ebill_…`. (Sales and core keep their legacy un-prefixed names; nobody else may use un-prefixed names.)
+**Table names:** every new table, view and function carries your module prefix: `mgmt_…`, `closing_…`, `audit_…`, `inventory_…`, `str_…`, `ebill_…`, `workspace_…`. (Sales and core keep their legacy un-prefixed names; nobody else may use un-prefixed names.)
 
 ### 5.2 Table rules
 
@@ -291,6 +293,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Planned |
 | `reports` | Cross-module reports, Herald, cover signals | `reports_` | `reports.` | `/reports` | 80 | 0700–0799 | other modules' interfaces | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
+| `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Building |
 | `access` | Users & Access (core) | — | `users.` | `/access` | 90 | — | core | Built |
 
 Android apps (attendance, widgets, mail routine, audit scanner) are **after** their web module is accepted and are not part of this contract yet.
