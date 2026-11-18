@@ -1,6 +1,6 @@
 # Dua Workspace — brief
 
-Status: Building (Phase 2 of 11)        Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
+Status: Building (Phase 3 of 11)        Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
 Branch: module/workspace        Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
 
 ## 1. Scope
@@ -53,7 +53,18 @@ Built in `1100_workspace_core.sql` (Phase 2):
 
 Functions: `workspace_my_staff_id`, `workspace_role` (the only access decision), `workspace_can_read`, `workspace_can_write`, `workspace_is_owner`; internal `workspace_staff_eligible`, `workspace_idem_get/put`, `workspace_note_valid` / `workspace_note_node_ok` (rich-text format check); public `workspace_create_document`, `workspace_list_documents`, `workspace_document_state` (archive / unarchive / delete / undelete), `workspace_share_candidates`, `workspace_member_set`, `workspace_member_remove`, `workspace_transfer_ownership`, `workspace_folder_save`, `workspace_folder_remove`, `workspace_state_set`.
 
-Planned: `1101` note revisions and save / restore; `1102` sheets, cells, styles, operations, snapshots; `1103` conflicts, pull, Realtime publication; `1104` attachments and Storage policies.
+Built in `1101_workspace_notes.sql` (Phase 3):
+
+| Table | Purpose |
+|---|---|
+| `workspace_note_revisions` | Every saved version of a note: restricted JSON content (checked by the database), plain text for search, kind (`create`, `edit`, `merge`, `restore`), sealed flag. A person's own newest version stays open and is updated in place for 5 minutes (autosave); it is sealed when someone else saves, after 5 minutes, on restore or on "save version". Sealed versions never change and nothing is ever deleted. |
+| `workspace_conflicts` | Text that lost a race: kept until someone resolves it. Sheets use the same table in `1103`. |
+
+Functions: `workspace_note_open`, `workspace_note_save` (needs the version the editor started from; a stale base is **never** applied, it is stored as an open conflict and reported), `workspace_note_restore` (owner only; writes a new version), `workspace_note_history` (no text), `workspace_member_list` (names, for the sharing screen), `workspace_document_rename` and `workspace_document_set_history_visible` (owner only), `workspace_conflict_resolve`, `workspace_search_notes`; internal `workspace_note_plain_text`, `workspace_note_node_text`, `workspace_can_read_revision`.
+
+Browser code built in Phase 3 (no screens yet): `domain/validation.js` (note format, mirrors the database rules; `tests/fixtures/workspace-note-cases.json` holds the shared cases and `tools/workspace-note-cases.mjs` turns them into `supabase/tests/1101_workspace_note_cases_test.sql`, so browser and database are checked against the same list), `domain/permissions.js`, `domain/revisions.js`, `domain/documents.js`, and the data layer `data/api.js`, `documents.js`, `sharing.js`, `notes.js`, `revisions.js`.
+
+Planned: `1102` sheets, cells, styles, operations, snapshots; `1103` sheet conflicts, pull, Realtime publication; `1104` attachments and Storage policies.
 
 Rich-text format: `{"v":1,"doc":{"type":"doc","content":[...]}}` with only the nodes `paragraph heading(1–3) bullet_list ordered_list list_item task_list task_item text hard_break` and marks `bold italic underline link(http, https, mailto, tel)`. Every top-level block has `attrs.id`. Maximum 256 KB and 8 levels of nesting.
 
@@ -68,7 +79,7 @@ Per-document rights (owner / editor / viewer) are in the matrix in the plan and 
 
 ## 6. Screens (layout)
 
-Not built yet (Phases 3 onward). Route `/workspace` (home: Notes and Sheets, recent, search, folders, shared with me); `/workspace/note?id=…`; `/workspace/sheet?id=…`. Phone first, Dua design system only.
+Not built yet (Phase 4 onward). The module is deliberately **not** listed in `js/modules/index.js` until Phase 4 brings the first screen, so nobody ever sees an empty Workspace. Route `/workspace` (home: Notes and Sheets, recent, search, folders, shared with me); `/workspace/note?id=…`; `/workspace/sheet?id=…`. Phone first, Dua design system only.
 
 ## 7. Interfaces
 
@@ -94,8 +105,8 @@ Requests to Foundation (approved by the owner acting as Foundation, 18 Nov 2026;
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Final design and prototypes | Done as the plan; prototypes still to run before Phases 4 and 9 |
-| 2 | Database core: `1100_workspace_core.sql` | Built, tested locally; not yet applied to the shared project |
-| 3 | Notes backend (`1101`) | Next |
+| 2 | Database core: `1100_workspace_core.sql` | Done; applied to the shared project 18 Nov 2026 |
+| 3 | Notes backend (`1101`), domain and data layers | Built and tested; see progress file for the live status |
 | 4 | Notes editor, sharing and history screens | Planned |
 | 5 | Workbooks and grid (`1102`) | Planned |
 | 6 | Formula engine | Planned |

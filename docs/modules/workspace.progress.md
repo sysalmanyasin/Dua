@@ -1,29 +1,31 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-18 (merged into `main` the same day; `module/workspace` stays open for Phase 3 onward)
+Updated: 2026-11-18
 
 ## Completed
 
 - [x] Plan approved by the owner (N-1 to N-17) and Foundation requests approved (M-1 to M-10).
-- [x] Formatting baseline restored in its own commit (16 files, formatting only).
-- [x] MODULES.md: ranges 1000–1099 (Invoice Desk) and 1100–1199 (Workspace) recorded; `workspace` registry row; `workspace_` prefix.
-- [x] Brief `docs/modules/workspace.md`.
-- [x] Phase 2: `supabase/migrations/1100_workspace_core.sql` and `supabase/tests/1100_workspace_core_test.sql`.
-- [x] Local check: clean PostgreSQL 16, every migration applied in order, all 61 database test files pass (Workspace: roles, sharing, revocation, disabled and expired accounts, no admin override, direct-write refusal, ownership transfer, archive and delete, listing and search, personal folders, rich-text validation, function and grant hygiene).
+- [x] Formatting baseline restored; ranges recorded in MODULES.md; brief written.
+- [x] **Phase 2** — `1100_workspace_core.sql` + test. Applied to the shared project on 18 Nov 2026 by hand and registered as version `1100` (all 73 repo migrations match the live registry by name).
+- [x] **Phase 3** — `1101_workspace_notes.sql` + `1101_workspace_notes_test.sql` (note revisions, save with conflict detection, restore, history, search, rename, member list, conflict resolution) and `1101_workspace_note_cases_test.sql` (37 shared validation cases).
+- [x] Browser side of Phase 3: `domain/` (validation, permissions, revisions, documents) and `data/` (api, documents, sharing, notes, revisions) with four unit-test files (93 tests).
+- [x] Local checks: clean PostgreSQL 16, every migration applied in order, all database test files pass (65). `npm run lint` and `prettier --check` pass.
 
-## In progress / not yet accepted
+## Known problems that are NOT from Workspace
 
-- [ ] Apply `1100` to the shared project by hand and register it under version `1100` (owner action; see MODULES.md §12 and `docs/ops/f6-registry-reconciliation.md`). Read the live registry immediately before applying.
-- [ ] CI run of `npm run verify` and `npm run test:db`. After the merge into `main`, lint and the format check pass; `npm test` has 15 failures that also fail on `main` (cover, service-worker, shell), none in Workspace.
-- [ ] Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone) before Phases 4 and 9.
+- 15 unit tests fail on a clean `origin/main` at `90e22e7`, identically with and without Workspace: `cover.test.js` (4), `shell.test.js` (4), `ebill-held-page.test.js` (1), `service-worker.test.js` (6, including "file list is up to date: run `node tools/sw-precache.mjs`"). Foundation should look at these before the next CI run: `npm test` is red on main.
 
-## Next
+## Not yet done
 
-Phase 3: `1101_workspace_notes.sql` (note revisions, save and restore) with its tests and the domain validation module.
+- [ ] Phase 4: ProseMirror (needs the vendored bundle, M-8), editor, sharing and history screens, first route; register `workspace` in `js/modules/index.js` and link `css/workspace.css` in `index.html`.
+- [ ] Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone).
+- [ ] Block-level three-way merge for notes (`domain/conflicts.js`) with the conflict screens, Phase 9.
+- [ ] Regenerate `sw.js` (M-6) when Workspace files are loadable by the app (Phase 4 onward).
 
 ## Notes for the next session
 
-- `workspace_role()` is the only place that decides access. Every new table and function must go through it.
+- `workspace_role()` is the only place that decides access. Every new table and function goes through it.
 - A `stable` function does not see changes made earlier in the same statement; tests that check state after a write must use a separate statement.
-- Trigger-guard functions have execute revoked from public as well.
-- The Invoice Desk migration rows are registered live as timestamps (`20261117…`) while the repo files are `1000`–`1003`; hand-apply with the repo number until Foundation re-registers them.
+- Edit `tests/fixtures/workspace-note-cases.json`, then run `node tools/workspace-note-cases.mjs`; a unit test fails if the generated SQL is stale. The browser and database validators must agree on every case.
+- Editors cannot rename documents (owner only, per the approved matrix). Say so if that should change.
+- Applying a migration by hand: read the live registry first, run the file as one batch, insert the registry row with the repo number in the same batch, then compare function bodies with comments stripped.
