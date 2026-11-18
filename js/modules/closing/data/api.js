@@ -46,6 +46,8 @@ export const saveDraft = ({ key, date, kind, mode, payload, handoverSeq = null, 
 export const startOpening = ({ key, date, kind }) => one(db().rpc('closing_start_opening', { p_key: key, p_date: date, p_kind: kind }));
 
 /** The full calculation for a saved draft, run by the server (the browser may not read every setting). */
+/** Refresh a draft's carry-forward balances and outstanding misc rows on reopen. */
+export const refreshDraftCarry = (closingId) => one(db().rpc('closing_refresh_draft', { p_closing: closingId }));
 export const computePreview = (closingId) => one(db().rpc('closing_compute', { p_closing: closingId }));
 /** The "since the last Final" roll-up for a saved closing. */
 export const periodFor = (closingId) => one(db().rpc('closing_period', { p_closing: closingId }));
