@@ -170,29 +170,40 @@ describe('Closing ledger', () => {
       prev_deposits: 7000,
       prev_cash: 6000,
       source_closing_id: 'new-source',
-      closing_misc_rows: [
-        ...ROW.closing_misc_rows,
-        { id: 'm2', charge_id: 'charge-2', label: 'New outstanding', amount: 1250, sort: 2 },
-      ],
+      closing_misc_rows: [...ROW.closing_misc_rows, { id: 'm2', charge_id: 'charge-2', label: 'New outstanding', amount: 1250, sort: 2 }],
     }));
     api.prevPage.mockImplementationOnce(async () => ({
-      business_date: '2026-11-10', mode: 'shift', inputs: { sys_cash: 100000, last_bill_no: 2481000 },
-      results: {}, hs: [], strips: [], cash: [], credit: [], deposits: [], mediq: [], misc: [],
+      business_date: '2026-11-10',
+      mode: 'shift',
+      inputs: { sys_cash: 100000, last_bill_no: 2481000 },
+      results: {},
+      hs: [],
+      strips: [],
+      cash: [],
+      credit: [],
+      deposits: [],
+      mediq: [],
+      misc: [],
     }));
     await ledger();
     expect(api.refreshDraftCarry).toHaveBeenCalledWith('c1');
     expect(api.loadById).toHaveBeenCalledWith('c1');
-    expect(el.querySelector('#f-opening\\.cc')?.value).toBe('9000');
-    expect(el.querySelector('#f-opening\\.credit')?.value).toBe('8000');
+    el.querySelector('[data-jump="2"]').click();
+    const carried = [...el.querySelectorAll('.is-carried')].map((i) => i.value);
+    expect(carried).toEqual(['9,000', '8,000', '7,000', '6,000']);
     el.querySelector('[data-jump="6"]').click();
-    expect(el.textContent).toContain('New outstanding');
+    const labels = [...el.querySelectorAll('[data-list="misc"][data-k="label"]')].map((i) => i.value);
+    expect(labels).toContain('New outstanding');
   });
   it('does not silently open a draft when carry-forward refresh fails', async () => {
     openTarget();
     api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
-    api.refreshDraftCarry.mockImplementationOnce(async () => { throw new Error('carry refresh failed'); });
+    api.refreshDraftCarry.mockImplementationOnce(async () => {
+      throw new Error('carry refresh failed');
+    });
     await ledger();
-    expect(el.textContent).toContain('carry refresh failed');
+    expect(el.textContent).toContain('Could not load this draft');
+    expect(el.textContent).toContain('Something went wrong');
     expect(el.querySelector('#f-sys_cash')).toBeNull();
   });
   it('restores carried miscellaneous charges when a draft is reopened', async () => {
@@ -200,8 +211,83 @@ describe('Closing ledger', () => {
     api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
     await ledger();
     el.querySelector('[data-jump="6"]').click();
-    expect(el.textContent).toContain('Outstanding');
+    expect(el.querySelector('[data-list="misc"][data-k="label"]').value).toBe('Outstanding');
     expect(el.querySelector('[data-list="misc"][data-k="amount"]').value).toBe('750');
+  });
+  it('reopens a draft with its Till Cash, Draw Cash, deposits and credit still filled in', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.loadById.mockImplementationOnce(async () => ({
+      ...ROW,
+      closing_cash_counts: [
+        { area: 'till', denomination: 5000, qty: 12 },
+        { area: 'till', denomination: 100, qty: 7 },
+        { area: 'vault', denomination: 1000, qty: 30 },
+      ],
+      closing_deposits: [{ id: 'd1', label: 'HBL', amount: 50000, sort: 1 }],
+      closing_credit_lines: [{ id: 'l1', line_id: 'x1', kind: 'free', label: 'Aux', amount: 900, sort: 1 }],
+    }));
+    await ledger();
+    el.querySelector('[data-jump="8"]').click();
+    expect(el.querySelector('[data-f="till.0"]').value).toBe('12');
+    expect(el.querySelector('[data-f="till.3"]').value).toBe('7');
+    expect(el.querySelector('[data-total="till"]').textContent).toContain('60,700');
+    el.querySelector('[data-jump="9"]').click();
+    expect(el.querySelector('[data-f="vault.1"]').value).toBe('30');
+    el.querySelector('[data-jump="11"]').click();
+    expect(el.querySelector('[data-list="deposits"][data-k="amount"]').value).toBe('50000');
+  });
+  it('does not wipe the saved cash counts when the next autosave runs after a reopen', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.loadById.mockImplementationOnce(async () => ({
+      ...ROW,
+      closing_cash_counts: [{ area: 'till', denomination: 5000, qty: 12 }],
+    }));
+    await ledger();
+    type(el.querySelector('#f-sys_cash'), '151000');
+    await vi.advanceTimersByTimeAsync(3000);
+    const sent = api.saveDraft.mock.calls.at(-1)[0].payload;
+    expect(sent.till[0]).toBe(12);
+  });
+  it('shows the calculated deltas in the override boxes and the previous closing card', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.prevPage.mockImplementationOnce(async () => ({
+      business_date: '2026-11-10',
+      day_no: 1,
+      kind: 'night',
+      seq: 10,
+      mode: 'shift',
+      inputs: { sys_cash: 100000, last_bill_no: 2481000 },
+      results: {},
+      hs: [],
+      strips: [],
+      cash: [],
+      credit: [],
+      deposits: [],
+      mediq: [],
+      misc: [],
+    }));
+    await ledger();
+    el.querySelector('[data-jump="2"]').click();
+    expect(el.querySelector('[data-f="overrides.shift_sale"]').getAttribute('placeholder')).toBe('50,000.00');
+    expect(el.querySelector('[data-f="overrides.customers"]').getAttribute('placeholder')).toBe('13');
+    expect(el.querySelector('.cls-prev').textContent).toContain('Previous shift');
+  });
+  it('does not show a whole-POS figure as the shift sale when the previous closing could not be read', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.prevPage.mockImplementationOnce(async () => {
+      throw Object.assign(new Error('x'), { code: '42501', hint: 'not_allowed' });
+    });
+    api.computePreview.mockImplementationOnce(async () => ({ net_sale: 1, shift_sale: 50000, customers: 13 }));
+    await ledger();
+    el.querySelector('[data-jump="2"]').click();
+    // the server's own figure (it still reads the previous closing) is shown, never the raw POS total 150,000
+    expect(el.querySelector('[data-total="shiftInfo"]').textContent).toContain('50,000');
+    expect(el.querySelector('[data-total="shiftInfo"]').textContent).not.toContain('150,000');
+    expect(el.querySelector('.cls-prev').textContent).toContain('could not be loaded');
   });
   it('shows live shift-sale, customer and card-sale deltas from the previous closing', async () => {
     openTarget();
@@ -214,7 +300,13 @@ describe('Closing ledger', () => {
       mode: 'shift',
       inputs: { sys_cash: 100000, last_bill_no: 2481000 },
       results: { shift_sale: 100000, customers: 10, net_sale: 100000 },
-      hs: [], strips: [], cash: [], credit: [], deposits: [], mediq: [], misc: [],
+      hs: [],
+      strips: [],
+      cash: [],
+      credit: [],
+      deposits: [],
+      mediq: [],
+      misc: [],
     }));
     await ledger();
     el.querySelector('[data-jump="2"]').click();
@@ -234,7 +326,13 @@ describe('Closing ledger', () => {
       mode: 'shift',
       inputs: { sys_cash: 100000, last_bill_no: 2481000 },
       results: { shift_sale: 5000, customers: 13, net_sale: 6000 },
-      hs: [], strips: [], cash: [], credit: [], deposits: [], mediq: [], misc: [],
+      hs: [],
+      strips: [],
+      cash: [],
+      credit: [],
+      deposits: [],
+      mediq: [],
+      misc: [],
     }));
     await ledger();
     expect(el.querySelector('.cls-prev')).not.toBeNull();

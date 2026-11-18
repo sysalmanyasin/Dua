@@ -8,7 +8,11 @@ const one = async (query) => {
   return data;
 };
 
-const DRAFT_SELECT = '*, closing_slots(business_date, kind, seq), closing_hs_rows(*), closing_strip_lines(*), closing_mediq_orders(*), closing_misc_rows(*)';
+// Every child table formFromRow() reads. If one is missing here its section opens blank on reopen, and the next autosave
+// (closing_save_draft replaces those rows with what the form holds) would overwrite what was saved with zeros.
+const DRAFT_SELECT =
+  '*, closing_slots(business_date, kind, seq), closing_hs_rows(*), closing_strip_lines(*), closing_mediq_orders(*), closing_misc_rows(*), ' +
+  'closing_cash_counts(*), closing_credit_lines(*), closing_deposits(*)';
 
 /** Active strips from the catalogue, in the order the owner set. */
 export const listStrips = () =>
