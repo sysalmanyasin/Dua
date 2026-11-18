@@ -29,6 +29,7 @@ const api = {
   staffChoices: vi.fn(async () => [{ id: 'st1', name: 'J One' }]),
   loadByKey: vi.fn(async () => null),
   loadById: vi.fn(async () => ROW),
+  refreshDraftCarry: vi.fn(async () => ({ refreshed: true })),
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
   computePreview: vi.fn(async () => ({ net_sale: 1234, shift_sale: 1000, customers: 7 })),
   myRecent: vi.fn(async () => []),
@@ -75,6 +76,7 @@ beforeEach(() => {
   localStorage.clear();
   Object.values(api).forEach((f) => f.mockClear());
   api.loadByKey.mockImplementation(async () => null);
+  api.refreshDraftCarry.mockImplementation(async () => ({ refreshed: true }));
   api.saveDraft.mockImplementation(async () => ({ closing_id: 'c1', version: 2 }));
   location.hash = '';
 });
@@ -157,6 +159,41 @@ describe('Closing ledger', () => {
     expect(api.saveDraft.mock.calls[0][0]).toMatchObject({ key: 'k1', kind: 'night', payload: {}, expectedVersion: null });
     expect(el.querySelector('#f-sys_cash')).not.toBeNull();
     expect(el.textContent).toContain('Saved');
+  });
+  it('refreshes carry-forward from the latest submitted closing before hydrating an existing draft', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW, prev_cc: 100, prev_credit: 200, source_closing_id: 'old-source' }));
+    api.loadById.mockImplementationOnce(async () => ({
+      ...ROW,
+      prev_cc: 9000,
+      prev_credit: 8000,
+      prev_deposits: 7000,
+      prev_cash: 6000,
+      source_closing_id: 'new-source',
+      closing_misc_rows: [
+        ...ROW.closing_misc_rows,
+        { id: 'm2', charge_id: 'charge-2', label: 'New outstanding', amount: 1250, sort: 2 },
+      ],
+    }));
+    api.prevPage.mockImplementationOnce(async () => ({
+      business_date: '2026-11-10', mode: 'shift', inputs: { sys_cash: 100000, last_bill_no: 2481000 },
+      results: {}, hs: [], strips: [], cash: [], credit: [], deposits: [], mediq: [], misc: [],
+    }));
+    await ledger();
+    expect(api.refreshDraftCarry).toHaveBeenCalledWith('c1');
+    expect(api.loadById).toHaveBeenCalledWith('c1');
+    expect(el.querySelector('#f-opening\\.cc')?.value).toBe('9000');
+    expect(el.querySelector('#f-opening\\.credit')?.value).toBe('8000');
+    el.querySelector('[data-jump="6"]').click();
+    expect(el.textContent).toContain('New outstanding');
+  });
+  it('does not silently open a draft when carry-forward refresh fails', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.refreshDraftCarry.mockImplementationOnce(async () => { throw new Error('carry refresh failed'); });
+    await ledger();
+    expect(el.textContent).toContain('carry refresh failed');
+    expect(el.querySelector('#f-sys_cash')).toBeNull();
   });
   it('restores carried miscellaneous charges when a draft is reopened', async () => {
     openTarget();
