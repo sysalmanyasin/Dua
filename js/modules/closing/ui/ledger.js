@@ -80,6 +80,7 @@ export async function mount(el, { ctx } = {}) {
     done: null,
     seen: new Set([0]),
     prev: null,
+    prevError: '',
     showWarn: false,
     status: 'saved', // saved | saving | dirty | offline | failed | conflict | invalid
     invalid: [],
@@ -155,11 +156,12 @@ export async function mount(el, { ctx } = {}) {
   // what the closing before this one entered (read-only card under each section); absent when there is none or it cannot be read
   async function loadPrev() {
     S.prev = null;
+    S.prevError = '';
     if (S.opening || !S.carry?.from) return;
     try {
       S.prev = await api.prevPage(S.id);
-    } catch {
-      /* the card simply does not show */
+    } catch (e) {
+      S.prevError = friendlyError(e).message;
     }
   }
   await loadPrev();
@@ -593,10 +595,8 @@ export async function mount(el, { ctx } = {}) {
       ${field('overrides.shift_sale', "This Shift's Sales (delta)", { note: 'Leave empty to use the calculated figure. A typed 0 counts.' })}
       ${field('book.0', 'Book Bill 1')} ${field('book.1', 'Book Bill 2')}
       ${field('overrides.customers', 'Customers This Shift (delta)', { note: 'Leave empty to use the calculated count.' })}
+      <div class="cls-row"><span class="cls-meta">Calculated shift sale · customers</span><strong data-total="shiftInfo">–</strong></div>
       <div class="cls-total cls-total-net"><span>Net Sale (this shift)</span><strong data-total="netSale">–</strong></div>
-      <div class="cls-row">
-        <span class="cls-meta">Shift sale · customers (calculated)</span><span class="cls-meta" data-total="shiftInfo">–</span>
-      </div>
       ${
         S.carry && !S.opening
           ? html`<h3 class="sec-label">Carried from the previous closing</h3>
@@ -695,6 +695,7 @@ export async function mount(el, { ctx } = {}) {
   const prevCard = () => {
     if (S.opening) return '';
     const def = SECTIONS[S.section];
+    if (S.prevError) return html`<section class="card cls-prev" role="status"><div class="cls-meta">Previous closing preview could not be loaded: ${S.prevError}</div></section>`;
     if (!S.prev) return html`<section class="card cls-prev"><div class="cls-meta">No previous closing on record yet.</div></section>`;
     const rows = snapshotRows(def.key, S.prev);
     return html`<section class="card cls-prev" aria-label="Previous closing">
@@ -779,6 +780,7 @@ export async function mount(el, { ctx } = {}) {
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
+        ${prevCard()}
         <div class="cls-tools">
           <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
           <button type="button" class="btn" data-act="viewall">⊞ View all</button>
@@ -795,7 +797,6 @@ export async function mount(el, { ctx } = {}) {
               : html`<button type="button" class="btn btn-primary" data-act="next">Next →</button>`
           }
         </div>
-        ${prevCard()}
       </div>`,
     );
     paintChip();
@@ -882,6 +883,26 @@ export async function mount(el, { ctx } = {}) {
     set('returns', money(rupees(t.returns), { decimals: true }));
     set('misc', money(rupees(t.misc), { decimals: true }));
     set('ccTotal', money(rupees(t.ccTotal), { decimals: true }));
+    set('currCC', money(rupees(t.ccCurr), { decimals: true }));
+    const previous = S.prev?.inputs ?? {};
+    const currentSysCash = parseAmount(S.form.sys_cash);
+    const previousSysCash = Number(previous.sys_cash) || 0;
+    const currentBill = parseAmount(S.form.last_bill_no);
+    const previousBill = Number(previous.last_bill_no) || 0;
+    const hasCurrentSysCash = currentSysCash !== null && !Number.isNaN(currentSysCash);
+    const hasCurrentBill = currentBill !== null && !Number.isNaN(currentBill);
+    const calculatedShiftSale = hasCurrentSysCash
+      ? (S.mode === 'final' || !S.prev || S.prev.business_date !== S.date
+          ? currentSysCash
+          : currentSysCash - previousSysCash)
+      : 0;
+    const calculatedCustomers = S.prev && hasCurrentBill ? Math.max(0, currentBill - previousBill) : 0;
+    const shiftSaleOverride = parseAmount(S.form.overrides.shift_sale);
+    const customersOverride = parseAmount(S.form.overrides.customers);
+    const shownShiftSale = shiftSaleOverride !== null && !Number.isNaN(shiftSaleOverride)
+      ? shiftSaleOverride : calculatedShiftSale;
+    const shownCustomers = customersOverride !== null && !Number.isNaN(customersOverride)
+      ? customersOverride : calculatedCustomers;
     set('till', money(rupees(t.till), { decimals: true }));
     set('vault', money(rupees(t.vault), { decimals: true }));
     set('debt', money(rupees(t.debt), { decimals: true }));
@@ -889,11 +910,10 @@ export async function mount(el, { ctx } = {}) {
     const p = S.preview;
     if (p && S.status === 'saved') {
       set('netSale', money(p.net_sale, { decimals: true }), p.net_sale < 0);
-      set('shiftInfo', `${money(p.shift_sale, { decimals: true })} · ${p.customers}`);
     } else {
       set('netSale', S.status === 'saved' ? '–' : 'updates after saving');
-      set('shiftInfo', '–');
     }
+    set('shiftInfo', `${money(shownShiftSale)} · ${shownCustomers}`);
     if (p && S.status === 'saved') {
       const fig = previewFigures(p, S.period, S.form, S.mode);
       Object.entries(fig).forEach(([k, v]) => set(k, v.text, v.neg));

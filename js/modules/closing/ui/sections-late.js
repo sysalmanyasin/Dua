@@ -130,6 +130,7 @@ export function lateSections(h) {
     html`<h2>8 · Credit Card Summary (D)</h2>
       ${amber('Carried CC from Previous', S.carry?.cc)}
       ${field('overrides.curr_cc', 'Card Sales This Shift (D)', { note: 'Leave empty to use Bank Alfalah + Keenu − Computer Card Sale. A typed 0 counts.' })}
+      <div class="cls-row"><span class="cls-meta">Calculated card sales this shift</span><strong data-total="currCC">–</strong></div>
       ${total('Total CC', 'ccTotal')}`;
 
   const till = () =>

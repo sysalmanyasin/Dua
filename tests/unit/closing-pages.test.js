@@ -13,10 +13,16 @@ const ROW = {
   prev_credit: 2000,
   prev_deposits: 300,
   prev_cash: 4000,
+  sys_cash: 150000,
+  last_bill_no: 2481013,
+  comp_sale: 200000,
+  alfalah: 220000,
+  keenu: 30000,
   source_closing_id: 's0',
   closing_hs_rows: [],
   closing_strip_lines: [],
   closing_mediq_orders: [],
+  closing_misc_rows: [{ id: 'm1', charge_id: 'charge-1', label: 'Outstanding', amount: 750, sort: 1 }],
 };
 const api = {
   listStrips: vi.fn(async () => [{ id: 's1', label: 'Panadol', price: 120 }]),
@@ -151,6 +157,51 @@ describe('Closing ledger', () => {
     expect(api.saveDraft.mock.calls[0][0]).toMatchObject({ key: 'k1', kind: 'night', payload: {}, expectedVersion: null });
     expect(el.querySelector('#f-sys_cash')).not.toBeNull();
     expect(el.textContent).toContain('Saved');
+  });
+  it('restores carried miscellaneous charges when a draft is reopened', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    await ledger();
+    el.querySelector('[data-jump="6"]').click();
+    expect(el.textContent).toContain('Outstanding');
+    expect(el.querySelector('[data-list="misc"][data-k="amount"]').value).toBe('750');
+  });
+  it('shows live shift-sale, customer and card-sale deltas from the previous closing', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.prevPage.mockImplementationOnce(async () => ({
+      business_date: '2026-11-10',
+      day_no: 1,
+      kind: 'night',
+      seq: 10,
+      mode: 'shift',
+      inputs: { sys_cash: 100000, last_bill_no: 2481000 },
+      results: { shift_sale: 100000, customers: 10, net_sale: 100000 },
+      hs: [], strips: [], cash: [], credit: [], deposits: [], mediq: [], misc: [],
+    }));
+    await ledger();
+    el.querySelector('[data-jump="2"]').click();
+    expect(el.querySelector('[data-total="shiftInfo"]').textContent).toContain('50,000');
+    expect(el.querySelector('[data-total="shiftInfo"]').textContent).toContain('13');
+    el.querySelector('[data-jump="7"]').click();
+    expect(el.querySelector('[data-total="currCC"]').textContent).toContain('50,000');
+  });
+  it('shows the previous closing preview immediately below the current section', async () => {
+    openTarget();
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW }));
+    api.prevPage.mockImplementationOnce(async () => ({
+      business_date: '2026-11-09',
+      day_no: 2,
+      kind: 'evening',
+      seq: 9999,
+      mode: 'shift',
+      inputs: { sys_cash: 100000, last_bill_no: 2481000 },
+      results: { shift_sale: 5000, customers: 13, net_sale: 6000 },
+      hs: [], strips: [], cash: [], credit: [], deposits: [], mediq: [], misc: [],
+    }));
+    await ledger();
+    expect(el.querySelector('.cls-prev')).not.toBeNull();
+    expect(el.querySelector('.cls-prev').textContent).toContain('Previous shift');
   });
   it('shows a refused start in plain words', async () => {
     openTarget();
