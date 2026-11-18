@@ -1,0 +1,15 @@
+/* Responsive workspace sizing: keep the app and content fluid at every viewport. */
+html,body,#app,.app-shell{width:100%;min-width:0;max-width:100%}
+.app-workspace{width:100%;min-width:0}
+.workspace-main{flex:1 1 0;width:0;min-width:0;max-width:none}
+.workspace-main .content{width:100%;max-width:1600px;margin-left:auto;margin-right:auto;min-width:0}
+.workspace-main .page{width:100%;min-width:0}
+.status-bar{width:100%;min-width:0;overflow:hidden}
+.status-inner{min-width:0;overflow-x:auto;scrollbar-width:none}
+.status-inner::-webkit-scrollbar{display:none}
+.status-inner>*{flex:none}
+@media(max-width:850px){
+ .app-workspace{display:block}
+ .workspace-main{width:100%;min-width:0}
+ .workspace-main .content{max-width:none;padding-left:clamp(13px,3vw,24px);padding-right:clamp(13px,3vw,24px)}
+}
