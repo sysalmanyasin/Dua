@@ -779,8 +779,8 @@ export async function mount(el, { ctx } = {}) {
             ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
-          ${prevCard()}
         </div>
+        ${prevCard()}
         <div class="cls-tools">
           <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
           <button type="button" class="btn" data-act="viewall">⊞ View all</button>
