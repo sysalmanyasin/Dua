@@ -3,7 +3,12 @@ import { html, render } from '../../../shared/html.js';
 import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
 import { BRAND } from '../../../core/config.js';
-import { coverSummary, inventoryCover, lifetimeSalesMonths, notificationsAttention } from '../data/api.js';
+import {
+  coverSummary,
+  inventoryCover,
+  lifetimeSalesMonths,
+  notificationsAttention,
+} from '../data/api.js';
 import {
   buildAttention,
   buildDailyProgress,
@@ -133,7 +138,10 @@ export async function mount(el, { ctx, modules = [] }) {
         <div class="home-lifetime-top">
           <div class="home-lifetime-brand">
             <span class="home-lifetime-mark" aria-hidden="true">D</span>
-            <span class="home-lifetime-brand-copy"><strong>${BRAND.title}</strong><small>${BRAND.branch} · SALES INTELLIGENCE</small></span>
+            <span class="home-lifetime-brand-copy">
+              <strong>${BRAND.title}</strong>
+              <small>${BRAND.branch} · SALES INTELLIGENCE</small>
+            </span>
           </div>
           <span class="home-lifetime-pill"><i aria-hidden="true"></i> ALL-TIME</span>
         </div>
@@ -143,7 +151,10 @@ export async function mount(el, { ctx, modules = [] }) {
           <strong class="home-lifetime-amount">₨ ${money(lifetime.total)}</strong>
           <p>Every month. Every sale. One story.</p>
         </div>
-        <div class="home-lifetime-foot"><span>Since April 2020</span><span>${lifetime.months} months · ${lifetime.recordedDays.toLocaleString('en-US')} recorded days</span></div>
+        <div class="home-lifetime-foot">
+          <span>Since April 2020</span>
+          <span>${lifetime.months} months · ${lifetime.recordedDays.toLocaleString('en-US')} recorded days</span>
+        </div>
         <span class="home-lifetime-orbit home-lifetime-orbit-one" aria-hidden="true"></span>
         <span class="home-lifetime-orbit home-lifetime-orbit-two" aria-hidden="true"></span>
       </section>`

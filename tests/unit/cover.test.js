@@ -259,7 +259,10 @@ describe('Cover page', () => {
     expect(t).toContain('TOTAL CUMULATIVE SALES');
     expect(t).toContain('₨ 1,234,567');
     expect(t).toContain('Since April 2020');
-    expect(el.querySelector('.home-lifetime-hero').compareDocumentPosition(el.querySelector('.home-section')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      el.querySelector('.home-lifetime-hero').compareDocumentPosition(el.querySelector('.home-section')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
   });

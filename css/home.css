@@ -731,6 +731,21 @@
 }
 
 @media (max-width: 600px) {
+  .home-lifetime-hero {
+    gap: 18px;
+    padding: 20px 18px;
+    border-radius: 16px;
+  }
+
+  .home-lifetime-pill {
+    padding: 6px 8px;
+    font-size: 0.58rem;
+  }
+
+  .home-lifetime-foot {
+    font-size: 0.68rem;
+  }
+
   .home-welcome {
     min-height: 150px;
     padding: 22px 18px;
@@ -779,4 +794,7 @@
 }
 
 /* Navigation is global; Home stays focused on business intelligence. */
-.home-module-grid,.home-search-section{display:none}
+.home-module-grid,
+.home-search-section {
+  display: none;
+}
