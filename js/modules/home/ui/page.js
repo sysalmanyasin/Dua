@@ -8,7 +8,6 @@ import {
   buildAttention,
   buildDailyProgress,
   buildKpis,
-  buildQuickActions,
   buildStockCards,
   buildTiles,
   greeting,
@@ -58,23 +57,6 @@ const pageLink = (page) =>
     <span><strong>${page.title}</strong><small>${page.module}${page.desc ? ` · ${page.desc}` : ''}</small></span>
     <span aria-hidden="true">↗</span>
   </a>`;
-
-const pageRow = (page, favourites) => {
-  const pinned = favourites.includes(page.href);
-  return html`<div class="home-page-row">
-    ${pageLink(page)}
-    <button
-      class="home-pin"
-      type="button"
-      data-pin="${page.href}"
-      data-pin-title="${page.title}"
-      aria-label="${pinned ? 'Remove' : 'Add'} ${page.title} ${pinned ? 'from' : 'to'} favourites"
-      title="${pinned ? 'Remove favourite' : 'Add to favourites'}"
-    >
-      ${pinned ? '★' : '☆'}
-    </button>
-  </div>`;
-};
 
 const safeRead = (key) => {
   try {

@@ -9,7 +9,6 @@
 - Business snapshot from the existing `cover_summary()` RPC; the database remains the authority for which sales figures are returned.
 - Inventory snapshot from `inventory_cover_summary()`, requested only when the person has `inventory.view`.
 - Navigation search is not duplicated on Home; global navigation is the primary route to modules.
-- Quick actions derived from accessible create/entry routes.
 - Module exploration moved into the persistent, permission-filtered application navigation.
 - Daily progress based only on checklist and sales facts returned by the existing summary.
 - Existing attention signals, with action links gated by the permissions needed for their destination.
@@ -19,7 +18,7 @@
 ## Permission and data boundaries
 
 - Home receives the same `modules` list already filtered by `resolveModules()`; it does not import or enumerate other module manifests itself.
-- Search, quick actions, module cards and favourite links are built only from those filtered routes.
+- Favourite links are built only from those filtered routes.
 - Sales snapshot values are never computed from raw tables in the browser. `cover_summary()` controls sales fields by permission.
 - Stock summary is not requested without `inventory.view`.
 - Owner notifications are not requested without `notifications.view`; the review shortcut is shown only when both `notifications.view` and `tools.view` are present.
