@@ -61,7 +61,7 @@ Cleaned up on 18 Nov 2026. `main` is the integration baseline. Only three workin
 | `feature/backup-emergency-pos` | Emergency Billing | Merged into `main`; kept for Phase 5 |
 | `module/workspace` | Dua Workspace, Notes & Sheets (active session) | Phase 2 merged into `main`; kept for Phase 3 onward |
 
-Every other branch was merged or superseded and deleted (see `docs/CHANGELOG.md`, 18 Nov 2026). Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
+Every other branch was merged or superseded and deleted (three superseded ones remain recoverable as `archive/*` tags) (see `docs/CHANGELOG.md`, 18 Nov 2026). Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
 
 ## Manager (17 Nov 2026)\n\n- Live `DuaPharmaPlus` migration registry contains Manager migrations `0101`–`0107` in order. `0105`–`0107` were applied from the exact `main` SQL files on 17 Nov 2026 and registered under their repository versions.\n- Live post-apply checks: 17 Manager tables have RLS enabled; no direct `anon` table grants, no direct authenticated write grants, no `anon` execution of Manager RPCs, and fixed search paths on Manager functions. Manager data access is through permission-checked RPCs, not direct table policies.\n- Built-in seed state checked: 4 rates, 2 ledgers, 6 tally accounts. No business transactions or staff records were imported.\n- `0108` / Credit Inbox is not in the current main migration directory and remains outstanding. Full local DB suite, current `npm run verify`, and owner phone acceptance still need to be run. See `docs/modules/manager.progress.md`.\n\n## Candela Sales (14 Nov 2026)
 
