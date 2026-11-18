@@ -45,9 +45,7 @@ select public.set_user_permission('00000000-0000-0000-0000-0000000000c2', 'audit
 reset role;
 
 create table public.fx_items (scope text, ord int, code text, name text, company text, qty numeric, price numeric);
-create function public.inventory_products_for_scope(p_scope jsonb)
-returns table (code text, name text, qty numeric, price numeric, company text) language sql as $$ select 'x'::text, 'x'::text, 0::numeric, 0::numeric, 'x'::text where false $$;
-drop function public.inventory_products_for_scope(jsonb);
+drop function if exists public.inventory_products_for_scope(jsonb);
 create function public.inventory_products_for_scope(p_scope jsonb)
 returns table (code text, name text, company text, qty numeric, price numeric) language sql as $$
   select f.code, f.name, f.company, f.qty, f.price from public.fx_items f where f.scope = p_scope ->> 'fx' order by f.ord $$;

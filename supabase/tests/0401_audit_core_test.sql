@@ -131,12 +131,16 @@ select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
 select public.audit_member_set((select v from ids where k = 'eng'), '00000000-0000-0000-0000-0000000000d1', 'deputy');
 
 -- 6. rounds: no product list yet, then a stand-in for Inventory's interface
+-- (the real function from 0308 is dropped inside this test transaction to prove the missing-interface message)
+reset role;
+drop function public.inventory_products_for_scope(jsonb);
+select pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
 select pg_temp.refused($q$select public.audit_round_create('60000000-0000-0000-0000-000000000001', (select v from ids where k = 'eng'), 'company')$q$,
   'inventory_interface_missing', 'a round cannot be made until the inventory interface exists');
 select pg_temp.ok((select count(*) from public.audit_rounds) = 0, 'the failed round left nothing behind');
 reset role;
 -- test-only stand-in with the agreed shape (code, name, company, qty, price); company A has a duplicate code on purpose
-create function public.inventory_products_for_scope(p_scope jsonb)
+create or replace function public.inventory_products_for_scope(p_scope jsonb)
 returns table (code text, name text, company text, qty numeric, price numeric) language sql as $$
   select * from (values
     ('A1', 'Alpha one', 'Acme', 10::numeric, 100.50::numeric), ('A1', 'Alpha one dup', 'Acme', 3::numeric, 100.50::numeric),

@@ -48,7 +48,7 @@ reset role;
 create table public.fx_stock (code text, name text, company text, qty numeric, price numeric);
 insert into public.fx_stock values ('A1', 'Alpha one', 'Acme', 10, 100.50), ('A2', 'Alpha two', 'Acme', 5, 20),
   ('B1', 'Beta one', 'Beta', 8, 55), ('D1', 'Dova one', 'Dova', 2, 200);
-create function public.inventory_products_for_scope(p_scope jsonb)
+create or replace function public.inventory_products_for_scope(p_scope jsonb)
 returns table (code text, name text, company text, qty numeric, price numeric) language sql as $$
   select s.code, s.name, s.company, s.qty, s.price from public.fx_stock s
   where (p_scope -> 'codes') ? s.code or (p_scope -> 'companies') ? s.company $$;
