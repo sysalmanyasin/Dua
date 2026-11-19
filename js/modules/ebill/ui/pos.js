@@ -591,7 +591,9 @@ export async function mount(el, { ctx }) {
           <span>Pending <b>${s.pending}</b></span>
           ${s.failed ? html`<span class="neg">Failed <b>${s.failed}</b></span>` : ''}
           <span class="muted">Last sync: ${s.lastSyncAt ? clock(s.lastSyncAt) : 'never'}</span>
-          <span class="${ready.ready && shell ? '' : 'muted eb-ellip'}" title="${ready.ready ? '' : ready.why}">${ready.ready && shell ? '✓ Ready for offline billing' : 'Not ready for offline billing yet'}</span>
+          <span class="${ready.ready && shell ? '' : 'muted eb-ellip'}" title="${ready.ready ? '' : ready.why}"
+            >${ready.ready && shell ? '✓ Ready for offline billing' : 'Not ready for offline billing yet'}</span
+          >
           ${s.failed ? html`<button type="button" class="btn btn-sm" data-act="retry">Retry failed</button>` : ''}
           ${s.pending && online ? html`<button type="button" class="btn btn-sm" data-act="syncnow">Upload now</button>` : ''}
           ${online && !ready.ready && !String(ready.why).includes('Ask the owner') ? html`<button type="button" class="btn btn-sm" data-act="prep">Prepare offline</button>` : ''}
