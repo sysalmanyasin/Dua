@@ -93,6 +93,9 @@ export function startShell(root, ctx, manifests) {
     async (route) => {
       const mine = ++token,
         mod = modules.find((m) => m.id === route.moduleId);
+      const appShell = root.querySelector('.app-shell');
+      appShell.classList.toggle('ebill-mode', mod.id === 'ebill');
+      setMenu(false);
       root.querySelector('#hdr-sub').textContent = mod.title;
       render(
         root.querySelector('#workspace-crumb'),

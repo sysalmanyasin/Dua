@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startShell } from '../../js/core/shell.js';
 
-const loads = { home: 0, closing: 0, access: 0, broken: 0 };
+const loads = { home: 0, closing: 0, access: 0, broken: 0, ebill: 0 };
 const page = (name) => async () => {
   loads[name]++;
   return { mount: (el) => (el.textContent = `page:${name}`) };
@@ -24,6 +24,14 @@ const manifests = [
     nav: { order: 20 },
     permission: 'closing.enter_own',
     routes: [{ path: '/closing', load: page('closing') }],
+  },
+  {
+    id: 'ebill',
+    title: 'Emergency Billing',
+    icon: 'shield',
+    nav: { order: 70 },
+    permission: null,
+    routes: [{ path: '/ebill', title: 'Emergency POS', load: page('ebill') }],
   },
   {
     id: 'access',
@@ -91,6 +99,25 @@ describe('app shell', () => {
     location.hash = '#/closing';
     await tick();
     expect(root.querySelector('#status-bar').hidden).toBe(true);
+  });
+
+  it('hides the global sidebar on Emergency Billing and keeps a working way to reopen it', async () => {
+    stop = startShell(root, admin, manifests);
+    await tick();
+    expect(root.querySelector('.app-shell').classList.contains('ebill-mode')).toBe(false);
+    location.hash = '#/ebill';
+    await tick();
+    const app = root.querySelector('.app-shell');
+    const menu = root.querySelector('[data-action="menu"]');
+    expect(app.classList.contains('ebill-mode')).toBe(true);
+    expect(menu.getAttribute('aria-label')).toBe('Open navigation');
+    menu.click();
+    expect(app.classList.contains('nav-open')).toBe(true);
+    expect(menu.getAttribute('aria-expanded')).toBe('true');
+    location.hash = '#/home';
+    await tick();
+    expect(app.classList.contains('ebill-mode')).toBe(false);
+    expect(app.classList.contains('nav-open')).toBe(false);
   });
 
   it('a junior sees only permitted modules and the owner-only module is not routable', async () => {

@@ -195,6 +195,37 @@
 .nav-scrim {
   display: none;
 }
+/* Emergency Billing is a focused POS workspace. Keep navigation available on demand. */
+.ebill-mode:not(.nav-open) .app-sidebar {
+  display: none;
+}
+.ebill-mode .mobile-menu-btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  background: var(--surface);
+}
+.ebill-mode.nav-open .app-sidebar {
+  position: fixed;
+  z-index: 90;
+  top: 70px;
+  bottom: 0;
+  left: 0;
+  height: calc(100dvh - 70px);
+  transform: none;
+  box-shadow: 16px 0 40px rgb(0 0 0 / 18%);
+}
+.ebill-mode.nav-open .nav-scrim {
+  position: fixed;
+  z-index: 80;
+  inset: 70px 0 0;
+  display: block;
+  background: rgb(5 15 30 / 52%);
+}
 @media (max-width: 850px) {
   .app-header {
     min-height: 62px;
@@ -240,6 +271,13 @@
   }
   .nav-open .app-sidebar {
     transform: translateX(0);
+  }
+  .ebill-mode.nav-open .app-sidebar {
+    top: 0;
+    height: 100dvh;
+  }
+  .ebill-mode.nav-open .nav-scrim {
+    inset: 0;
   }
   .nav-scrim {
     position: fixed;
