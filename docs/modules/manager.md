@@ -1,9 +1,9 @@
-> **Status note (17 Nov 2026):** Manager feature work through Incentive, Petty Cash, Expenses, Jazz Cash, Misc Sections and Balance Tally is integrated on `main`; migrations `0101`–`0107` are applied and verified in the live `DuaPharmaPlus` registry. Credit Inbox (`0108`) remains unimplemented. Full database-suite verification and owner phone acceptance remain pending; see `docs/modules/manager.progress.md`, `docs/modules/manager.next-session.md` and `docs/PROJECT_STATUS.md`.
+> **Current status (19 Nov 2026):** Manager features through Credit Inbox (`0108`), dashboard and reports are integrated on `main`. The progress record reports migrations `0101`–`0108` applied and registered live in DuaPharmaPlus, and a full database suite plus repository verification passed in the 17 Nov session. Owner phone try-outs #2–#4 and testing the inbox against real Closing feed data remain. Attendance is deliberately deferred. See `manager.progress.md` and `MODULE_PROGRESS_REGISTER.md`.
 
 # Manager — brief
 
-Status: **Building** (implementation integrated on `main` through M-C; migrations 0101–0107 applied and checked live 17 Nov 2026; Credit Inbox and full acceptance remain) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
-Branch: `module/manager` · Migration range: `0100–0199` · Prefix: `mgmt_` · Permissions: `mgmt.*`, `credit.*` · Route prefix: `/manager` · Nav order: 20
+Status: **Integrated; core scope built, owner acceptance pending** (migrations 0101–0108 recorded live) · Owner approval: **yes, 12 Nov 2026** ("GO, all defaults")
+Branch history: `module/manager` · Migration range: `0100–0199` · Prefix: `mgmt_` · Permissions: `mgmt.*`, `credit.*` · Route prefix: `/manager` · Nav order: 20
 
 > **Work order:** `docs/modules/manager.next-session.md`. Coordination: `docs/SESSIONS.md`. Progress: `docs/modules/manager.progress.md`.
 > Read `docs/MODULES.md` first. This brief only adds what is specific to Manager.
