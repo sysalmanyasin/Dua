@@ -1,18 +1,23 @@
 // Diff report: DIFF = TOTAL - COMP SALE, summed by month, with a running (cumulative) total.
-// Inside a month the day-by-day running total restarts at 0, as in the original report.
+// Daily detail is retained where available; imported monthly-only history is included without inventing days.
 const hasData = (d) => Number(d.total) !== 0 || (d.comp_sale !== null && d.comp_sale !== undefined && Number(d.comp_sale) !== 0);
 const round = (x) => Math.floor(x + 0.5);
 
-export function buildDiffReport(days) {
+export function buildDiffReport(days, historyRows = []) {
+  const dailyMonthKeys = new Set(
+    days
+      .filter((d) => d.business_date)
+      .map((d) => d.business_date.slice(0, 7)),
+  );
   const sorted = days.filter(hasData).sort((a, b) => a.business_date.localeCompare(b.business_date));
-  const months = [];
-  let cumulative = 0;
+  const byMonth = new Map();
+
   for (const d of sorted) {
     const key = d.business_date.slice(0, 7);
-    let m = months.at(-1);
-    if (!m || m.month !== key) {
-      m = { month: key, total: 0, comp_sale: 0, diff: 0, cumulative: 0, days: [] };
-      months.push(m);
+    let m = byMonth.get(key);
+    if (!m) {
+      m = { month: key, total: 0, comp_sale: 0, diff: 0, cumulative: 0, days: [], monthlyOnly: false };
+      byMonth.set(key, m);
     }
     const total = Number(d.total) || 0;
     const comp = Number(d.comp_sale) || 0;
@@ -22,6 +27,27 @@ export function buildDiffReport(days) {
     m.total += total;
     m.comp_sale += comp;
   }
+
+  // Use history only for months with no daily_sales rows. This prevents double counting.
+  for (const h of historyRows) {
+    if (!h.month) continue;
+    const key = h.month.slice(0, 7);
+    if (dailyMonthKeys.has(key) || byMonth.has(key)) continue;
+    const total = Number(h.total) || 0;
+    const comp = Number(h.comp_sale) || 0;
+    byMonth.set(key, {
+      month: key,
+      total,
+      comp_sale: comp,
+      diff: round(total - comp),
+      cumulative: 0,
+      days: [],
+      monthlyOnly: true,
+    });
+  }
+
+  const months = [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+  let cumulative = 0;
   for (const m of months) {
     m.diff = round(m.total - m.comp_sale);
     cumulative += m.diff;

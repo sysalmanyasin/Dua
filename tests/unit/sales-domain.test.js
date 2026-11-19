@@ -72,6 +72,26 @@ describe('diff report', () => {
     ]);
     expect(r[0].days[0].running).toBe(50);
   });
+  it('includes monthly-only history in chronological cumulative totals', () => {
+    const report = buildDiffReport(
+      [
+        { business_date: '2021-03-01', total: 9946461, comp_sale: 9943480 },
+        { business_date: '2021-05-01', total: 8769683, comp_sale: 8769685 },
+      ],
+      [{ month: '2021-04-01', total: 11182353, comp_sale: 11185333 }],
+    );
+    expect(report.map((m) => m.month)).toEqual(['2021-05', '2021-04', '2021-03']);
+    expect(report[1]).toMatchObject({ total: 11182353, comp_sale: 11185333, diff: -2980, cumulative: 1, monthlyOnly: true, days: [] });
+    expect(report[0].cumulative).toBe(-1);
+  });
+  it('does not double-count historical data when daily data exists for that month', () => {
+    const report = buildDiffReport(
+      [{ business_date: '2021-04-01', total: 100, comp_sale: 90 }],
+      [{ month: '2021-04-01', total: 1000, comp_sale: 0 }],
+    );
+    expect(report).toHaveLength(1);
+    expect(report[0]).toMatchObject({ total: 100, comp_sale: 90, diff: 10, monthlyOnly: false });
+  });
 });
 
 describe('cash to deposit', () => {
