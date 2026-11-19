@@ -120,6 +120,12 @@ describe('billing screen', () => {
     expect(el.querySelector('#eb-status').textContent).toBe('');
     expect(el.querySelector('.eb-bar').textContent).not.toContain('Stock copy:');
     expect(el.querySelector('.eb-sync-why')).toBeNull();
+    expect(el.querySelector('.eb-top [data-act="hold"]')).toBeNull();
+    expect(el.querySelector('.eb-hold [data-act="hold"]')).not.toBeNull();
+    expect(el.querySelector('.eb-hold [data-act="cancel"]')).not.toBeNull();
+    expect(el.querySelectorAll('.eb-lines tbody .eb-filler')).toHaveLength(8);
+    expect(el.querySelector('.eb-lines thead th:last-child').textContent).toContain('Delete');
+    expect(el.querySelector('#eb-sku').placeholder).toContain('F2');
   });
   it('adds a scanned or typed code and totals it', () => {
     type(el.querySelector('#eb-qty'), '3');
