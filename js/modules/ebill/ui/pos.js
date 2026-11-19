@@ -390,6 +390,7 @@ export async function mount(el, { ctx }) {
                   </td>
                 </tr>`
           }
+          ${Array.from({ length: Math.max(0, 8 - cart.lines.length) }, () => html`<tr class="eb-filler" aria-hidden="true">${Array.from({ length: 10 }, () => html`<td>&nbsp;</td>`)}</tr>`)}
         </tbody>
         <tfoot>
           <tr>
