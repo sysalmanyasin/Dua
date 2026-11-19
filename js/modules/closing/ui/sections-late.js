@@ -52,9 +52,9 @@ export function lateSections(h) {
         </div>`,
     );
 
-  const rowsTable = (list, cols, cells) =>
+  const rowsTable = (list, cols, cells, extra = '') =>
     html`<div class="cls-table" style="--cols: ${cols}">
-      ${h.listOf(list).map((r) => html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
+      ${h.listOf(list).map((r) => html`<div class="cls-trow ${extra} ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
     </div>`;
 
   const auditRows = (items) =>
@@ -196,7 +196,7 @@ export function lateSections(h) {
                     <div class="cls-table" style="--cols: 1">
                       ${acc.rows.map(
                         (r) =>
-                          html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
+                          html`<div class="cls-trow cls-trow-signed ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
                             ${textCell('credit.named', r, 'desc', 'Description (optional)')}
                             ${h.signed('credit.named', r, 'amount', acc.label)} ${strike('credit.named', r)}
                           </div>`,
@@ -215,7 +215,7 @@ export function lateSections(h) {
       <div class="cls-table" style="--cols: 1">
         ${S.form.credit.tier.map(
           (r, slot) =>
-            html`<div class="cls-trow" style="--cols: 1">
+            html`<div class="cls-trow cls-trow-signed" style="--cols: 1">
               ${
                 S.tierNames[slot].length
                   ? html`<select
@@ -235,7 +235,7 @@ export function lateSections(h) {
         )}
       </div>
       <h3 class="sec-label">Aux / Other Credit</h3>
-      ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${h.signed('credit.free', r, 'amount', 'Amount')}`)}
+      ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${h.signed('credit.free', r, 'amount', 'Amount')}`, 'cls-trow-signed')}
       ${add('credit.free', '＋ Add Aux Row')} ${total('Total Credit Detail (G)', 'debt')}`;
 
   const deposits = () =>

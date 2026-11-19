@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 // Accessibility and behaviour regressions found in the closing-module audit.
+import { readFileSync } from 'node:fs';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 const ROW = {
@@ -302,5 +303,35 @@ describe('settings and review: one tap, one action', () => {
     go.click();
     await tick(200);
     expect(api.reopen).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('credit rows on a phone', () => {
+  it('puts the description on its own line so the amount box has room', async () => {
+    openTarget();
+    await ledger();
+    jump(10);
+    const rows = [...el.querySelectorAll('.cls-trow-signed')];
+    expect(rows.length).toBeGreaterThanOrEqual(3); // the tier rows and the aux row
+    rows.forEach((r) => expect(r.firstElementChild.matches('input, select')).toBe(true));
+    const css = readFileSync('css/closing.css', 'utf8');
+    expect(css).toContain('.cls .cls-trow.cls-trow-signed');
+    expect(css).toMatch(/grid-column:\s*1 \/ -1/);
+  });
+  it('keeps the ± symbol visible: the shared stylesheet hides spans in small buttons on a phone', () => {
+    const shared = readFileSync('css/components.css', 'utf8');
+    expect(shared).toMatch(/\.btn-sm span\s*{\s*display:\s*none/); // the rule that caused it
+    const css = readFileSync('css/closing.css', 'utf8');
+    expect(css).toMatch(/\.cls \.btn-sm > span\[aria-hidden='true'\]\s*{\s*display:\s*inline/);
+  });
+  it('shows the ± toggle as pressed once the amount is a reduction', async () => {
+    openTarget();
+    await ledger();
+    jump(10);
+    const toggle = el.querySelector('[data-act="signrow"]');
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    expect(toggle.textContent.trim()).toBe('±');
+    toggle.click();
+    expect(el.querySelector('[data-act="signrow"]').getAttribute('aria-pressed')).toBe('true');
   });
 });
