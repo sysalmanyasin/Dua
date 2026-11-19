@@ -177,6 +177,28 @@ describe('billing screen', () => {
     expect(qty.selectionStart).toBe(0);
     expect(qty.selectionEnd).toBe(qty.value.length);
   });
+  it('keeps Escape from exiting POS full view and unlocks it only on the Exit button', async () => {
+    const lock = vi.fn(async () => {});
+    const unlock = vi.fn();
+    Object.defineProperty(navigator, 'keyboard', {
+      configurable: true,
+      value: { lock, unlock },
+    });
+    document.documentElement.requestFullscreen = vi.fn(async () => {});
+    const full = el.querySelector('#eb-full');
+    full.click();
+    await tick();
+    expect(lock).toHaveBeenCalledWith(['Escape', 'F11']);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+    full.click();
+    await tick();
+    expect(unlock).toHaveBeenCalled();
+    expect(document.documentElement.classList.contains('eb-full')).toBe(false);
+  });
   it('F11 is intercepted, toggles the active pack unit and focuses its quantity', () => {
     const sku = el.querySelector('#eb-sku');
     sku.value = 'P001';

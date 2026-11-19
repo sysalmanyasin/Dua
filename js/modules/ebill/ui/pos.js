@@ -752,21 +752,57 @@ export async function mount(el, { ctx }) {
     const b = q('#eb-full');
     if (b) b.textContent = root.classList.contains('eb-full') ? '⛶ Exit full screen' : '⛶ Full screen';
   };
-  /** Full screen: hides the menu and tabs, and asks the browser to hide its own bars too. Esc or the button brings everything back. */
+  const lockFullscreenEscape = () => {
+    try {
+      // Progressive enhancement: Chromium's Keyboard Lock API keeps a normal Esc
+      // press inside the POS. Browsers without this API retain their native behaviour.
+      return navigator.keyboard?.lock?.(['Escape', 'F11']) || Promise.resolve();
+    } catch {
+      return Promise.resolve();
+    }
+  };
+  /** Enter fullscreen from the button; the explicit Exit full screen button is the normal exit path. */
   async function toggleFull() {
     const on = !root.classList.contains('eb-full');
-    root.classList.toggle('eb-full', on);
-    try {
-      if (on) await root.requestFullscreen?.();
-      else if (document.fullscreenElement) await document.exitFullscreen();
-    } catch {
-      /* the browser said no: the menu is still hidden, which is most of the benefit */
+    if (on) {
+      root.classList.add('eb-full');
+      try {
+        // Request the lock and fullscreen in the same user gesture. Do not await
+        // the lock first: requestFullscreen needs the button's transient activation.
+        const lockRequest = lockFullscreenEscape();
+        const fullscreenRequest = root.requestFullscreen?.();
+        await Promise.allSettled([lockRequest, Promise.resolve(fullscreenRequest)]);
+        if (document.fullscreenElement) await lockFullscreenEscape();
+      } catch {
+        /* CSS full view remains available if the browser denies fullscreen. */
+      }
+    } else {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+      } catch {
+        /* Keep the UI usable if the browser refuses the exit request. */
+      }
+      try {
+        navigator.keyboard?.unlock?.();
+      } catch {
+        /* Keyboard Lock is an optional browser capability. */
+      }
+      root.classList.remove('eb-full');
     }
     setFullLabel();
     fit();
   }
   const onFullChange = () => {
-    if (!document.fullscreenElement && root.classList.contains('eb-full')) root.classList.remove('eb-full'); // Esc was pressed
+    if (document.fullscreenElement) {
+      lockFullscreenEscape().catch(() => {});
+    } else {
+      try {
+        navigator.keyboard?.unlock?.();
+      } catch {
+        /* Keyboard Lock is an optional browser capability. */
+      }
+      root.classList.remove('eb-full');
+    }
     setFullLabel();
     fit();
   };
@@ -776,6 +812,11 @@ export async function mount(el, { ctx }) {
     window.removeEventListener('resize', fit);
     document.removeEventListener('fullscreenchange', onFullChange);
     root.classList.remove('eb-full'); // leaving this page always gives the menu back
+    try {
+      navigator.keyboard?.unlock?.();
+    } catch {
+      /* Keyboard Lock is an optional browser capability. */
+    }
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   });
 
@@ -906,6 +947,14 @@ export async function mount(el, { ctx }) {
   };
   const onPosKeys = (e) => {
     if (!el.isConnected) return;
+    if (e.key === 'Escape' && root.classList.contains('eb-full')) {
+      // Escape is never a POS command. Keyboard Lock (where supported) routes
+      // it here instead of allowing the browser's ordinary fullscreen exit.
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return;
+    }
     if (e.key === 'F11') {
       e.preventDefault();
       e.stopPropagation();
