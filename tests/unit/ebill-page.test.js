@@ -264,7 +264,6 @@ describe('Candela-style layout details', () => {
     expect(el.querySelector('#eb-net').textContent).toBe('0.00');
     ask.mockRestore();
   });
-
 });
 
 describe('saving', () => {
