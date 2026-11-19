@@ -881,3 +881,45 @@
     outline: 3px solid Highlight;
   }
 }
+
+/* ── signed rows (credit: named accounts, tier / staff, aux) and the ± toggle ── */
+/* The shared stylesheet hides every <span> inside a small button on a phone (it is meant for "icon + word" buttons).
+   Our small buttons carry a symbol in a span that is hidden from screen readers only, so it must stay visible. */
+.cls .btn-sm > span[aria-hidden='true'] {
+  display: inline;
+}
+/* A row with a description AND a signed amount does not fit on one line on a phone: the description gets the whole first
+   line, and the ± button, the amount and the strike-out button share the second, so the amount box is wide enough to read. */
+.cls .cls-trow.cls-trow-signed {
+  grid-template-columns: minmax(0, 1fr) 44px;
+  row-gap: 6px;
+}
+.cls .cls-trow.cls-trow-signed > :first-child {
+  grid-column: 1 / -1;
+}
+.cls .cls-signed {
+  width: 100%;
+}
+.cls .cls-signed > .cls-in {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cls .cls-signed > .btn {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+/* when the ± is on (the amount is a reduction) it is filled, so it can be seen at a glance */
+.cls .cls-signed > .btn[aria-pressed='true'] {
+  background: var(--cls-red);
+  border-color: var(--cls-red);
+  color: var(--surface);
+}
+/* rows that are only a name and one amount: give the amount a little more of the line */
+.cls .cls-trow[style*='--cols: 1']:not(.cls-trow-signed) {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 44px;
+}
