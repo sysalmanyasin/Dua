@@ -1,4 +1,4 @@
-// Emergency POS: the desktop billing screen, laid out like the Candela "Sale and Return" screen the cashiers already know
+// Emergency POS: Candela-inspired desktop billing screen, laid out like the Candela "Sale and Return" screen the cashiers already know
 // (header rows, invoice grid with totals row, right-hand totals panel, bottom payment and receipt bar) in Dua's own look.
 // Phase 1 works: bill building, Product Help, totals, new bill and cancel. Saving, holding, printing and returns arrive in
 // later phases; their controls are shown but switched off, never faked.
