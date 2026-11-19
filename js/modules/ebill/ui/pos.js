@@ -688,6 +688,23 @@ export async function mount(el, { ctx }) {
     resetBill();
     drawStatus();
   }
+  async function cancelCurrent() {
+    if (!bill.heldId) return newBill();
+    if (!window.confirm('Discard this held bill? It will be permanently removed.')) return;
+    const id = bill.heldId;
+    const result = await held.release(id);
+    if (!result.ok) {
+      note = result.message;
+      drawStatus();
+      return;
+    }
+    saved = null;
+    note = '';
+    resetBill();
+    say('Held bill discarded.');
+    drawHeldCount();
+    sync.syncNow().catch(() => {});
+  }
   // Put every input on the screen in step with `bill`.
   function syncInputs() {
     const set = (id, v) => {
@@ -860,7 +877,7 @@ export async function mount(el, { ctx }) {
   for (const b of el.querySelectorAll('[data-act="hold"]')) b.addEventListener('click', holdCurrent);
   for (const b of el.querySelectorAll('[data-held-nav]')) b.addEventListener('click', () => openHeld(b.dataset.heldNav));
   q('#eb-save').addEventListener('click', save);
-  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
+  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', cancelCurrent);
   q('[data-act="new"]').addEventListener('click', newBill);
   // F5 (and F2) open Product Help from anywhere on this page. F5 would otherwise RELOAD the page and lose the bill, so it is taken here;
   // Ctrl+F5 and Shift+F5 are left alone for anyone who really wants to reload. Whatever is typed in the code box goes into the search.
