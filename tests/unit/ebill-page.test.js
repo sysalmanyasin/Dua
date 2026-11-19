@@ -193,7 +193,7 @@ describe('billing screen', () => {
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.dispatchEvent(escape);
     expect(escape.defaultPrevented).toBe(true);
-    expect(el.classList.contains('eb-full')).toBe(true);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
     full.click();
     await tick();
     expect(unlock).toHaveBeenCalled();
