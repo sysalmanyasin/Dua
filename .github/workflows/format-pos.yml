@@ -1,11 +1,12 @@
 name: Format Emergency POS changes
 on:
-  push:
-    branches: [feature/emergency-pos-candela-workflow]
+  pull_request:
+    types: [synchronize]
 permissions:
   contents: write
 jobs:
   format:
+    if: github.event.pull_request.head.ref == 'feature/emergency-pos-candela-workflow'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
