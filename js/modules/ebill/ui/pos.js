@@ -349,7 +349,7 @@ export async function mount(el, { ctx }) {
                     </td>
                     <td>
                       <select data-edit="unit" aria-label="Unit for ${l.name}">
-                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Single</option>
+                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Loose</option>
                         ${l.pack > 1 ? html`<option value="pack" ${l.unit === 'pack' ? 'selected' : ''}>Pack of ${l.pack}</option>` : ''}
                       </select>
                     </td>
