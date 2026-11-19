@@ -1,7 +1,7 @@
 # Audit — brief
 
-Status: **Briefed** · Owner approval: yes (16 Nov 2026, "go")
-Branch: `module/audit` · Migration range: `0400–0499` · Prefix: `audit_` · Permissions: `audit.*` · Route prefix: `/audit` · Nav order: 50
+Status: **Integrated; slices A1–C1 built and recorded live; acceptance pending** · Owner approval: yes (16 Nov 2026, "go")
+Branch history: `module/audit` · Migration range: `0400–0499` · Prefix: `audit_` · Permissions: `audit.*` · Route prefix: `/audit` · Nav order: 50
 
 > Read `docs/MODULES.md` first. This brief follows its Appendix A template. It is the plan agreed with the owner on 15–16 Nov 2026; the long-form reasoning (old app vs new core, row by row) lives in the owner's plan document "Audit Module Plan for Dua".
 
