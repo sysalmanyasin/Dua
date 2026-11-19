@@ -8,6 +8,7 @@ import {
   distinct,
   emptyState,
   filterRows,
+  setCode,
   setColumn,
   setGlobal,
   setPage,
@@ -98,14 +99,14 @@ describe('global search (filter 1)', () => {
 describe('every column has a working filter (filter 2)', () => {
   it('covers every column', () => {
     expect(COLUMNS.map((c) => c.key)).toEqual([
-      'name',
-      'generic',
       'code',
-      'company',
-      'supplier',
-      'qty',
-      'pack',
+      'name',
       'price',
+      'qty',
+      'generic',
+      'company',
+      'pack',
+      'supplier',
       'received',
       'sold',
       'created',
@@ -178,9 +179,9 @@ describe('combined filters, sorting and paging', () => {
     let s = setGlobal(emptyState(), 'gsk');
     s = col(s, 'qty', { op: 'in' });
     s = col(s, 'company', { values: ['GSK'] });
-    expect(activeFilters(s).map((c) => c.id)).toEqual(['global', 'company', 'qty']);
+    expect(activeFilters(s).map((c) => c.id)).toEqual(['global', 'qty', 'company']);
     expect(activeFilters(clearOne(s, 'qty')).map((c) => c.id)).toEqual(['global', 'company']);
-    expect(activeFilters(clearOne(s, 'global')).map((c) => c.id)).toEqual(['company', 'qty']);
+    expect(activeFilters(clearOne(s, 'global')).map((c) => c.id)).toEqual(['qty', 'company']);
     expect(activeFilters(clearAll(s))).toEqual([]);
     expect(codes(clearAll(s))).toHaveLength(rows.length);
   });
@@ -201,6 +202,108 @@ describe('combined filters, sorting and paging', () => {
   it('lists the distinct values of a column for its pick-list', () => {
     expect(distinct(rows, 'company')).toEqual(['Abbott', 'Beecham', 'GSK']);
     expect(distinct(rows, 'supplier', 2)).toHaveLength(2);
+  });
+});
+
+describe('the code box (filter 1)', () => {
+  it('starts with what is typed, ignoring case', () => {
+    expect(codes(setCode(emptyState(), 'p0'))).toEqual(['P001', 'P002']);
+    expect(codes(setCode(emptyState(), 'a1'))).toEqual(['A100']);
+    expect(codes(setCode(emptyState(), '00'))).toEqual([]); // not a prefix of any code
+  });
+  it('a leading * means contains, as in Candela', () => {
+    expect(codes(setCode(emptyState(), '*00'))).toEqual(['P001', 'P002', 'A100', 'B200']);
+    expect(codes(setCode(emptyState(), '*100'))).toEqual(['A100']);
+    expect(codes(setCode(emptyState(), '*'))).toHaveLength(rows.length); // a lone * is nothing yet
+  });
+  it('also finds a barcode when the product has one', () => {
+    const withBarcode = [{ ...rows[0], barcode: '8961234567890' }, rows[1]];
+    expect(filterRows(withBarcode, setCode(emptyState(), '89612')).map((r) => r.code)).toEqual(['P001']);
+  });
+  it('combines with the search box and the column filters, shows a chip, and Clear all removes it', () => {
+    let s = setCode(emptyState(), 'p');
+    s = setGlobal(s, 'paracetamol');
+    s = col(s, 'qty', { op: 'in' });
+    expect(codes(s)).toEqual(['P001']);
+    expect(activeFilters(s).map((c) => c.id)).toEqual(['code', 'global', 'qty']);
+    expect(activeFilters(s)[0].label).toBe('Code: p');
+    expect(activeFilters(clearOne(s, 'code')).map((c) => c.id)).toEqual(['global', 'qty']);
+    expect(codes(clearAll(s))).toHaveLength(rows.length);
+    expect(clearAll(s).code).toBe('');
+  });
+  it('a new code resets to the first page', () => {
+    expect(setCode(setPage(emptyState(), 4), 'x').page).toBe(0);
+  });
+});
+
+describe('Candela scenario: the same filters in the same order as your screenshots', () => {
+  const panadol = [
+    ['013113', 'Panadol Cf Tab 100 s', 10, 475],
+    ['097070', 'Panadol Extend 665mg Tab 20s', 8.02, 228],
+    ['117949', 'Panadol night 500/25mg tab 20s', 11.52, 30],
+    ['120325', 'Panadol Ultra 250/125mg Tab 20s', 7.5, 160],
+    ['000817', 'Panadol 500Mg Tab 200 s', 3.81, 8044],
+    ['012437', 'Panadol Extra Tab 100 s', 6, 1955],
+  ].map(([code, name, price, qty]) => ({
+    code,
+    name,
+    price,
+    qty,
+    generic: 'Paracetamol',
+    company: 'Haleon Pakistan',
+    supplier: '',
+    pack: 1,
+    received: '',
+    sold: '',
+    created: '',
+  }));
+  const noise = [
+    {
+      code: '893047',
+      name: 'SN-102/04 SLIM STANDARD NECK 150ML',
+      price: 1330,
+      qty: 0,
+      generic: '',
+      company: 'Pinkbaby',
+      supplier: '',
+      pack: 1,
+      received: '',
+      sold: '',
+      created: '',
+    },
+    {
+      code: '075810',
+      name: '2Blink Eye Drops 15ml 1s',
+      price: 579.59,
+      qty: 6,
+      generic: 'Polyethylene',
+      company: 'Sante',
+      supplier: '',
+      pack: 1,
+      received: '',
+      sold: '',
+      created: '',
+    },
+  ];
+  const all = [...noise, ...panadol];
+  const n = (s) => filterRows(all, s).length;
+  it('"panadol" in the search box and "tab" in the Name column: the 6 Panadol tablets (screenshot 1)', () => {
+    expect(n(col(setGlobal(emptyState(), 'panadol'), 'name', { op: 'contains', value: 'tab' }))).toBe(6);
+  });
+  it('"*tab" in the search box and "pana" in the Name column: the same 6 (screenshot 2)', () => {
+    expect(n(col(setGlobal(emptyState(), '*tab'), 'name', { op: 'contains', value: 'pana' }))).toBe(6);
+  });
+  it('then "4" in the Stock column leaves 2: 475 and 8,044 (screenshot 3)', () => {
+    let s = col(setGlobal(emptyState(), '*tab'), 'name', { op: 'contains', value: 'pana' });
+    s = col(s, 'qty', { op: 'has', value: '4' });
+    expect(filterRows(all, s).map((r) => r.qty)).toEqual(expect.arrayContaining([475, 8044]));
+    expect(n(s)).toBe(2);
+  });
+  it('the stock "has" filter ignores thousands commas either way round', () => {
+    expect(n(col(emptyState(), 'qty', { op: 'has', value: '8,044' }))).toBe(1);
+    expect(n(col(emptyState(), 'qty', { op: 'has', value: '8044' }))).toBe(1);
+    expect(n(col(emptyState(), 'price', { op: 'has', value: '579.5' }))).toBe(1);
+    expect(n(col(emptyState(), 'qty', { op: 'has', value: '  ' }))).toBe(all.length); // blank = no filter
   });
 });
 

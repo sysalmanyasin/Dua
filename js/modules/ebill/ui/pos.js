@@ -97,58 +97,63 @@ export async function mount(el, { ctx }) {
 
   render(
     el,
-    html`<section class="eb">
-      <div class="eb-titlebar">
+    html`<section class="eb eb-desk">
+      <div class="eb-bar">
         <span class="eb-tab">Sale and Return</span>
-        <span class="eb-title">${BRAND.title} · Emergency POS</span>
-        <span class="eb-grow"></span>
+        <span class="eb-title">${BRAND.title}</span>
         <span id="eb-status" class="eb-status"></span>
+        <span class="eb-grow"></span>
+        <div id="eb-sync" class="eb-sync"></div>
+        <button
+          type="button"
+          class="btn btn-sm"
+          data-act="fullscreen"
+          id="eb-full"
+          title="Use the whole screen: hides the menu and the browser bars"
+        >
+          ⛶ Full screen
+        </button>
       </div>
       <div id="eb-note"></div>
-      <div id="eb-sync" class="eb-sync"></div>
 
       <div class="eb-top">
         <div class="eb-row">
           <div class="eb-group">
             <span class="eb-lbl">Sale person</span>
-            <input class="eb-code" value="${ctx.username || ''}" readonly aria-label="Salesperson code" />
             <input class="eb-wide" id="eb-sp-name" value="${ctx.full_name || ctx.username || ''}" readonly aria-label="Salesperson" />
           </div>
           <div class="eb-group eb-grow">
             <span class="eb-lbl">Customer / member</span>
-            <input class="eb-code" disabled title="${SOON}" aria-label="Customer code" />
-            <button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Add customer">+</button>
-            <input class="eb-wide eb-grow" id="eb-customer" autocomplete="off" placeholder="Walk-in" aria-label="Customer name" />
-            <output class="eb-bal" title="Customer balance">0.00</output>
+            <input class="eb-wide" id="eb-customer" autocomplete="off" placeholder="Walk-in" aria-label="Customer name" />
           </div>
-        </div>
-        <div class="eb-row">
-          <div class="eb-group">
+          <div class="eb-group eb-grow2">
             <span class="eb-lbl">Qty / product (SKU)</span>
-            <input class="eb-qtyin" id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal" aria-label="Quantity" />
-            <input
-              class="eb-sku"
-              id="eb-sku"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Scan or type a code, then Enter (F2: Product Help)"
-              aria-label="Product code"
-            />
-            <button type="button" class="btn" data-act="help" title="Product Help (F2)" aria-label="Open Product Help">🔍</button>
+            <span class="eb-inline">
+              <input class="eb-qtyin" id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal" aria-label="Quantity" />
+              <input
+                class="eb-sku"
+                id="eb-sku"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Scan or type a code, then Enter · F5 or F2: Product Help"
+                aria-label="Product code"
+              />
+              <button type="button" class="btn" data-act="help" title="Product Help (F5 or F2)" aria-label="Open Product Help">🔍</button>
+              <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold bill</button>
+            </span>
           </div>
-          <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold bill</button>
-          <button type="button" class="btn btn-sm" disabled title="Refunds are done by a manager from History">Return</button>
-          <button type="button" class="btn btn-sm" disabled title="Refunds are done by a manager from History">Reason</button>
           <div class="eb-group">
             <span class="eb-lbl">Receipt #</span><input class="eb-code" value="Draft" readonly aria-label="Receipt number" />
           </div>
           <div class="eb-group">
-            <span class="eb-lbl">Date / time</span><input class="eb-date" id="eb-date" readonly aria-label="Date" /><input
-              class="eb-time"
-              id="eb-time"
-              readonly
-              aria-label="Time"
-            />
+            <span class="eb-lbl">Date / time</span>
+            <span class="eb-inline"
+              ><input class="eb-date" id="eb-date" readonly aria-label="Date" /><input
+                class="eb-time"
+                id="eb-time"
+                readonly
+                aria-label="Time"
+            /></span>
           </div>
         </div>
       </div>
@@ -245,22 +250,19 @@ export async function mount(el, { ctx }) {
             ><button type="button" class="btn btn-sm" data-held-nav="prev" title="Previous held bill" aria-label="Previous held bill">
               ‹</button
             ><button type="button" class="btn btn-sm" data-held-nav="next" title="Next held bill" aria-label="Next held bill">›</button
-            ><button type="button" class="btn btn-sm" data-held-nav="last" title="Last held bill" aria-label="Last held bill">»</button>
-          </div>
-          <div class="eb-navs">
-            <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button
-            ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">Cancel</button>
+            ><button type="button" class="btn btn-sm" data-held-nav="last" title="Last held bill" aria-label="Last held bill">»</button
+            ><button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button>
           </div>
         </div>
         <fieldset class="eb-pay">
           <legend>Payment mode</legend>
           ${PAYMENT_MODES.map((x) => html`<label class="eb-check"><input type="radio" name="eb-mode" value="${x}" ${x === 'Cash' ? 'checked' : ''} /> ${x}</label>`)}
         </fieldset>
-        <label class="eb-area"><span class="eb-lbl">Comments</span><textarea id="eb-comments" rows="3"></textarea></label>
-        <label class="eb-area"><span class="eb-lbl">Additional comments</span><textarea id="eb-more" rows="3"></textarea></label>
+        <label class="eb-area"><span class="eb-lbl">Comments</span><textarea id="eb-comments" rows="2"></textarea></label>
+        <label class="eb-area"><span class="eb-lbl">Additional comments</span><textarea id="eb-more" rows="2"></textarea></label>
         <div class="eb-print">
           <label class="eb-check"><input type="checkbox" checked disabled title="${SOON}" /> Print receipt</label>
-          <label class="eb-copies"><span>No. of copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
+          <label class="eb-copies"><span>Copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
           <button type="button" class="btn btn-sm" disabled title="${SOON}">Search receipt</button>
         </div>
         <div class="eb-rtype">
@@ -269,14 +271,15 @@ export async function mount(el, { ctx }) {
             ${RECEIPT_TYPES.map((x) => html`<option>${x}</option>`)}
           </select>
         </div>
-      </div>
-      <div class="eb-toolbar">
-        <button type="button" class="btn" data-act="new" title="New bill">＋ New</button>
-        <button type="button" class="btn btn-primary" id="eb-save" data-act="save" disabled title="Add items to save">
-          💾 Save invoice
-        </button>
-        <button type="button" class="btn" disabled title="Managers only, later phase">✎ Edit</button>
-        <button type="button" class="btn" data-act="cancel" title="Clear this bill">⃠ Cancel</button>
+        <div class="eb-actions">
+          <button type="button" class="btn btn-primary eb-save" id="eb-save" data-act="save" disabled title="Add items to save">
+            💾 Save invoice
+          </button>
+          <div class="eb-navs">
+            <button type="button" class="btn btn-sm" data-act="new" title="New bill">＋ New</button
+            ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">⃠ Cancel</button>
+          </div>
+        </div>
       </div>
       <div id="eb-help"></div>
       <div id="eb-dialog"></div>
@@ -411,10 +414,9 @@ export async function mount(el, { ctx }) {
     const online = navigator.onLine !== false;
     render(
       q('#eb-status'),
-      html`<span class="pill ${online ? '' : 'eb-pill-off'}">${online ? 'Online' : 'Offline'}</span>
-        <span class="muted"
-          >Stock copy: ${meta?.syncedAt ? `updated ${clock(meta.syncedAt)} (saved on this device, not live)` : 'none yet'}</span
-        >`,
+      html`<span class="muted"
+        >Stock copy: ${meta?.syncedAt ? `updated ${clock(meta.syncedAt)} (saved on this device, not live)` : 'none yet'}</span
+      >`,
     );
     render(
       q('#eb-note'),
@@ -583,18 +585,18 @@ export async function mount(el, { ctx }) {
       html`<div class="eb-sync-row">
           <span class="pill ${online ? '' : 'eb-pill-off'}">${online ? 'Online' : 'Offline'}</span>
           <span>Pending <b>${s.pending}</b></span>
-          <span class="${s.failed ? 'neg' : ''}">Failed <b>${s.failed}</b></span>
+          ${s.failed ? html`<span class="neg">Failed <b>${s.failed}</b></span>` : ''}
           <span class="muted">Last sync: ${s.lastSyncAt ? clock(s.lastSyncAt) : 'never'}</span>
-          <span class="${ready.ready && shell ? '' : 'muted'}" title="${ready.ready ? '' : ready.why}"
+          <span class="${ready.ready && shell ? '' : 'muted eb-ellip'}" title="${ready.ready ? '' : ready.why}"
             >${ready.ready && shell ? '✓ Ready for offline billing' : 'Not ready for offline billing yet'}</span
           >
           ${s.failed ? html`<button type="button" class="btn btn-sm" data-act="retry">Retry failed</button>` : ''}
           ${s.pending && online ? html`<button type="button" class="btn btn-sm" data-act="syncnow">Upload now</button>` : ''}
           ${online && !ready.ready && !String(ready.why).includes('Ask the owner') ? html`<button type="button" class="btn btn-sm" data-act="prep">Prepare offline</button>` : ''}
+          ${!ready.ready ? html`<span class="muted eb-sync-why" title="${ready.why}">${ready.why}</span>` : ''}
         </div>
-        ${!ready.ready ? html`<p class="muted eb-sync-why">${ready.why}</p>` : ''}
         ${!shell && ready.ready ? html`<p class="muted eb-sync-why">The page is not saved for offline use yet. Keep this page open online for a moment, then reload once.</p>` : ''}
-        ${s.others ? html`<p class="note note-info">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</p>` : ''}
+        ${s.others ? html`<span class="muted">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</span>` : ''}
         ${
           s.items.length
             ? html`<details class="eb-sync-list">
@@ -667,6 +669,12 @@ export async function mount(el, { ctx }) {
         closeHelp();
         add(p);
       },
+      onRefresh: async () => {
+        await refreshCopy(ctx); // download the latest stock, then show it
+        await load();
+        drawStatus();
+        return { products, meta };
+      },
       onClose: () => {
         closeHelp = null;
         q('#eb-sku')?.focus();
@@ -708,6 +716,46 @@ export async function mount(el, { ctx }) {
     drawLines();
     q('#eb-sku').focus();
   }
+
+  // ───────── fit the screen ─────────
+  // The billing screen is laid out like Candela's: it takes exactly the height left in the window, the grid takes whatever is left in
+  // the middle and scrolls inside itself, and the page itself never scrolls. The height is measured from where the screen starts.
+  const root = document.documentElement;
+  const section = q('.eb');
+  const fit = () => {
+    const top = section.getBoundingClientRect().top + window.scrollY;
+    section.style.setProperty('--eb-top', `${Math.max(0, Math.round(top))}px`);
+  };
+  const setFullLabel = () => {
+    const b = q('#eb-full');
+    if (b) b.textContent = root.classList.contains('eb-full') ? '⛶ Exit full screen' : '⛶ Full screen';
+  };
+  /** Full screen: hides the menu and tabs, and asks the browser to hide its own bars too. Esc or the button brings everything back. */
+  async function toggleFull() {
+    const on = !root.classList.contains('eb-full');
+    root.classList.toggle('eb-full', on);
+    try {
+      if (on) await root.requestFullscreen?.();
+      else if (document.fullscreenElement) await document.exitFullscreen();
+    } catch {
+      /* the browser said no: the menu is still hidden, which is most of the benefit */
+    }
+    setFullLabel();
+    fit();
+  }
+  const onFullChange = () => {
+    if (!document.fullscreenElement && root.classList.contains('eb-full')) root.classList.remove('eb-full'); // Esc was pressed
+    setFullLabel();
+    fit();
+  };
+  window.addEventListener('resize', fit);
+  document.addEventListener('fullscreenchange', onFullChange);
+  stops.push(() => {
+    window.removeEventListener('resize', fit);
+    document.removeEventListener('fullscreenchange', onFullChange);
+    root.classList.remove('eb-full'); // leaving this page always gives the menu back
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  });
 
   // ───────── held bills ─────────
   const say = (text, ms = 8000) => {
@@ -808,17 +856,22 @@ export async function mount(el, { ctx }) {
     e.target.value = '';
   });
   q('[data-act="help"]').addEventListener('click', () => openHelp());
+  q('#eb-full').addEventListener('click', toggleFull);
   for (const b of el.querySelectorAll('[data-act="hold"]')) b.addEventListener('click', holdCurrent);
   for (const b of el.querySelectorAll('[data-held-nav]')) b.addEventListener('click', () => openHeld(b.dataset.heldNav));
   q('#eb-save').addEventListener('click', save);
   for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
   q('[data-act="new"]').addEventListener('click', newBill);
+  // F5 (and F2) open Product Help from anywhere on this page. F5 would otherwise RELOAD the page and lose the bill, so it is taken here;
+  // Ctrl+F5 and Shift+F5 are left alone for anyone who really wants to reload. Whatever is typed in the code box goes into the search.
   const onF2 = (e) => {
     if (!el.isConnected) return document.removeEventListener('keydown', onF2);
-    if (e.key === 'F2') {
-      e.preventDefault();
-      openHelp();
-    }
+    if ((e.key !== 'F2' && e.key !== 'F5') || e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    if (closeHelp) return;
+    const typed = q('#eb-sku').value.trim();
+    if (typed) q('#eb-sku').value = '';
+    openHelp(typed || undefined);
   };
   document.addEventListener('keydown', onF2);
 
@@ -894,6 +947,7 @@ export async function mount(el, { ctx }) {
 
   // ───────── start ─────────
   tick();
+  fit();
   const clockTimer = setInterval(() => {
     if (el.isConnected) return tick();
     stops.forEach((f) => f());

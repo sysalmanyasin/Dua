@@ -1,16 +1,22 @@
-// Product Help popup. Opens over the bill without touching it; closing returns to the same bill with every line,
-// customer and payment figure unchanged. The filter state lives in `holder.state`, owned by the page, so it survives a
-// close and reopen. Rows come from the local copy only, so everything works offline.
+// Product Help (Candela's "Product Code Help"): opens over the bill without touching it; closing returns to the same bill with every
+// line, customer and payment figure unchanged. THREE filters, all combined with AND:
+//   1. the Code box (starts with; a leading * means contains)
+//   2. the Search box (every word, anywhere: name, generic, code, manufacturer, supplier)
+//   3. a filter on every column (the row under the headings)
+// The filter state lives in `holder.state`, owned by the page, so it survives a close and reopen. Rows come from the local copy only, so
+// everything works offline. The list is paged underneath but navigated like Candela's: Record n of N, first / previous / next / last.
 import { html, render } from '../../../shared/html.js';
 import {
   COLUMNS,
   DATE_OPS,
   NUMBER_OPS,
+  PAGE_SIZE,
   TEXT_OPS,
   activeFilters,
   clearAll,
   clearOne,
   distinct,
+  setCode,
   setColumn,
   setGlobal,
   setPage,
@@ -23,6 +29,7 @@ const LABEL = {
   contains: 'Contains',
   starts: 'Starts with',
   exact: 'Exactly',
+  has: 'Contains',
   eq: '=',
   gt: '>',
   lt: '<',
@@ -32,6 +39,9 @@ const LABEL = {
   on: 'On',
   between: 'Between',
 };
+const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+const opts = (list, cur) => list.map((o) => html`<option value="${o}" ${o === cur ? 'selected' : ''}>${LABEL[o]}</option>`);
+
 // render() parses in a <body> context, which drops bare <tr>/<td>; so rows are rendered inside a full table and the new body moved in.
 function renderBody(table, rows) {
   const tmp = document.createElement('div');
@@ -45,15 +55,25 @@ function renderBody(table, rows) {
   );
   table.tBodies[0].replaceWith(tmp.querySelector('tbody'));
 }
-const fmt = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
-const opts = (list, cur) => list.map((o) => html`<option value="${o}" ${o === cur ? 'selected' : ''}>${LABEL[o]}</option>`);
 
 function filterCell(c, f, rows) {
+  return html`<div class="eb-fcell">${filterCellInner(c, f, rows)}</div>`;
+}
+
+function filterCellInner(c, f, rows) {
   const k = c.key;
   if (c.type === 'text') {
     return html`<select data-f="${k}" data-part="op" aria-label="${c.label} filter type">
         ${opts(TEXT_OPS, f?.op || 'contains')}</select
-      ><input data-f="${k}" data-part="value" type="search" autocomplete="off" aria-label="Filter ${c.label}" value="${f?.value ?? ''}" />`;
+      ><input
+        data-f="${k}"
+        data-part="value"
+        type="search"
+        autocomplete="off"
+        placeholder="Search here…"
+        aria-label="Filter ${c.label}"
+        value="${f?.value ?? ''}"
+      />`;
   }
   if (c.type === 'enum') {
     const cur = f?.values?.[0] ?? '';
@@ -64,15 +84,14 @@ function filterCell(c, f, rows) {
   }
   if (c.type === 'number') {
     const list = k === 'qty' ? NUMBER_OPS : NUMBER_OPS.filter((o) => o !== 'in' && o !== 'out');
-    const op = f?.op || 'eq';
-    const range = op === 'range';
+    const op = f?.op || 'has';
     const none = op === 'in' || op === 'out';
     return html`<select data-f="${k}" data-part="op" aria-label="${c.label} filter type">
         ${opts(list, op)}</select
       >${
         none
           ? ''
-          : range
+          : op === 'range'
             ? html`<input
                   data-f="${k}"
                   data-part="min"
@@ -90,14 +109,25 @@ function filterCell(c, f, rows) {
                   aria-label="${c.label} to"
                   value="${f?.max ?? ''}"
                 />`
-            : html`<input
-                data-f="${k}"
-                data-part="value"
-                type="number"
-                step="any"
-                aria-label="Filter ${c.label}"
-                value="${f?.value ?? ''}"
-              />`
+            : op === 'has'
+              ? html`<input
+                  data-f="${k}"
+                  data-part="value"
+                  type="search"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  placeholder="Search here…"
+                  aria-label="Filter ${c.label}"
+                  value="${f?.value ?? ''}"
+                />`
+              : html`<input
+                  data-f="${k}"
+                  data-part="value"
+                  type="number"
+                  step="any"
+                  aria-label="Filter ${c.label}"
+                  value="${f?.value ?? ''}"
+                />`
       }`;
   }
   const op = f?.op || 'on';
@@ -127,35 +157,56 @@ function readCell(root, c) {
 
 /**
  * @param {{ host: HTMLElement, holder: {state: object}, products: object[], meta: object|null, online: boolean,
- *           initialText?: string, onPick: (p: object) => void, onClose: () => void }} o
+ *           initialText?: string, onPick: (p: object) => void, onClose: () => void,
+ *           onRefresh?: () => Promise<{ products: object[], meta: object|null }> }} o
  * @returns {() => void} close
  */
-export function openProductHelp({ host, holder, products, meta, online, initialText, onPick, onClose }) {
+export function openProductHelp({ host, holder, products, meta, online, initialText, onPick, onClose, onRefresh }) {
   if (initialText !== undefined) holder.state = setGlobal(holder.state, initialText);
   let cursor = 0;
   let current = view(products, holder.state);
   let timer = null;
+  let pending = null;
 
-  const stockNote = meta?.syncedAt
-    ? `Stock is from this device’s saved copy, updated ${clock(meta.syncedAt)}. It is not live stock.`
-    : 'No product copy has been saved on this device yet.';
+  const stockNote = () =>
+    meta?.syncedAt
+      ? `Stock is from this device’s saved copy, updated ${clock(meta.syncedAt)}. It is not live stock.`
+      : 'No product copy has been saved on this device yet.';
 
   render(
     host,
     html`<div class="eb-modal" role="dialog" aria-modal="true" aria-label="Product Help">
-      <div class="eb-dlg">
+      <div class="eb-dlg eb-ph">
         <div class="eb-dlg-head">
           <h2>Product Help</h2>
-          <span class="pill ${online ? '' : 'eb-pill-off'}">${online ? 'Online' : 'Offline'}</span>
-          <span class="muted eb-grow">${stockNote}</span>
+          <input
+            id="ph-code"
+            class="eb-ph-code"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Code"
+            aria-label="Code (starts with; * before it means contains)"
+            value="${holder.state.code || ''}"
+          />
+          <input
+            id="ph-global"
+            class="eb-ph-search"
+            type="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Search name, generic, manufacturer…"
+            aria-label="Search everything (name, generic, code, manufacturer, supplier)"
+            value="${holder.state.global}"
+          />
+          <span class="pill ${online ? '' : 'eb-pill-off'}" id="ph-online">${online ? 'Online' : 'Offline'}</span>
+          <button type="button" class="btn btn-sm" data-act="clear-all" title="Clear all filters">✕ Clear</button>
+          ${onRefresh ? html`<button type="button" class="btn btn-sm" id="ph-refresh" data-act="refresh" title="Download the latest stock" ${online ? '' : 'disabled'}>↻ Refresh stock</button>` : ''}
           <button type="button" class="btn btn-sm" data-act="close" aria-label="Close Product Help">Close (Esc)</button>
         </div>
-        <label class="field">
-          <span>Search everything (name, generic, code, manufacturer, supplier)</span>
-          <input id="ph-global" type="search" autocomplete="off" spellcheck="false" value="${holder.state.global}" />
-        </label>
+        <div class="muted eb-ph-note" id="ph-note"></div>
         <div class="eb-chips" id="ph-chips"></div>
-        <div class="eb-table-wrap">
+        <div class="eb-table-wrap eb-ph-wrap">
           <table class="eb-table" id="ph-table">
             <thead>
               <tr>
@@ -171,10 +222,15 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
               </tr>
             </thead>
             <tbody></tbody>
+            <tfoot>
+              <tr class="eb-sigma">
+                <td colspan="${COLUMNS.length}"><span>Σ</span> <span id="ph-sigma"></span></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         <div class="eb-dlg-foot">
-          <div id="ph-pager"></div>
+          <div class="eb-recnav" id="ph-nav"></div>
           <span class="muted">↑ ↓ choose · Enter add to bill · double-click add · PgUp/PgDn pages · Esc close</span>
         </div>
       </div>
@@ -182,16 +238,26 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
   );
   const root = host.querySelector('.eb-modal');
   const q = (s) => root.querySelector(s);
+  const at = () => holder.state.page * PAGE_SIZE + cursor; // 0-based position in the whole filtered list
+
+  function goto(i) {
+    const last = Math.max(0, current.total - 1);
+    const n = Math.min(Math.max(0, i), last);
+    holder.state = setPage(holder.state, Math.floor(n / PAGE_SIZE));
+    cursor = n % PAGE_SIZE;
+    draw();
+  }
 
   function draw() {
     current = view(products, holder.state);
+    holder.state = setPage(holder.state, current.page); // the page is clamped, so the position below is always real
     if (cursor >= current.rows.length) cursor = Math.max(0, current.rows.length - 1);
+    render(q('#ph-note'), html`${stockNote()}`);
     const chips = activeFilters(holder.state);
     render(
       q('#ph-chips'),
       html`<strong>${current.total.toLocaleString('en-US')} ${current.total === 1 ? 'match' : 'matches'}</strong>
-        ${chips.map((c) => html`<button type="button" class="eb-chip" data-clear="${c.id}" title="Remove this filter">${c.label} ×</button>`)}
-        ${chips.length ? html`<button type="button" class="btn btn-sm" data-act="clear-all">Clear all filters</button>` : ''}`,
+        ${chips.map((c) => html`<button type="button" class="eb-chip" data-clear="${c.id}" title="Remove this filter">${c.label} ×</button>`)}`,
     );
     for (const c of COLUMNS) {
       const s = holder.state.sort;
@@ -203,16 +269,16 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
         ? html`${current.rows.map(
             (p, i) =>
               html`<tr class="${i === cursor ? 'sel' : ''}" data-i="${i}" aria-selected="${i === cursor}">
-                <td>${p.name}</td>
-                <td>${p.generic}</td>
                 <td>${p.code}</td>
-                <td>${p.company}</td>
-                <td>${p.supplier}</td>
+                <td>${p.name}</td>
+                <td class="num">${fmt(p.price)}</td>
                 <td class="num ${p.qty <= 0 ? 'neg' : ''}">
                   ${fmt(p.qty)}${p.qty <= 0 ? html` <span class="eb-tag">no stock</span>` : ''}
                 </td>
+                <td>${p.generic}</td>
+                <td>${p.company}</td>
                 <td class="num">${p.packValid === false ? '?' : fmt(p.pack)}</td>
-                <td class="num">${fmt(p.price)}</td>
+                <td>${p.supplier}</td>
                 <td>${(p.received || '').slice(0, 10)}</td>
                 <td>${(p.sold || '').slice(0, 10)}</td>
                 <td>${(p.created || '').slice(0, 10)}</td>
@@ -224,14 +290,17 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
             </td>
           </tr>`,
     );
+    q('#ph-sigma').textContent = `${current.total.toLocaleString('en-US')} ${current.total === 1 ? 'record' : 'records'}`;
+    const pos = current.total ? at() + 1 : 0;
     render(
-      q('#ph-pager'),
-      html`<button type="button" class="btn btn-sm" data-page="${current.page - 1}" ${current.page === 0 ? 'disabled' : ''}>
-          Previous
-        </button>
-        <span>Page ${current.page + 1} of ${current.pages}</span>
-        <button type="button" class="btn btn-sm" data-page="${current.page + 1}" ${current.page >= current.pages - 1 ? 'disabled' : ''}>
-          Next
+      q('#ph-nav'),
+      html`<button type="button" class="btn btn-sm" data-nav="first" aria-label="First record" ${pos <= 1 ? 'disabled' : ''}>⏮</button
+        ><button type="button" class="btn btn-sm" data-nav="prev" aria-label="Previous record" ${pos <= 1 ? 'disabled' : ''}>◀</button>
+        <span>Record <b>${pos.toLocaleString('en-US')}</b> of <b>${current.total.toLocaleString('en-US')}</b></span>
+        <button type="button" class="btn btn-sm" data-nav="next" aria-label="Next record" ${pos >= current.total ? 'disabled' : ''}>
+          ▶</button
+        ><button type="button" class="btn btn-sm" data-nav="last" aria-label="Last record" ${pos >= current.total ? 'disabled' : ''}>
+          ⏭
         </button>`,
     );
     q('.sel')?.scrollIntoView?.({ block: 'nearest' });
@@ -241,9 +310,9 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
   function redrawFilterRow() {
     for (const c of COLUMNS) render(q(`#ph-filters th[data-col="${c.key}"]`), filterCell(c, holder.state.columns[c.key], products));
     q('#ph-global').value = holder.state.global;
+    q('#ph-code').value = holder.state.code || '';
   }
 
-  let pending = null;
   const later = (fn) => {
     clearTimeout(timer);
     pending = fn;
@@ -261,6 +330,13 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
   };
   const colFromEvent = (e) => COLUMNS.find((c) => c.key === e.target.dataset?.f);
 
+  q('#ph-code').addEventListener('input', (e) =>
+    later(() => {
+      cursor = 0;
+      holder.state = setCode(holder.state, e.target.value);
+      draw();
+    }),
+  );
   q('#ph-global').addEventListener('input', (e) =>
     later(() => {
       cursor = 0;
@@ -297,14 +373,29 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
     onClose();
   };
 
-  root.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-act],[data-sort],[data-clear],[data-page],tr[data-i]');
+  root.addEventListener('click', async (e) => {
+    const t = e.target.closest('[data-act],[data-sort],[data-clear],[data-nav],tr[data-i]');
     if (!t) return;
     if (t.dataset.act === 'close') return close();
     if (t.dataset.act === 'clear-all') {
       cursor = 0;
       holder.state = clearAll(holder.state);
       redrawFilterRow();
+      return draw();
+    }
+    if (t.dataset.act === 'refresh' && onRefresh) {
+      t.disabled = true;
+      t.textContent = 'Refreshing…';
+      try {
+        const r = await onRefresh();
+        products = r.products;
+        meta = r.meta;
+        redrawFilterRow();
+      } catch {
+        /* the old copy stays on screen */
+      }
+      t.textContent = '↻ Refresh stock';
+      t.disabled = false;
       return draw();
     }
     if (t.dataset.clear) {
@@ -317,10 +408,11 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
       holder.state = setSort(holder.state, t.dataset.sort);
       return draw();
     }
-    if (t.dataset.page) {
-      cursor = 0;
-      holder.state = setPage(holder.state, Number(t.dataset.page));
-      return draw();
+    if (t.dataset.nav) {
+      const pos = at();
+      return goto(
+        t.dataset.nav === 'first' ? 0 : t.dataset.nav === 'last' ? current.total - 1 : t.dataset.nav === 'next' ? pos + 1 : pos - 1,
+      );
     }
     if (t.dataset.i !== undefined) {
       cursor = Number(t.dataset.i);
@@ -334,31 +426,29 @@ export function openProductHelp({ host, holder, products, meta, online, initialT
 
   function onKey(e) {
     if (!root.isConnected) return document.removeEventListener('keydown', onKey, true);
+    if (e.key === 'F5') {
+      e.preventDefault();
+      return q('#ph-global').focus();
+    } // never reload the page and lose the bill
     if (e.key === 'Escape') {
       e.preventDefault();
       return close();
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      cursor = Math.min(cursor + 1, current.rows.length - 1);
-      return draw();
-    }
+      return goto(at() + 1);
+    } // carries on into the next page
     if (e.key === 'ArrowUp') {
       e.preventDefault();
-      cursor = Math.max(cursor - 1, 0);
-      return draw();
+      return goto(at() - 1);
     }
     if (e.key === 'PageDown' && current.page < current.pages - 1) {
       e.preventDefault();
-      cursor = 0;
-      holder.state = setPage(holder.state, current.page + 1);
-      return draw();
+      return goto((current.page + 1) * PAGE_SIZE);
     }
     if (e.key === 'PageUp' && current.page > 0) {
       e.preventDefault();
-      cursor = 0;
-      holder.state = setPage(holder.state, current.page - 1);
-      return draw();
+      return goto((current.page - 1) * PAGE_SIZE);
     }
     if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
       e.preventDefault();

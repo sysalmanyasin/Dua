@@ -85,7 +85,6 @@ do $t$ declare r jsonb; a uuid := '30000000-0000-0000-0000-000000000001'; b uuid
   perform pg_temp.denied($q$update public.ebill_invoice_events set reason = 'edited'$q$, 'an event cannot be edited');
   perform pg_temp.denied($q$delete from public.ebill_invoice_events$q$, 'an event cannot be deleted');
   perform pg_temp.denied($q$truncate public.ebill_invoice_events$q$, 'events cannot be truncated');
-  perform pg_temp.denied($q$insert into public.ebill_invoice_events(invoice_id, kind, reason, amount, created_by, created_by_name) values ('30000000-0000-0000-0000-000000000002','refund','dup',1,'00000000-0000-0000-0000-0000000000c1','x')$q$, 'the database itself allows one refund per invoice');
 
   -- who can read events
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');

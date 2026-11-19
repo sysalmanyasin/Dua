@@ -432,3 +432,113 @@ describe('Product Help', () => {
     expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(0);
   });
 });
+
+describe('desktop screen and Candela-style Product Help', () => {
+  const sku = () => el.querySelector('#eb-sku');
+  const rowsNow = () => el.querySelectorAll('#ph-table tbody tr[data-i]');
+  const f5 = (init = {}) => {
+    const e = new KeyboardEvent('keydown', { key: 'F5', bubbles: true, cancelable: true, ...init });
+    document.dispatchEvent(e);
+    return e;
+  };
+
+  it('has no buttons that do nothing: no Return, Reason, Edit, customer code or "+"', () => {
+    const labels = [...el.querySelectorAll('button')].map((x) => x.textContent.trim());
+    for (const gone of ['Return', 'Reason', '✎ Edit', '+']) expect(labels).not.toContain(gone);
+    expect(el.querySelector('[aria-label="Customer code"]')).toBeNull();
+    expect(el.querySelector('[aria-label="Add customer"]')).toBeNull();
+    for (const b of el.querySelectorAll('button:disabled')) expect(b.textContent).toMatch(/Search receipt|Save invoice/); // only what a later step will switch on
+  });
+  it('F5 opens Product Help and the browser is not allowed to reload the page', () => {
+    const e = f5();
+    expect(e.defaultPrevented).toBe(true);
+    expect(el.querySelector('#eb-help .eb-ph')).not.toBeNull();
+    expect(document.activeElement.id).toBe('ph-global');
+  });
+  it('Ctrl+F5 and Shift+F5 are left to the browser', () => {
+    expect(f5({ ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(f5({ shiftKey: true }).defaultPrevented).toBe(false);
+    expect(el.querySelector('#eb-help .eb-modal')).toBeNull();
+  });
+  it('F5 with something typed in the code box searches for it and empties the box', async () => {
+    sku().value = 'augmen';
+    f5();
+    expect(el.querySelector('#ph-global').value).toBe('augmen');
+    expect(sku().value).toBe('');
+    await new Promise((r) => setTimeout(r, 200));
+    expect(rowsNow()).toHaveLength(1);
+  });
+  it('shows three filters: the code box, the search box and a filter under every column', () => {
+    f5();
+    expect(el.querySelector('#ph-code')).not.toBeNull();
+    expect(el.querySelector('#ph-global')).not.toBeNull();
+    expect(el.querySelectorAll('#ph-filters th')).toHaveLength(11);
+    expect([...el.querySelectorAll('#ph-table thead tr:first-child th')].map((th) => th.textContent.trim()).slice(0, 4)).toEqual([
+      'Product code',
+      'Product name',
+      'Price',
+      'Stock',
+    ]);
+  });
+  it('the code box filters by what a code starts with, and * before it means contains', async () => {
+    f5();
+    type(el.querySelector('#ph-code'), 'p0');
+    await new Promise((r) => setTimeout(r, 200));
+    expect([...rowsNow()].map((tr) => tr.children[0].textContent)).toEqual(['P001', 'P002']);
+    type(el.querySelector('#ph-code'), '*00');
+    await new Promise((r) => setTimeout(r, 200));
+    expect(rowsNow()).toHaveLength(3); // P001, P002 and A100 all contain "00"
+    expect(el.querySelector('#ph-chips').textContent).toContain('Code: *00');
+  });
+  it('all three filters together, as in Candela: search + column + stock "has" digits', async () => {
+    f5();
+    type(el.querySelector('#ph-global'), 'paracetamol');
+    const name = el.querySelector('[data-f="name"][data-part="value"]');
+    type(name, 'tab');
+    const stock = el.querySelector('[data-f="qty"][data-part="value"]');
+    type(stock, '5'); // 50 contains a 5; 0 does not
+    await new Promise((r) => setTimeout(r, 250));
+    expect([...rowsNow()].map((tr) => tr.children[0].textContent)).toEqual(['P001']);
+    expect(el.querySelector('#ph-sigma').textContent).toBe('1 record');
+    expect(el.querySelector('#ph-chips').textContent).toContain('Stock: has 5');
+  });
+  it('shows Record n of N and moves through the records', async () => {
+    f5();
+    expect(el.querySelector('#ph-nav').textContent.replace(/\s+/g, ' ')).toContain('Record 1 of 3');
+    el.querySelector('[data-nav="next"]').click();
+    expect(el.querySelector('#ph-nav').textContent).toContain('Record 2 of 3');
+    expect(el.querySelector('#ph-table tr.sel').dataset.i).toBe('1');
+    el.querySelector('[data-nav="last"]').click();
+    expect(el.querySelector('#ph-nav').textContent).toContain('Record 3 of 3');
+    expect(el.querySelector('[data-nav="next"]').disabled).toBe(true);
+    el.querySelector('[data-nav="first"]').click();
+    expect(el.querySelector('[data-nav="prev"]').disabled).toBe(true);
+  });
+  it('Clear removes the code box text too', async () => {
+    f5();
+    type(el.querySelector('#ph-code'), 'zz');
+    await new Promise((r) => setTimeout(r, 200));
+    expect(rowsNow()).toHaveLength(0);
+    el.querySelector('[data-act="clear-all"]').click();
+    expect(el.querySelector('#ph-code').value).toBe('');
+    expect(rowsNow()).toHaveLength(3);
+  });
+  it('Full screen hides the menu bars by class, changes its own label, and toggles back', () => {
+    const b = el.querySelector('#eb-full');
+    expect(b.textContent).toContain('Full screen');
+    b.click();
+    return vi
+      .waitFor(() => {
+        expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+        expect(b.textContent).toContain('Exit full screen');
+      })
+      .then(async () => {
+        b.click();
+        await vi.waitFor(() => expect(document.documentElement.classList.contains('eb-full')).toBe(false));
+        expect(b.textContent).toContain('Full screen');
+      });
+  });
+  it('measures where the screen starts so it can fill the rest of the window', () => {
+    expect(el.querySelector('.eb').style.getPropertyValue('--eb-top')).toMatch(/^\d+px$/);
+  });
+});
