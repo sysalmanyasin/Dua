@@ -8,6 +8,9 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
   countBatch: vi.fn(async (_a, events) => ({ accepted: events.length, duplicates: 0 })),
   submitCount: vi.fn(async () => ({ revision: 1 })),
   startIndividual: vi.fn(),
+  listCompanies: vi.fn(async () => {
+    throw new Error('not loaded');
+  }),
   listTemplates: vi.fn(async () => []),
   saveTemplate: vi.fn(async () => 'tpl-1'),
   deleteTemplate: vi.fn(),
@@ -292,6 +295,50 @@ describe('individual audit page', () => {
     click('button[data-act="start"]');
     await until(() => api.startIndividual.mock.calls.length === 1);
     expect(api.startIndividual.mock.calls[0][0]).toMatchObject({ codes: [], companies: ['Acme Pharma', 'Beta Ltd'], templateId: null });
+  });
+
+  it('shows a searchable company list with SKU count and value, and starts from the ticked ones', async () => {
+    api.myAssignments.mockResolvedValue([]);
+    api.listCompanies.mockResolvedValueOnce([
+      { company: '3m Riker', skus: 1, value: 1130 },
+      { company: 'A.Feroz & Company', skus: 10, value: 115769 },
+      { company: "A'raf Pharma", skus: 4, value: 13796 },
+    ]);
+    api.startIndividual.mockResolvedValueOnce({ assignment_id: 'asgP', items: 5, requested: null });
+    await mountIndividual(root(), { ctx: {} });
+    const by = root().querySelector('select[data-f="by"]');
+    by.value = 'companies';
+    by.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(root().querySelector('textarea[data-f="companies"]')).toBeNull();
+    expect(root().querySelectorAll('input[data-company]').length).toBe(3);
+    expect(root().textContent).toContain('10 SKUs · Rs 115,769');
+    expect(root().textContent).toContain('1 SKU · Rs 1,130');
+    expect(root().querySelector('button[data-act="start"]').disabled).toBe(true);
+    const q = root().querySelector('input[data-pq]');
+    q.value = 'feroz';
+    q.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(root().querySelectorAll('input[data-company]').length).toBe(1);
+    const tick = root().querySelector('input[data-company]');
+    tick.checked = true;
+    tick.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(root().textContent).toContain('1 company selected');
+    expect(root().querySelector('button[data-act="start"]').disabled).toBe(false);
+    click('button[data-act="start"]');
+    await until(() => api.startIndividual.mock.calls.length === 1);
+    expect(api.startIndividual.mock.calls[0][0]).toMatchObject({ codes: [], companies: ['A.Feroz & Company'], templateId: null });
+  });
+
+  it('will not tick more companies than an Individual Audit allows', async () => {
+    api.myAssignments.mockResolvedValue([]);
+    api.listCompanies.mockResolvedValueOnce(
+      Array.from({ length: 25 }, (_, i) => ({ company: `Co ${String(i).padStart(2, '0')}`, skus: 1, value: 10 })),
+    );
+    await mountIndividual(root(), { ctx: {} });
+    const by = root().querySelector('select[data-f="by"]');
+    by.value = 'companies';
+    by.dispatchEvent(new Event('change', { bubbles: true }));
+    root().querySelector('button[data-pa="all"]').click();
+    expect(root().textContent).toContain('20 companies selected — 20 at most');
   });
 
   it('offers to continue an open one instead of starting another', async () => {

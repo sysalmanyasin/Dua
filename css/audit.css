@@ -264,3 +264,49 @@
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
+
+/* Company picker (Individual Audit and New audit) */
+.aud .aud-picker-tools {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.aud .aud-picker-tools input {
+  flex: 1;
+  min-width: 0;
+}
+.aud .aud-picker-tools .btn {
+  flex: 0 0 auto;
+}
+.aud .aud-picker-list {
+  max-height: 18rem;
+  overflow-y: auto;
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  border-radius: 0.6rem;
+}
+.aud .aud-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  cursor: pointer;
+}
+.aud .aud-picker-row:first-child {
+  border-top: 0;
+}
+.aud .aud-picker-row input {
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.aud .aud-picker-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.aud .aud-picker-empty {
+  padding: 1rem;
+  text-align: center;
+}

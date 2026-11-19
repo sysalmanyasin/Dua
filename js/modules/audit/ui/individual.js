@@ -6,6 +6,7 @@ import * as api from '../data/api.js';
 import { MAX_CODES, MAX_COMPANIES, parseCodes, parseCompanies } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, newKey, setView } from '../domain/nav.js';
+import { companyPicker } from './companyPicker.js';
 import { errorCard, loadingCard, toast } from './parts.js';
 
 const KEY = 'dua.audit.individualKey';
@@ -32,11 +33,29 @@ export async function mount(el, { ctx } = {}) {
     return render(el, errorCard('Individual Audit', friendlyError(e).message));
   }
   const open = mine.find((a) => a.method === 'individual-self-pick' && a.status !== 'submitted' && a.status !== 'revoked');
-  const s = { by: templates.length ? 'template' : 'codes', codes: '', companies: '', template: '', busy: false, error: null, note: null };
+  // The company list is a convenience: if it cannot be loaded, the typed box still works.
+  let companyList = null;
+  try {
+    const list = await api.listCompanies();
+    if (Array.isArray(list) && list.length > 0) companyList = list;
+  } catch {
+    companyList = null;
+  }
+  const s = {
+    by: templates.length ? 'template' : 'codes',
+    codes: '',
+    companies: '',
+    picked: [],
+    template: '',
+    busy: false,
+    error: null,
+    note: null,
+  };
   const ready = () => {
     if (s.busy) return false;
     if (s.by === 'template') return !!s.template;
     if (s.by === 'codes') return parseCodes(s.codes).length > 0 && parseCodes(s.codes).length <= MAX_CODES;
+    if (companyList) return s.picked.length > 0 && s.picked.length <= MAX_COMPANIES;
     return parseCompanies(s.companies).length > 0 && parseCompanies(s.companies).length <= MAX_COMPANIES;
   };
 
@@ -90,7 +109,15 @@ export async function mount(el, { ctx } = {}) {
                     : ''
                 }
                 ${
-                  s.by === 'companies'
+                  s.by === 'companies' && companyList
+                    ? html`<div class="field">
+                        <span>Companies (up to ${MAX_COMPANIES})</span>
+                        <div data-picker-host></div>
+                      </div>`
+                    : ''
+                }
+                ${
+                  s.by === 'companies' && !companyList
                     ? html`<label class="field"
                           ><span>Company names, one per line, as they appear in Inventory</span
                           ><textarea data-f="companies" rows="4" autocomplete="off" spellcheck="false">${s.companies}</textarea>
@@ -108,6 +135,18 @@ export async function mount(el, { ctx } = {}) {
         }
       </div>`,
     );
+    const host = el.querySelector('[data-picker-host]');
+    if (host) {
+      companyPicker(host, {
+        companies: companyList,
+        selected: s.picked,
+        max: MAX_COMPANIES,
+        onChange: (names) => {
+          s.picked = names;
+          refresh();
+        },
+      });
+    }
   }
 
   const refresh = () => {
@@ -154,7 +193,7 @@ export async function mount(el, { ctx } = {}) {
       const r = await api.startIndividual({
         key: currentKey(),
         codes: s.by === 'codes' ? parseCodes(s.codes) : [],
-        companies: s.by === 'companies' ? parseCompanies(s.companies) : [],
+        companies: s.by === 'companies' ? (companyList ? s.picked : parseCompanies(s.companies)) : [],
         templateId: s.by === 'template' ? s.template : null,
       });
       forgetKey();

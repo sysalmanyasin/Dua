@@ -18,6 +18,10 @@ export const listEngagements = (limit = 50) =>
       .limit(limit),
   );
 
+/** Every company with its product count and stock value at retail, for the company pickers (inventory_company_summary, 0309). */
+export const listCompanies = async () =>
+  (await one(db().rpc('inventory_company_summary'))).map((r) => ({ company: r.company, skus: Number(r.skus), value: Number(r.value) }));
+
 // ── team access (owner only: reading other people's permissions needs users.manage) ──
 /** Everyone with an account, with the staff name. */
 export const listPeople = () =>
