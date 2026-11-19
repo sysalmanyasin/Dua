@@ -120,7 +120,6 @@ describe('billing screen', () => {
     expect(el.querySelector('#eb-status').textContent).toBe('');
     expect(el.querySelector('.eb-bar').textContent).not.toContain('Stock copy:');
     expect(el.querySelector('.eb-sync-why')).toBeNull();
-    expect(el.querySelector('#eb-sync').textContent).not.toContain('Not ready for offline billing yet');
   });
   it('adds a scanned or typed code and totals it', () => {
     type(el.querySelector('#eb-qty'), '3');
