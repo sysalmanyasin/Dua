@@ -3,7 +3,7 @@
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 
-Last updated: 13 Nov 2026 · Owner: the pharmacy owner · Maintained by: the Foundation session only.
+Last updated: 19 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file.
 
 ---
 
@@ -20,9 +20,9 @@ Last updated: 13 Nov 2026 · Owner: the pharmacy owner · Maintained by: the Fou
 
 ### 0.2 Session end protocol
 
-1. `npm run verify` and `npm run test:db` both pass.
+1. `npm run verify` and `bash supabase/tests/run.sh` both pass on the exact commit being handed off.
 2. Update **your own** progress file `docs/modules/<module>.progress.md` (what is done, tested, failed, next). Do not edit the shared `PROJECT_PROGRESS.md` while other modules are in progress.
-3. List every file you changed, so the owner can copy it into Git. (You cannot push to GitHub; the owner commits.)
+3. List every file changed and record the commit/branch. If GitHub write access is available and the owner authorized the target, commit/push through the approved workflow; otherwise provide the complete patch for the owner. Never claim a push or merge that did not happen.
 4. Write a "Handoff" paragraph at the bottom of your brief: what the next session must know first.
 
 ### 0.3 Sessions have no memory
@@ -41,7 +41,7 @@ A Claude session remembers nothing from another session. The repository is the o
   - `sysalmanyasin/Random` — Audit Hub (stock audits, barcode, expiry, Android app).
 - **No data import from the old apps.** We copy **rules, structure and layout** only. New modules start empty. Where a module needs a running balance (carried closing values, staff credit balance, petty cash balance), it provides an **opening-balance entry** screen/function instead. (The Sales history import done earlier is a finished one-off and is not repeated.)
 - **Inventory data** still comes from Candela → Dropbox → an Edge Function → Supabase tables. Candela stays the source of truth (D-07). The sync function moves into this project (Foundation task F3), and only the **latest** stock is kept (§8.4).
-- **Status of the foundation:** login, roles, permissions, shell, router, module loader and Sales are integrated; Manager is integrated; Closing has a partial guided ledger; Inventory is complete and integrated (feed, six screens, Home numbers and exports). See `docs/PROJECT_STATUS.md`, `PROJECT_PROGRESS.md` and each module progress file.
+- **Current implementation status:** the 12 registered IDs are `home`, `sales`, `manager`, `access`, `tools`, `closing`, `inventory`, `str`, `candela-sales`, `ebill`, `audit` and `invoice-desk`. Closing, Manager, STR, Audit and Invoice Desk have more implementation than the original early-November snapshot describes. Workspace has database/domain work but is not registered as a user-facing module. Use `docs/MODULE_PROGRESS_REGISTER.md` and `docs/PROJECT_STATUS.md`; do not rely on this contract for current progress.
 
 ---
 
