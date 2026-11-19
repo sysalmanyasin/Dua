@@ -380,7 +380,9 @@ export async function mount(el, { ctx }) {
                       </select>
                     </td>
                     <td class="num" data-line-total="${l.id}">${m2(t.lines[i].total)}</td>
-                    <td><button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}" title="Remove item">🗑</button></td>
+                    <td>
+                      <button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}" title="Remove item">🗑</button>
+                    </td>
                   </tr>`;
                 })
               : html`<tr>
@@ -389,7 +391,13 @@ export async function mount(el, { ctx }) {
                   </td>
                 </tr>`
           }
-          ${Array.from({ length: Math.max(0, 8 - cart.lines.length) }, () => html`<tr class="eb-filler" aria-hidden="true">${Array.from({ length: 10 }, () => html`<td>&nbsp;</td>`)}</tr>`)}
+          ${Array.from(
+            { length: Math.max(0, 8 - cart.lines.length) },
+            () =>
+              html`<tr class="eb-filler" aria-hidden="true">
+                ${Array.from({ length: 10 }, () => html`<td>&nbsp;</td>`)}
+              </tr>`,
+          )}
         </tbody>
         <tfoot>
           <tr>
@@ -870,11 +878,18 @@ export async function mount(el, { ctx }) {
   };
   document.addEventListener('keydown', onF2);
   stops.push(() => document.removeEventListener('keydown', onF2));
-  const focusSelect = (node) => { if (node) { node.focus(); node.select?.(); } };
+  const focusSelect = (node) => {
+    if (node) {
+      node.focus();
+      node.select?.();
+    }
+  };
   const onPosKeys = (e) => {
     if (!el.isConnected) return;
     if (e.key === 'F11') {
-      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       if (closeHelp || closeHeld) return;
       const line = cart.lines.find((x) => x.id === activeRowId);
       if (!line || line.pack <= 1) return;
@@ -882,23 +897,37 @@ export async function mount(el, { ctx }) {
       const product = byCode.get(String(line.code).toLowerCase());
       if (!product) return;
       cart = addProduct(removeLine(cart, line.id), product, { qty: line.qty, unit });
-      drawLines(); focusSelect(q(`tr[data-id="${line.id}"] [data-edit="qty"]`)); return;
+      drawLines();
+      focusSelect(q(`tr[data-id="${line.id}"] [data-edit="qty"]`));
+      return;
     }
     if (e.key === 'F9') {
-      e.preventDefault(); e.stopPropagation();
-      focusSelect((activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`)) || q('#eb-qty')); return;
+      e.preventDefault();
+      e.stopPropagation();
+      focusSelect((activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`)) || q('#eb-qty'));
+      return;
     }
     if (e.key === 'Delete' && activeRowId) {
       const row = e.target.closest?.('tr[data-id]');
       if (!row || e.target.matches?.('input,select,textarea,button')) return;
-      e.preventDefault(); cart = removeLine(cart, row.dataset.id); activeRowId = null; drawLines(); q('#eb-sku').focus();
+      e.preventDefault();
+      cart = removeLine(cart, row.dataset.id);
+      activeRowId = null;
+      drawLines();
+      q('#eb-sku').focus();
     }
   };
-  const trackRow = (e) => { const row = e.target.closest?.('tr[data-id]'); if (row) activeRowId = row.dataset.id; };
+  const trackRow = (e) => {
+    const row = e.target.closest?.('tr[data-id]');
+    if (row) activeRowId = row.dataset.id;
+  };
   window.addEventListener('keydown', onPosKeys, { capture: true });
   q('#eb-lines').addEventListener('focusin', trackRow);
   q('#eb-lines').addEventListener('click', trackRow);
-  stops.push(() => { window.removeEventListener('keydown', onPosKeys, { capture: true }); q('#eb-lines')?.removeEventListener('focusin', trackRow); });
+  stops.push(() => {
+    window.removeEventListener('keydown', onPosKeys, { capture: true });
+    q('#eb-lines')?.removeEventListener('focusin', trackRow);
+  });
 
   q('#eb-qty').addEventListener('input', (e) => {
     bill.qty = Number(e.target.value) > 0 ? Number(e.target.value) : 1;
