@@ -50,9 +50,10 @@ export async function mount(el) {
       const body = d.querySelector('.month-body');
       if (body.dataset.filled === '1') return;
       const m = byMonth.get(d.dataset.month);
+      const monthlyNote = m.monthlyOnly ? html`<p>Monthly figures only. Daily breakdown was not imported for this month.</p>` : '';
       render(
         body,
-        html`${m.monthlyOnly ? html`<p>Monthly figures only. Daily breakdown was not imported for this month.</p>` : ''}
+        html`${monthlyNote}
           <table class="table">
             <thead>
               <tr>

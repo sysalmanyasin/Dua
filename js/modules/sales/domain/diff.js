@@ -4,11 +4,7 @@ const hasData = (d) => Number(d.total) !== 0 || (d.comp_sale !== null && d.comp_
 const round = (x) => Math.floor(x + 0.5);
 
 export function buildDiffReport(days, historyRows = []) {
-  const dailyMonthKeys = new Set(
-    days
-      .filter((d) => d.business_date)
-      .map((d) => d.business_date.slice(0, 7)),
-  );
+  const dailyMonthKeys = new Set(days.filter((d) => d.business_date).map((d) => d.business_date.slice(0, 7)));
   const sorted = days.filter(hasData).sort((a, b) => a.business_date.localeCompare(b.business_date));
   const byMonth = new Map();
 
