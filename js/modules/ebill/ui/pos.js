@@ -130,7 +130,7 @@ export async function mount(el, { ctx }) {
           <div class="eb-group eb-grow2">
             <span class="eb-lbl">Qty / product (SKU)</span>
             <span class="eb-inline">
-              <input class="eb-qtyin" id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal" aria-label="Quantity" />
+              <input class="eb-qtyin" id="eb-qty" type="text" inputmode="decimal" value="1" aria-label="Quantity" />
               <input
                 class="eb-sku"
                 id="eb-sku"
@@ -358,9 +358,8 @@ export async function mount(el, { ctx }) {
                       <input
                         class="eb-edit"
                         data-edit="qty"
-                        type="number"
-                        min="0"
-                        step="any"
+                        type="text"
+                        inputmode="decimal"
                         value="${l.qty}"
                         aria-label="Quantity of ${l.name}"
                       />
