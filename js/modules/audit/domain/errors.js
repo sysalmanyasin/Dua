@@ -3,6 +3,20 @@
 // audit migrations can raise has a sentence here, and that no sentence is dead.
 export const MESSAGES = {
   not_allowed: 'You are not allowed to do that.',
+  entry_locked: 'This entry is locked. Reopen it first, then edit.',
+  entry_not_found: 'That entry could not be found. Reload and try again.',
+  key_taken: 'This save was already used by someone else. Start the entry again.',
+  month_invalid: 'Choose a month from 3 months ago to 3 years ahead.',
+  person_invalid: 'That person cannot be given a rack. Choose someone with an active account.',
+  product_not_found: 'That product could not be found. Search for it again.',
+  quantity_invalid: 'Enter a quantity above zero.',
+  rack_exists: 'A rack with that name already exists.',
+  rack_inactive: 'That rack is switched off. Switch it on first.',
+  rack_invalid: 'Choose one of the racks on the list.',
+  rack_name_invalid: 'A rack needs a name of 1 to 60 characters.',
+  rack_not_found: 'That rack could not be found. Reload and try again.',
+  rack_not_yours: 'That rack is not yours this month. Choose one of your racks.',
+  status_invalid: 'Choose a status from the list.',
   append_only: 'That record is kept as it was and cannot be changed.',
   assignment_identity: 'An assignment cannot be moved to another person or round.',
   assignment_not_found: 'That assignment could not be found. Reload and try again.',
@@ -62,6 +76,10 @@ export const MESSAGES = {
   invalid_sample: 'The sample size must be between 1 and 1000.',
   suffix_exhausted: 'There are no more lettered rounds (A to Z) for this round.',
   too_many_companies: 'Pick 20 companies or fewer for one Individual Audit.',
+  compile_stale: 'Something changed after the last compile. Compile again, then create the final.',
+  corrections_pending: 'A correction is still waiting for a decision. Approve or reject it first.',
+  conflicts_unresolved: 'A conflict is not settled yet. Choose which count to keep for each one.',
+  final_not_found: 'This round has no final snapshot yet.',
   version_conflict: 'Someone else changed this. Reload and try again.',
 };
 

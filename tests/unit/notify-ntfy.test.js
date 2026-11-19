@@ -24,6 +24,14 @@ describe('push text', () => {
     expect(m.message).toContain('some.new_kind');
     expect(messageFor('Bad Kind <script>', {}).message).toContain('unknown');
   });
+  it('words the audit alerts without any name or amount', () => {
+    for (const k of ['audit.submitted', 'audit.compiled', 'audit.conflict', 'audit.finalized']) {
+      const m = messageFor(k, { company: 'Acme', total: 99999 });
+      expect(m.title.startsWith('Dua: audit')).toBe(true);
+      expect(JSON.stringify(m)).not.toMatch(/Acme|99999/);
+      expect(canEnqueue(k)).toBe(false);
+    }
+  });
   it('treats backup failures as the highest priority', () => {
     expect(messageFor('backup.failed', {}).priority).toBe(5);
   });

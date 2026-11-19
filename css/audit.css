@@ -186,3 +186,81 @@
   align-items: flex-start;
   padding: 6px 0;
 }
+
+/* Final and Reports: tables, and the print page. The print block is built by ui/print.js and everything else is hidden. */
+.aud .aud-scroll {
+  overflow-x: auto;
+}
+.aud .aud-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.aud .aud-table th,
+.aud .aud-table td {
+  padding: 0.5rem 0.4rem;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+#aud-print-root {
+  display: none;
+}
+@media print {
+  body.aud-printing > *:not(#aud-print-root) {
+    display: none !important;
+  }
+  body.aud-printing #aud-print-root {
+    display: block;
+    color: #000;
+    background: #fff;
+    font:
+      12px/1.4 system-ui,
+      sans-serif;
+    padding: 12mm;
+  }
+  #aud-print-root h1 {
+    font-size: 18px;
+  }
+  #aud-print-root h2 {
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  #aud-print-root table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #aud-print-root th,
+  #aud-print-root td {
+    border-bottom: 1px solid #999;
+    padding: 3px 4px;
+    text-align: left;
+  }
+  #aud-print-root .num {
+    text-align: right;
+  }
+  #aud-print-root tr {
+    break-inside: avoid;
+  }
+}
+
+/* Expiry tracking */
+.aud .aud-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.aud .aud-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.5rem;
+}
+.aud .aud-edit {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
