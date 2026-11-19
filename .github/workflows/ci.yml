@@ -18,7 +18,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npx prettier --write js/modules/sales/domain/diff.js js/modules/sales/ui/diff.js && git diff -- js/modules/sales/domain/diff.js js/modules/sales/ui/diff.js && npm run format:check
+      - run: npm run format:check
       - run: npm test
       - run: npm run check:secrets
       - run: npm run check:vendor

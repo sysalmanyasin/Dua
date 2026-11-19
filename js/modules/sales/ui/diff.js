@@ -34,7 +34,8 @@ export async function mount(el) {
         (m) =>
           html`<details class="month" data-month="${m.month}">
             <summary>
-              <span class="m-name">${monthLabel(`${m.month}-01`)}${m.monthlyOnly ? ' · Monthly figures only' : ''}</span><span class="m-total ${diffClass(m.diff)}">${signed(m.diff)}</span>
+              <span class="m-name">${monthLabel(`${m.month}-01`)}${m.monthlyOnly ? ' · Monthly figures only' : ''}</span
+              ><span class="m-total ${diffClass(m.diff)}">${signed(m.diff)}</span>
               <span class="m-sub">run ${signed(m.cumulative)}</span>
             </summary>
             <div class="month-body" data-filled="0"></div>
