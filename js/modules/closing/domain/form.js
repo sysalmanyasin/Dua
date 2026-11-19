@@ -172,9 +172,10 @@ export function formFromRow(row, catalogue = [], accounts = []) {
   return f;
 }
 
-const num = (s, invalid, path, { quantity = false } = {}) => {
+// `whole`: a count of notes or a bill number cannot have a fraction (the database would round 12.5 to 13 without a word)
+const num = (s, invalid, path, { quantity = false, whole = false } = {}) => {
   const v = parseAmount(s);
-  if (Number.isNaN(v) || (quantity && v !== null && v < 0)) {
+  if (Number.isNaN(v) || (quantity && v !== null && v < 0) || (whole && v !== null && !Number.isInteger(v))) {
     invalid.push(path);
     return 0;
   }
@@ -200,7 +201,7 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
   const n = (k) => num(form[k], invalid, k);
   const payload = {
     sys_cash: n('sys_cash'),
-    last_bill_no: num(form.last_bill_no, invalid, 'last_bill_no', { quantity: true }),
+    last_bill_no: num(form.last_bill_no, invalid, 'last_bill_no', { quantity: true, whole: true }),
     last_bill_amt: n('last_bill_amt'),
     comp_sale: n('comp_sale'),
     alfalah: n('alfalah'),
@@ -246,8 +247,11 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
   payload.extra_cash = n('extra_cash');
   payload.final_sys_returns = n('final_sys_returns');
   payload.credit_adj = num(form.credit_adj, invalid, 'credit_adj');
-  payload.till = form.till.map((v, i) => num(v, invalid, `till.${i}`, { quantity: true }));
-  payload.vault = form.vault.map((v, i) => num(v, invalid, `vault.${i}`, { quantity: true }));
+  // the last box is coins / loose change (an amount, so it may have paisa); the others count whole notes
+  const noteCount = (area) =>
+    form[area].map((v, i) => num(v, invalid, `${area}.${i}`, { quantity: true, whole: i < DENOMINATIONS.length - 1 }));
+  payload.till = noteCount('till');
+  payload.vault = noteCount('vault');
   payload.misc = form.misc
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => r.charge_id || !isBlank(r, ['label', 'amount']))

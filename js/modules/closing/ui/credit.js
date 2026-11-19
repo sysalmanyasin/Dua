@@ -6,10 +6,10 @@ import { money, shortDate } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import { groupByDate, receiptRows, snapshotTitle } from '../domain/ledgers.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { errorCard, focusHeading, keepFocus, loadingCard, toast } from './parts.js';
 import { printThermal } from './print.js';
 
-const dot = (kind) => html`<span class="dot dot-${kind}"></span>`;
+const dot = (kind) => html`<span class="dot dot-${kind}" aria-hidden="true"></span>`;
 const amt = (v) => money(v, { decimals: true });
 
 export async function mount(el) {
@@ -17,7 +17,8 @@ export async function mount(el) {
   let to = '';
   let snapshots = [];
 
-  const draw = () => {
+  const draw = () => keepFocus(el, paint);
+  const paint = () => {
     const groups = groupByDate(snapshots);
     render(
       el,
@@ -30,7 +31,9 @@ export async function mount(el) {
               <div class="field"><label for="cl-to">To</label><input id="cl-to" type="date" value="${to}" /></div>
               <div class="actions"><button type="button" class="btn btn-primary" id="cl-show">Show</button></div>
             </div>
-            <p class="cls-meta"><a href="#/closing">Back to Closing</a></p>
+            <p class="cls-meta" id="cl-count">
+              ${snapshots.length} ${snapshots.length === 1 ? 'closing' : 'closings'} shown · <a href="#/closing">Back to Closing</a>
+            </p>
           </section>
           ${
             groups.length
@@ -71,7 +74,15 @@ export async function mount(el) {
                               </div>
                             </dl>
                             <div class="actions">
-                              <button type="button" class="btn btn-sm" data-act="print" data-id="${s.closing_id}">Print receipt</button>
+                              <button
+                                type="button"
+                                class="btn btn-sm"
+                                data-act="print"
+                                data-id="${s.closing_id}"
+                                aria-label="Print receipt, ${snapshotTitle(s)} ${shortDate(s.business_date)}"
+                              >
+                                Print receipt
+                              </button>
                             </div>
                           </article>`,
                       )}
@@ -86,7 +97,7 @@ export async function mount(el) {
       from = el.querySelector('#cl-from').value;
       to = el.querySelector('#cl-to').value;
       if (from && to && from > to) return toast('The start date is after the end date.', 'error');
-      load();
+      load(true);
     });
     el.querySelectorAll('[data-act="print"]').forEach((b) =>
       b.addEventListener('click', () => {
@@ -96,7 +107,7 @@ export async function mount(el) {
     );
   };
 
-  async function load() {
+  async function load(announce = false) {
     render(el, loadingCard());
     try {
       snapshots = await api.creditLedger({ from: from || null, to: to || null });
@@ -104,6 +115,7 @@ export async function mount(el) {
       return render(el, errorCard('the Credit Ledger', friendlyError(e).message));
     }
     draw();
+    if (announce) focusHeading(el.querySelector('#cl-count')); // says how many closings the new dates found
   }
   await load();
 }

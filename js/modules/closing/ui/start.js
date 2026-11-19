@@ -6,12 +6,13 @@ import * as api from '../data/api.js';
 import { MONTHS, WEEKDAYS, dotsByDate, monthCells, suggestForDate } from '../domain/calendar.js';
 import { friendlyError } from '../domain/errors.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
-import { KINDS, slotLabel, suggestNext } from '../domain/slots.js';
+import { KINDS, kindLabel, slotLabel, suggestNext } from '../domain/slots.js';
 import { newKey, setOpen, setView } from '../domain/store.js';
 import { saveBlob } from './book.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { errorCard, keepFocus, loadingCard, toast } from './parts.js';
 
-const dot = (kind) => html`<span class="dot dot-${kind}"></span>`;
+const dot = (kind) => html`<span class="dot dot-${kind}" aria-hidden="true"></span>`;
+const FULL_WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const goLedger = () => {
   location.hash = '#/closing/ledger';
 };
@@ -47,6 +48,16 @@ export async function mount(el, { ctx } = {}) {
   let view = { y: Number(startDate.slice(0, 4)), m: Number(startDate.slice(5, 7)) - 1 };
   let showAll = false;
 
+  const isCurrentMonth = () => view.y * 12 + view.m >= Number(today.slice(0, 4)) * 12 + Number(today.slice(5, 7)) - 1;
+  // what a screen reader says for a day: the date, and which closings exist (colour dots alone say nothing to it)
+  const dayName = (date) => {
+    const saved = (dots[date] ?? []).map(kindLabel);
+    const parts = [longDate(date)];
+    if (saved.length) parts.push(`saved: ${saved.join(', ')}`);
+    if (draftDates.has(date)) parts.push('draft in progress');
+    return parts.join(', ');
+  };
+
   const kindOptions = (selected) =>
     KINDS.map((k) => html`<option value="${k.kind}" ${k.kind === selected ? 'selected' : ''}>${k.label}</option>`);
 
@@ -55,28 +66,42 @@ export async function mount(el, { ctx } = {}) {
     ${r.mode === 'final' ? html`<span class="cls-badge cls-badge-final">Final</span>` : ''}
     ${r.status === 'submitted' && r.is_opening ? html`<span class="cls-badge">Opening</span>` : ''}`;
 
-  const recordRow = (r) =>
-    html`<li>
+  const recordRow = (r) => {
+    const what = `${slotLabel(r.kind, r.seq)} closing, ${shortDate(r.business_date)}`;
+    return html`<li>
       <span>${dot(r.kind)}<strong>${slotLabel(r.kind, r.seq)}</strong> · ${shortDate(r.business_date)} ${badges(r)}</span>
       <span class="cls-actions-inline">
         ${
           r.status === 'draft'
-            ? html`<button type="button" class="btn btn-primary btn-sm" data-act="continue" data-key="${r.key}">Continue</button>`
-            : html`<button type="button" class="btn btn-sm" data-act="view" data-id="${r.closing_id}">Open</button>
-                <button type="button" class="btn btn-sm" data-act="pdf" data-id="${r.closing_id}">PDF</button>`
+            ? html`<button
+                type="button"
+                class="btn btn-primary btn-sm"
+                data-act="continue"
+                data-key="${r.key}"
+                aria-label="Continue ${what}"
+              >
+                Continue
+              </button>`
+            : html`<button type="button" class="btn btn-sm" data-act="view" data-id="${r.closing_id}" aria-label="Open ${what}">
+                  Open
+                </button>
+                <button type="button" class="btn btn-sm" data-act="pdf" data-id="${r.closing_id}" aria-label="PDF of ${what}">PDF</button>`
         }
       </span>
     </li>`;
+  };
 
   const calendar = () =>
     html`<section class="card cls-cal" aria-label="Closing calendar">
       <div class="cls-cal-head">
         <button type="button" class="btn btn-sm" data-act="prev-month" aria-label="Previous month">‹</button>
-        <strong>${MONTHS[view.m]} ${view.y}</strong>
-        <button type="button" class="btn btn-sm" data-act="next-month" aria-label="Next month">›</button>
+        <strong id="cls-cal-title" role="heading" aria-level="2">${MONTHS[view.m]} ${view.y}</strong>
+        <button type="button" class="btn btn-sm" data-act="next-month" aria-label="Next month" ${isCurrentMonth() ? 'disabled' : ''}>
+          ›
+        </button>
       </div>
       <div class="cls-cal-grid">
-        ${WEEKDAYS.map((w) => html`<span class="cls-cal-dow">${w}</span>`)}
+        ${WEEKDAYS.map((w, i) => html`<span class="cls-cal-dow" aria-label="${FULL_WEEKDAYS[i]}">${w}</span>`)}
         ${monthCells(view.y, view.m).map((c) =>
           c
             ? html`<button
@@ -84,7 +109,8 @@ export async function mount(el, { ctx } = {}) {
                 class="cls-cal-day ${c.date === sel ? 'is-sel' : ''} ${c.date === today ? 'is-today' : ''}"
                 data-day="${c.date}"
                 ${c.date > today ? 'disabled' : ''}
-                aria-label="${longDate(c.date)}${(dots[c.date] ?? []).length ? ', closings saved' : ''}"
+                aria-current="${c.date === today ? 'date' : 'false'}"
+                aria-label="${dayName(c.date)}"
                 aria-pressed="${c.date === sel}"
               >
                 <span>${c.day}</span>
@@ -172,10 +198,12 @@ export async function mount(el, { ctx } = {}) {
       ${canReview ? chip('#/closing/review', 'Review') : ''} ${canOpen ? chip('#/closing/settings', 'Settings') : ''}
     </nav>`;
 
-  const draw = () => {
+  const draw = () => keepFocus(el, paint);
+  const paint = () => {
     render(
       el,
       html`<div class="cls">
+        <h1 class="cls-sr">Closing</h1>
         ${chips()}
         <div class="cls-grid">
           ${calendar()} ${dayPanel()} ${records()}

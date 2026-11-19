@@ -6,7 +6,7 @@ import { hero } from '../../../shared/ui.js';
 import { money } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
-import { errorCard, loadingCard, openDialog, toast } from './parts.js';
+import { errorCard, keepFocus, loadingCard, openDialog, toast } from './parts.js';
 
 const M = (v) => money(v, { decimals: true });
 const off = (r) => (r.active ? '' : html` <span class="cls-meta">(off)</span>`);
@@ -15,6 +15,7 @@ export async function mount(el) {
   let S = { strips: [], accounts: [], items: [], numbers: null, audit: null };
 
   async function load() {
+    const back = el.contains(document.activeElement) ? document.activeElement : null;
     render(el, loadingCard());
     try {
       const [strips, accounts, items, numbers, audit] = await Promise.all([
@@ -28,7 +29,13 @@ export async function mount(el) {
     } catch (e) {
       return render(el, errorCard('the settings', friendlyError(e).message));
     }
-    draw();
+    keepFocus(el, draw);
+    // the page was replaced while loading: put focus back on the control that opened the dialog, if it is still there
+    const sel =
+      back && back.dataset
+        ? ['num', 'strip', 'acct', 'item'].map((k) => (back.dataset[k] ? `[data-${k}="${back.dataset[k]}"]` : '')).find(Boolean)
+        : '';
+    (sel ? el.querySelector(sel) : back?.id ? el.querySelector(`#${back.id}`) : null)?.focus({ preventScroll: true });
   }
 
   /** Opens a small form; `fields` are { id, label, type, value, options? }; `onSave(values)` must throw to keep the form open. */
@@ -58,16 +65,20 @@ export async function mount(el) {
         </div>`,
       { label: title },
     );
-    dlg.querySelector('#f-save').addEventListener('click', async () => {
+    dlg.querySelector('#f-save').addEventListener('click', async (ev) => {
+      const save = ev.currentTarget;
+      if (save.disabled) return;
       const v = {};
       for (const f of fields) {
         const n = dlg.querySelector(`#f-${f.id}`);
         v[f.id] = f.type === 'checkbox' ? n.checked : n.value;
       }
+      save.disabled = true; // one tap saves once: a second tap would add the same strip or account again
       try {
         await onSave(v);
       } catch (e) {
-        return toast(friendlyError(e).message, 'error');
+        save.disabled = false;
+        return toast(e.clientMessage ?? friendlyError(e).message, 'error');
       }
       dlg.close();
       toast('Saved.');
@@ -85,15 +96,20 @@ export async function mount(el) {
         { id: 'sort', label: 'Order', type: 'number', value: r?.sort ?? 0 },
         { id: 'active', label: 'In use', type: 'checkbox', value: r ? r.active : true },
       ],
-      (v) =>
-        api.saveStrip({
+      (v) => {
+        if (!v.label.trim()) throw Object.assign(new Error('name'), { clientMessage: 'Enter a name for the strip.' });
+        if (v.price.trim() === '' || !Number.isFinite(Number(v.price)) || Number(v.price) < 0) {
+          throw Object.assign(new Error('price'), { clientMessage: 'Enter a price of zero or more.' });
+        }
+        return api.saveStrip({
           id: r?.id,
           label: v.label,
           group_name: v.group,
           price: Number(v.price),
           sort: Number(v.sort) || 0,
           active: v.active,
-        }),
+        });
+      },
     );
 
   const editAccount = (r) =>
@@ -181,21 +197,31 @@ export async function mount(el) {
             <ul class="cls-list">
               <li>
                 <span>Till float<br /><span class="cls-meta">${S.numbers ? M(S.numbers.till_float) : 'Not visible to you'}</span></span
-                ><button type="button" class="btn btn-sm" data-num="till_float" data-label="till float">Change</button>
+                ><button type="button" class="btn btn-sm" data-num="till_float" data-label="till float" aria-label="Change till float">
+                  Change
+                </button>
               </li>
               <li>
                 <span
                   >Charge per customer<br /><span class="cls-meta"
                     >${S.numbers ? M(S.numbers.per_customer_charge) : 'Not visible to you'}</span
                   ></span
-                ><button type="button" class="btn btn-sm" data-num="per_customer_charge" data-label="charge per customer">Change</button>
+                ><button
+                  type="button"
+                  class="btn btn-sm"
+                  data-num="per_customer_charge"
+                  data-label="charge per customer"
+                  aria-label="Change charge per customer"
+                >
+                  Change
+                </button>
               </li>
               <li>
                 <span
                   >Inventory audit required to submit<br /><span class="cls-meta"
                     >${S.audit === null ? 'Not visible to you' : S.audit ? 'Yes' : 'No'}</span
                   ></span
-                ><button type="button" class="btn btn-sm" id="set-audit">Change</button>
+                ><button type="button" class="btn btn-sm" id="set-audit" aria-label="Change inventory audit requirement">Change</button>
               </li>
             </ul>
           </section>
@@ -206,7 +232,7 @@ export async function mount(el) {
                 (r) =>
                   html`<li>
                     <span>${r.label}${off(r)}<br /><span class="cls-meta">${r.group_name || 'No group'} · ${M(r.price)}</span></span
-                    ><button type="button" class="btn btn-sm" data-strip="${r.id}">Edit</button>
+                    ><button type="button" class="btn btn-sm" data-strip="${r.id}" aria-label="Edit strip ${r.label}">Edit</button>
                   </li>`,
               )}
             </ul>
@@ -216,11 +242,11 @@ export async function mount(el) {
           <section class="card" id="set-accounts">
             <h2>Credit accounts</h2>
             <ul class="cls-list">
-              ${named.map((r) => html`<li><span>${r.label}${off(r)}</span><button type="button" class="btn btn-sm" data-acct="${r.id}">Edit</button></li>`)}
+              ${named.map((r) => html`<li><span>${r.label}${off(r)}</span><button type="button" class="btn btn-sm" data-acct="${r.id}" aria-label="Edit account ${r.label}">Edit</button></li>`)}
             </ul>
             <h3 class="sec-label">Staff tier names</h3>
             <ul class="cls-list">
-              ${tiers.map((r) => html`<li><span>Tier ${r.tier_no}: ${r.label}${off(r)}</span><button type="button" class="btn btn-sm" data-acct="${r.id}">Edit</button></li>`)}
+              ${tiers.map((r) => html`<li><span>Tier ${r.tier_no}: ${r.label}${off(r)}</span><button type="button" class="btn btn-sm" data-acct="${r.id}" aria-label="Edit tier ${r.tier_no} name ${r.label}">Edit</button></li>`)}
             </ul>
             <div class="actions"><button type="button" class="btn btn-sm" id="add-acct">Add account or tier</button></div>
           </section>
@@ -231,7 +257,7 @@ export async function mount(el) {
                 (r) =>
                   html`<li>
                     <span>${r.code}${off(r)}<br /><span class="cls-meta">${r.name}</span></span
-                    ><button type="button" class="btn btn-sm" data-item="${r.code}">Edit</button>
+                    ><button type="button" class="btn btn-sm" data-item="${r.code}" aria-label="Edit audit code ${r.code}">Edit</button>
                   </li>`,
               )}
             </ul>

@@ -144,3 +144,12 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 - Home is a launcher: one tile per module the person may use (every current and future module, by permission). Someone with a single module lands inside it with no Home link. Inside a module a "‹ Home" link replaces the module tab row; a module with `hub: true` (Closing) shows only "← Closing" on inner pages because its start page lists the rest. The status bar shows on Home only.
 - The entry screen has "‹ Back to days", which saves the draft first.
 - Migration 0214: every user with closing access may read every submitted closing (start-page list, Open, PDF, previous-shift card). Drafts stay private to their author.
+
+## Accessibility conventions (audit of Nov 2026)
+- Every input has a name a screen reader can tell apart: a real `<label for>`, or an `aria-label` with the row ("Amount, row 2"; a fixed strip uses its item name). A text span, not a `<label>`, is used where nothing is being labelled.
+- A page that is drawn again keeps keyboard focus on the same control (`keepFocus` in `ui/parts.js`); a new section, the success screen and filtered lists move focus to their heading or summary line (`focusHeading`).
+- The save chip is a real button inside a live region; it is enabled only when there is something to retry. Errors are `role="alert"`; the fields to fix are named in `#cls-errors`, never by a red border alone.
+- Calendar days say their date, which closings are saved, whether a draft is open and whether it is today; the next-month button stops at the current month.
+- Colours: teal and amber text/backgrounds are at least 4.5:1 (`--cls-teal-text` for text on the dark theme); the evening dot is at least 3:1.
+- Do not put `"` inside an interpolated attribute string in `html```...```: it is escaped. Write `aria-current="${cond ? 'date' : 'false'}"`.
+- Bill numbers and counts of notes must be whole numbers (`payloadFromForm`); coins / loose change may have paisa.
