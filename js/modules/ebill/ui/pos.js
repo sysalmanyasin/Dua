@@ -1,4 +1,4 @@
-// Emergency POS: the desktop billing screen, laid out like the Candela "Sale and Return" screen the cashiers already know
+// Emergency POS: Candela-inspired desktop billing screen with keyboard-first cashier controls, laid out like the Candela "Sale and Return" screen the cashiers already know
 // (header rows, invoice grid with totals row, right-hand totals panel, bottom payment and receipt bar) in Dua's own look.
 // Phase 1 works: bill building, Product Help, totals, new bill and cancel. Saving, holding, printing and returns arrive in
 // later phases; their controls are shown but switched off, never faked.
@@ -72,6 +72,7 @@ export async function mount(el, { ctx }) {
   let flash = ''; // a short information line: held, resumed, connection lost / back
   let flashTimer = null;
   let closeHeld = null;
+  let activeRowId = null;
   const fresh = () => ({
     customer: '',
     customerDiscountPct: 0,
@@ -129,17 +130,16 @@ export async function mount(el, { ctx }) {
           <div class="eb-group eb-grow2">
             <span class="eb-lbl">Qty / product (SKU)</span>
             <span class="eb-inline">
-              <input class="eb-qtyin" id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal" aria-label="Quantity" />
+              <input class="eb-qtyin" id="eb-qty" type="text" inputmode="decimal" value="1" aria-label="Quantity" />
               <input
                 class="eb-sku"
                 id="eb-sku"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Scan or type a code, then Enter · F5 or F2: Product Help"
+                placeholder="Scan or type a code, then Enter · F2"
                 aria-label="Product code"
               />
-              <button type="button" class="btn" data-act="help" title="Product Help (F5 or F2)" aria-label="Open Product Help">🔍</button>
-              <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold bill</button>
+              <button type="button" class="btn" data-act="help" title="Product Help (F2)" aria-label="Open Product Help">🔍</button>
             </span>
           </div>
           <div class="eb-group">
@@ -251,7 +251,8 @@ export async function mount(el, { ctx }) {
               ‹</button
             ><button type="button" class="btn btn-sm" data-held-nav="next" title="Next held bill" aria-label="Next held bill">›</button
             ><button type="button" class="btn btn-sm" data-held-nav="last" title="Last held bill" aria-label="Last held bill">»</button
-            ><button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button>
+            ><button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button
+            ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">Cancel</button>
           </div>
         </div>
         <fieldset class="eb-pay">
@@ -277,7 +278,7 @@ export async function mount(el, { ctx }) {
           </button>
           <div class="eb-navs">
             <button type="button" class="btn btn-sm" data-act="new" title="New bill">＋ New</button
-            ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">⃠ Cancel</button>
+
           </div>
         </div>
       </div>
@@ -340,7 +341,7 @@ export async function mount(el, { ctx }) {
             cart.lines.length
               ? cart.lines.map((l, i) => {
                   const issue = stockIssue(l, byCode.get(String(l.code).toLowerCase()));
-                  return html`<tr data-id="${l.id}">
+                  return html`<tr data-id="${l.id}" tabindex="0" aria-label="Bill item ${i + 1}: ${l.name}">
                     <td>${i + 1}</td>
                     <td>${l.code}</td>
                     <td>
@@ -348,7 +349,7 @@ export async function mount(el, { ctx }) {
                     </td>
                     <td>
                       <select data-edit="unit" aria-label="Unit for ${l.name}">
-                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Single</option>
+                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Loose</option>
                         ${l.pack > 1 ? html`<option value="pack" ${l.unit === 'pack' ? 'selected' : ''}>Pack of ${l.pack}</option>` : ''}
                       </select>
                     </td>
@@ -357,9 +358,8 @@ export async function mount(el, { ctx }) {
                       <input
                         class="eb-edit"
                         data-edit="qty"
-                        type="number"
-                        min="0"
-                        step="any"
+                        type="text"
+                        inputmode="decimal"
                         value="${l.qty}"
                         aria-label="Quantity of ${l.name}"
                       />
@@ -380,7 +380,9 @@ export async function mount(el, { ctx }) {
                       </select>
                     </td>
                     <td class="num" data-line-total="${l.id}">${m2(t.lines[i].total)}</td>
-                    <td><button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}">Delete</button></td>
+                    <td>
+                      <button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}" title="Remove item">🗑</button>
+                    </td>
                   </tr>`;
                 })
               : html`<tr>
@@ -389,6 +391,13 @@ export async function mount(el, { ctx }) {
                   </td>
                 </tr>`
           }
+          ${Array.from(
+            { length: Math.max(0, 8 - cart.lines.length) },
+            () =>
+              html`<tr class="eb-filler" aria-hidden="true">
+                ${Array.from({ length: 10 }, () => html`<td>&nbsp;</td>`)}
+              </tr>`,
+          )}
         </tbody>
         <tfoot>
           <tr>
@@ -412,12 +421,7 @@ export async function mount(el, { ctx }) {
 
   function drawStatus() {
     const online = navigator.onLine !== false;
-    render(
-      q('#eb-status'),
-      html`<span class="muted"
-        >Stock copy: ${meta?.syncedAt ? `updated ${clock(meta.syncedAt)} (saved on this device, not live)` : 'none yet'}</span
-      >`,
-    );
+    render(q('#eb-status'), html``);
     render(
       q('#eb-note'),
       html`${!online ? html`<p class="note note-info" role="status">You are offline. You can keep billing: bills are saved on this device and upload by themselves when you are back online. Products and stock come from the copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}, so stock may be out of date.</p>` : ''}
@@ -593,9 +597,7 @@ export async function mount(el, { ctx }) {
           ${s.failed ? html`<button type="button" class="btn btn-sm" data-act="retry">Retry failed</button>` : ''}
           ${s.pending && online ? html`<button type="button" class="btn btn-sm" data-act="syncnow">Upload now</button>` : ''}
           ${online && !ready.ready && !String(ready.why).includes('Ask the owner') ? html`<button type="button" class="btn btn-sm" data-act="prep">Prepare offline</button>` : ''}
-          ${!ready.ready ? html`<span class="muted eb-sync-why" title="${ready.why}">${ready.why}</span>` : ''}
         </div>
-        ${!shell && ready.ready ? html`<p class="muted eb-sync-why">The page is not saved for offline use yet. Keep this page open online for a moment, then reload once.</p>` : ''}
         ${s.others ? html`<span class="muted">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</span>` : ''}
         ${
           s.items.length
@@ -649,6 +651,8 @@ export async function mount(el, { ctx }) {
       drawStatus();
     }
     cart = addProduct(cart, product, { qty: bill.qty });
+    const activeLine = cart.lines.find((line) => line.code === product.code && line.unit === 'unit');
+    activeRowId = activeLine?.id ?? null;
     bill.qty = 1;
     q('#eb-qty').value = '1';
     drawLines();
@@ -688,6 +692,23 @@ export async function mount(el, { ctx }) {
     resetBill();
     drawStatus();
   }
+  async function cancelCurrent() {
+    if (!bill.heldId) return newBill();
+    if (!window.confirm('Discard this held bill? It will be permanently removed.')) return;
+    const id = bill.heldId;
+    const result = await held.release(id);
+    if (!result.ok) {
+      note = result.message;
+      drawStatus();
+      return;
+    }
+    saved = null;
+    note = '';
+    resetBill();
+    say('Held bill discarded.');
+    await drawHeldCount();
+    sync.syncNow().catch(() => {});
+  }
   // Put every input on the screen in step with `bill`.
   function syncInputs() {
     const set = (id, v) => {
@@ -711,6 +732,7 @@ export async function mount(el, { ctx }) {
   }
   function resetBill() {
     cart = emptyCart();
+    activeRowId = null;
     bill = fresh();
     syncInputs();
     drawLines();
@@ -793,8 +815,8 @@ export async function mount(el, { ctx }) {
     note = '';
     saved = null;
     resetBill();
+    await drawHeldCount();
     say('Bill held. Serve the next customer; open "Held" to bring it back.');
-    drawHeldCount();
     sync.syncNow().catch(() => {}); // sends the hold to the server when there is a connection
   }
   async function resumeHeld(id) {
@@ -808,6 +830,7 @@ export async function mount(el, { ctx }) {
     note = '';
     saved = null;
     cart = { lines: r.state.lines };
+    activeRowId = null;
     bill = { ...fresh(), ...r.state.bill, invoiceId: null, heldId: id, qty: 1 };
     syncInputs();
     drawLines();
@@ -860,7 +883,7 @@ export async function mount(el, { ctx }) {
   for (const b of el.querySelectorAll('[data-act="hold"]')) b.addEventListener('click', holdCurrent);
   for (const b of el.querySelectorAll('[data-held-nav]')) b.addEventListener('click', () => openHeld(b.dataset.heldNav));
   q('#eb-save').addEventListener('click', save);
-  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
+  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', cancelCurrent);
   q('[data-act="new"]').addEventListener('click', newBill);
   // F5 (and F2) open Product Help from anywhere on this page. F5 would otherwise RELOAD the page and lose the bill, so it is taken here;
   // Ctrl+F5 and Shift+F5 are left alone for anyone who really wants to reload. Whatever is typed in the code box goes into the search.
@@ -874,6 +897,59 @@ export async function mount(el, { ctx }) {
     openHelp(typed || undefined);
   };
   document.addEventListener('keydown', onF2);
+  stops.push(() => document.removeEventListener('keydown', onF2));
+  const focusSelect = (node) => {
+    if (node) {
+      node.focus();
+      node.select?.();
+    }
+  };
+  const onPosKeys = (e) => {
+    if (!el.isConnected) return;
+    if (e.key === 'F11') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      if (closeHelp || closeHeld) return;
+      const line = cart.lines.find((x) => x.id === activeRowId);
+      if (!line || line.pack <= 1) return;
+      const unit = line.unit === 'pack' ? 'unit' : 'pack';
+      const product = byCode.get(String(line.code).toLowerCase());
+      if (!product) return;
+      cart = addProduct(removeLine(cart, line.id), product, { qty: line.qty, unit });
+      const switched = cart.lines.find((x) => x.code === line.code && x.unit === unit);
+      activeRowId = switched?.id || null;
+      drawLines();
+      focusSelect(activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`));
+      return;
+    }
+    if (e.key === 'F9') {
+      e.preventDefault();
+      e.stopPropagation();
+      focusSelect((activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`)) || q('#eb-qty'));
+      return;
+    }
+    if (e.key === 'Delete' && activeRowId) {
+      const row = e.target.closest?.('tr[data-id]');
+      if (!row || e.target.matches?.('input,select,textarea,button')) return;
+      e.preventDefault();
+      cart = removeLine(cart, row.dataset.id);
+      activeRowId = null;
+      drawLines();
+      q('#eb-sku').focus();
+    }
+  };
+  const trackRow = (e) => {
+    const row = e.target.closest?.('tr[data-id]');
+    if (row) activeRowId = row.dataset.id;
+  };
+  window.addEventListener('keydown', onPosKeys, { capture: true });
+  q('#eb-lines').addEventListener('focusin', trackRow);
+  q('#eb-lines').addEventListener('click', trackRow);
+  stops.push(() => {
+    window.removeEventListener('keydown', onPosKeys, { capture: true });
+    q('#eb-lines')?.removeEventListener('focusin', trackRow);
+  });
 
   q('#eb-qty').addEventListener('input', (e) => {
     bill.qty = Number(e.target.value) > 0 ? Number(e.target.value) : 1;
@@ -941,6 +1017,7 @@ export async function mount(el, { ctx }) {
     const id = e.target.closest('[data-del]')?.dataset.del;
     if (!id) return;
     cart = removeLine(cart, id);
+    activeRowId = null;
     drawLines();
     q('#eb-sku').focus();
   });

@@ -803,8 +803,8 @@ html.eb-full .status-bar {
 .eb-desk .eb-table {
   font-size: 0.9em;
 }
-.eb-desk .eb-table th,
-.eb-desk .eb-table td {
+.eb-desk .eb-lines th,
+.eb-desk .eb-lines td {
   padding: 0.2rem 0.45rem;
 }
 @media (max-width: 1100px) {
@@ -1105,4 +1105,145 @@ html.eb-full .status-bar {
 }
 .eb-desk .eb-print input[type='number'] {
   width: 3.2rem;
+}
+
+/* Candela-inspired ergonomics for the Emergency POS */
+.eb.eb-desk {
+  background: #d9f0f7;
+  border: 1px solid #b8d4e3;
+  border-radius: 8px;
+  padding: 8px;
+  color: #172b3a;
+}
+.eb-desk .eb-bar,
+.eb-desk .eb-top,
+.eb-desk .eb-side,
+.eb-desk .eb-bottom,
+.eb-desk .eb-hold {
+  background: #e6f4f9;
+}
+.eb-desk .eb-top,
+.eb-desk .eb-side,
+.eb-desk .eb-bottom {
+  border: 1px solid #b8d4e3;
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+.eb-desk input,
+.eb-desk select,
+.eb-desk textarea {
+  background: #fff;
+  border: 1px solid #b8d4e3;
+  border-radius: 4px;
+  color: #172b3a;
+}
+.eb-desk input:focus,
+.eb-desk select:focus,
+.eb-desk textarea:focus {
+  outline: 2px solid #397da4;
+  outline-offset: 1px;
+}
+.eb-desk .eb-date {
+  width: 9.2rem;
+  min-width: 9.2rem;
+  padding-inline: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+.eb-desk .eb-time {
+  width: 7.1rem;
+  min-width: 7.1rem;
+  padding-inline: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+.eb-desk .eb-lines-wrap {
+  background: #fff;
+}
+.eb-desk .eb-lines {
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.eb-desk .eb-table th,
+.eb-desk .eb-table td {
+  border: 3px solid #b8d4e3;
+  padding: 0.3rem 0.45rem;
+}
+.eb-desk .eb-lines thead th {
+  background: #2454cf;
+  color: #fff;
+}
+.eb-desk .eb-lines tbody tr[data-id]:focus,
+.eb-desk .eb-lines tbody tr[data-id]:focus-within {
+  outline: 2px solid #2454cf;
+  outline-offset: -2px;
+  background: #eef7fb;
+}
+.eb-desk .eb-lines tfoot td {
+  background: #fff9c4;
+  border-top: 3px solid #b8d4e3;
+  font-weight: 800;
+}
+.eb-desk .eb-del {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 1.8rem;
+  border: 1px solid #b8d4e3;
+  border-radius: 4px;
+  background: #fff;
+  color: #9b2525;
+  text-decoration: none;
+  cursor: pointer;
+}
+.eb-desk .eb-net {
+  background: #2454cf;
+  color: #fff;
+  border: 2px solid #b8d4e3;
+  min-height: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.eb-desk .eb-hold {
+  border: 1px solid #b8d4e3;
+  border-radius: 6px;
+  padding: 6px;
+}
+.eb-desk .eb-sync-row {
+  background: #e6f4f9;
+  border-color: #b8d4e3;
+}
+@media (max-width: 1100px) {
+  .eb.eb-desk {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .eb-desk .eb-main {
+    flex: 0 0 auto;
+  }
+  .eb-desk .eb-bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .eb-desk .eb-row,
+  .eb-desk .eb-group,
+  .eb-desk .eb-inline {
+    width: 100%;
+    min-width: 0;
+  }
+  .eb-desk .eb-bottom {
+    grid-template-columns: 1fr;
+  }
+  .eb-desk .eb-lines-wrap {
+    overflow-x: auto;
+  }
+  .eb-desk .eb-table {
+    min-width: 900px;
+  }
+}
+
+.eb-desk .eb-lines tbody tr.eb-filler td {
+  height: 2.15rem;
+  background: #fff;
 }
