@@ -45,6 +45,10 @@ Before applying: check the connected project is `DuaPharmaPlus`; check `now()` i
 
 `docs/modules/str.md`, `docs/modules/str.progress.md`, `js/modules/str/domain/{pack,group,filter,zero,report}.js`, `supabase/migrations/0500`–`0504_*.sql`, `supabase/tests/0500`–`0504_*_test.sql`, `tests/unit/str-{domain,filter,zero-report}.test.js`, `tests/fixtures/str-cases.json`.
 
+## Current status (19 Nov 2026)
+
+All four screens and migrations 0500–0504 are integrated on main and recorded live. Remaining: owner phone try-outs #1/#2, final acceptance, supplier/pack metadata follow-up and Foundation wording/icon. The historical S-C/S-D handoffs below are retained as a build log, not current next steps.
+
 ## Next
 
 S-C: manifest, `data/` (reads through `str_v_*`, `str_search_headers`, D1 stand-in inside the module's own tests), `/str` list and `/str/detail`, print; then owner phone try-out #1. Then S-D: Report and Zero Dispatch with per-person column choices (`user_prefs`).
@@ -59,7 +63,7 @@ Added: `domain/mapping.js`, `data/api.js`, `data/inventory.js`, `manifest.js`, `
 
 Needs a phone try-out (#1): list, search, detail, print. Detail opens from in-module state, so a reload returns to `/str`. Pack sizes and suppliers appear once Inventory adds `inventory_product_meta` (D1); until then the detail shows loose units under "Unassigned Supplier" with a note.
 
-Next: S-D (Report, Zero Dispatch, per-person prefs).
+Superseded: S-D was completed on 14 Nov; see the S-D and live apply entry below.
 
 ## S-D and live apply (14 Nov)
 
