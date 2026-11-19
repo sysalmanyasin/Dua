@@ -47,8 +47,21 @@ Daily Check List (the owner's priority): all 19 sections and defaults carried ov
 - `public.rls_auto_enable()` execute was revoked from `PUBLIC` and `anon`; automatic RLS behaviour was checked. The remaining `authenticated` execute grant is documented as a platform/event-trigger limitation to review if the advisor continues to flag it.
 - CI now lints workflow files with actionlint. The latest main project progress entry reports 357 unit/jsdom tests and a full database suite including Closing, Manager and Inventory.
 - Manager migrations 0101–0103 are recorded as applied and checked live. Closing has a partial guided ledger UI; its remaining sections and submit/ledger workflows are still pending.
-- Inventory's enhanced delta-feed migrations 0301–0304 and Edge Function v14 are recorded by the Inventory session as applied and verified live. Their source changes remain on `module/inventory` and are not yet integrated into `main`; reconcile source and live state before further migration work.
+- Inventory's enhanced delta-feed migrations 0301–0304 and Edge Function v14 were applied and verified live on 12 Nov (their source reached `main` with the rest of the module; see the 17 Nov entry below).
 - Local backup restore test passed 39/39 checks. A restore from a real Drive backup into a separate Supabase project remains outstanding.
+
+## 17 Nov — Inventory complete
+- Migrations 0301–0307 and Edge Function v23 are live, registered and on `main`. All six screens are built: Overview, Stock Ledger, Reorder, Excess Working, Health, Sync.
+- `0307` ended the hourly "statement timeout" failures: the sync file now goes to the database as one whole request body instead of a named argument that PostgREST re-parsed (mean 4.8 s of the 8 s limit). Applied by hand and registered. The cron stays at minute 0.
+- Home shows a Stock row (stock value, to reorder, not selling, excess) to people with `inventory.view`.
+- Stock Ledger, Reorder and Excess Working export to Excel (a small writer, no library, values only), PDF (the browser print dialog, landscape) and CSV.
+- Details and evidence: `docs/modules/inventory.progress.md`.
+
+## 18 Nov — Branch consolidation, Audit, Emergency Billing, Workspace
+- Merged into `main`: `feat/closing-staff-mobile-ux` (PR #32; its changes already matched `main`), `module/audit-a5` (A5, B1, `0408` fresh stock, Inventory `0308`), and `module/workspace` (brief, `1100_workspace_core.sql` and test; the Home page conflict was resolved in favour of `main` because the workspace change there was formatting only).
+- Prettier applied to six Home/shell files that `main` had left unformatted, so the CI format check passes. `npm test` still shows 15 failures (cover, service-worker, shell), identical on `main` before this merge; recorded in `docs/PROJECT_STATUS.md`.
+- Branches reduced to `main` plus three: `module/audit-a5`, `feature/backup-emergency-pos`, `module/workspace`. All others were deleted: 12 were fully merged; three held superseded, unmerged work (the 11 Nov session plan, an early inventory-sync design, and the first inventory-feed branch) and are kept as tags `archive/docs-session-plans`, `archive/design-inventory-delta-sync` and `archive/foundation-inventory-feed` (restore with `git checkout -b <name> <tag>`).
+- Documents updated: PROJECT_STATUS, SESSIONS, ROADMAP, CHANGELOG, and the Audit, Emergency Billing and Workspace module files.
 
 ## Current status pointer
 

@@ -1,13 +1,12 @@
 # Roadmap — remaining work
 
-**Status snapshot:** 13 November 2026. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the integrated/live/branch distinction. Items below are remaining work, not a list of all planned features.
+**Status snapshot:** 13 November 2026 (Inventory entries updated 17 November 2026; Audit, Emergency Billing and Workspace added 18 November 2026). See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the integrated/live/branch distinction. Items below are remaining work, not a list of all planned features.
 
 ## P0 — Reconcile live state with Git before more releases
 
-1. **Integrate Inventory's live source changes.** Review `module/inventory` against current `main`; bring in migrations 0301–0304, Edge Function v14, tests and current progress docs. The progress file says these changes are already applied live. Do not re-apply them; verify source hashes, registry versions and deployed function before merging.
-2. **Run current main checks** after integration: `npm run verify`, `bash supabase/tests/run.sh`, and confirm the GitHub Actions run is green.
-3. **Real backup restore drill.** Download a real encrypted Drive backup and restore into a separate empty Supabase project. The local 39/39 restore test is not a substitute for this.
-4. **Owner security housekeeping:** revoke any GitHub token pasted into chat or otherwise exposed; rotate any credential that may have been exposed. Confirm the backup environment secrets are current.
+1. **Fix and re-run main checks:** `npm run verify` currently fails with 15 unit tests (cover 4, service-worker 7, shell 4) that pre-date the Home redesign; fix them, then run `bash supabase/tests/run.sh` and confirm the GitHub Actions run is green.
+2. **Real backup restore drill.** Download a real encrypted Drive backup and restore into a separate empty Supabase project. The local 39/39 restore test is not a substitute for this.
+3. **Owner security housekeeping:** revoke any GitHub token pasted into chat or otherwise exposed; rotate any credential that may have been exposed. Confirm the backup environment secrets are current.
 
 ## P1 — Before relying on the app day to day
 
@@ -19,10 +18,8 @@
 ## P2 — Finish active modules
 
 ### Inventory
-- I-B: phone-local product copy, feed paging/recovery and reorder maths with shared golden fixtures.
-- I-C: Inventory reports/screens (Stock Ledger, Excess, Reorder, Health) and exports.
-- I-D: Home summary numbers, permission review and egress review.
-- Complete source integration first; the live feed is not the same thing as completed Inventory screens.
+- Done and live (17 Nov 2026): phone-local copy, delta feed, Stock Ledger, Reorder, Excess Working, Health, Sync, Home stock row, Excel / PDF / CSV exports.
+- Left: real-phone check of the PDF print dialog; remove the old-call fallback in the sync function after a few clean days; check the failed-sync count after a few days at minute 0; consider an owner alert after repeated failed syncs (today the feed watchdog alerts after 3 hours without a success).
 - STR is a separate module (route `/str`, migration range 0500–0599) and follows the Inventory interfaces.
 
 ### Closing
@@ -35,6 +32,20 @@
 - Owner phone try-out of Staff Registry and Staff Credit.
 - Continue remaining Manager slices: payslips, petty cash and other scope in the Manager brief.
 - Confirm sign conventions for Expense, Jazz Cash and Petty before implementing those ledgers.
+
+### Audit
+- Slice B2: Final Snapshot, reports with print / PDF, audit-trail view, owner alerts.
+- Real-phone tests: PHONE 1 (offline counting and back online) and PHONE 2 (two people, two rounds, end to end).
+- Foundation request OD-6 (shared outbox / sign-out guard); use `inventory_companies()` for the company picker in Individual Audit.
+
+### Emergency Billing
+- Phase 5: receipt printing and print settings, one settings page (devices, limits, receipt), CSV / Excel / PDF exports of history.
+- Confirm the live registry for `0612` and `0630`–`0632`; owner try-out on a real device, including offline start and sync.
+
+### Workspace (Notes & Sheets)
+- Owner action: apply `1100_workspace_core.sql` to the live project by hand and register it under `1100` (read the registry first).
+- Run CI on the branch; build the Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone) before Phases 4 and 9.
+- Phase 3: `1101_workspace_notes.sql` (note revisions, save and restore) with tests and the domain validation module; then screens for Notes, then Sheets.
 
 ### Candela Sales
 - Owner phone try-out of the four screens and the staff pill; give `candela.today_total` to the staff who should see it.
@@ -50,7 +61,7 @@
 
 ## P3 — Later modules and quality
 
-- STR module, then Audit Hub (including offline counting), Emergency Billing and unified Reports.
+- STR module, then unified Reports (Audit and Emergency Billing are now built modules; see P2).
 - Read-only assistant only after deterministic data interfaces are stable; calculations remain in trusted code/database.
 - Android widgets are a later phase, not part of the current web-app completion.
 - Playwright end-to-end tests, Sentry error reporting, accessibility review, low-end-phone performance review and broader security review.

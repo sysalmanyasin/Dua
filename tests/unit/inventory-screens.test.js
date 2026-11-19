@@ -490,3 +490,65 @@ describe('overview menu', () => {
     expect(staff.querySelector('.inv-menu')).toBeNull();
   });
 });
+
+describe('Excel and PDF reports', () => {
+  it('Ledger: the Excel file holds only what the tab and search leave, in a workbook with an About sheet', async () => {
+    const el = await open('ledger');
+    click(el, '[data-tab="deadStock"]');
+    click(el, '[data-act="xlsx"]');
+    const blob = srv.downloads.at(-1);
+    expect(blob.type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    const text = await readDownload(); // a stored zip: the XML inside is readable
+    expect(text).toContain('Item DS1');
+    expect(text).not.toContain('Item NS1');
+    expect(text).toContain('name="Stock Ledger Dead stock"');
+    expect(text).toContain('name="About"');
+    expect(text).toContain('Stock data as of');
+    expect(text).toContain('60-day window');
+  });
+
+  it('Reorder: Excel follows the search, and the CSV button still works next to it', async () => {
+    const el = await open('reorder');
+    typeIn(el, '#ro-q', 'ro2');
+    click(el, '[data-act="xlsx"]');
+    const text = await readDownload();
+    expect(text).toContain('Item RO2');
+    expect(text).not.toContain('Item RO1');
+    expect(text).toContain('days of cover');
+    click(el, '[data-act="csv"]');
+    expect(await readDownload()).toContain('RO2,Item RO2,Sup B,0');
+  });
+
+  it('Excess Working: Excel is offered and holds the products', async () => {
+    const el = await open('excess');
+    click(el, '[data-act="xlsx"]');
+    expect(await readDownload()).toContain('Item EX1');
+  });
+
+  it('PDF opens the print dialog with only the report, then puts the app back', async () => {
+    const print = vi.fn();
+    window.print = print;
+    const el = await open('reorder');
+    typeIn(el, '#ro-q', 'ro2');
+    click(el, '[data-act="pdf"]');
+    expect(print).toHaveBeenCalledTimes(1);
+    const root = document.getElementById('inv-print-root');
+    expect(root).not.toBeNull();
+    expect(root.querySelector('h1').textContent).toBe('Reorder');
+    expect(root.textContent).toContain('Item RO2');
+    expect(root.textContent).not.toContain('Item RO1');
+    expect(root.querySelector('.inv-print-sub').textContent).toContain('days of cover');
+    expect(document.body.classList.contains('inv-printing')).toBe(true);
+    expect(document.getElementById('inv-print-page').textContent).toContain('landscape');
+    window.dispatchEvent(new Event('afterprint'));
+    expect(document.getElementById('inv-print-root')).toBeNull();
+    expect(document.getElementById('inv-print-page')).toBeNull();
+    expect(document.body.classList.contains('inv-printing')).toBe(false);
+  });
+
+  it('Excel and PDF are switched off when there is nothing to export', async () => {
+    srv.products = [prod('OK', { qty: 500, n60: 60, n90: 90 })];
+    const el = await open('reorder');
+    for (const act of ['xlsx', 'pdf', 'csv']) expect(el.querySelector(`[data-act="${act}"]`).disabled).toBe(true);
+  });
+});

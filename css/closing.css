@@ -661,3 +661,162 @@
 .nav-home {
   font-weight: 700;
 }
+
+/* ── Old Closing app look: gridlined rows, label left / figure right, fits the phone screen ──
+   The section card is one bordered table: a header band, then one ruled row per field. Rows stay
+   side by side on a phone (no stacking), figures sit in grey boxes, returns are tinted red. */
+.cls .cls-swipe,
+.cls.cls-swipe {
+  touch-action: pan-y pinch-zoom;
+}
+.cls.cls-swipe .cls-jump {
+  touch-action: pan-x pan-y;
+}
+.cls .cls-anchor {
+  height: 0;
+  scroll-margin-top: 0;
+}
+.cls.cls-swipe .cls-grid {
+  gap: var(--space-2);
+}
+.cls.cls-swipe .cls-grid > .card {
+  padding: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.cls.cls-swipe .cls-sec {
+  gap: 0;
+}
+.cls.cls-swipe .cls-sec > h2 {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-sec > :not(h2, .cls-row, .cls-table, .cls-total) {
+  margin: var(--space-2) 12px;
+}
+.cls.cls-swipe .cls-row {
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 44%);
+  gap: var(--space-2);
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-row:last-child {
+  border-bottom: 0;
+}
+.cls.cls-swipe .cls-row label {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+.cls.cls-swipe .cls-in {
+  min-height: 44px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+.cls.cls-swipe .cls-in.is-carried {
+  background: var(--cls-amber-bg);
+}
+.cls.cls-swipe .cls-in:focus {
+  background: var(--surface);
+}
+.cls.cls-swipe .cls-val {
+  padding: 0 10px;
+}
+/* returns: red band, red labels, red-edged boxes */
+.cls.cls-swipe .cls-row.cls-return {
+  background: color-mix(in srgb, var(--cls-red) 10%, var(--surface));
+}
+.cls.cls-swipe .cls-row.cls-return label {
+  font-weight: 700;
+}
+.cls.cls-swipe .cls-row.cls-return .cls-in {
+  background: var(--surface);
+  border-color: var(--cls-red);
+}
+/* totals are ruled rows too, not floating bars; the net lines keep the teal emphasis */
+.cls.cls-swipe .cls-sec .cls-total {
+  border-radius: 0;
+  border-top: 2px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 12px;
+}
+.cls.cls-swipe .cls-sec .cls-total strong {
+  min-width: 104px;
+  padding: 8px 10px;
+  text-align: right;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-sec .cls-total-net {
+  background: var(--cls-teal);
+  color: #fff;
+  border-top-color: var(--cls-teal);
+}
+.cls.cls-swipe .cls-sec .cls-total-net strong {
+  background: transparent;
+  border-color: rgb(255 255 255 / 0.5);
+  color: #fff;
+}
+/* tables (MEDIQ, HS, Strips, deposits, credit, misc): ruled rows */
+.cls.cls-swipe .cls-table {
+  gap: 0;
+}
+.cls.cls-swipe .cls-trow {
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-trow.is-head {
+  padding: 8px;
+  background: var(--surface-2);
+}
+.cls.cls-swipe .cls-trow .cls-in {
+  min-height: 44px;
+  padding: 0 6px;
+}
+/* previous-closing card: same ruled look */
+.cls.cls-swipe .cls-prev {
+  margin-top: var(--space-3);
+  padding: 0;
+  overflow: hidden;
+  border-style: solid;
+  border-radius: 12px;
+}
+.cls.cls-swipe .cls-prev-head {
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.cls.cls-swipe .cls-prev-row {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-prev-row:last-child {
+  border-bottom: 0;
+}
+.cls.cls-swipe .cls-prev > .cls-meta {
+  padding: 12px;
+}
+/* fit: tighter chrome around the cards */
+.cls.cls-swipe .cls-tools,
+.cls.cls-swipe .cls-nav {
+  margin-top: var(--space-2);
+}
+.cls.cls-swipe .cls-nav .btn {
+  flex: 1;
+  min-height: 44px;
+}
+@media (max-width: 480px) {
+  .cls.cls-swipe .cls-row {
+    grid-template-columns: minmax(0, 1fr) minmax(104px, 44%);
+    gap: var(--space-2);
+  }
+}

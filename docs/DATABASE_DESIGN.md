@@ -1,6 +1,6 @@
 # Database design and schema reference
 
-> **Schema snapshot warning (13 Nov 2026):** the table/view/function catalogue below was generated from an earlier Sales/Foundation schema snapshot. It is not a complete inventory of the current live database after Manager (0101–0103), Closing (020x), Inventory (0301–0304) and Foundation operations migrations. Use migration files, module progress records and `docs/PROJECT_STATUS.md` for the later additions. Do not use the old table totals in this document as current totals.
+> **Schema snapshot warning (13 Nov 2026):** the table/view/function catalogue below was generated from an earlier Sales/Foundation schema snapshot. It is not a complete inventory of the current live database after Manager (0101–0103), Closing (020x), Inventory (0301–0307) and Foundation operations migrations. Use migration files, module progress records and `docs/PROJECT_STATUS.md` for the later additions. Do not use the old table totals in this document as current totals.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
 
@@ -101,7 +101,7 @@ PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). Th
 | `0009_inventory_feed` | inventory feed tables and sync (Foundation F3, built in a separate session) |
 | `0010_manage_fields` | field management functions, Sale Book view |
 
-**Registry warning:** see `docs/DECISIONS.md` D-35 and `docs/RUNBOOK.md` §4: the live project's migration list does not yet match the repo's file names for the inventory feed, so new migrations are applied by hand until that is reconciled.
+**Registry note:** the registry was reconciled to repo-numbered migrations on 12 Nov 2026 (`docs/DECISIONS.md` D-35, `docs/RUNBOOK.md` §4). New migrations are still applied by hand and registered under the repo number; never use a tool that registers a timestamp version.
 
 ## Seed and private data
 Reference data (permissions, payment methods, check-list content, settings) is in migrations. **Private values are not in Git:** the owner's contact details, the doctor name, competitor figures (applied by SQL) and every real sales figure (imported once, never committed).
@@ -119,8 +119,8 @@ The Phase 1 design grouped tables as core, sales, pos, inventory, str, audit, cl
 ## Later module schema additions (status snapshot 13 Nov 2026)
 - **Manager:** migrations 0101–0103 add staff management, private details, notes, credit openings/entries and hardening. See `docs/modules/manager.progress.md`.
 - **Closing:** migrations in the 0200 range implement closing tables, draft/submit/correction functions, hardening and period aggregation as recorded in `docs/modules/closing.progress.md`. The UI remains partial.
-- **Inventory:** migrations 0301–0304 add published interfaces, delta feed, heartbeat and unique sequence repair. The Inventory session reports them live, but their source is not yet integrated into `main`; see `docs/modules/inventory.progress.md`.
+- **Inventory (live, 17 Nov 2026):** migrations 0301–0307, all on `main`. Tables: `inventory_products` (33 columns; the product copy with row hashes, group counters and `pack_valid`), `inventory_sync_log` (14), `inventory_sync_state` (11; one row of counters and the file hash), `inventory_excess_retained` (4) and `inventory_excess_settings` (5), the last two shared across devices. Functions the app can call when signed in (permission checked inside): `inventory_balances`, `inventory_search`, `inventory_changes_stock`, `inventory_changes_sales`, `inventory_latest_sync`, `inventory_in_transit`, `inventory_cover_summary`, `inventory_excess_retain_set`, `inventory_excess_settings_set`. Service role only: `inventory_apply_sync`, `inventory_apply_sync_body` (`0307`, the entry point the sync function calls), `inventory_hash_stock`, `inventory_hash_sales`, `inventory_note_unchanged`, `inventory_log_sync_failure`, `inventory_renumber_seq`, `inventory_prune`. `anon` has no grants on any inventory table. See `docs/modules/inventory.md`, `docs/modules/inventory-sync-design.md` (section 11) and `docs/modules/inventory.progress.md`.
 - **Foundation operations:** migrations 0011–0013 cover scheduled inventory/operations and backup/notification infrastructure; see `docs/RUNBOOK.md` and `docs/ops/f6-registry-reconciliation.md`.
 
-For a reproducible schema catalogue, regenerate this reference from the current migration set after Inventory source integration. The historical table/view/function counts above must not be quoted as current.
+For a reproducible schema catalogue, regenerate this reference from the current migration set. The historical table/view/function counts above must not be quoted as current.
 - **Candela Sales:** migration 0900 adds `candela_daily_payments`, `candela_credit_daily` (one row per customer per day, same name merged) and `candela_changes` (old figures when Candela corrects a day), all with RLS (`candela.view`) and no write grants; triggers on `sales_payment_summary` and `sales_credit_by_customer` fill them; `candela_today_total()` returns today's total for `candela.today_total` or `candela.view`. See `docs/modules/candela-sales.md`.

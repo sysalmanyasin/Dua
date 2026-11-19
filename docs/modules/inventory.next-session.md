@@ -3,6 +3,8 @@
 Written 11 Nov 2026, after re-reading `main` (`e635e23`) and the old BT-Sale-Data2 inventory code (stock ledger, excess, reorder, health, bridge, search app, Android widgets, briefing function, Emergency Billing and STR consumers).
 Read `docs/SESSIONS.md`, `docs/MODULES.md` and `docs/modules/inventory.md` first. This file is the **work order**; the brief is the **specification**; `docs/modules/inventory-sync-design.md` (revision 2) is the **design for the feed and the reads** and is still *Proposed*.
 
+> **Superseded on 17 Nov 2026: Inventory is complete and live.** All four slices (I-A to I-D) were built, tested, applied and merged to `main`. This file is kept as the original work order and for the facts in §6, which are still useful. For current status and the few small items left, read `docs/modules/inventory.progress.md` ("Still to do"). The questions in §3 were answered by the owner; the Inventory decisions (INV-1 to INV-21) are recorded in `docs/modules/inventory.progress.md` and `docs/modules/inventory.md`.
+
 ---
 
 ## 1. Where things stand
@@ -77,6 +79,8 @@ If INV-7 is **No**, stop and tell me: sections 5 and 6 of the design document ch
 
 Each slice ends with: `npm run verify`, `bash supabase/tests/run.sh`, files listed, progress file updated. **PHONE** = the owner tries it on a real phone before the next slice.
 
+**Status (17 Nov 2026): I-A (12 Nov), I-B (13–14 Nov), I-C and I-D (15–17 Nov) are all done and live.** The plan below is the original and is not up to date on detail.
+
 ### Session I-A (next): unblock others, then the changed-rows-only feed
 
 | Step | Scope | Done when |
@@ -145,21 +149,20 @@ MODULES.md §11, plus: egress numbers measured, not estimated; every screen show
 
 ---
 
-## 8. Paste this at the start of the next session
+## 8. Paste this at the start of a new Inventory session (updated 17 Nov 2026)
+
+Inventory is complete, so a new session is only needed for the small items in `docs/modules/inventory.progress.md` ("Still to do"): removing the old-call fallback in the sync function, a failed-sync check a few days after 17 Nov, and tidying.
 
 ```text
-You are continuing the "inventory" module of the Dua pharmacy app (branch module/inventory).
-Read docs/SESSIONS.md, docs/MODULES.md completely, then docs/modules/inventory.md,
-docs/modules/inventory.next-session.md (this is your work order) and docs/modules/inventory-sync-design.md.
-Then read docs/ARCHITECTURE.md, docs/SECURITY_MODEL.md, docs/DATABASE_DESIGN.md, docs/DECISIONS.md,
-docs/BUSINESS_RULES.md and docs/RUNBOOK.md §4, and study js/modules/sales as the finished example.
-Step 0: merge origin/main, run `npm ci && npm run verify` and `bash supabase/tests/run.sh`; both must pass.
-Then tell me in about 10 lines what you will do in Session I-A, which questions in section 3 you need me to
-answer, and what you will not touch. Wait for my "go".
-Do not guess money or business rules; ask. Stay inside MODULES.md §3.1 and §3.2 and migrations 0300-0399
-(you may also change the F3 feed files once I answer INV-12). Do not apply migrations to the live project
-unless I say so, and never let a tool invent a migration version. No real names or business amounts in the repo.
-Check which Supabase project you are connected to before any database work: it must be DuaPharmaPlus.
+You are doing small follow-up work on the finished "inventory" module of the Dua pharmacy app.
+Create a new branch from origin/main (module/inventory and foundation/inventory-feed are merged; do not reuse them).
+Read docs/MODULES.md, docs/modules/inventory.md and docs/modules/inventory.progress.md ("Still to do"),
+then docs/RUNBOOK.md (sections 4 and 8, including "Inventory hourly sync").
+Step 0: run `npm ci && npm run verify` and `bash supabase/tests/run.sh`; both must pass.
+Tell me in about 10 lines what you will change and wait for my "go".
+Stay inside MODULES.md §3.1 and §3.2 and migrations 0300-0399. Open pull requests against main (never stack on
+another branch) and after merging check that the files are on main. Apply migrations by hand with SQL and register
+the repo number yourself; never use a tool that invents a timestamp version. Check you are connected to
+DuaPharmaPlus before any database work. No real names or business amounts in the repo.
 At the end follow MODULES.md §0.2 and list every file you changed.
-The old apps are references only: sysalmanyasin/BT-Sale-Data2 (main), sysalmanyasin/Random, sysalmanyasin/Closing.
 ```

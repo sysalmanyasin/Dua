@@ -1,5 +1,4 @@
-// The signed-in app frame: status bar, header with logo, module tabs, page tabs and the content area.
-// Each module's pages are loaded on demand when their tab is opened.
+// Permission-aware application shell with persistent global navigation.
 import { html, render } from '../shared/html.js';
 import { icon } from '../shared/icons.js';
 import { BRAND } from './config.js';
@@ -8,86 +7,123 @@ import { isUsable, routesFor, resolveModules } from './registry.js';
 import { startRouter } from './router.js';
 import { startStatusBar } from './statusbar.js';
 import { signOut } from './auth.js';
-
 const ROLE_LABEL = { admin: 'Owner / Manager', senior: 'Senior staff', junior: 'Junior staff' };
 const titled = (m) => m.routes.filter((r) => r.title);
-
-const pageTabs = (m) => titled(m).map((r) => html`<a class="nav-sub" href="#${r.path}" data-path="${r.path}">${r.title}</a>`);
-
+const moduleIcon = (m) =>
+  m.icon ??
+  { home: 'home', sales: 'chart', manager: 'users', inventory: 'shield', closing: 'chart', access: 'shield', tools: 'menu' }[m.id] ??
+  'shield';
+function navigation(modules, activeId) {
+  return html`<div class="side-nav-heading">WORKSPACE</div>
+    ${modules.map((m) => html`<a class="side-link ${m.id === activeId ? 'is-active' : ''}" href="#${titled(m)[0]?.path ?? '/home'}" data-module="${m.id}" ${m.id === activeId ? 'aria-current="page"' : ''}><span class="side-icon">${icon(moduleIcon(m))}</span><span class="side-label">${m.title}</span><span class="side-chevron">›</span></a>`)}
+    <div class="side-nav-footer"><span class="side-footer-mark"></span><span>Business workspace</span></div>`;
+}
 export function startShell(root, ctx, manifests) {
   const modules = resolveModules(manifests, { permissions: ctx.permissions, disabled: ctx.modules_disabled });
   const routes = routesFor(modules);
-  // Home is a launcher: one tile per module the person may use. Someone with a single module has nothing to choose,
-  // so they land inside it and see no Home link.
-  const others = modules.filter((m) => m.id !== 'home' && titled(m).length);
-  const solo = others.length === 1 ? others[0] : null;
+  const home = modules.find((m) => m.id === 'home');
+  const first = modules.find((m) => m.id !== 'home');
   const hash = location.hash.replace(/^#/, '');
-  if (solo && (hash === '' || hash === '/' || hash === '/home')) location.hash = `#${titled(solo)[0].path}`;
-
+  if (!hash || hash === '/' || hash === '/home') {
+    if (!home && first) location.hash = `#${titled(first)[0].path}`;
+    else if (!hash || hash === '/') location.hash = '#/home';
+  }
   render(
     root,
-    html`<div class="app">
+    html`<div class="app app-shell">
       <div class="status-bar" id="status-bar"></div>
-      <header class="hdr">
-        <img class="hdr-logo" src="assets/icon.svg" width="38" height="38" alt="" />
-        <div class="hdr-title"><strong>${BRAND.title}</strong><span id="hdr-sub">${BRAND.branch}</span></div>
+      <header class="hdr app-header">
+        <button class="mobile-menu-btn" type="button" data-action="menu" aria-label="Open navigation" aria-expanded="false">
+          ${icon('menu')}
+        </button>
+        <a class="brand-lockup" href="#/home" aria-label="Dua home"
+          ><img class="hdr-logo" src="assets/icon.svg" width="38" height="38" alt="" /><span class="hdr-title"
+            ><strong>Dua</strong><span>${BRAND.branch}</span></span
+          ></a
+        >
+        <div class="header-context"><span class="context-dot"></span><span id="hdr-sub">${BRAND.title}</span></div>
         <div class="hdr-right">
           <div class="who"><strong>${ctx.full_name}</strong><span>${ROLE_LABEL[ctx.role] ?? ctx.role}</span></div>
           <button class="btn btn-ghost btn-sm" data-action="signout">${icon('logout')}<span>Sign out</span></button>
         </div>
       </header>
-      <nav class="tabs sub" id="subtabs" aria-label="Pages" hidden></nav>
-      <main class="content" id="content" tabindex="-1"></main>
+      <div class="app-workspace">
+        <div class="nav-scrim" data-action="close-menu"></div>
+        <aside class="app-sidebar" id="app-sidebar" aria-label="Main navigation">
+          <div class="sidebar-top">
+            <span class="sidebar-caption">YOUR BUSINESS</span
+            ><button class="sidebar-close" data-action="close-menu" aria-label="Close navigation">×</button>
+          </div>
+          <nav class="global-nav" id="global-nav">${navigation(modules, '')}</nav>
+        </aside>
+        <section class="workspace-main">
+          <div class="workspace-crumb" id="workspace-crumb"><span>Workspace</span><span>/</span><strong>Home</strong></div>
+          <nav class="tabs sub" id="subtabs" aria-label="Pages" hidden></nav>
+          <main class="content" id="content" tabindex="-1"></main>
+        </section>
+      </div>
     </div>`,
   );
-
-  root.onclick = (e) => {
-    if (e.target.closest('[data-action="signout"]')) signOut();
+  const content = root.querySelector('#content'),
+    subtabs = root.querySelector('#subtabs'),
+    menuButton = root.querySelector('[data-action="menu"]');
+  const setMenu = (open) => {
+    root.querySelector('.app-shell').classList.toggle('nav-open', open);
+    menuButton?.setAttribute('aria-expanded', String(open));
+    menuButton?.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
   };
-
-  const content = root.querySelector('#content');
-  const subtabs = root.querySelector('#subtabs');
-  // A status pill may belong to a module the person has no page in (for example staff who may see only today's
-  // Candela total), so pills are offered from every usable module, not only those that show a tab.
+  root.onclick = (e) => {
+    const action = e.target.closest('[data-action]')?.dataset.action;
+    if (action === 'signout') signOut();
+    if (action === 'menu') setMenu(true);
+    if (action === 'close-menu') setMenu(false);
+    if (e.target.closest('.side-link')) setMenu(false);
+  };
+  root.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setMenu(false);
+  });
   const off = new Set(ctx.modules_disabled ?? []);
   const pillOwners = manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
   const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, pillOwners);
   let token = 0;
-
   const stopRouter = startRouter(
     () => routes,
     async (route) => {
-      const mine = ++token;
-      const mod = modules.find((m) => m.id === route.moduleId);
-      root.querySelector('#hdr-sub').textContent = `${BRAND.branch} · ${mod.title}`;
-      // Inside a module: "‹ Home" (when there is a Home to go to), then the module's own pages. A module with `hub: true`
-      // (its first page lists everything else) shows only a link back to that first page instead of a row of tabs.
-      const onHome = mod.id === 'home';
-      root.querySelector('#status-bar').hidden = !onHome;
-      const pages = titled(mod);
-      const home = solo ? '' : html`<a class="nav-sub nav-home" href="#/home">‹ Home</a>`;
-      subtabs.hidden = onHome || (!home && (mod.hub || pages.length < 2));
+      const mine = ++token,
+        mod = modules.find((m) => m.id === route.moduleId);
+      root.querySelector('#hdr-sub').textContent = mod.title;
+      render(
+        root.querySelector('#workspace-crumb'),
+        html`<span>Workspace</span><span>/</span><strong>${route.title ?? mod.title}</strong>`,
+      );
+      root.querySelector('#status-bar').hidden = mod.id !== 'home';
+      render(root.querySelector('#global-nav'), navigation(modules, mod.id));
+      const pages = titled(mod),
+        onHome = mod.id === 'home';
+      const homeLink = home && !onHome ? html`<a class="nav-sub nav-home" href="#/home">‹ Home</a>` : '';
+      subtabs.hidden = onHome || (!homeLink && (mod.hub || pages.length < 2));
       if (!onHome) {
         const hubBack =
           mod.hub && route.path !== pages[0].path ? html`<a class="nav-sub" href="#${pages[0].path}">← ${pages[0].title}</a>` : '';
-        render(subtabs, html`${home}${mod.hub ? hubBack : pageTabs(mod)}`);
-        subtabs.hidden = !(home || hubBack || (!mod.hub && pages.length > 1));
+        render(
+          subtabs,
+          html`${homeLink}${mod.hub ? hubBack : pages.map((r) => html`<a class="nav-sub" href="#${r.path}" data-path="${r.path}">${r.title}</a>`)}`,
+        );
+        subtabs.hidden = !(homeLink || hubBack || (!mod.hub && pages.length > 1));
         subtabs
           .querySelectorAll('.nav-sub[data-path]')
           .forEach((l) => l.setAttribute('aria-current', String(l.dataset.path === route.path)));
       }
-      document.title = `${route.title ?? mod.title} · ${BRAND.title}`;
+      document.title = `${route.title ?? mod.title} · Dua`;
       render(content, html`<p class="muted">Loading…</p>`);
       try {
-        const page = await route.load(); // the module's code is downloaded only now
+        const page = await route.load();
         if (mine !== token) return;
-        // A fresh container for every page, so one page's event handlers can never fire on the next page.
         const host = document.createElement('div');
         host.className = 'page';
         content.replaceChildren(host);
         await page.mount(host, { ctx, route, modules });
       } catch (err) {
-        // One broken module never takes the app down.
         log.error('module failed', { module: mod.id, message: String(err?.message ?? err) });
         if (mine === token)
           render(

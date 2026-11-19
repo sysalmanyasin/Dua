@@ -33,7 +33,7 @@ To rotate `IP_HASH_SECRET`, set a new value and save (old lockout history become
    Do **not** use a tool that invents a timestamp version for the file's content; that creates the mismatch described below.
 4. Check afterwards: RLS on every table, no `anon` grants, the new function works.
 
-**Resolved (12 Nov 2026, D-35):** the core registry was reconciled to repo-numbered migrations. The Inventory session subsequently reports 0301–0304 applied live. Their source files are still absent from `main` at the 13 Nov snapshot; see `docs/PROJECT_STATUS.md`. Details and the exact SQL are in `docs/ops/f6-registry-reconciliation.md`. Keep applying by hand (step 3) until Supabase's automatic apply is confirmed to work on a pushed migration. **Never use a tool that registers a timestamp version** (such as `apply_migration`); that is exactly how D-35 happened.
+**Resolved (12 Nov 2026, D-35):** the core registry was reconciled to repo-numbered migrations. Inventory migrations 0301–0307 are applied live, registered, and in `main` (0307 was applied by hand and registered on 17 Nov 2026); see `docs/PROJECT_STATUS.md`. Details and the exact SQL are in `docs/ops/f6-registry-reconciliation.md`. Keep applying by hand (step 3) until Supabase's automatic apply is confirmed to work on a pushed migration. **Never use a tool that registers a timestamp version** (such as `apply_migration`); that is exactly how D-35 happened.
 
 ## 5. Adding a module or page
 Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/`; list the module id in `js/modules/index.js`; add its permissions in a migration; write tests; read `docs/MODULES.md` first. Pages that draw bars or positions must set widths from script (the security policy blocks inline styles).
@@ -78,6 +78,15 @@ Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/
 | Charts missing | `vendor/chart-…` blocked or offline | Reload; check the browser console |
 | CI red on lint | an unsafe DOM call or unused variable | fix the line; never push red |
 | Everything slow / paused | Free project paused after inactivity | Open the Supabase dashboard to resume |
+| Stock numbers old, or the Stock pill time is not moving | Sync failing, or Candela stopped writing the Dropbox file | Inventory → Sync screen; then `select synced_at, status, error from inventory_sync_log order by synced_at desc limit 5;`. The feed watchdog alerts after 3 hours without a success |
+| Sync log shows "statement timeout" | The API role's 8-second limit was hit | Should not happen since `0307` (17 Nov 2026). If it returns, check `pg_stat_statements` for `inventory_apply_sync_body` and the project's compute load |
+| Sync refused: "would remove more than 20%" | The Dropbox file is much smaller than the stock | Check the Candela export first; a signed-in person with `inventory.sync` can confirm a real removal |
+
+### Inventory hourly sync
+- It is the pg_cron job `inventory-hourly-sync` (job id 1). It calls the Edge Function `sync-inventory-from-dropbox` with the sync secret from Vault every hour, at minute 0.
+- To change the time: `select cron.alter_job(1, schedule := '7 * * * *');` (minute 7). To undo: `select cron.alter_job(1, schedule := '0 * * * *');`. Check the clock first so you do not change it just before a run. This is live-only state, not a migration, so add a line to the incident log or `docs/modules/inventory.progress.md` when you change it.
+- Entry points: `inventory_apply_sync_body(jsonb)` is the one the function calls (one unnamed jsonb parameter, so the request body is not re-parsed); `inventory_apply_sync(...)` is the older named-argument call, kept as a fallback. Both are service-role only.
+- Fix database functions by hand with SQL, then register the version in `supabase_migrations.schema_migrations` (see §4). Never use `apply_migration`.
 
 ## 9. Incident log
 | Date | What happened | Cause | Result |
@@ -92,4 +101,6 @@ Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/
 | 12 Nov | Daily backup workflow failed on every push, with no steps run | `runner.temp` is not allowed in job-level `env`, so GitHub rejected the whole file | Fixed; `actionlint` now runs in CI so an invalid workflow cannot reach `main` |
 | 12 Nov | `main` briefly red (`c8a6a96`) | a lint error was pushed because the push was not gated on `npm run verify` | Fixed in `1c87c8b`. Always chain verify and push with `&&` |
 | 12 Nov | Push alerts answered 429 by ntfy.sh | anonymous senders are limited per shared IP; Supabase Edge Functions share IPs | Add a free ntfy.sh account token as the Edge secret `NTFY_TOKEN` (already supported) |
+| 11–17 Nov | About 7% of hourly inventory syncs failed with "statement timeout"; the retry did not help | The API call carrying the 6.7 MB file spent a mean 4.8 s (1.9–7.9 s) parsing the request body before the sync started, against an 8 s limit | `0307` and Edge Function v23 (17 Nov): the body goes in whole to a single-parameter function. Mean call time 2.4 s afterwards; the next five scheduled syncs all succeeded. The cron was moved to minute 7 for a few hours as a precaution, then back to minute 0 |
+| 17 Nov | The Home stock row and the Excel / PDF reports were missing from `main` after their pull request was merged | The pull request had been opened on top of another pull request's branch, so it merged into that branch and not into `main` | Found by checking `main` for the files; re-merged to `main`. Open pull requests against `main`, and after merging check that the files are on `main` |
 | 10 Nov | Two sessions changing the same repo | parallel work | Rebased onto the other session's commit; shared contract in `docs/MODULES.md` |

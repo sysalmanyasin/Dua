@@ -6,7 +6,7 @@ import { inTransit } from '../data/feed.js';
 import { loadSettings, saveSettings } from '../data/prefs.js';
 import { reorderLists, sortRows, WINDOWS } from '../domain/reorder.js';
 import { filterAndRank } from '../domain/search.js';
-import { downloadCsv, stamp } from './download.js';
+import { exportReport, KINDS } from './export.js';
 import { days, qty, rs } from './fmt.js';
 import { openReport } from './frame.js';
 
@@ -147,7 +147,11 @@ export async function mount(el, { ctx }) {
             <section class="card inv-total">
               <div><b>${qty(sorted.length)}</b><span>${sorted.length === 1 ? 'product' : 'products'} to reorder</span></div>
               <div><b>${rs(total)}</b><span>to buy</span></div>
-              <button type="button" class="btn btn-sm" data-act="csv" ${sorted.length ? '' : 'disabled'}>Download CSV</button>
+              <span class="inv-exports"
+                ><button type="button" class="btn btn-sm" data-act="xlsx" ${sorted.length ? '' : 'disabled'}>Excel</button
+                ><button type="button" class="btn btn-sm" data-act="pdf" ${sorted.length ? '' : 'disabled'}>PDF</button
+                ><button type="button" class="btn btn-sm" data-act="csv" ${sorted.length ? '' : 'disabled'}>CSV</button></span
+              >
             </section>
             ${sorted.length ? listHtml : html`<p class="muted inv-hint">Nothing needs reordering with these settings.</p>`}
             ${sorted.length > page.length ? html`<button type="button" class="btn" data-act="more">Show more (${qty(sorted.length - page.length)} left)</button>` : ''}`,
@@ -176,7 +180,7 @@ export async function mount(el, { ctx }) {
           shown += PAGE;
           draw();
         }
-        if (act === 'csv') {
+        if (KINDS.includes(act)) {
           const head = [
             'Code',
             'Name',
@@ -207,7 +211,13 @@ export async function mount(el, { ctx }) {
             r.saleQty60,
             r.saleQty90,
           ]);
-          downloadCsv(stamp(`reorder-${win}d-cover${coverDays}`), [head, ...rows]);
+          exportReport(act, {
+            name: `reorder-${win}d-cover${coverDays}`,
+            title: 'Reorder',
+            filters: `${win}-day sales, ${coverDays} days of cover`,
+            asOf: api.state().meta?.syncedAt ?? null,
+            table: [head, ...rows],
+          });
         }
       });
       body.addEventListener('change', (e) => {

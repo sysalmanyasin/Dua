@@ -1,14 +1,13 @@
 # Inventory — brief and implementation status
 
-**Status snapshot: 13 Nov 2026.** This document began as the original module brief. The implementation has since evolved; use the addendum below as the current status and design correction. The original scope and business-rule notes remain useful historical requirements.
+**Status snapshot: 17 Nov 2026 — complete and live.** This document began as the original module brief. The implementation has since evolved; use the addendum below as the current status and design correction. The original scope and business-rule notes remain useful historical requirements.
 
 ## Current implementation addendum
 
-- The base Candela → Dropbox → Edge Function feed is live.
-- The enhanced feed/interface implementation is recorded in `docs/modules/inventory.progress.md` (progress mirrored on `main`; source changes remain on branch `module/inventory`).
-- Migrations `0301`–`0304` and Edge Function `sync-inventory-from-dropbox` v14 are reported as applied and verified on DuaPharmaPlus on 12 Nov 2026.
-- **Source integration gap:** these enhanced migration files and matching function changes are not yet present on `main` at this snapshot. Review and merge the source branch; do not apply those already-live migrations again.
-- Inventory screens and the phone-local product copy are not complete. The next slices are I-B (local copy and reorder maths), I-C (reports), and I-D (Home numbers / egress review).
+- The Candela → Dropbox → Edge Function feed is live and integrated: migrations `0301`–`0307` and Edge Function `sync-inventory-from-dropbox` v23 are applied, registered and on `main`. The hourly sync runs at minute 0.
+- All six screens are built and live: Overview, Stock Ledger, Reorder, Excess Working, Health and Sync. Home shows a Stock row (stock value, to reorder, not selling, excess) to people with `inventory.view`. Stock Ledger, Reorder and Excess Working export to Excel, PDF and CSV.
+- The module branch `module/inventory` is fully merged and can be deleted. The progress record, decisions and evidence are in `docs/modules/inventory.progress.md`.
+- Left: a real-phone check of the PDF print dialog on the pharmacy phones; removing the old-call fallback in the sync function after a few clean days; checking the failed-sync count after a few days at minute 0.
 - STR is a separate planned module, not part of the Inventory screen delivery.
 
 ### Current feed design (supersedes the original replace-every-row description below)
@@ -21,7 +20,7 @@ The original sections below record the first brief and its initial design assump
 
 
 Status: **Briefed** (awaiting owner approval) · Owner approval: no
-Branch: `foundation/inventory-feed` for F3, then `module/inventory` · Migration ranges: feed in `0001–0099` (Foundation), screens in `0300–0399` · Prefix: `inventory_` · Permissions: `inventory.*` · Route prefix: `/inventory` · Nav order: 40
+Branch: `foundation/inventory-feed` for F3, then `module/inventory` (both merged) · Migration ranges: feed in `0001–0099` (Foundation), screens in `0300–0399` · Prefix: `inventory_` · Permissions: `inventory.*` · Route prefix: `/inventory` · Nav order: 40
 
 > Read `docs/MODULES.md` first, especially §8.4 (inventory is **latest-only**).
 
@@ -172,3 +171,5 @@ Heavy tables paginate or filter on the server (MODULES.md §6.6); the old app lo
 **Update, 14 Nov 2026: Inventory I-B is live.** INV-17 and INV-18 are decided and built (`0305`, Edge Function v20, whole-pack headline, `packValid` in the feed). Migrations 0301–0305 are applied; this branch was merged to `main` on the owner's instruction after all gates passed (576 unit tests, 913 database checks, all Edge Functions type-check). The Overview screen (`/inventory`, search over the phone's own copy) is the first live Inventory page. Next: I-C (Stock Ledger, Reorder with `inventory_in_transit()`, Excess screens), then I-D.
 
 **Update, 16 Nov 2026: all Inventory screens are built.** Routes: `/inventory` (Overview), `/inventory/ledger`, `/inventory/reorder`, `/inventory/excess`, `/inventory/health` (all `inventory.view`) and `/inventory/sync` (`inventory.sync`). Migration `0306` adds `inventory_in_transit()` (a thin wrapper over STR's `str_in_transit_lines()`, decision STR-10), the shared Excess retain list and settings, and `inventory_cover_summary()` for Home (SQL proven equal to the old app on 409 products). Export is CSV. Home is not yet wired to the cover summary (Foundation's module). Details, decisions to confirm, the egress review and the live numbers: `docs/modules/inventory.progress.md`.
+
+**Update, 17 Nov 2026: Inventory is complete.** (1) The hourly sync had been failing with "statement timeout" about 7% of the time. Measured in `pg_stat_statements`, the request that carried the 6.7 MB file spent a mean 4.8 s (up to 7.9 s) being parsed before the sync started, out of an 8 s limit. `0307` adds `inventory_apply_sync_body(jsonb)`, a function with one unnamed jsonb parameter so the body goes in whole; Edge Function v23 calls it and falls back to the old call if it is missing. Afterwards the mean was 2.4 s (slowest 3.6 s) and five scheduled syncs in a row succeeded. The cron was moved to minute 7 for a few hours as a precaution and then back to minute 0. (2) Home now shows the four stock numbers from `inventory_cover_summary()`. (3) Ledger, Reorder and Excess Working export to Excel (a small writer with no library: values only, text never becomes a formula, codes keep their zeros, header frozen and filterable, an About sheet with the settings and data time), PDF (the browser print dialog, landscape, first 1,500 rows) and CSV. The Excel question in the old plan (the old XLSX export wrote formulas) is settled: Excel is offered, without formulas.

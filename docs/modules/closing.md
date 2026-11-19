@@ -136,8 +136,11 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 - **Start page:** month calendar with shift dots, the day's closings, Saved records (Continue / Open / PDF).
 - **Read-only saved closing** (`/closing/view`) and PDF / print after Submit, for staff too.
 - **Needs migration `0212_closing_own_book.sql`** (read-only RPCs `closing_book_own`, `closing_prev_page`). Without it the previous-closing card, Open and PDF show nothing or an error; everything else works.
+- **Needs migration `0216_closing_prev_page_draft.sql`** (replaces `closing_prev_page`). From 0214 until 0216 the previous-closing card said "You are not allowed to do that" on every draft, and the shift-sale / customer deltas had nothing to compare with. Apply it on the live project; it is read-only and safe to re-run.
+- **Reopening a draft** loads every child table the form reads (cash counts for Till and Draw Cash, credit lines, deposits as well as HS, strips, MEDIQ and misc). `tests/unit/closing-api-select.test.js` fails if one is left out of the query, because the next autosave would replace the saved rows with the blank form.
 
 ## Last Bill Amount and Closing-only view
 - Migration 0213 adds `closings.last_bill_amt` (typed on the POS section, shown on the printed sheet and the previous-shift card; never used in a calculation). `closing_apply_payload`, `closing_correct` and `closing_reopen` carry it.
 - Home is a launcher: one tile per module the person may use (every current and future module, by permission). Someone with a single module lands inside it with no Home link. Inside a module a "‹ Home" link replaces the module tab row; a module with `hub: true` (Closing) shows only "← Closing" on inner pages because its start page lists the rest. The status bar shows on Home only.
 - The entry screen has "‹ Back to days", which saves the draft first.
+- Migration 0214: every user with closing access may read every submitted closing (start-page list, Open, PDF, previous-shift card). Drafts stay private to their author.

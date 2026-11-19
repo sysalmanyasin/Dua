@@ -2,8 +2,8 @@
 // Ported from the previous project's function of the same name. Differences from the old one:
 //   - Must be authenticated: either the x-sync-secret header (scheduler) or a signed-in user holding
 //     inventory.sync. The old version ran for anyone who sent no token.
-//   - One atomic database call (inventory_apply_sync). A failed sync keeps the old rows, and the
-//     failure is written to inventory_sync_log.
+//   - One atomic database call (inventory_apply_sync_body, migration 0307, which calls inventory_apply_sync). A failed
+//     sync keeps the old rows, and the failure is written to inventory_sync_log.
 //   - Changed-rows-only (Inventory 0302): before downloading, the function asks Dropbox for the file's
 //     content_hash. Same hash as last time: record "checked" and stop (no download, no writes). Otherwise the
 //     database compares every row's hash and writes only what changed. A sync that would remove more than 20%
@@ -207,17 +207,31 @@ Deno.serve(async (req) => {
 
     // Only a signed-in person can confirm a large removal; the scheduled call never can.
     const confirmRemoval = body.confirmRemoval === true && triggeredBy !== null;
-    const args = {
+    // The whole file (about 6.7 MB) goes in ONE request body to a function with a single unnamed jsonb parameter
+    // (migration 0307). With a named p_payload argument PostgREST re-parsed the body with json_to_record, which took 3 to
+    // 6 seconds on this database and counted against the API role's 8-second statement limit before the sync even
+    // started; that was the cause of the hourly "statement timeout" failures. The options travel in "meta".
+    const applyBody = {
+      meta: { source: 'dropbox', triggered_by: triggeredBy, force: confirmRemoval, content_hash: fileHash },
+      ...payload,
+    };
+    // Old named-argument call: kept only as a fallback for the moment between deploying this function and applying 0307
+    // (PostgREST then answers PGRST202 "function not found"). Remove once 0307 is live everywhere.
+    const legacyArgs = {
       p_payload: payload, p_source: 'dropbox', p_triggered_by: triggeredBy,
       p_force: confirmRemoval, p_content_hash: fileHash,
     };
-    let res = await db.rpc('inventory_apply_sync', args);
-    // The apply normally takes about half a second, but the database role has an 8 second limit and a busy moment on the
-    // server (for example the daily backup starting) can push one run past it. The apply is atomic and repeatable, so one
-    // retry after a short wait is safe; only a second failure is logged as a failed sync.
+    const apply = async () => {
+      const r = await db.rpc('inventory_apply_sync_body', applyBody);
+      if (r.error && (r.error as { code?: string }).code === 'PGRST202') return await db.rpc('inventory_apply_sync', legacyArgs);
+      return r;
+    };
+    let res = await apply();
+    // The apply is atomic and repeatable, so if the database ever reports a statement timeout one retry after a short
+    // wait is safe; only a second failure is logged as a failed sync.
     if (res.error && /statement timeout|canceling statement/i.test(res.error.message)) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      res = await db.rpc('inventory_apply_sync', args);
+      res = await apply();
     }
     const { data, error } = res;
     if (error) return await fail(500, 'Sync failed; previous data kept', error.message);
