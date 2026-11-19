@@ -1,0 +1,437 @@
+[
+  {
+    "name": "an empty paragraph with an id is valid",
+    "valid": true,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a1" } }] } }
+  },
+  {
+    "name": "headings, marks, links, lists and tasks are valid",
+    "valid": true,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          { "type": "heading", "attrs": { "id": "h1", "level": 2 }, "content": [{ "type": "text", "text": "Title" }] },
+          {
+            "type": "paragraph",
+            "attrs": { "id": "p1" },
+            "content": [
+              { "type": "text", "text": "Hello ", "marks": [{ "type": "bold" }, { "type": "italic" }] },
+              { "type": "text", "text": "link", "marks": [{ "type": "link", "attrs": { "href": "https://example.com/a?b=c" } }] },
+              { "type": "hard_break" }
+            ]
+          },
+          {
+            "type": "ordered_list",
+            "attrs": { "id": "o1" },
+            "content": [{ "type": "list_item", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "one" }] }] }]
+          },
+          {
+            "type": "task_list",
+            "attrs": { "id": "t1" },
+            "content": [
+              {
+                "type": "task_item",
+                "attrs": { "checked": true },
+                "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "done", "marks": [{ "type": "underline" }] }] }]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "mailto and tel links are valid",
+    "valid": true,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [
+              { "type": "text", "text": "a", "marks": [{ "type": "link", "attrs": { "href": "mailto:someone@example.com" } }] },
+              { "type": "text", "text": "b", "marks": [{ "type": "link", "attrs": { "href": "tel:+920000000" } }] }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a nested list is valid",
+    "valid": true,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "bullet_list",
+            "attrs": { "id": "a" },
+            "content": [
+              {
+                "type": "list_item",
+                "content": [
+                  { "type": "paragraph", "content": [{ "type": "text", "text": "x" }] },
+                  { "type": "bullet_list", "content": [{ "type": "list_item", "content": [{ "type": "paragraph" }] }] }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "an unknown version is refused",
+    "valid": false,
+    "note": { "v": 2, "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a" } }] } }
+  },
+  {
+    "name": "a missing version is refused",
+    "valid": false,
+    "note": { "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a" } }] } }
+  },
+  { "name": "an empty document is refused", "valid": false, "note": { "v": 1, "doc": { "type": "doc", "content": [] } } },
+  {
+    "name": "extra top-level keys such as raw html are refused",
+    "valid": false,
+    "note": { "v": 1, "html": "<b>x</b>", "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a" } }] } }
+  },
+  {
+    "name": "extra keys on the document are refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "extra": 1, "content": [{ "type": "paragraph", "attrs": { "id": "a" } }] } }
+  },
+  {
+    "name": "a top-level block without attributes is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "paragraph" }] } }
+  },
+  {
+    "name": "a top-level block without an id is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": {} }] } }
+  },
+  {
+    "name": "an unknown node type is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "script", "attrs": { "id": "a" } }] } }
+  },
+  {
+    "name": "heading level 4 is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "heading", "attrs": { "id": "a", "level": 4 } }] } }
+  },
+  {
+    "name": "a heading without a level is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "heading", "attrs": { "id": "a" } }] } }
+  },
+  {
+    "name": "unknown attributes are refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a", "onclick": "x" } }] } }
+  },
+  {
+    "name": "a block id with unsafe characters is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a b" } }] } }
+  },
+  {
+    "name": "a block id longer than 32 characters is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "abcdefghijklmnopqrstuvwxyz0123456789" } }] }
+    }
+  },
+  {
+    "name": "a javascript link is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [{ "type": "text", "text": "x", "marks": [{ "type": "link", "attrs": { "href": "javascript:alert(1)" } }] }]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a data link is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [{ "type": "text", "text": "x", "marks": [{ "type": "link", "attrs": { "href": "data:text/html,x" } }] }]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a link with a space is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [{ "type": "text", "text": "x", "marks": [{ "type": "link", "attrs": { "href": "https://example.com/a b" } }] }]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a link with extra attributes is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [
+              { "type": "text", "text": "x", "marks": [{ "type": "link", "attrs": { "href": "https://example.com", "target": "_blank" } }] }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "an unknown mark is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          { "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "text", "text": "x", "marks": [{ "type": "color" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a bold mark with attributes is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [{ "type": "text", "text": "x", "marks": [{ "type": "bold", "attrs": { "x": 1 } }] }]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "more than four marks are refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "attrs": { "id": "a" },
+            "content": [
+              {
+                "type": "text",
+                "text": "x",
+                "marks": [{ "type": "bold" }, { "type": "italic" }, { "type": "underline" }, { "type": "bold" }, { "type": "italic" }]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a paragraph inside a paragraph is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "paragraph" }] }] }
+    }
+  },
+  {
+    "name": "a list may only hold list items",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": { "type": "doc", "content": [{ "type": "bullet_list", "attrs": { "id": "a" }, "content": [{ "type": "paragraph" }] }] }
+    }
+  },
+  {
+    "name": "a task list may not hold plain list items",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          { "type": "task_list", "attrs": { "id": "a" }, "content": [{ "type": "list_item", "content": [{ "type": "paragraph" }] }] }
+        ]
+      }
+    }
+  },
+  {
+    "name": "an empty list is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "bullet_list", "attrs": { "id": "a" }, "content": [] }] } }
+  },
+  {
+    "name": "an empty list item is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [{ "type": "bullet_list", "attrs": { "id": "a" }, "content": [{ "type": "list_item", "content": [] }] }]
+      }
+    }
+  },
+  {
+    "name": "empty text is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "text", "text": "" }] }] }
+    }
+  },
+  {
+    "name": "text with content is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [{ "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "text", "text": "x", "content": [] }] }]
+      }
+    }
+  },
+  {
+    "name": "a checked flag that is not true or false is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "task_list",
+            "attrs": { "id": "a" },
+            "content": [{ "type": "task_item", "attrs": { "checked": "yes" }, "content": [{ "type": "paragraph" }] }]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "a checked flag on a paragraph is refused",
+    "valid": false,
+    "note": { "v": 1, "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a", "checked": true } }] } }
+  },
+  {
+    "name": "a line break with text is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [{ "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "hard_break", "text": "x" }] }]
+      }
+    }
+  },
+  {
+    "name": "nesting deeper than eight levels is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "bullet_list",
+            "attrs": { "id": "a" },
+            "content": [
+              {
+                "type": "list_item",
+                "content": [
+                  {
+                    "type": "bullet_list",
+                    "content": [
+                      {
+                        "type": "list_item",
+                        "content": [
+                          {
+                            "type": "bullet_list",
+                            "content": [
+                              {
+                                "type": "list_item",
+                                "content": [
+                                  { "type": "bullet_list", "content": [{ "type": "list_item", "content": [{ "type": "paragraph" }] }] }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "text that is not a string is refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": { "type": "doc", "content": [{ "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "text", "text": 5 }] }] }
+    }
+  },
+  {
+    "name": "marks that are not a list are refused",
+    "valid": false,
+    "note": {
+      "v": 1,
+      "doc": {
+        "type": "doc",
+        "content": [{ "type": "paragraph", "attrs": { "id": "a" }, "content": [{ "type": "text", "text": "x", "marks": "bold" }] }]
+      }
+    }
+  }
+]

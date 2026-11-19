@@ -80,6 +80,7 @@ export async function mount(el, { ctx } = {}) {
     done: null,
     seen: new Set([0]),
     prev: null,
+    prevError: '',
     showWarn: false,
     status: 'saved', // saved | saving | dirty | offline | failed | conflict | invalid
     invalid: [],
@@ -105,13 +106,32 @@ export async function mount(el, { ctx } = {}) {
     if (row.status !== 'draft') {
       return render(el, errorCard('this closing', 'It is already submitted. Reopen it from Closing to correct it.'));
     }
-    adopt(row);
-    // typing that never reached the server (connection dropped) comes back if it is newer than the saved draft
+    // Capture the local recovery snapshot before refreshing: the carry RPC may update
+    // the row timestamp, but that must not make newer unsent typing look stale.
+    const savedDraftUpdatedAt = row.updated_at;
     const local = loadLocal(S.key);
-    if (local?.dirty && local.version === S.version && local.form && local.savedAt > row.updated_at) {
-      S.form = local.form;
+    // Reconcile carry-forward on every draft open. This is a server-side, idempotent
+    // operation: it refreshes balances and merges outstanding misc charges without
+    // replacing the cashier's saved fields or struck-through rows.
+    if (!row.is_opening) {
+      try {
+        await api.refreshDraftCarry(row.id);
+        row = await api.loadById(row.id);
+      } catch (e) {
+        return render(el, errorCard('this draft', friendlyError(e).message));
+      }
+    }
+    adopt(row);
+    // Typing that never reached the server (connection dropped) comes back if it is newer
+    // than the saved draft. Merge in any newly carried misc rows from the refreshed server row.
+    if (local?.dirty && local.version === S.version && local.form && local.savedAt > savedDraftUpdatedAt) {
+      const localForm = local.form;
+      const localMisc = Array.isArray(localForm.misc) ? localForm.misc : [];
+      const haveCharges = new Set(localMisc.map((r) => r.charge_id).filter(Boolean));
+      const newlyCarried = S.form.misc.filter((r) => r.charge_id && !haveCharges.has(r.charge_id));
+      S.form = { ...localForm, misc: [...localMisc, ...newlyCarried] };
       S.status = 'dirty';
-      toast('Restored your unsent typing.');
+      toast('Restored your unsent typing and refreshed carried charges.');
     }
   } else {
     // a new draft is created at once so the slot rules and the carried figures are checked before anything is typed
@@ -155,11 +175,12 @@ export async function mount(el, { ctx } = {}) {
   // what the closing before this one entered (read-only card under each section); absent when there is none or it cannot be read
   async function loadPrev() {
     S.prev = null;
+    S.prevError = '';
     if (S.opening || !S.carry?.from) return;
     try {
       S.prev = await api.prevPage(S.id);
-    } catch {
-      /* the card simply does not show */
+    } catch (e) {
+      S.prevError = friendlyError(e).message;
     }
   }
   await loadPrev();
@@ -503,7 +524,7 @@ export async function mount(el, { ctx } = {}) {
   const rowOf = (list, id) => listOf(list).find((r) => r.id === id);
 
   // ── drawing ──
-  const field = (path, label, { note = '', cls = '' } = {}) => {
+  const field = (path, label, { note = '', cls = '', placeholder = '' } = {}) => {
     const value = path.split('.').reduce((o, p) => o[p], S.form);
     return html`<div class="cls-row ${cls}">
       <label for="f-${path}">${label}${note ? html`<small>${note}</small>` : ''}</label>
@@ -513,6 +534,7 @@ export async function mount(el, { ctx } = {}) {
         data-f="${path}"
         inputmode="decimal"
         autocomplete="off"
+        placeholder="${placeholder}"
         value="${value}"
         aria-invalid="${bad(S.invalid, path)}"
       />
@@ -593,10 +615,8 @@ export async function mount(el, { ctx } = {}) {
       ${field('overrides.shift_sale', "This Shift's Sales (delta)", { note: 'Leave empty to use the calculated figure. A typed 0 counts.' })}
       ${field('book.0', 'Book Bill 1')} ${field('book.1', 'Book Bill 2')}
       ${field('overrides.customers', 'Customers This Shift (delta)', { note: 'Leave empty to use the calculated count.' })}
+      <div class="cls-row"><span class="cls-meta">Calculated shift sale · customers</span><strong data-total="shiftInfo">–</strong></div>
       <div class="cls-total cls-total-net"><span>Net Sale (this shift)</span><strong data-total="netSale">–</strong></div>
-      <div class="cls-row">
-        <span class="cls-meta">Shift sale · customers (calculated)</span><span class="cls-meta" data-total="shiftInfo">–</span>
-      </div>
       ${
         S.carry && !S.opening
           ? html`<h3 class="sec-label">Carried from the previous closing</h3>
@@ -695,6 +715,10 @@ export async function mount(el, { ctx } = {}) {
   const prevCard = () => {
     if (S.opening) return '';
     const def = SECTIONS[S.section];
+    if (S.prevError)
+      return html`<section class="card cls-prev" role="status">
+        <div class="cls-meta">Previous closing preview could not be loaded: ${S.prevError}</div>
+      </section>`;
     if (!S.prev) return html`<section class="card cls-prev"><div class="cls-meta">No previous closing on record yet.</div></section>`;
     const rows = snapshotRows(def.key, S.prev);
     return html`<section class="card cls-prev" aria-label="Previous closing">
@@ -741,7 +765,7 @@ export async function mount(el, { ctx } = {}) {
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
     render(
       el,
-      html`<div class="cls">
+      html`<div class="cls cls-swipe">
         <p class="cls-backrow"><button type="button" class="btn btn-sm" data-act="leave">‹ Back to days</button></p>
         ${hero({
           label: 'Closing',
@@ -749,6 +773,7 @@ export async function mount(el, { ctx } = {}) {
           sub: `${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}`,
           actions: html`<span id="cls-chip" class="cls-chip" role="status" tabindex="0"></span>`,
         })}
+        <div class="cls-anchor" aria-hidden="true"></div>
         <div class="cls-bar">
           <div class="cls-progress" aria-hidden="true"><span style="width: ${pct}%"></span></div>
           <nav class="cls-jump" aria-label="Sections">
@@ -778,6 +803,7 @@ export async function mount(el, { ctx } = {}) {
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
+        ${prevCard()}
         <div class="cls-tools">
           <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
           <button type="button" class="btn" data-act="viewall">⊞ View all</button>
@@ -794,35 +820,39 @@ export async function mount(el, { ctx } = {}) {
               : html`<button type="button" class="btn btn-primary" data-act="next">Next →</button>`
           }
         </div>
-        ${prevCard()}
       </div>`,
     );
     paintChip();
     paintTotals();
   }
 
+  // Bring the section cards (progress bar, jump chips, card) to the top of the screen,
+  // so the hero and the back link are scrolled past instead of the person landing on them.
+  const scrollToCards = () => {
+    const anchor = el.querySelector('.cls-anchor');
+    if (anchor?.scrollIntoView) anchor.scrollIntoView({ block: 'start' });
+    else window.scrollTo?.(0, 0);
+  };
   const go = (i, scroll = true) => {
     S.section = clampSection(i);
     S.seen.add(S.section);
     draw();
-    if (scroll) window.scrollTo?.(0, 0);
+    if (scroll) scrollToCards();
   };
   const moveSection = (direction) => {
     const next = clampSection(S.section + direction);
     if (next !== S.section) go(next);
   };
 
-  // Match the old Closing app's swipe navigation without hijacking vertical
-  // scrolling, text selection, form controls, or the horizontally scrolling chips.
+  // Swipe left / right anywhere on the cards moves one section, like the old Closing app.
+  // An ordinary swipe is enough (40 px, clearly more sideways than up or down). It starts on any card,
+  // row, label or field, but not on the jump chips (they scroll sideways on their own).
   let swipeStart = null;
   el.addEventListener(
     'touchstart',
     (e) => {
-      if (e.touches.length !== 1 || !e.target.closest?.('.cls-sec')) {
-        swipeStart = null;
-        return;
-      }
-      if (e.target.closest('input, select, textarea, button, a, [contenteditable="true"], .cls-jump, .cls-nav')) {
+      const root = e.target.closest?.('.cls-swipe');
+      if (e.touches.length !== 1 || !root || e.target.closest('.cls-jump')) {
         swipeStart = null;
         return;
       }
@@ -840,7 +870,7 @@ export async function mount(el, { ctx } = {}) {
       if (!touch) return;
       const dx = touch.clientX - start.x;
       const dy = touch.clientY - start.y;
-      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
       moveSection(dx < 0 ? 1 : -1);
     },
     { passive: true },
@@ -862,6 +892,29 @@ export async function mount(el, { ctx } = {}) {
     });
   }
 
+  // Mirrors closing_calc: a Final, a new business day, or no previous closing uses the whole POS figure; otherwise the
+  // difference from the previous closing. Customers are the bill-number difference (never below 0), 0 with no previous closing.
+  // When the closing DOES have a previous one but its figures could not be read (S.prev is null), nothing is guessed:
+  // the server's own calculation is used once the draft is saved, and until then the figure is simply not shown.
+  function calculatedDeltas() {
+    const hasPrev = Boolean(S.carry?.from);
+    if (hasPrev && !S.prev) {
+      const p = S.preview;
+      return p && S.status === 'saved' && p.shift_sale !== undefined
+        ? { sale: Number(p.shift_sale), customers: Number(p.customers) }
+        : null;
+    }
+    const previous = S.prev?.inputs ?? {};
+    const sys = parseAmount(S.form.sys_cash);
+    const bill = parseAmount(S.form.last_bill_no);
+    const has = (v) => v !== null && !Number.isNaN(v);
+    const wholeFigure = S.mode === 'final' || !S.prev || S.prev.business_date !== S.date;
+    return {
+      sale: has(sys) ? (wholeFigure ? sys : sys - (Number(previous.sys_cash) || 0)) : 0,
+      customers: S.prev && has(bill) ? Math.max(0, Math.trunc(bill) - Math.trunc(Number(previous.last_bill_no) || 0)) : 0,
+    };
+  }
+
   function paintTotals() {
     const t = localTotals(S.form, S.carry ?? {});
     const set = (k, text, neg = false) => {
@@ -876,6 +929,21 @@ export async function mount(el, { ctx } = {}) {
     set('returns', money(rupees(t.returns), { decimals: true }));
     set('misc', money(rupees(t.misc), { decimals: true }));
     set('ccTotal', money(rupees(t.ccTotal), { decimals: true }));
+    set('currCC', money(rupees(t.ccCurr), { decimals: true }));
+    // The calculated deltas (this shift's sale and customers). The override boxes show them as their placeholder, so the
+    // figure is visible even while the box is empty ("empty = use the calculated figure").
+    const d = calculatedDeltas();
+    const shiftSaleOverride = parseAmount(S.form.overrides.shift_sale);
+    const customersOverride = parseAmount(S.form.overrides.customers);
+    const typed = (v) => v !== null && !Number.isNaN(v);
+    const shownShiftSale = typed(shiftSaleOverride) ? shiftSaleOverride : (d?.sale ?? null);
+    const shownCustomers = typed(customersOverride) ? customersOverride : (d?.customers ?? null);
+    const hint = (k, text) => {
+      const n = el.querySelector(`[data-f="overrides.${k}"]`);
+      if (n) n.setAttribute('placeholder', text);
+    };
+    hint('shift_sale', d ? money(d.sale, { decimals: true }) : '');
+    hint('customers', d ? String(d.customers) : '');
     set('till', money(rupees(t.till), { decimals: true }));
     set('vault', money(rupees(t.vault), { decimals: true }));
     set('debt', money(rupees(t.debt), { decimals: true }));
@@ -883,11 +951,15 @@ export async function mount(el, { ctx } = {}) {
     const p = S.preview;
     if (p && S.status === 'saved') {
       set('netSale', money(p.net_sale, { decimals: true }), p.net_sale < 0);
-      set('shiftInfo', `${money(p.shift_sale, { decimals: true })} · ${p.customers}`);
     } else {
       set('netSale', S.status === 'saved' ? '–' : 'updates after saving');
-      set('shiftInfo', '–');
     }
+    set(
+      'shiftInfo',
+      shownShiftSale === null || shownCustomers === null
+        ? 'updates after saving'
+        : `${money(shownShiftSale, { decimals: true })} · ${shownCustomers}`,
+    );
     if (p && S.status === 'saved') {
       const fig = previewFigures(p, S.period, S.form, S.mode);
       Object.entries(fig).forEach(([k, v]) => set(k, v.text, v.neg));
@@ -1031,6 +1103,7 @@ export async function mount(el, { ctx } = {}) {
   });
 
   draw();
+  window.requestAnimationFrame?.(scrollToCards);
   if (S.status === 'dirty') queueSave(500);
   else refreshPreview();
 }

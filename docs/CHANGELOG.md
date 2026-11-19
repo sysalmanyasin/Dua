@@ -57,6 +57,12 @@ Daily Check List (the owner's priority): all 19 sections and defaults carried ov
 - Stock Ledger, Reorder and Excess Working export to Excel (a small writer, no library, values only), PDF (the browser print dialog, landscape) and CSV.
 - Details and evidence: `docs/modules/inventory.progress.md`.
 
+## 18 Nov — Branch consolidation, Audit, Emergency Billing, Workspace
+- Merged into `main`: `feat/closing-staff-mobile-ux` (PR #32; its changes already matched `main`), `module/audit-a5` (A5, B1, `0408` fresh stock, Inventory `0308`), and `module/workspace` (brief, `1100_workspace_core.sql` and test; the Home page conflict was resolved in favour of `main` because the workspace change there was formatting only).
+- Prettier applied to six Home/shell files that `main` had left unformatted, so the CI format check passes. `npm test` still shows 15 failures (cover, service-worker, shell), identical on `main` before this merge; recorded in `docs/PROJECT_STATUS.md`.
+- Branches reduced to `main` plus three: `module/audit-a5`, `feature/backup-emergency-pos`, `module/workspace`. All others were deleted: 12 were fully merged; three held superseded, unmerged work (the 11 Nov session plan, an early inventory-sync design, and the first inventory-feed branch) and are kept as tags `archive/docs-session-plans`, `archive/design-inventory-delta-sync` and `archive/foundation-inventory-feed` (restore with `git checkout -b <name> <tag>`).
+- Documents updated: PROJECT_STATUS, SESSIONS, ROADMAP, CHANGELOG, and the Audit, Emergency Billing and Workspace module files.
+
 ## Current status pointer
 
 The dated entries above are historical. For the current module-by-module distinction between integrated, live, in-progress and pending, see [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not use the 10 Nov totals as current totals.

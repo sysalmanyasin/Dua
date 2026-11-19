@@ -3,7 +3,10 @@
 Written 11 Nov 2026 from `main` (`e635e23`) and `module/closing` (`3592512`). Maintained by the Foundation session (see `docs/MODULES.md` §3.3).
 Three Claude sessions run at the same time. Sessions have no memory (MODULES.md §0.3): this file and the three work orders are what keep them from colliding.
 
-## 1. The three sessions
+
+> **Update, 18 Nov 2026.** The table in §1 is the 11 Nov plan and is historical: `module/inventory`, `module/closing`, `module/manager` and the other early branches no longer exist (merged, then deleted). Current working branches: **`module/audit-a5`** (Audit, migrations 0400–0499), **`feature/backup-emergency-pos`** (Emergency Billing, 0600–0699) and **`module/workspace`** (Workspace: Notes & Sheets, 1100–1199). Closing work continues from `main`. Everything else rule-wise below still holds. New sessions start with `git fetch && git merge origin/main`; the Audit, Emergency Billing and Workspace work orders are `docs/modules/audit.next-session.md`, `docs/modules/ebill.md` and `docs/modules/workspace.progress.md`.
+
+## 1. The three sessions (11 Nov 2026, historical)
 
 | # | Session | Branch | Migrations | Prefix | Work order (read this first) | First deliverable |
 |---|---|---|---|---|---|---|
