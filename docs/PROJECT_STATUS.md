@@ -2,7 +2,7 @@
 
 **Snapshot date:** 19 November 2026  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
-**Main HEAD inspected:** [`a1737f1`](https://github.com/sysalmanyasin/Dua/commit/a1737f14931e032809fc94e138673bf28ddbf8ef)  
+**Code baseline inspected:** [`a1737f1`] (documentation commits follow)(https://github.com/sysalmanyasin/Dua/commit/a1737f14931e032809fc94e138673bf28ddbf8ef)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
 **Recorded Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
 
