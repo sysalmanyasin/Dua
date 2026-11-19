@@ -702,7 +702,7 @@ export async function mount(el, { ctx }) {
     note = '';
     resetBill();
     say('Held bill discarded.');
-    drawHeldCount();
+    await drawHeldCount();
     sync.syncNow().catch(() => {});
   }
   // Put every input on the screen in step with `bill`.
@@ -811,7 +811,7 @@ export async function mount(el, { ctx }) {
     saved = null;
     resetBill();
     say('Bill held. Serve the next customer; open "Held" to bring it back.');
-    drawHeldCount();
+    await drawHeldCount();
     sync.syncNow().catch(() => {}); // sends the hold to the server when there is a connection
   }
   async function resumeHeld(id) {
