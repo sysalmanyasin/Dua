@@ -5,6 +5,7 @@
 import { html, render } from '../../../shared/html.js';
 import { money } from '../../../shared/format.js';
 import { ask } from './dialog.js';
+import { allRemaining, previewRefund, STATUS_WORDS } from '../domain/refund.js';
 import * as api from '../data/api.js';
 import { openLocalDb } from '../data/localDb.js';
 import { createSync } from '../data/sync.js';
@@ -30,6 +31,7 @@ const fromServer = (r) => ({
   gross: Number(r.gross_total),
   discounts: Number(r.discounts),
   net: Number(r.net_total),
+  refunded: Number(r.refunded_amount || 0),
   mode: r.payment_mode,
   status: r.status,
   sync: 'synced',
@@ -85,6 +87,7 @@ export async function mount(el, { ctx }) {
             <option value="">All</option>
             <option value="posted">Posted</option>
             <option value="corrected">Corrected</option>
+            <option value="partially_refunded">Part refunded</option>
             <option value="refunded">Refunded</option>
           </select></label
         >
@@ -236,7 +239,7 @@ export async function mount(el, { ctx }) {
                       <td class="num"><b>${m2(r.net)}</b></td>
                       <td>${r.mode || ''}</td>
                       <td>
-                        ${r.status === 'posted' ? '' : html`<span class="eb-st eb-st-${r.status === 'refunded' ? 'failed' : 'pending'}">${r.status === 'refunded' ? 'Refunded' : 'Corrected'}</span>`}
+                        ${r.status === 'posted' ? '' : html`<span class="eb-st eb-st-${r.status === 'refunded' ? 'failed' : 'pending'}">${STATUS_WORDS[r.status] || r.status}</span>${r.refunded ? html` <span class="muted">${m2(r.refunded)} back</span>` : ''}`}
                       </td>
                       <td><span class="eb-st eb-st-${r.sync}">${SYNC[r.sync]}</span></td>
                       ${
@@ -271,9 +274,9 @@ export async function mount(el, { ctx }) {
   };
 
   // ───────── detail ─────────
-  const eventText = (e) =>
+  const eventText = (e, names = {}) =>
     e.kind === 'refund'
-      ? `Refunded ${m2(e.amount)}`
+      ? `Refunded ${m2(e.amount)}${e.lines?.length ? ` (${e.lines.map((x) => `${names[x.line_no] || 'item'} × ${x.qty}`).join(', ')})` : ''}`
       : `Corrected ${Object.entries(e.changes || {})
           .map(([k, v]) => `${k.replace('_', ' ')}: “${v.from ?? ''}” → “${v.to ?? ''}”`)
           .join('; ')}`;
@@ -346,13 +349,14 @@ export async function mount(el, { ctx }) {
     }
     const i = d.invoice;
     const done = i.status === 'refunded';
+    const lineNames = Object.fromEntries(d.lines.map((l) => [l.line_no, l.name]));
     render(
       host,
       html`<div class="eb-modal" role="dialog" aria-modal="true" aria-label="Invoice ${i.invoice_no}">
         <div class="eb-dlg eb-detail">
           <div class="eb-dlg-head">
             <h2>${i.invoice_no}</h2>
-            ${i.status !== 'posted' ? html`<span class="eb-st eb-st-${done ? 'failed' : 'pending'}">${done ? 'Refunded' : 'Corrected'}</span>` : ''}<span
+            ${i.status !== 'posted' ? html`<span class="eb-st eb-st-${done ? 'failed' : 'pending'}">${STATUS_WORDS[i.status] || i.status}</span>` : ''}<span
               class="eb-grow"
             ></span
             ><button type="button" class="btn btn-sm" data-close>Close</button>
@@ -361,7 +365,20 @@ export async function mount(el, { ctx }) {
             ${stamp(i.client_created_at)} · ${i.staff_name} · ${i.customer || 'Walk-in'} · ${i.payment_mode} · ${i.device_label || ''} · PIN
             checked on ${i.pin_check === 'device' ? 'the device' : 'the server'}${i.comments ? html` · <i>${i.comments}</i>` : ''}
           </p>
-          ${linesTable(d.lines, (l) => ({ code: l.code, name: l.name, unit: l.unit, qty: l.qty, rate: Number(l.rate), total: Number(l.line_total) }))}
+          ${linesTable(
+            d.lines,
+            (l) => ({
+              code: l.code,
+              name: l.name,
+              unit: l.unit,
+              qty: l.qty,
+              rate: Number(l.rate),
+              total: Number(l.line_total),
+              refunded: Number(l.refunded),
+              remaining: Number(l.remaining),
+            }),
+            Number(i.refunded_amount) > 0,
+          )}
           <dl class="eb-totals">
             <div>
               <dt>Gross total</dt>
@@ -391,12 +408,24 @@ export async function mount(el, { ctx }) {
               <dt>Cash received</dt>
               <dd>${m2(i.cash_received)}</dd>
             </div>
+            ${
+              Number(i.refunded_amount) > 0
+                ? html`<div>
+                      <dt>Refunded so far</dt>
+                      <dd>${m2(i.refunded_amount)}</dd>
+                    </div>
+                    <div>
+                      <dt><b>Still with the customer</b></dt>
+                      <dd><b>${m2(i.remaining_amount)}</b></dd>
+                    </div>`
+                : ''
+            }
           </dl>
           ${
             d.events.length
               ? html`<h3>Changes</h3>
                   <ul class="eb-events">
-                    ${d.events.map((e) => html`<li><b>${eventText(e)}</b><br /><span class="muted">${e.by}, ${stamp(e.at)}. Reason: ${e.reason}</span></li>`)}
+                    ${d.events.map((e) => html`<li><b>${eventText(e, lineNames)}</b><br /><span class="muted">${e.by}, ${stamp(e.at)}. Reason: ${e.reason}</span></li>`)}
                   </ul>`
               : ''
           }
@@ -408,7 +437,7 @@ export async function mount(el, { ctx }) {
                     Correct
                   </button>
                   <button type="button" class="btn btn-primary" data-act="refund" ${done || navigator.onLine === false ? 'disabled' : ''}>
-                    Refund
+                    Refund…
                   </button>
                 </div>`
               : ''
@@ -418,16 +447,14 @@ export async function mount(el, { ctx }) {
     );
     host.querySelector('[data-close]').addEventListener('click', close);
     host.querySelector('[data-act="refund"]')?.addEventListener('click', async () => {
-      const v = await ask(q('#hs-dialog'), {
-        title: `Refund ${i.invoice_no}?`,
-        intro: `The whole invoice, ${m2(i.net_total)}, is marked refunded. This cannot be undone; it stays on record with your reason.`,
-        confirm: 'Refund',
-        fields: [{ id: 'why', label: 'Reason (required)', placeholder: 'e.g. customer returned the goods' }],
-      });
-      if (!v) return;
+      const r = await refundDialog(q('#hs-dialog'), i, d.lines);
+      if (!r) return;
       await run(
-        () => api.refundInvoice(i.invoice_id, v.why),
-        (r) => (r.code === 'already_refunded' ? 'It was already refunded.' : `Refunded ${m2(r.amount)}.`),
+        () => api.refundLines(i.invoice_id, r.lines, r.reason, r.requestId),
+        (x) =>
+          x.code === 'duplicate'
+            ? 'That refund had already gone through.'
+            : `Refunded ${m2(x.amount)}.${x.code === 'refunded' ? ' The invoice is now fully refunded.' : ` ${m2(x.remaining_amount)} is still with the customer.`}`,
         i.invoice_id,
       );
     });
@@ -471,7 +498,149 @@ export async function mount(el, { ctx }) {
     }
   }
 
-  function linesTable(lines, pick) {
+  // The partial-refund question: what, how many, why. The amount shown is a preview; the server works out the real one.
+  function refundDialog(host, inv, lines) {
+    return new Promise((resolve) => {
+      const requestId = crypto.randomUUID(); // one per opening: a retry of THIS refund can never refund twice
+      const state = {};
+      const model = {
+        net_total: inv.net_total,
+        refunded_amount: inv.refunded_amount,
+        lines: lines.map((l) => ({
+          ...l,
+          qty: Number(l.qty),
+          line_total: Number(l.line_total),
+          refunded: Number(l.refunded),
+          remaining: Number(l.remaining),
+        })),
+      };
+      let error = '';
+      const draw2 = () => {
+        const p = previewRefund(model, state);
+        render(
+          host,
+          html`<div class="eb-modal" role="dialog" aria-modal="true" aria-label="Refund ${inv.invoice_no}">
+            <div class="eb-ask eb-refund">
+              <h2>Refund ${inv.invoice_no}</h2>
+              <p class="muted">
+                Type how many of each item came back. The customer gets back their share of what they paid, after discounts.
+              </p>
+              ${error ? html`<p class="note note-error" role="alert">${error}</p>` : ''}
+              <div class="eb-table-wrap">
+                <table class="eb-table">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th class="num">Sold</th>
+                      <th class="num">Already back</th>
+                      <th class="num">Can refund</th>
+                      <th class="num">Refund now</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${model.lines.map(
+                      (l) =>
+                        html`<tr>
+                          <td>${l.name}</td>
+                          <td class="num">${l.qty}</td>
+                          <td class="num">${l.refunded || ''}</td>
+                          <td class="num">${l.remaining}</td>
+                          <td class="num">
+                            ${
+                              l.remaining > 0
+                                ? html`<input
+                                    class="eb-refund-qty"
+                                    data-line="${l.line_no}"
+                                    type="number"
+                                    min="0"
+                                    max="${l.remaining}"
+                                    step="any"
+                                    inputmode="decimal"
+                                    value="${state[l.line_no] || ''}"
+                                    aria-label="Quantity of ${l.name} to refund"
+                                  />`
+                                : html`<span class="muted">all back</span>`
+                            }
+                          </td>
+                        </tr>`,
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div class="eb-refund-sum">
+                <button type="button" class="btn btn-sm" data-act="all">Refund all remaining</button>
+                <span class="eb-grow"></span>
+                <span
+                  >${p.ok ? html`Refund <b>${m2(p.amount)}</b>${p.finalRefund ? html` <span class="muted">(everything left)</span>` : ''}` : html`<span class="muted">${p.message}</span>`}</span
+                >
+              </div>
+              <label class="field"
+                ><span>Reason (required)</span
+                ><input data-f="why" type="text" autocomplete="off" placeholder="e.g. customer returned two strips"
+              /></label>
+              <div class="eb-ask-actions">
+                <button type="button" class="btn" data-act="no">Cancel</button>
+                <button type="button" class="btn btn-primary" data-act="yes" ${p.ok ? '' : 'disabled'}>Refund</button>
+              </div>
+            </div>
+          </div>`,
+        );
+        const root = host.querySelector('.eb-modal');
+        const why = root.querySelector('[data-f="why"]');
+        why.value = reasonText;
+        why.addEventListener('input', () => (reasonText = why.value));
+        root.querySelectorAll('.eb-refund-qty').forEach((inp) =>
+          inp.addEventListener('input', () => {
+            const n = Number(inp.value);
+            if (inp.value === '' || n === 0) delete state[inp.dataset.line];
+            else state[inp.dataset.line] = n;
+            // refresh only the summary and the button, so typing is not interrupted
+            const pp = previewRefund(model, state);
+            root.querySelector('.eb-refund-sum span:last-child').textContent = pp.ok
+              ? `Refund ${m2(pp.amount)}${pp.finalRefund ? ' (everything left)' : ''}`
+              : pp.message;
+            root.querySelector('[data-act="yes"]').disabled = !pp.ok;
+          }),
+        );
+        root.addEventListener('click', (e) => {
+          const act = e.target.closest('[data-act]')?.dataset.act;
+          reasonText = why.value;
+          if (act === 'no') finish(null);
+          if (act === 'all') {
+            Object.keys(state).forEach((k) => delete state[k]);
+            Object.assign(state, allRemaining(model.lines));
+            draw2();
+          }
+          if (act === 'yes') {
+            const pp = previewRefund(model, state);
+            if (!pp.ok) return;
+            if (reasonText.trim().length < 3) {
+              error = 'Please give a reason (at least 3 letters).';
+              return draw2();
+            }
+            finish({ lines: pp.chosen, reason: reasonText.trim(), requestId });
+          }
+        });
+      };
+      let reasonText = '';
+      const onKey = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          e.stopPropagation();
+          finish(null);
+        }
+      };
+      const finish = (v) => {
+        document.removeEventListener('keydown', onKey, true);
+        host.replaceChildren();
+        resolve(v);
+      };
+      document.addEventListener('keydown', onKey, true);
+      draw2();
+    });
+  }
+
+  function linesTable(lines, pick, showRefunds = false) {
     return html`<div class="eb-table-wrap">
       <table class="eb-table">
         <thead>
@@ -482,6 +651,12 @@ export async function mount(el, { ctx }) {
             <th class="num">Qty</th>
             <th class="num">Rate</th>
             <th class="num">Total</th>
+            ${
+              showRefunds
+                ? html`<th class="num">Refunded</th>
+                    <th class="num">Left</th>`
+                : ''
+            }
           </tr>
         </thead>
         <tbody>
@@ -494,6 +669,12 @@ export async function mount(el, { ctx }) {
               <td class="num">${l.qty}</td>
               <td class="num">${m2(l.rate)}</td>
               <td class="num">${m2(l.total)}</td>
+              ${
+                showRefunds
+                  ? html`<td class="num">${l.refunded || ''}</td>
+                      <td class="num">${l.remaining}</td>`
+                  : ''
+              }
             </tr>`;
           })}
         </tbody>

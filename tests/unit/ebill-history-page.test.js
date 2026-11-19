@@ -37,7 +37,7 @@ vi.mock('../../js/modules/ebill/data/api.js', () => ({
   releaseHeld: vi.fn(async () => ({ ok: true })),
   history: vi.fn(async () => ({ rows: [], total: 0, sum_net: 0, sum_refunded: 0 })),
   invoiceDetail: vi.fn(),
-  refundInvoice: vi.fn(async () => ({ ok: true, code: 'refunded', amount: 90 })),
+  refundLines: vi.fn(async () => ({ ok: true, code: 'refunded', amount: 90, remaining_amount: 0 })),
   correctInvoice: vi.fn(async () => ({ ok: true, code: 'corrected' })),
 }));
 
@@ -280,9 +280,11 @@ const detail = (over = {}) => ({
     adjustment: '0',
     net_total: '90',
     cash_received: '100',
+    refunded_amount: '0',
+    remaining_amount: '90',
     ...over,
   },
-  lines: [{ code: 'A1', name: 'Test Tablet', unit: 'unit', qty: 2, rate: '50', line_total: '90' }],
+  lines: [{ line_no: 1, code: 'A1', name: 'Test Tablet', unit: 'unit', qty: 2, rate: '50', line_total: '90', refunded: 0, remaining: 2 }],
   events: [],
 });
 
@@ -326,30 +328,80 @@ describe('invoice detail', () => {
     expect(t).toContain('wrong name');
     expect(t).toContain('S One');
   });
-  it('a manager refunds with a reason, then sees the result', async () => {
-    const { refundInvoice, invoiceDetail } = await api();
+  const qty = (n, v) => {
+    const i = fields().querySelector(`.eb-refund-qty[data-line="${n}"]`);
+    i.value = String(v);
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  it('a manager refunds the whole invoice with one tap and a reason', async () => {
+    const { refundLines, invoiceDetail } = await api();
     await openFirst(['ebill.use', 'ebill.manage']);
     invoiceDetail.mockResolvedValue({
-      ...detail({ status: 'refunded' }),
-      events: [{ kind: 'refund', reason: 'returned', amount: '90', by: 'S One', at: '2026-11-16T11:00:00Z' }],
+      ...detail({ status: 'refunded', refunded_amount: '90', remaining_amount: '0' }),
+      lines: [
+        { line_no: 1, code: 'A1', name: 'Test Tablet', unit: 'unit', qty: 2, rate: '50', line_total: '90', refunded: 2, remaining: 0 },
+      ],
+      events: [
+        { kind: 'refund', reason: 'returned', amount: '90', lines: [{ line_no: 1, qty: 2 }], by: 'S One', at: '2026-11-16T11:00:00Z' },
+      ],
     });
     el.querySelector('[data-act="refund"]').click();
-    await vi.waitFor(() => expect(fields().querySelector('[data-f="why"]')).not.toBeNull());
+    await vi.waitFor(() => expect(fields().querySelector('[data-act="all"]')).not.toBeNull());
+    expect(fields().querySelector('[data-act="yes"]').disabled).toBe(true); // nothing chosen yet
+    fields().querySelector('[data-act="all"]').click();
+    expect(fields().textContent).toContain('everything left');
     fields().querySelector('[data-f="why"]').value = 'customer returned the goods';
     fields().querySelector('[data-act="yes"]').click();
-    await vi.waitFor(() => expect(refundInvoice).toHaveBeenCalledWith('s1', 'customer returned the goods'));
+    await vi.waitFor(() => expect(refundLines).toHaveBeenCalled());
+    const [id, lines, why, request] = refundLines.mock.calls[0];
+    expect([id, lines, why]).toEqual(['s1', [{ line_no: 1, qty: 2 }], 'customer returned the goods']);
+    expect(request).toMatch(/^[0-9a-f-]{36}$/);
     await vi.waitFor(() => expect(el.querySelector('#hs-detail').textContent).toContain('Refunded'));
+    expect(el.querySelector('#hs-detail').textContent).toContain('Test Tablet × 2');
     expect(el.querySelector('[data-act="refund"]').disabled).toBe(true);
     expect(el.querySelector('[data-act="correct"]').disabled).toBe(true);
   });
+  it('a partial refund previews the amount and sends only the chosen quantity', async () => {
+    const { refundLines, invoiceDetail } = await api();
+    await openFirst(['ebill.use', 'ebill.manage']);
+    invoiceDetail.mockResolvedValue(detail({ status: 'partially_refunded', refunded_amount: '45', remaining_amount: '45' }));
+    refundLines.mockResolvedValueOnce({ ok: true, code: 'partially_refunded', amount: 45, remaining_amount: 45 });
+    el.querySelector('[data-act="refund"]').click();
+    await vi.waitFor(() => expect(fields().querySelector('.eb-refund-qty')).not.toBeNull());
+    qty(1, 1);
+    expect(fields().textContent).toContain('45.00');
+    expect(fields().textContent).not.toContain('everything left');
+    qty(1, 5); // more than was sold
+    expect(fields().querySelector('[data-act="yes"]').disabled).toBe(true);
+    qty(1, 1);
+    fields().querySelector('[data-f="why"]').value = 'one strip back';
+    fields().querySelector('[data-act="yes"]').click();
+    await vi.waitFor(() => expect(refundLines.mock.calls.at(-1)[1]).toEqual([{ line_no: 1, qty: 1 }]));
+    await vi.waitFor(() => expect(el.querySelector('#hs-detail').textContent).toContain('Part refunded'));
+    expect(el.querySelector('#hs-msg').textContent).toContain('still with the customer');
+    expect(el.querySelector('#hs-detail').textContent).toContain('Still with the customer');
+    expect(el.querySelector('[data-act="refund"]').disabled).toBe(false); // more can still be refunded
+  });
+  it('a refund needs a reason', async () => {
+    const { refundLines } = await api();
+    refundLines.mockClear();
+    await openFirst(['ebill.use', 'ebill.manage']);
+    el.querySelector('[data-act="refund"]').click();
+    await vi.waitFor(() => expect(fields().querySelector('.eb-refund-qty')).not.toBeNull());
+    qty(1, 1);
+    fields().querySelector('[data-act="yes"]').click();
+    expect(fields().textContent).toContain('give a reason');
+    expect(refundLines).not.toHaveBeenCalled();
+  });
   it('cancelling the refund question does nothing', async () => {
-    const { refundInvoice } = await api();
+    const { refundLines } = await api();
+    refundLines.mockClear();
     await openFirst(['ebill.use', 'ebill.manage']);
     el.querySelector('[data-act="refund"]').click();
     await vi.waitFor(() => expect(fields().querySelector('[data-act="no"]')).not.toBeNull());
     fields().querySelector('[data-act="no"]').click();
     await tick();
-    expect(refundInvoice).not.toHaveBeenCalled();
+    expect(refundLines).not.toHaveBeenCalled();
   });
   it('a correction sends only what changed, with the reason', async () => {
     const { correctInvoice } = await api();
@@ -375,14 +427,15 @@ describe('invoice detail', () => {
     expect(correctInvoice).not.toHaveBeenCalled();
   });
   it('a refusal from the server is shown in words', async () => {
-    const { refundInvoice } = await api();
-    refundInvoice.mockResolvedValueOnce({ ok: false, code: 'not_found', message: 'No such invoice.' });
+    const { refundLines } = await api();
+    refundLines.mockResolvedValueOnce({ ok: false, code: 'too_much', message: 'Only 1 of "Test Tablet" can still be refunded.' });
     await openFirst(['ebill.use', 'ebill.manage']);
     el.querySelector('[data-act="refund"]').click();
-    await vi.waitFor(() => expect(fields().querySelector('[data-f="why"]')).not.toBeNull());
+    await vi.waitFor(() => expect(fields().querySelector('.eb-refund-qty')).not.toBeNull());
+    qty(1, 2);
     fields().querySelector('[data-f="why"]').value = 'because';
     fields().querySelector('[data-act="yes"]').click();
-    await vi.waitFor(() => expect(el.querySelector('#hs-msg').textContent).toContain('No such invoice.'));
+    await vi.waitFor(() => expect(el.querySelector('#hs-msg').textContent).toContain('can still be refunded'));
   });
   it('offline, refunds and corrections are switched off with the reason', async () => {
     await openFirst(['ebill.use', 'ebill.manage']);

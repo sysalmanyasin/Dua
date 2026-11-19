@@ -51,6 +51,9 @@ export const history = (f = {}) =>
   );
 export const invoiceDetail = (id) => one(db().rpc('ebill_invoice_detail', { p_invoice: id }));
 export const refundInvoice = (id, reason) => one(db().rpc('ebill_refund_invoice', { p_invoice: id, p_reason: reason }));
+/** Refund part (or all) of an invoice. lines: [{ line_no, qty }]; requestId makes a retry after a lost reply safe. */
+export const refundLines = (id, lines, reason, requestId) =>
+  one(db().rpc('ebill_refund_lines', { p_invoice: id, p_lines: lines, p_reason: reason, p_request: requestId || null }));
 export const correctInvoice = (id, changes, reason) =>
   one(db().rpc('ebill_correct_invoice', { p_invoice: id, p_changes: changes, p_reason: reason }));
 

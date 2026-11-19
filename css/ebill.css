@@ -1106,3 +1106,8 @@ html.eb-full .status-bar {
 .eb-desk .eb-print input[type='number'] {
   width: 3.2rem;
 }
+
+/* Partial refund dialog */
+.eb-refund { max-width: 640px; width: 96vw; max-height: 92dvh; overflow: auto; }
+.eb-refund-qty { width: 5.5rem; text-align: right; }
+.eb-refund-sum { display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0; }
