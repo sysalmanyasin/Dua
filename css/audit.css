@@ -247,3 +247,20 @@
     break-inside: avoid;
   }
 }
+
+/* Expiry tracking */
+.aud .aud-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.aud .aud-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.5rem;
+}
+.aud .aud-edit {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}

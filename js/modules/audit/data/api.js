@@ -169,3 +169,27 @@ export const reportEngagement = (engagementId) => one(db().rpc('audit_report_eng
 /** One audit's trail, newest first. Pass the smallest id you already have as `before` for the next page. */
 export const auditTrail = ({ engagementId, limit = 100, before = null }) =>
   one(db().rpc('audit_trail', { p_engagement: engagementId, p_limit: limit, p_before: before }));
+
+// ── expiry tracking (migration 0410) ──
+/** Racks, this month's assignments and the racks the caller may log against. Pass 'YYYY-MM' for another month. */
+export const expiryOverview = (month = null) => one(db().rpc('audit_expiry_overview', { p_month: month }));
+/** Product search for the logging form (two letters at least). */
+export const expiryProducts = (query, limit = 20) => one(db().rpc('audit_expiry_products', { p_query: query, p_limit: limit }));
+/** Saves one entry. The same key sent again returns the same entry, so a resend never doubles it. */
+export const logExpiry = ({ key, productId, qty, month, rack, status }) =>
+  one(db().rpc('audit_expiry_log', { p_key: key, p_product: productId, p_qty: qty, p_month: month, p_rack: rack, p_status: status }));
+/** The shared register. Each row carries `total`, the number of rows that match. */
+export const searchExpiry = ({ query = '', month = '', status = '', limit = 50, offset = 0 } = {}) =>
+  one(db().rpc('audit_expiry_search', { p_query: query, p_month: month, p_status: status, p_limit: limit, p_offset: offset }));
+/** Owner only: unlock, change and lock again, or delete (with a reason). */
+export const reopenExpiry = (id) => one(db().rpc('audit_expiry_reopen', { p_id: id }));
+export const updateExpiry = ({ id, qty, month, rack, status }) =>
+  one(db().rpc('audit_expiry_update', { p_id: id, p_qty: qty, p_month: month, p_rack: rack, p_status: status }));
+export const deleteExpiry = (id, reason) => one(db().rpc('audit_expiry_delete', { p_id: id, p_reason: reason }));
+/** Owner only: racks and who checks which rack in a month. */
+export const saveRack = ({ id = null, name, active = true }) =>
+  one(db().rpc('audit_rack_save', { p_id: id, p_name: name, p_active: active }));
+export const expiryPeople = () => one(db().rpc('audit_expiry_people'));
+export const assignRack = ({ rackId, userId, month }) =>
+  one(db().rpc('audit_rack_assign', { p_rack: rackId, p_user: userId, p_month: month }));
+export const unassignRack = (id) => one(db().rpc('audit_rack_unassign', { p_assignment: id }));

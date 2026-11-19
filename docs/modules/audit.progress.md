@@ -102,6 +102,19 @@
 - `audit.report` is needed for Print and CSV (or `audit.review` / `audit.manage`). Anyone who can see the audit's results can read the final on screen.
 - Not built: charts, a combined report across several finals (rounds can overlap on the same product, so figures are shown per round), and the push-notification text for names or amounts (kept generic on purpose).
 
+## Done (slice C1, Expiry tracking)
+- `supabase/migrations/0410_audit_expiry.sql` (applied live 19 Nov 2026 as `0410_audit_expiry`): `audit_racks`, `audit_rack_assignments`, `audit_expiry_entries` (select-only for signed-in users; every write goes through a function). Functions: `audit_rack_save`, `audit_expiry_people`, `audit_rack_assign` / `audit_rack_unassign`, `audit_expiry_overview`, `audit_expiry_products`, `audit_expiry_log`, `audit_expiry_search`, `audit_expiry_reopen`, `audit_expiry_update`, `audit_expiry_delete`.
+- Rules carried over from the old app: a shared register everyone who uses Expiry can read and search; entries are locked on save and only the owner (`audit.expiry_manage`) can reopen, edit or delete them (R10); racks are switched off, never deleted; a rack given again in a month replaces who has it; the expiry month runs from 3 months back to 3 years ahead; four statuses (Near Expiry, Sold, Returned to Warehouse, Discarded).
+- Tightened in the rebuild: the rack must be on the list (no free text), and a person with a rack this month can only log against their own (the old app only filtered the dropdown); a save carries a key, so a resend returns the same entry; product name and code come from Inventory, not from the browser; a delete needs a reason; edits and deletes log the old values.
+- App: `/audit/expiry` (Log and Register tabs, search by name or code, month and status filters, paging, owner buttons) and `/audit/expiry/racks` (add or switch off racks, give a rack to a person for a month). `domain/expiry.js` holds the month window, statuses and form check.
+- Tests: DB 0410 (72 checks: access, racks, assignment, logging rules, resend, shared register, reopen / edit / delete, log trail, anon); `tests/unit/audit-expiry.test.js`, `tests/unit/audit-expiry-pages.test.js`; the error-message test covers every new code.
+
+## Notes from C1
+- Logging needs a connection (as in the old app); there is no offline outbox for Expiry.
+- `audit.expiry_log` people can search products through `audit_expiry_products` without holding an Inventory key.
+- Not built: CSV / print of the register, and an expiry-by-month summary. Easy to add on top of `audit_expiry_search`.
+
 ## Next
 - PHONE 1 / PHONE 2 on real phones.
-- C1 / C2 (expiry log, barcode, hybrid counting) as in `audit.md`.
+- C2 Barcode (Center, register, verify, conflicts, scanner, scan outbox); needs the Foundation requests (OD-6, vendored scanner libraries).
+- D Hardening and acceptance.

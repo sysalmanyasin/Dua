@@ -84,6 +84,19 @@ export default {
       load: () => import('./ui/reports.js'),
     },
     {
+      path: '/audit/expiry',
+      title: 'Expiry tracking',
+      desc: 'Log near-expiry stock and search the shared register',
+      anyOf: ['audit.expiry_log', 'audit.expiry_manage', 'audit.manage'],
+      load: () => import('./ui/expiry.js'),
+    },
+    {
+      path: '/audit/expiry/racks',
+      desc: 'Racks and who checks which rack each month',
+      anyOf: ['audit.expiry_manage', 'audit.manage'],
+      load: () => import('./ui/racks.js'),
+    },
+    {
       path: '/audit/team',
       title: 'Team access',
       desc: 'Give a person the Deputy or Sub-Auditor set of audit permissions, or switch single ones',
