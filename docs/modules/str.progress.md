@@ -51,7 +51,7 @@ All four screens and migrations 0500–0504 are integrated on main and recorded 
 
 ## Next
 
-S-C: manifest, `data/` (reads through `str_v_*`, `str_search_headers`, D1 stand-in inside the module's own tests), `/str` list and `/str/detail`, print; then owner phone try-out #1. Then S-D: Report and Zero Dispatch with per-person column choices (`user_prefs`).
+Owner phone try-outs #1/#2 (list/search/detail/print, reports and zero-dispatch); resolve supplier/pack metadata and Foundation notification/icon follow-ups; obtain owner acceptance.
 
 ## Handoff
 
