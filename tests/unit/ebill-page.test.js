@@ -119,6 +119,8 @@ describe('billing screen', () => {
     expect(el.querySelector('#eb-sp-name').value).toBe('Test Staff');
     expect(el.querySelector('#eb-status').textContent).toBe('');
     expect(el.querySelector('.eb-bar').textContent).not.toContain('Stock copy:');
+    expect(el.querySelector('.eb-sync-why')).toBeNull();
+    expect(el.querySelector('#eb-sync').textContent).not.toContain('Not ready for offline billing yet');
   });
   it('adds a scanned or typed code and totals it', () => {
     type(el.querySelector('#eb-qty'), '3');
@@ -261,6 +263,27 @@ describe('Candela-style layout details', () => {
     expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(0);
     expect(el.querySelector('#eb-customer').value).toBe('');
     expect(el.querySelector('#eb-net').textContent).toBe('0.00');
+    ask.mockRestore();
+  });
+  it('Cancel permanently discards a held bill after it is resumed', async () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'A100';
+    key(sku, 'Enter');
+    el.querySelector('[data-act="hold"]').click();
+    await tick();
+    el.querySelector('[data-held-nav="first"]').click();
+    await tick();
+    el.querySelector('[data-resume="0"]').click();
+    await tick();
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(1);
+    const ask = vi.spyOn(window, 'confirm');
+    ask.mockReturnValueOnce(true);
+    el.querySelector('[data-act="cancel"]').click();
+    await tick();
+    await tick();
+    expect(el.querySelectorAll('#eb-lines tbody tr[data-id]')).toHaveLength(0);
+    expect(el.querySelector('#eb-held-n').textContent).toBe('0');
+    expect(ask).toHaveBeenCalledWith('Discard this held bill? It will be permanently removed.');
     ask.mockRestore();
   });
 });
