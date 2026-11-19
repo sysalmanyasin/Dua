@@ -732,6 +732,7 @@ export async function mount(el, { ctx }) {
   }
   function resetBill() {
     cart = emptyCart();
+    activeRowId = null;
     bill = fresh();
     syncInputs();
     drawLines();
@@ -829,6 +830,7 @@ export async function mount(el, { ctx }) {
     note = '';
     saved = null;
     cart = { lines: r.state.lines };
+    activeRowId = null;
     bill = { ...fresh(), ...r.state.bill, invoiceId: null, heldId: id, qty: 1 };
     syncInputs();
     drawLines();
