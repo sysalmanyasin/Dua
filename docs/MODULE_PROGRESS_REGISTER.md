@@ -47,7 +47,7 @@ The source registry currently contains these 12 IDs, in order: `home`, `sales`, 
 
 ## Branch audit (19 November 2026)
 
-GitHub currently reports 10 branches including `main`. Each non-main branch is **0 commits ahead of main**; each is behind main. These are stale pointers, not unmerged work. Do not merge them again.
+GitHub reported 10 branches including `main` when compared with the pre-documentation code baseline `a1737f1` on 19 Nov 2026. Each non-main branch was **0 commits ahead of main**; each was behind main. The behind counts in the table are measured against that baseline and will increase as documentation commits land; the important invariant is that ahead=0. These are stale pointers, not unmerged work. Do not merge them again.
 
 | Branch | Ahead | Behind | Assessment |
 |---|---:|---:|---|
