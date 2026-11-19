@@ -72,20 +72,21 @@ beforeEach(async () => {
 });
 
 describe('app shell', () => {
-  it('someone with a single module lands inside it and has no Home link', async () => {
+  it('someone with a single module still lands on Home, with no Home link while there', async () => {
     const one = manifests
       .filter((m) => m.id === 'home' || m.id === 'closing')
       .map((m) => ({ ...m, routes: m.routes.map((r) => ({ ...r, title: m.title })) }));
     stop = startShell(root, junior, one);
     await tick();
-    expect(location.hash).toBe('#/closing');
+    expect(location.hash).toBe('#/home');
     expect(root.querySelector('.nav-home')).toBeNull();
+    expect(loads.home).toBe(1); // landing does not load Home twice
   });
   it('with several modules Home stays the landing page and the status bar shows only there', async () => {
     const titled = manifests.map((m) => ({ ...m, routes: m.routes.map((r) => ({ ...r, title: m.title })) }));
     stop = startShell(root, admin, titled);
     await tick();
-    expect(location.hash).toBe('');
+    expect(location.hash).toBe('#/home');
     expect(root.querySelector('#status-bar').hidden).toBe(false);
     location.hash = '#/closing';
     await tick();
@@ -164,6 +165,15 @@ describe('app shell', () => {
     expect(new Set(hosts).size).toBe(hosts.length); // never the same container twice
     expect(hosts.at(-1).isConnected).toBe(true);
     for (const old of hosts.slice(0, -1)) expect(old.isConnected).toBe(false);
+  });
+
+  it('with no Home module, lands on the first module even when none of its routes has a title', async () => {
+    const m = [
+      { id: 'a', title: 'A', icon: 'home', nav: { order: 0 }, permission: null, routes: [{ path: '/other', load: page('closing') }] },
+    ];
+    stop = startShell(root, junior, m);
+    await tick();
+    expect(location.hash).toBe('#/other');
   });
 
   it('user-supplied names are escaped in the shell', async () => {
