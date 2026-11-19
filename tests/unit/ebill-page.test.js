@@ -117,7 +117,8 @@ describe('billing screen', () => {
     ])
       expect(el.querySelector(s), s).not.toBeNull();
     expect(el.querySelector('#eb-sp-name').value).toBe('Test Staff');
-    expect(el.textContent).toContain('not live');
+    expect(el.querySelector('#eb-status').textContent).toBe('');
+    expect(el.querySelector('.eb-bar').textContent).not.toContain('Stock copy:');
   });
   it('adds a scanned or typed code and totals it', () => {
     type(el.querySelector('#eb-qty'), '3');
@@ -156,6 +157,42 @@ describe('billing screen', () => {
     expect(el.querySelector('[data-edit="qty"]')).toBe(qty); // same element: focus is not lost
     el.querySelector('[data-del]').click();
     expect(el.querySelector('#eb-net').textContent).toBe('0.00');
+  });
+  it('F9 focuses and selects the active row quantity, or the top quantity when no row is active', () => {
+    key(document, 'F9');
+    expect(document.activeElement).toBe(el.querySelector('#eb-qty'));
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const qty = el.querySelector('[data-edit="qty"]');
+    qty.focus();
+    key(qty, 'F9');
+    expect(document.activeElement).toBe(qty);
+    expect(qty.selectionStart).toBe(0);
+    expect(qty.selectionEnd).toBe(qty.value.length);
+  });
+  it('F11 is intercepted, toggles the active pack unit and focuses its quantity', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const qty = el.querySelector('[data-edit="qty"]');
+    qty.focus();
+    const event = key(qty, 'F11');
+    const nextQty = el.querySelector('[data-edit="qty"]');
+    expect(event.defaultPrevented).toBe(true);
+    expect(el.querySelector('[data-edit="unit"]').value).toBe('pack');
+    expect(el.querySelector('#eb-net').textContent).toBe('50.00');
+    expect(document.activeElement).toBe(nextQty);
+    expect(nextQty.selectionEnd).toBe(nextQty.value.length);
+  });
+  it('Delete removes a focused billing row', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const row = el.querySelector('tr[data-id]');
+    row.focus();
+    key(row, 'Delete');
+    expect(el.querySelectorAll('tr[data-id]')).toHaveLength(0);
   });
   it('switching a line to pack re-prices it', () => {
     const sku = el.querySelector('#eb-sku');
