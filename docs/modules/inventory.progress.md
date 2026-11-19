@@ -190,7 +190,7 @@ Small items that remain:
 2. Check `inventory_sync_log` for failed rows a few days after 17 Nov, and that the slowest `inventory_apply_sync_body` call stays well under the 8-second limit.
 3. Find out when Candela writes the Dropbox file; it is still unknown.
 4. Consider an owner alert after repeated failed syncs (today the feed watchdog alerts after 3 hours without a success).
-5. Delete the merged branches `module/inventory`, `foundation/inventory-feed` and `design/inventory-delta-sync`.
+5. Branch refs have since been reconciled: the current GitHub list contains nine non-main branches, all 0 commits ahead of main. Do not merge them again; owner may decide whether to delete/archive stale refs (see `docs/MODULE_PROGRESS_REGISTER.md`).
 
 ## Handoff
 See the brief, §10.
