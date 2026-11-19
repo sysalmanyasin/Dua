@@ -812,8 +812,8 @@ export async function mount(el, { ctx }) {
     note = '';
     saved = null;
     resetBill();
-    say('Bill held. Serve the next customer; open "Held" to bring it back.');
     await drawHeldCount();
+    say('Bill held. Serve the next customer; open "Held" to bring it back.');
     sync.syncNow().catch(() => {}); // sends the hold to the server when there is a connection
   }
   async function resumeHeld(id) {
