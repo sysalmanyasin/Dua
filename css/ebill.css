@@ -4,7 +4,7 @@
 } /* the POS uses the whole screen; other pages keep the narrow column */
 .eb {
   display: grid;
-  background: #D9F0F7;
+  background: #d9f0f7;
   padding: 0.5rem;
   border-radius: var(--radius-lg);
   gap: var(--space-3);
@@ -43,7 +43,7 @@
 
 .eb-top {
   display: grid;
-  background: #E6F4F9;
+  background: #e6f4f9;
   gap: var(--space-2);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -149,7 +149,7 @@
 .eb-table th,
 .eb-table td {
   padding: 0.35rem 0.5rem;
-  border: 3px solid #B8D4E3;
+  border: 3px solid #b8d4e3;
   text-align: left;
   vertical-align: middle;
 }
@@ -164,7 +164,7 @@
 .eb-table tfoot td {
   position: sticky;
   bottom: 0;
-  background: #FFF9C4;
+  background: #fff9c4;
   font-weight: 700;
   border-top: 2px solid var(--primary);
 }
@@ -221,7 +221,7 @@
 
 .eb-side {
   position: sticky;
-  background: #E6F4F9;
+  background: #e6f4f9;
   top: var(--space-2);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -305,7 +305,7 @@
 
 .eb-bottom {
   display: grid;
-  background: #D9F0F7;
+  background: #d9f0f7;
   border-radius: var(--radius-lg);
   padding: var(--space-3);
   grid-template-columns: auto auto 1fr 1fr auto auto;
@@ -1122,9 +1122,22 @@ html.eb-full .status-bar {
 }
 
 /* Partial refund dialog */
-.eb-refund { max-width: 640px; width: 96vw; max-height: 92dvh; overflow: auto; }
-.eb-refund-qty { width: 5.5rem; text-align: right; }
-.eb-refund-sum { display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0; }
+.eb-refund {
+  max-width: 640px;
+  width: 96vw;
+  max-height: 92dvh;
+  overflow: auto;
+}
+.eb-refund-qty {
+  width: 5.5rem;
+  text-align: right;
+}
+.eb-refund-sum {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
 
 /* Candela-inspired ergonomics for the Emergency POS */
 .eb.eb-desk {

@@ -128,6 +128,7 @@ const PRECACHE = [
   "js/modules/ebill/domain/invoice.js",
   "js/modules/ebill/domain/offline.js",
   "js/modules/ebill/domain/productFilter.js",
+  "js/modules/ebill/domain/refund.js",
   "js/modules/ebill/manifest.js",
   "js/modules/ebill/ui/dialog.js",
   "js/modules/ebill/ui/heldBills.js",

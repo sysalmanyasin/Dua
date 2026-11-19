@@ -445,7 +445,7 @@ describe('saving', () => {
     await tick();
     await tick();
     expect(saveInvoice).toHaveBeenCalledTimes(1);
-    expect(saveInvoice.mock.calls[0][0].totals.cash_received).toBe(0);
+    expect(saveInvoice.mock.calls[0][0].cash_received).toBe(0);
   });
   it('warns before saving a Cash bill with too little cash', async () => {
     const { saveInvoice } = await api();

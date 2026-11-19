@@ -1045,7 +1045,10 @@ export async function mount(el, { ctx }) {
   q('#eb-cash-entry').addEventListener('change', (e) => {
     cashEntryEnabled = e.target.checked;
     q('#eb-cash').disabled = !cashEntryEnabled;
-    if (!cashEntryEnabled) bill.cash = 0;
+    if (!cashEntryEnabled) {
+      bill.cash = 0;
+      q('#eb-cash').value = '0'; // the box must not keep showing an amount that no longer counts
+    }
     drawTotals();
   });
   q('#eb-rmode').addEventListener('change', (e) => {
