@@ -177,7 +177,7 @@ Nine hourly syncs have now failed with "statement timeout" since 12 Nov (about 7
 - **Reorder needs STR too** (old `buildInTransitMap`): in-transit pack qty per code = sum of `floor(dispatch_qty / factor)` over lines of STRs with `direction = 'in'`, `dispatch_status = 'Dispatched'`, `receive_status <> 'Received'`.
 
 Decisions (owner, 12 Nov 2026) on **STR-Q1** and its consequences:
-1. **A separate `str` module** (`str_` prefix, route `/str`, migrations 0500–0599), reusing what Inventory already provides: supplier and pack factor from the local product copy, no extra download. Foundation owns the `MODULES.md` registry entry; this note is the request to move `str` from Planned to Active.
+1. **A separate `str` module** (`str_` prefix, route `/str`, migrations 0500–0599), reusing what Inventory already provides: supplier and pack factor from the local product copy, no extra download. STR has since been added to `js/modules/index.js` and the module registry; its current state and remaining acceptance work are summarized in `docs/MODULE_PROGRESS_REGISTER.md`.
 2. **`str.view` is the permission for every STR viewing screen** (list, detail, Report, Zero Dispatch). The current read policy on the STR tables requires `str.approve` (a different meaning: approving requests); the STR module's first migration seeds `str.view`, moves the two read policies to it (wrapped form), and adds the permission to no role template until the owner decides.
 3. **Approved:** a small database function `inventory_in_transit()` (security definer, `inventory.view`) returning code and packs only, so Reorder works for people who hold `inventory.view` but not `str.view`. It belongs to the Reorder slice (I-C) and goes in the 0300 range.
 
