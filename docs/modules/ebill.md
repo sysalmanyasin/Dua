@@ -88,6 +88,6 @@ Open question for the owner: the product copy's `price` is treated as the price 
 
 Still to build (Phase 5): receipt printing and print settings, device/limits/receipt settings in one place, and CSV / Excel / PDF exports of the history.
 
-## Status (17 Nov 2026)
+## Status (reconciled 19 Nov 2026)
 
 Phase 5 is partly done: the database for partial refunds, receipt settings and reports is written and tested but **not yet applied live**, and the screens for them (partial refund dialog, receipt printing and settings form, Search receipt, exports) are **not built**. The billing screen now fits the desktop (full-screen mode, F5 Product Help with three filters). See `docs/modules/ebill-handover.md` for the exact state, the live-vs-repo database gap and the next steps.
