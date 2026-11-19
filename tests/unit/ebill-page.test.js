@@ -177,7 +177,8 @@ describe('billing screen', () => {
     key(sku, 'Enter');
     const qty = el.querySelector('[data-edit="qty"]');
     qty.focus();
-    const event = key(qty, 'F11');
+    const event = new KeyboardEvent('keydown', { key: 'F11', bubbles: true, cancelable: true });
+    qty.dispatchEvent(event);
     const nextQty = el.querySelector('[data-edit="qty"]');
     expect(event.defaultPrevented).toBe(true);
     expect(el.querySelector('[data-edit="unit"]').value).toBe('pack');
