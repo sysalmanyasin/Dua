@@ -278,23 +278,25 @@ Copy the helper block at the top of `supabase/tests/0006_checklist_test.sql` (`a
 
 ## 7. Module registry
 
-Update only your own row (and only when your brief is accepted). Statuses: **Planned → Briefed → Building → Accepted**.
+Update only your own row (and only when your brief is accepted). Statuses: **Planned → Briefed → Building → Accepted**. This column tracks the owner acceptance gate, not whether source code is integrated; see `docs/MODULE_PROGRESS_REGISTER.md` for integration/live status.
 
 | Module id | Scope (source in old apps) | Table / function prefix | Permission prefix | Route prefix | Nav order | Migrations | Depends on | Status |
 |---|---|---|---|---|---|---|---|---|
 | `home` | Cover / landing (core) | — | — | `/home` | 0 | — | core | Built |
 | `sales` | Daily sales, dashboard, reports, check list (BT-Sale-Data2 `js/sales`) | _(legacy, none)_ | `sales.`, `targets.`, `checklist.` | `/sales` | 10 | 0001–0099 | core | Building |
 | `candela-sales` | **Owner-only reports** on the Candela daily payment and customer-credit summaries, kept permanently; one staff-safe number (today's total) in the status bar | `candela_` | `candela.` | `/candela-sales` | 15 | 0900–0999 | core, inventory feed (landing tables, by trigger) | Building |
-| `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Planned |
-| `closing` | Shift closing, final closing, credit/misc ledgers, Closing Book, history tabs (Closing repo; BT-Sale-Data2 `js/closing`) | `closing_` | `closing.` | `/closing` | 30 | 0200–0299 | core, inventory interface | Planned |
-| `inventory` | Feed (F3), stock ledger, excess, reorder, health (BT-Sale-Data2 `js/inventory`, `inventory-search`) | `inventory_` | `inventory.` | `/inventory` | 40 | 0300–0399 (+ feed in 0001–0099) | core | Planned |
-| `audit` | Engagements, rounds, assignments, counting, barcode, expiry, reports (Random repo) | `audit_` | `audit.` | `/audit` | 50 | 0400–0499 | core, inventory interface | Planned |
-| `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Planned |
-| `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Planned |
+| `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Building |
+| `closing` | Shift closing, final closing, credit/misc ledgers, Closing Book, history tabs (Closing repo; BT-Sale-Data2 `js/closing`) | `closing_` | `closing.` | `/closing` | 30 | 0200–0299 | core, inventory interface | Building |
+| `inventory` | Feed (F3), stock ledger, excess, reorder, health (BT-Sale-Data2 `js/inventory`, `inventory-search`) | `inventory_` | `inventory.` | `/inventory` | 40 | 0300–0399 (+ feed in 0001–0099) | core | Building |
+| `audit` | Engagements, rounds, assignments, counting, barcode, expiry, reports (Random repo) | `audit_` | `audit.` | `/audit` | 50 | 0400–0499 | core, inventory interface | Building |
+| `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Building |
+| `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Building |
 | `reports` | Cross-module reports, Herald, cover signals | `reports_` | `reports.` | `/reports` | 80 | 0700–0799 | other modules' interfaces | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
 | `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Building |
-| `access` | Users & Access (core) | — | `users.` | `/access` | 90 | — | core | Built |
+| `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |
+| `access` | Users & Access (core) | — | `users.` | `/access` | 90 | — | core | Accepted |
+| `tools` | Owner operations, alerts, backup status and feed health | core / ops | `tools.` | `/tools` | 95 | Foundation | core | Building |
 
 Android apps (attendance, widgets, mail routine, audit scanner) are **after** their web module is accepted and are not part of this contract yet.
 
