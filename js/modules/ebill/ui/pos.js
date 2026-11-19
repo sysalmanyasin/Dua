@@ -897,8 +897,10 @@ export async function mount(el, { ctx }) {
       const product = byCode.get(String(line.code).toLowerCase());
       if (!product) return;
       cart = addProduct(removeLine(cart, line.id), product, { qty: line.qty, unit });
+      const switched = cart.lines.find((x) => x.code === line.code && x.unit === unit);
+      activeRowId = switched?.id || null;
       drawLines();
-      focusSelect(q(`tr[data-id="${line.id}"] [data-edit="qty"]`));
+      focusSelect(activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`));
       return;
     }
     if (e.key === 'F9') {
