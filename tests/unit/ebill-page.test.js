@@ -188,7 +188,7 @@ describe('billing screen', () => {
     const full = el.querySelector('#eb-full');
     full.click();
     await tick();
-    expect(lock).toHaveBeenCalledWith(['Escape']);
+    expect(lock).toHaveBeenCalledWith(['Escape', 'F11']);
     expect(document.documentElement.classList.contains('eb-full')).toBe(true);
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.dispatchEvent(escape);
