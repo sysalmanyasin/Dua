@@ -166,8 +166,7 @@ describe('billing screen', () => {
     sku.value = 'P001';
     key(sku, 'Enter');
     const qty = el.querySelector('[data-edit="qty"]');
-    qty.focus();
-    key(qty, 'F9');
+    key(sku, 'F9');
     expect(document.activeElement).toBe(qty);
     expect(qty.selectionStart).toBe(0);
     expect(qty.selectionEnd).toBe(qty.value.length);
@@ -176,10 +175,8 @@ describe('billing screen', () => {
     const sku = el.querySelector('#eb-sku');
     sku.value = 'P001';
     key(sku, 'Enter');
-    const qty = el.querySelector('[data-edit="qty"]');
-    qty.focus();
     const event = new KeyboardEvent('keydown', { key: 'F11', bubbles: true, cancelable: true });
-    qty.dispatchEvent(event);
+    sku.dispatchEvent(event);
     const nextQty = el.querySelector('[data-edit="qty"]');
     expect(event.defaultPrevented).toBe(true);
     expect(el.querySelector('[data-edit="unit"]').value).toBe('pack');
