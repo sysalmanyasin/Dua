@@ -651,9 +651,8 @@ export async function mount(el, { ctx }) {
       drawStatus();
     }
     cart = addProduct(cart, product, { qty: bill.qty });
-    activeRowId = cart.lines.find(
-      (line) => String(line.code).toLowerCase() === String(product.code).toLowerCase() && line.unit === 'unit',
-    )?.id || null;
+    const activeLine = cart.lines.find((line) => line.code === product.code && line.unit === 'unit');
+    activeRowId = activeLine?.id ?? null;
     bill.qty = 1;
     q('#eb-qty').value = '1';
     drawLines();
