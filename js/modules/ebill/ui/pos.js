@@ -756,7 +756,7 @@ export async function mount(el, { ctx }) {
     try {
       // Progressive enhancement: Chromium's Keyboard Lock API keeps a normal Esc
       // press inside the POS. Browsers without this API retain their native behaviour.
-      return navigator.keyboard?.lock?.(['Escape']) || Promise.resolve();
+      return navigator.keyboard?.lock?.(['Escape', 'F11']) || Promise.resolve();
     } catch {
       return Promise.resolve();
     }
