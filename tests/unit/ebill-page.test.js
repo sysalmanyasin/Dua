@@ -184,12 +184,12 @@ describe('billing screen', () => {
       configurable: true,
       value: { lock, unlock },
     });
-    el.requestFullscreen = vi.fn(async () => {});
+    document.documentElement.requestFullscreen = vi.fn(async () => {});
     const full = el.querySelector('#eb-full');
     full.click();
     await tick();
     expect(lock).toHaveBeenCalledWith(['Escape']);
-    expect(el.classList.contains('eb-full')).toBe(true);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
     const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
     document.dispatchEvent(escape);
     expect(escape.defaultPrevented).toBe(true);
@@ -197,7 +197,7 @@ describe('billing screen', () => {
     full.click();
     await tick();
     expect(unlock).toHaveBeenCalled();
-    expect(el.classList.contains('eb-full')).toBe(false);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(false);
   });
   it('F11 is intercepted, toggles the active pack unit and focuses its quantity', () => {
     const sku = el.querySelector('#eb-sku');
