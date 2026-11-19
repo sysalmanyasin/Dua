@@ -405,6 +405,48 @@ describe('saving', () => {
     expect(el.querySelector('#eb-note').textContent).toContain('switched off by the manager');
     expect(saveInvoice).not.toHaveBeenCalled();
   });
+  it('Ctrl+S opens the same PIN-authorized save flow', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    const event = new KeyboardEvent('keydown', {
+      key: 's',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+    await tick();
+    expect(event.defaultPrevented).toBe(true);
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    expect(saveInvoice.mock.calls[0][1]).toBe('482913');
+  });
+  it('can disable cash received entry without blocking PIN-authorized saving', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    const toggle = el.querySelector('#eb-cash-entry');
+    expect(toggle).not.toBeNull();
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelector('#eb-cash').disabled).toBe(true);
+    expect(el.querySelector('#eb-cash').value).toBe('0');
+    expect(el.querySelector('[data-out="due"]').textContent).toBe('90.00');
+    el.querySelector('#eb-save').click();
+    await tick();
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    expect(saveInvoice.mock.calls[0][0].totals.cash_received).toBe(0);
+  });
   it('warns before saving a Cash bill with too little cash', async () => {
     const { saveInvoice } = await api();
     saveInvoice.mockClear();
