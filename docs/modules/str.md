@@ -1,7 +1,7 @@
 # STR (Stock Transfer Requests) — brief
 
 Status: **Built, awaiting phone try-out** — all four screens written; migrations 0500–0504 applied live on 14 Nov 2026 · Owner approval: go given 14 Nov 2026 (answers of 13/14 Nov recorded below)
-Branch: `module/str` · Migration range: `0500`–`0599` · Prefix: `str_` · Permissions: `str.*` · Route: `/str` · Nav order: 60
+Branch history: `module/str` · Migration range: `0500`–`0599` · Prefix: `str_` · Permissions: `str.*` · Route: `/str` · Nav order: 60
 Depends on: core, Inventory published interfaces.
 
 > Read `docs/MODULES.md` first. Domain maths, migrations `0500`–`0504` (applied live by hand on 14 Nov 2026 under their repo numbers) and all four screens are built and tested. Progress: `docs/modules/str.progress.md`.
