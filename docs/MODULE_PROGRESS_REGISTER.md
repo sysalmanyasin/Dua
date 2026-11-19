@@ -3,7 +3,7 @@
 **Snapshot:** 19 November 2026  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Default branch:** `main`  
-**Main HEAD inspected:** [`a1737f1`](https://github.com/sysalmanyasin/Dua/commit/a1737f14931e032809fc94e138673bf28ddbf8ef)  
+**Code baseline inspected:** [`a1737f1`] (documentation commits in this update follow that baseline)(https://github.com/sysalmanyasin/Dua/commit/a1737f14931e032809fc94e138673bf28ddbf8ef)  
 **Live app:** https://sysalmanyasin.github.io/Dua/
 
 This is the consolidated index of what is actually present in `main`, what the module progress records say is deployed, and what remains. It does not claim that a feature is production-accepted merely because code or a migration exists.
