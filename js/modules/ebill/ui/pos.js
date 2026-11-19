@@ -591,13 +591,10 @@ export async function mount(el, { ctx }) {
           <span>Pending <b>${s.pending}</b></span>
           ${s.failed ? html`<span class="neg">Failed <b>${s.failed}</b></span>` : ''}
           <span class="muted">Last sync: ${s.lastSyncAt ? clock(s.lastSyncAt) : 'never'}</span>
-          <span class="${ready.ready && shell ? '' : 'muted eb-ellip'}" title="${ready.ready ? '' : ready.why}"
-            >${ready.ready && shell ? '✓ Ready for offline billing' : 'Not ready for offline billing yet'}</span
-          >
+          ${ready.ready && shell ? html`<span class="muted" title="Offline billing is prepared">✓ Ready for offline billing</span>` : ''}
           ${s.failed ? html`<button type="button" class="btn btn-sm" data-act="retry">Retry failed</button>` : ''}
           ${s.pending && online ? html`<button type="button" class="btn btn-sm" data-act="syncnow">Upload now</button>` : ''}
           ${online && !ready.ready && !String(ready.why).includes('Ask the owner') ? html`<button type="button" class="btn btn-sm" data-act="prep">Prepare offline</button>` : ''}
-          ${!ready.ready ? html`<span class="muted eb-sync-why" title="${ready.why}">${ready.why}</span>` : ''}
         </div>
         ${s.others ? html`<span class="muted">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</span>` : ''}
         ${
