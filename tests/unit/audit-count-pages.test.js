@@ -114,16 +114,20 @@ describe('counting screen', () => {
   it('shows what the counter needs: system quantity, price, and no difference before counting', async () => {
     await mountCount(root(), { ctx: { permissions: ['audit.count'] } });
     expect(root().textContent).toContain('Alpha one');
-    expect(root().textContent).toContain('System 10');
-    expect(root().textContent).toContain('Rs 100.50 each');
+    expect(root().querySelector('[data-item="i1"] .aud-sys').textContent).toBe('10');
+    expect(root().textContent).toContain('A1 · Rs 100.5');
     expect(root().textContent).toContain('0 of 3 counted');
-    expect(root().textContent).toContain('Not counted');
+    // uncounted items read as zero in stock: the full shortage shows, marked as assumed, and the company total starts there
+    expect(root().querySelector('[data-diff="i1"]').textContent).toBe('-10-Rs 1,005assumed');
+    expect(root().querySelector('[data-impact="Acme"]').textContent).toBe('-Rs 1,105');
+    expect(root().querySelector('[data-impact="Beta"]').textContent).toBe('-Rs 440');
   });
 
   it('shows the difference and its value at once, and sends the count in the background', async () => {
     await mountCount(root(), { ctx: {} });
     type('i1', '7');
-    expect(root().querySelector('[data-diff="i1"]').textContent).toBe('-3 · -Rs 301.50');
+    expect(root().querySelector('[data-diff="i1"]').textContent).toBe('-3-Rs 301.50');
+    expect(root().querySelector('[data-impact="Acme"]').textContent).toBe('-Rs 401.50'); // i1 counted, i2 still assumed
     expect(root().textContent).toContain('1 of 3 counted');
     expect(await store.count('asg1')).toBe(1); // saved on the device before anything is sent
     await until(() => api.countBatch.mock.calls.length === 1);
@@ -165,7 +169,7 @@ describe('counting screen', () => {
   it('marks an item as matching and sends it as an automatic count', async () => {
     await mountCount(root(), { ctx: {} });
     click('button[data-match="i2"]');
-    expect(root().querySelector('[data-diff="i2"]').textContent).toBe('Marked as matching');
+    expect(root().querySelector('[data-diff="i2"]').textContent).toBe('0auto-matched');
     await until(() => api.countBatch.mock.calls.length === 1);
     expect(api.countBatch.mock.calls[0][1][0]).toMatchObject({ item: 'i2', auto: true, qty: null });
   });
@@ -230,7 +234,7 @@ describe('follow-up round items', () => {
     list[1] = { ...list[1], is_new: true };
     api.myItems.mockResolvedValue(list);
     await mountCount(root(), { ctx: {} });
-    expect(root().textContent).toContain('Last round: counted 7 (-3)');
+    expect(root().textContent).toContain('Last round: Var -3');
     expect(root().textContent).toContain('New product since the last round');
     expect(root().querySelector('button[data-same="i2"]')).toBeNull(); // nothing to repeat for a new product
     click('button[data-same="i1"]');
@@ -261,33 +265,50 @@ describe('sign-out guard (AUD-9)', () => {
 });
 
 describe('individual audit page', () => {
-  it('starts from typed codes with one key, reused on retry, and goes to counting', async () => {
+  it('lists the saved templates, starts from the chosen one with one key reused on retry, and goes to counting', async () => {
     api.myAssignments.mockResolvedValue([]);
+    api.listTemplates.mockResolvedValueOnce([
+      { id: 't1', name: 'Narcotics Random', codes: ['A1', 'A2', 'A3'] },
+      { id: 't2', name: 'strips', codes: ['B1'] },
+    ]);
     api.startIndividual
       .mockRejectedValueOnce(new TypeError('Failed to fetch'))
-      .mockResolvedValueOnce({ assignment_id: 'asgX', items: 2, requested: 3 });
+      .mockResolvedValueOnce({ assignment_id: 'asgX', items: 3, requested: 3 });
     await mountIndividual(root(), { ctx: {} });
-    const box = root().querySelector('textarea[data-f="codes"]');
-    box.value = 'A1, A2\nA1 B9';
-    box.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(root().querySelector('textarea[data-f="codes"]')).toBeNull(); // no typing of product codes any more
+    expect(root().textContent).toContain('Narcotics Random');
+    expect(root().textContent).toContain('3 codes');
+    expect(root().textContent).toContain('1 code');
+    expect(root().querySelector('button[data-act="start"]').disabled).toBe(true);
+    const pick = root().querySelector('input[name="aud-template"][value="t1"]');
+    pick.checked = true;
+    pick.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(root().querySelector('button[data-act="start"]').disabled).toBe(false);
     click('button[data-act="start"]');
     await until(() => root().textContent.includes('No connection'));
     click('button[data-act="start"]');
     await until(() => api.startIndividual.mock.calls.length === 2);
     const [first, second] = api.startIndividual.mock.calls.map((c) => c[0]);
     expect(first.key).toBe(second.key);
-    expect(second.codes).toEqual(['A1', 'A2', 'B9']);
+    expect(second).toMatchObject({ codes: [], companies: [], templateId: 't1' });
     await until(() => location.hash === '#/audit/count');
     expect(JSON.parse(sessionStorage.getItem('dua.audit.view')).assignment).toBe('asgX');
   });
 
-  it('starts from whole companies typed one per line', async () => {
+  it('says so when there are no templates yet, and points to Templates for people who can add one', async () => {
+    api.myAssignments.mockResolvedValue([]);
+    await mountIndividual(root(), { ctx: { permissions: ['audit.templates', 'audit.individual'] } });
+    expect(root().textContent.replace(/\s+/g, ' ')).toContain('No saved templates yet.');
+    expect(root().querySelector('a[href="#/audit/templates"]')).not.toBeNull();
+    expect(root().querySelector('textarea[data-f="codes"]')).toBeNull();
+    expect(root().querySelector('button[data-act="start"]').disabled).toBe(true);
+  });
+
+  it('starts from whole companies typed one per line when the company list cannot load', async () => {
     api.myAssignments.mockResolvedValue([]);
     api.startIndividual.mockResolvedValueOnce({ assignment_id: 'asgC', items: 9, requested: null });
     await mountIndividual(root(), { ctx: {} });
-    const by = root().querySelector('select[data-f="by"]');
-    by.value = 'companies';
-    by.dispatchEvent(new Event('change', { bubbles: true }));
+    click('button[data-by="companies"]');
     const box = root().querySelector('textarea[data-f="companies"]');
     box.value = 'Acme Pharma\nBeta Ltd; Acme Pharma';
     box.dispatchEvent(new Event('input', { bubbles: true }));
@@ -306,9 +327,7 @@ describe('individual audit page', () => {
     ]);
     api.startIndividual.mockResolvedValueOnce({ assignment_id: 'asgP', items: 5, requested: null });
     await mountIndividual(root(), { ctx: {} });
-    const by = root().querySelector('select[data-f="by"]');
-    by.value = 'companies';
-    by.dispatchEvent(new Event('change', { bubbles: true }));
+    click('button[data-by="companies"]');
     expect(root().querySelector('textarea[data-f="companies"]')).toBeNull();
     expect(root().querySelectorAll('input[data-company]').length).toBe(3);
     expect(root().textContent).toContain('10 SKUs · Rs 115,769');
@@ -334,9 +353,7 @@ describe('individual audit page', () => {
       Array.from({ length: 25 }, (_, i) => ({ company: `Co ${String(i).padStart(2, '0')}`, skus: 1, value: 10 })),
     );
     await mountIndividual(root(), { ctx: {} });
-    const by = root().querySelector('select[data-f="by"]');
-    by.value = 'companies';
-    by.dispatchEvent(new Event('change', { bubbles: true }));
+    click('button[data-by="companies"]');
     root().querySelector('button[data-pa="all"]').click();
     expect(root().textContent).toContain('20 companies selected — 20 at most');
   });
