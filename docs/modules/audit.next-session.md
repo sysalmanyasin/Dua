@@ -1,6 +1,6 @@
 # Audit module: handover for the next session
 
-**State on 19 Nov 2026.** Slices A1–B2 are built. A5, B1, 0408 and 0308 are in `main` (PR #31). Branch `module/audit-b2` adds slice B2 (Final Snapshot, reports, trail, alerts; migration `0409`, applied live) and has `main` merged in. Slice **C1 Expiry** is built (migration `0410`, applied live). The next slice is **C2 Barcode**. Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` first.
+**State on 19 Nov 2026.** Slices A1–B2 and C1 are built and merged into `main` (with `0308`, `0408`, `0409` Final reports, `0410` Expiry). All migrations are applied live. Audit work is paused after C1 at the owner's request; the next slice is **C2 Barcode**, to start only when the owner says go. Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` first.
 
 ## What exists
 - **Database** `0401`–`0410` (Audit) and `0308` (Inventory interface), all applied live on project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`) and registered in `supabase_migrations.schema_migrations`. Live migrations are applied with the Supabase `apply_migration` tool (0409 was) or by hand with `execute_sql` plus a registry insert; the file in `supabase/migrations/` is the source.
@@ -8,17 +8,17 @@
 - **Rules to keep:** every new round takes fresh stock from Inventory and freezes it; no blind counting (AUD-4); counters see system qty, price, variance, value for their own assignment (AUD-5); compile writes a new revision each time; conflicts are never auto-resolved; approved corrections apply at the next compile.
 
 ## Check before anything else
-1. Merged into `main` on 18 Nov 2026. `main`'s `app` job was red on Prettier (fixed) and on 15 unit tests in cover, service-worker and shell that are not Audit's; see `docs/PROJECT_STATUS.md`.
-2. Commit `0308` + test changes are the last local work; confirm `git ls-remote origin module/audit-a5` equals local HEAD. If not, push.
-3. The session proxy may not hold a GitHub credential for the repo; the owner supplies a PAT when needed (use it once via `git -c http.extraheader=...`, never store it, ask the owner to revoke it).
+1. `main` is at or after `f240711` (19 Nov 2026). It was fast-forwarded by `git push` with no pull request, so confirm the GitHub Actions run on `main` is green (the Deno and workflow jobs were not run locally).
+2. The session proxy may not hold a GitHub credential for the repo and the GitHub API may be blocked. The owner supplies a PAT when needed (use it once via `git -c http.extraheader=...`, never store it, ask the owner to revoke it). The repo has moved to `sysalmanyasin/Dua`.
 
 ## Next work
 - **PHONE 1 / PHONE 2:** real-phone tests (counting offline and back online; two people, two rounds, end to end). Not done.
-- **B2 is built** (see progress doc). Still to do on it: try Print / Save as PDF and the CSV on a real phone and desktop after merging.
-- **C1 is built** (see progress doc). **C2 Barcode** is next: Center, register, verify, conflicts, scanner, scan outbox, hybrid counting. It needs the vendored scanner libraries and the Foundation requests (`audit.md` section 7).
+- **B2 is built** and merged (see progress doc). Still to do on it: try Print / Save as PDF and the CSV on a real phone and desktop.
+- **C1 is built** and merged (see progress doc; optional later: CSV/print of the register, expiry-by-month summary). **C2 Barcode** is next: Center, register, verify, conflicts, scanner, scan outbox, hybrid counting. It needs the vendored scanner libraries and the Foundation requests (`audit.md` section 7).
 - **Foundation request OD-6** (outbox / sign-out guard) is still outstanding.
 - **Company picker** in the Individual Audit screen can now use `inventory_companies()` (currently a typed list).
-- Owner decision pending: none open. AUD-1..13 accepted.
+- **D Hardening and acceptance** follows C2 (offline end-to-end, accessibility, low-end phone, data-use review, MODULES.md §11).
+- Owner decision pending: none open for Audit. AUD-1..13 accepted.
 
 ## How to test
 - `service postgresql start`, then `bash supabase/tests/run.sh` (must end "ALL DATABASE TESTS PASSED"). It applies all migrations first, then runs every `*_test.sql` in name order.
@@ -27,7 +27,7 @@
 
 ## Gotchas learned
 - DB tests run in one transaction, so `now()` is the same everywhere: to test `compile_stale` the test moves a correction's `decided_at` forward by a minute, then back.
-- Pre-existing failures on a clean `main` in this sandbox: `shell.test.js`, `cover.test.js`, `service-worker.test.js`, and Prettier on six shell/home files. They are not from the Audit module.
+- The old failures in `shell.test.js`, `cover.test.js`, `service-worker.test.js` and Prettier were fixed on 19 Nov 2026; a clean `main` should pass all of `npm run verify`. The service-worker tests read the cache name from `sw.js`.
 - Audit tests define a stand-in `inventory_products_for_scope`; keep it `create or replace` with the exact columns `(code, name, company, qty, price)`.
 - Owner-level calls in DB tests need `aal2`.
 - Error hints in 04xx migrations must each have a sentence in `js/modules/audit/domain/errors.js` (a test checks both ways).
