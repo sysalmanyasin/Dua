@@ -46,6 +46,7 @@ export async function mount(el, { ctx }) {
   let device = { status: 'unknown' }; // 'active' | 'deactivated' | 'unknown' (not registered yet or offline)
   let saving = false;
   let saved = null; // { no, local } for the last saved invoice, shown above the grid until the next bill
+  let cashEntryEnabled = true; // cashier can disable cash tender entry without disabling invoice saving
   const stops = []; // things to switch off when this page is left
   let closeHelp = null;
   const helpHolder = { state: emptyState() }; // survives closing and reopening Product Help
@@ -229,6 +230,7 @@ export async function mount(el, { ctx }) {
                 <dt>Cash</dt>
                 <dd><input id="eb-cash" class="eb-cash" type="number" min="0" step="any" value="0" aria-label="Cash received" /></dd>
               </div>
+              <div class="eb-cash-toggle"><label class="eb-check"><input id="eb-cash-entry" type="checkbox" checked /> Enable cash received entry</label></div>
               <div>
                 <dt>Change</dt>
                 <dd class="eb-change"><output data-out="change"></output></dd>
@@ -302,7 +304,7 @@ export async function mount(el, { ctx }) {
 
   function drawTotals() {
     const t = totals();
-    const p = payment(t.netTotal, bill.cash);
+    const p = payment(t.netTotal, cashEntryEnabled ? bill.cash : 0);
     const out = { ...t, change: p.change, due: p.due };
     for (const node of el.querySelectorAll('[data-out]')) node.textContent = m2(out[node.dataset.out]);
     const sum = (f) => cart.lines.reduce((s, l, i) => s + f(l, t.lines[i]), 0);
@@ -492,6 +494,7 @@ export async function mount(el, { ctx }) {
     if (saving || !cart.lines.length) return;
     const t = totals();
     if (
+      cashEntryEnabled &&
       bill.mode === 'Cash' &&
       payment(t.netTotal, bill.cash).due > 0 &&
       !window.confirm('Cash received is less than the net total. Save anyway?')
@@ -722,6 +725,8 @@ export async function mount(el, { ctx }) {
     set('#eb-adj', String(bill.adjustment));
     set('#eb-tax', String(bill.taxPct));
     set('#eb-cash', String(bill.cash));
+    q('#eb-cash-entry').checked = cashEntryEnabled;
+    q('#eb-cash').disabled = !cashEntryEnabled;
     set('#eb-comments', bill.comments || '');
     set('#eb-more', bill.more || '');
     q('#eb-rdon').checked = bill.receiptOn;
@@ -939,6 +944,17 @@ export async function mount(el, { ctx }) {
   };
   document.addEventListener('keydown', onF2);
   stops.push(() => document.removeEventListener('keydown', onF2));
+  // Ctrl/Cmd+S saves through the exact same PIN-authorized online/offline workflow as the Save button.
+  const onSaveShortcut = (e) => {
+    if (!el.isConnected) return document.removeEventListener('keydown', onSaveShortcut);
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!closeHelp && !closeHeld) save();
+    }
+  };
+  document.addEventListener('keydown', onSaveShortcut, { capture: true });
+  stops.push(() => document.removeEventListener('keydown', onSaveShortcut, { capture: true }));
   const focusSelect = (node) => {
     if (node) {
       node.focus();
@@ -1026,6 +1042,12 @@ export async function mount(el, { ctx }) {
   bindNum('#eb-tax', (v) => (bill.taxPct = v));
   bindNum('#eb-adj', (v) => (bill.adjustment = v));
   bindNum('#eb-cash', (v) => (bill.cash = v));
+  q('#eb-cash-entry').addEventListener('change', (e) => {
+    cashEntryEnabled = e.target.checked;
+    q('#eb-cash').disabled = !cashEntryEnabled;
+    if (!cashEntryEnabled) bill.cash = 0;
+    drawTotals();
+  });
   q('#eb-rmode').addEventListener('change', (e) => {
     bill.receiptDiscount = { ...bill.receiptDiscount, mode: e.target.value };
     drawTotals();
