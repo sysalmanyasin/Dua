@@ -49,7 +49,7 @@ The latest main-branch project progress entry (13 Nov) reports **357 unit/jsdom 
 
 ## Known test failures on `main` (18 Nov 2026)
 
-Run on the merged tree and, separately, on untouched `main`: `npm run lint` passes; `npm run format:check` passes after Prettier was applied to six files from the Home/shell redesign (`css/home.css`, `css/responsive-fixes.css`, `css/shell.css`, `css/tokens.css`, `js/core/shell.js`, `js/modules/home/ui/page.js`); `npm test` reports **15 failing of 1,366** in three files, **identical on `main` before the merge**: `tests/unit/cover.test.js` (4), `tests/unit/service-worker.test.js` (7), `tests/unit/shell.test.js` (4). One failure is `startShell` reading `.path` of an undefined first page (`js/core/shell.js:28`). These tests predate the Home redesign and have not been updated for it. Fix them before the next release. Database tests were not re-run locally here; CI's `database` and `functions` jobs passed on the branch heads.
+Run on the merged tree and, separately, on untouched `main`: `npm run lint` passes; `npm run format:check` passes after Prettier was applied to six files from the Home/shell redesign (`css/home.css`, `css/responsive-fixes.css`, `css/shell.css`, `css/tokens.css`, `js/core/shell.js`, `js/modules/home/ui/page.js`); `npm test` reports **15 failing of 1,366** in three files, **identical on `main` before the merge**: `tests/unit/cover.test.js` (4), `tests/unit/service-worker.test.js` (7), `tests/unit/shell.test.js` (4). One failure is `startShell` reading `.path` of an undefined first page (`js/core/shell.js:28`). These tests predate the Home redesign and have not been updated for it. Fix them before the next release. Database tests were not re-run locally here; CI's `database` and `functions` jobs passed on the branch heads. **Update 19 Nov 2026:** the failing cover, service-worker and shell tests were updated for the Home redesign and the service-worker cache bump (the service-worker tests now read the cache name from `sw.js`); the shell no longer crashes when the first module has no titled route and loads the landing page once. Local result: lint, format, secret and vendor checks pass, 1,559 of 1,559 unit tests pass, the full database suite passes. Not run locally: Deno checks and workflow lint (CI).
 
 ## Branch integration status at this snapshot
 
@@ -73,7 +73,7 @@ Every other branch was merged or superseded and deleted (three superseded ones r
 
 ## Immediate priorities
 
-1. Fix the 15 failing unit tests on `main` (cover, service-worker, shell), then confirm a clean CI run and a clean full database test run.
+1. ~~Fix the 15 failing unit tests on `main`~~ done 19 Nov 2026. Still to confirm: a clean CI run (including the Deno and workflow jobs).
 2. Perform a restore drill using a real encrypted Drive backup into a separate empty Supabase project.
 3. Complete the owner phone try-outs for Sales, Manager and Closing; verify real Gmail sending.
 4. Finish Closing, then proceed to STR and the later planned modules.
