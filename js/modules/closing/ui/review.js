@@ -29,13 +29,20 @@ export async function mount(el, { ctx } = {}) {
         </div>`,
       { label: 'Reopen closing' },
     );
-    dlg.querySelector('#ro-go').addEventListener('click', async () => {
+    dlg.querySelector('#ro-go').addEventListener('click', async (ev) => {
+      const go = ev.currentTarget;
+      if (go.disabled) return;
       const reason = dlg.querySelector('#ro-reason').value.trim();
-      if (reason.length < 3) return toast('Please write a reason (at least 3 letters).', 'error');
+      if (reason.length < 3) {
+        dlg.querySelector('#ro-reason').focus();
+        return toast('Please write a reason (at least 3 letters).', 'error');
+      }
       const key = newKey();
+      go.disabled = true; // a second tap must not reopen the same closing twice
       try {
         await api.reopen({ closingId: p.closing_id, reason, key });
       } catch (e) {
+        go.disabled = false;
         return toast(friendlyError(e).message, 'error');
       }
       dlg.close();
@@ -94,7 +101,13 @@ export async function mount(el, { ctx } = {}) {
                             ${
                               canCorrect
                                 ? html`<div class="actions">
-                                    <button type="button" class="btn btn-sm" data-act="reopen" data-id="${p.closing_id}">
+                                    <button
+                                      type="button"
+                                      class="btn btn-sm"
+                                      data-act="reopen"
+                                      data-id="${p.closing_id}"
+                                      aria-label="Reopen ${pageTitle(p)} to correct"
+                                    >
                                       Reopen to correct
                                     </button>
                                   </div>`

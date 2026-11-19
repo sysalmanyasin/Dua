@@ -1,7 +1,7 @@
-> **Status note (14 Nov 2026):** Sessions A to D are on `main`: the 14-section guided ledger and submit, the Credit and Misc ledgers (visible to cashiers, manager and owner) with the 3-inch receipt, `closing_credit_feed`, the Closing Book with print and Save as PDF, CC / RBD / MEDIQ history, Review with reopen-to-correct, and the settings screen (migrations `0201` to `0211`, all applied live). The Closing Book makes the old printed register as a PDF inside the app, and section 6 is the Inventory Audit card. Nothing is left to build; the module waits for the owner's phone try-outs and acceptance. See `docs/modules/closing.progress.md`.
+> **Current status (19 Nov 2026):** Closing's 14-section guided ledger, submit/reopen flow, Credit and Misc ledgers, Manager credit feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review and Settings are integrated on `main` and recorded built in [closing.progress.md](closing.progress.md). Migrations `0201`–`0211` are recorded live. Owner phone try-out #5 and formal acceptance remain. Manager progress also reports live migration `0214_closing_staff_see_all`, but no matching source migration exists in this repository; reconcile the live registry/source before creating or applying another Closing migration. Earlier session entries below are historical handoffs, not current build status.
 
-Status: **Building** (slices C1 + database part of C2–C4 done; no screens yet) · Owner approval: yes (9 Nov 2026, "go")
-Branch: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
+Status: **Built; owner acceptance pending** · Owner approval: yes (9 Nov 2026, "go")
+Branch history: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
 
 > Read `docs/MODULES.md` first. The calculation rules are **already written** in `docs/BUSINESS_RULES.md` §3–7 and the table design in `docs/DATABASE_DESIGN.md` ("closing"). This brief does not repeat them; it tells the session how to build them and what is new.
 
@@ -144,3 +144,12 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 - Home is a launcher: one tile per module the person may use (every current and future module, by permission). Someone with a single module lands inside it with no Home link. Inside a module a "‹ Home" link replaces the module tab row; a module with `hub: true` (Closing) shows only "← Closing" on inner pages because its start page lists the rest. The status bar shows on Home only.
 - The entry screen has "‹ Back to days", which saves the draft first.
 - Migration 0214: every user with closing access may read every submitted closing (start-page list, Open, PDF, previous-shift card). Drafts stay private to their author.
+
+## Accessibility conventions (audit of Nov 2026)
+- Every input has a name a screen reader can tell apart: a real `<label for>`, or an `aria-label` with the row ("Amount, row 2"; a fixed strip uses its item name). A text span, not a `<label>`, is used where nothing is being labelled.
+- A page that is drawn again keeps keyboard focus on the same control (`keepFocus` in `ui/parts.js`); a new section, the success screen and filtered lists move focus to their heading or summary line (`focusHeading`).
+- The save chip is a real button inside a live region; it is enabled only when there is something to retry. Errors are `role="alert"`; the fields to fix are named in `#cls-errors`, never by a red border alone.
+- Calendar days say their date, which closings are saved, whether a draft is open and whether it is today; the next-month button stops at the current month.
+- Colours: teal and amber text/backgrounds are at least 4.5:1 (`--cls-teal-text` for text on the dark theme); the evening dot is at least 3:1.
+- Do not put `"` inside an interpolated attribute string in `html```...```: it is escaped. Write `aria-current="${cond ? 'date' : 'false'}"`.
+- Bill numbers and counts of notes must be whole numbers (`payloadFromForm`); coins / loose change may have paisa.

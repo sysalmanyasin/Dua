@@ -13,6 +13,10 @@ const dateOf = (p: Record<string, unknown>, key = 'date'): string => {
 
 const KNOWN: Record<string, (p: Record<string, unknown>) => PushMessage> = {
   'closing.submitted': (p) => ({ title: 'Dua: closing submitted', message: `A closing was submitted${dateOf(p)}.`, priority: 3, tags: ['inbox_tray'] }),
+  'audit.submitted': () => ({ title: 'Dua: audit count submitted', message: 'A counter submitted an audit count.', priority: 3, tags: ['clipboard'] }),
+  'audit.compiled': () => ({ title: 'Dua: audit compiled', message: 'An audit round was compiled and is ready to review.', priority: 3, tags: ['bar_chart'] }),
+  'audit.conflict': () => ({ title: 'Dua: audit conflict', message: 'Two audit rounds disagree on an item. Open Audit to settle it.', priority: 4, tags: ['warning'] }),
+  'audit.finalized': () => ({ title: 'Dua: audit final', message: 'An audit round was made final.', priority: 3, tags: ['white_check_mark'] }),
   'inventory.sync_stale': () => ({ title: 'Dua: inventory feed is late', message: 'No successful inventory sync for over 3 hours.', priority: 4, tags: ['warning'] }),
   'inventory.sync_failed': () => ({ title: 'Dua: inventory sync failed', message: 'The last inventory sync failed. See Needs attention.', priority: 4, tags: ['warning'] }),
   'backup.failed': (p) => ({ title: 'Dua: BACKUP FAILED', message: `The daily backup did not complete${dateOf(p)}. Check the Tools tab.`, priority: 5, tags: ['rotating_light'] }),

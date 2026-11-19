@@ -1,7 +1,7 @@
 # Dua Workspace — brief
 
-Status: Building (Phase 3 of 11)        Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
-Branch: module/workspace        Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
+Status: Building (Phase 3 of 11: Notes database/domain/data layer built; no user-facing UI yet) · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
+Branch history: `module/workspace` (stale pointer; 0 commits ahead of main) · Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
 
 ## 1. Scope
 

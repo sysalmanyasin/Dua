@@ -117,7 +117,15 @@ describe('billing screen', () => {
     ])
       expect(el.querySelector(s), s).not.toBeNull();
     expect(el.querySelector('#eb-sp-name').value).toBe('Test Staff');
-    expect(el.textContent).toContain('not live');
+    expect(el.querySelector('#eb-status').textContent).toBe('');
+    expect(el.querySelector('.eb-bar').textContent).not.toContain('Stock copy:');
+    expect(el.querySelector('.eb-sync-why')).toBeNull();
+    expect(el.querySelector('.eb-top [data-act="hold"]')).toBeNull();
+    expect(el.querySelector('.eb-hold [data-act="hold"]')).not.toBeNull();
+    expect(el.querySelector('.eb-hold [data-act="cancel"]')).not.toBeNull();
+    expect(el.querySelectorAll('.eb-lines tbody .eb-filler')).toHaveLength(8);
+    expect(el.querySelector('.eb-lines thead th:last-child').textContent).toContain('Delete');
+    expect(el.querySelector('#eb-sku').placeholder).toContain('F2');
   });
   it('adds a scanned or typed code and totals it', () => {
     type(el.querySelector('#eb-qty'), '3');
@@ -156,6 +164,62 @@ describe('billing screen', () => {
     expect(el.querySelector('[data-edit="qty"]')).toBe(qty); // same element: focus is not lost
     el.querySelector('[data-del]').click();
     expect(el.querySelector('#eb-net').textContent).toBe('0.00');
+  });
+  it('F9 focuses and selects the active row quantity, or the top quantity when no row is active', () => {
+    key(document, 'F9');
+    expect(document.activeElement).toBe(el.querySelector('#eb-qty'));
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const qty = el.querySelector('[data-edit="qty"]');
+    key(sku, 'F9');
+    expect(document.activeElement).toBe(qty);
+    expect(qty.selectionStart).toBe(0);
+    expect(qty.selectionEnd).toBe(qty.value.length);
+  });
+  it('keeps Escape from exiting POS full view and unlocks it only on the Exit button', async () => {
+    const lock = vi.fn(async () => {});
+    const unlock = vi.fn();
+    Object.defineProperty(navigator, 'keyboard', {
+      configurable: true,
+      value: { lock, unlock },
+    });
+    document.documentElement.requestFullscreen = vi.fn(async () => {});
+    const full = el.querySelector('#eb-full');
+    full.click();
+    await tick();
+    expect(lock).toHaveBeenCalledWith(['Escape', 'F11']);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+    full.click();
+    await tick();
+    expect(unlock).toHaveBeenCalled();
+    expect(document.documentElement.classList.contains('eb-full')).toBe(false);
+  });
+  it('F11 is intercepted, toggles the active pack unit and focuses its quantity', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const event = new KeyboardEvent('keydown', { key: 'F11', bubbles: true, cancelable: true });
+    sku.dispatchEvent(event);
+    const nextQty = el.querySelector('[data-edit="qty"]');
+    expect(event.defaultPrevented).toBe(true);
+    expect(el.querySelector('[data-edit="unit"]').value).toBe('pack');
+    expect(el.querySelector('#eb-net').textContent).toBe('50.00');
+    expect(document.activeElement).toBe(nextQty);
+    expect(nextQty.selectionEnd).toBe(nextQty.value.length);
+  });
+  it('Delete removes a focused billing row', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const row = el.querySelector('tr[data-id]');
+    row.focus();
+    key(row, 'Delete');
+    expect(el.querySelectorAll('tr[data-id]')).toHaveLength(0);
   });
   it('switching a line to pack re-prices it', () => {
     const sku = el.querySelector('#eb-sku');
@@ -340,6 +404,48 @@ describe('saving', () => {
     expect(el.querySelector('#eb-save').disabled).toBe(true);
     expect(el.querySelector('#eb-note').textContent).toContain('switched off by the manager');
     expect(saveInvoice).not.toHaveBeenCalled();
+  });
+  it('Ctrl+S opens the same PIN-authorized save flow', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    const event = new KeyboardEvent('keydown', {
+      key: 's',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+    await tick();
+    expect(event.defaultPrevented).toBe(true);
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    expect(saveInvoice.mock.calls[0][1]).toBe('482913');
+  });
+  it('can disable cash received entry without blocking PIN-authorized saving', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    const toggle = el.querySelector('#eb-cash-entry');
+    expect(toggle).not.toBeNull();
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelector('#eb-cash').disabled).toBe(true);
+    expect(el.querySelector('#eb-cash').value).toBe('0');
+    expect(el.querySelector('[data-out="due"]').textContent).toBe('90.00');
+    el.querySelector('#eb-save').click();
+    await tick();
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    expect(saveInvoice.mock.calls[0][0].totals.cash_received).toBe(0);
   });
   it('warns before saving a Cash bill with too little cash', async () => {
     const { saveInvoice } = await api();

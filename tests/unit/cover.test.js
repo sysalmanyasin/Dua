@@ -223,20 +223,19 @@ describe('Cover page', () => {
     expect(el.textContent).not.toContain('Customers');
     expect(el.textContent).not.toContain('Manager');
     expect(el.querySelector('.home-lifetime-hero')).toBeNull();
-    expect(el.querySelectorAll('.home-module').length).toBe(1);
-    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/yesterday');
+    expect(el.querySelector('.home-module')).toBeNull(); // module discovery lives in the sidebar, not on Home
   });
 
-  it('lets a person pin and unpin only accessible pages', async () => {
+  it('shows saved favourites, drops ones the person can no longer open, and lets them be removed', async () => {
+    localStorage.setItem('dua.home.favourites.owner', JSON.stringify(['#/sales/entry', '#/not/a/page']));
     const { mount } = await import('../../js/modules/home/ui/page.js');
     const el = document.getElementById('p');
     await mount(el, { ctx, modules });
-    const pin = el.querySelector('[data-pin="#/sales/entry"]');
-    pin.click();
     expect(el.querySelector('#home-favourites').textContent).toContain('Add Entry');
-    expect(localStorage.getItem('dua.home.favourites.owner')).toContain('#/sales/entry');
+    expect(el.querySelector('#home-favourites [data-unpin="#/not/a/page"]')).toBeNull();
     el.querySelector('[data-unpin="#/sales/entry"]').click();
     expect(el.querySelector('#home-favourites').textContent).toContain('Pin the pages you use most');
+    expect(JSON.parse(localStorage.getItem('dua.home.favourites.owner'))).toEqual([]);
   });
 
   it('still shows the Cover when owner alerts fail to load', async () => {
@@ -263,7 +262,6 @@ describe('Cover page', () => {
     const hero = el.querySelector('.home-lifetime-hero');
     const firstSection = el.querySelector('.home-section');
     expect(hero.compareDocumentPosition(firstSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(el.querySelector('.home-module .home-page-link').getAttribute('href')).toBe('#/sales/entry');
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
   });
 
@@ -316,7 +314,7 @@ describe('Cover page', () => {
     const el = document.getElementById('p');
     await mount(el, { ctx, modules });
     expect(el.textContent).toContain('could not be loaded');
-    expect(el.querySelector('.home-module')).not.toBeNull();
+    expect(el.textContent).toContain('Your navigation is still available');
   });
 
   it("escapes the person's name", async () => {
