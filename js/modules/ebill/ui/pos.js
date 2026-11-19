@@ -651,7 +651,10 @@ export async function mount(el, { ctx }) {
       drawStatus();
     }
     cart = addProduct(cart, product, { qty: bill.qty });
-    activeRowId = cart.lines.find((line) => String(line.code).toLowerCase() === String(product.code).toLowerCase() && line.unit === 'unit')?.id || null;
+    activeRowId =
+      cart.lines.find(
+        (line) => String(line.code).toLowerCase() === String(product.code).toLowerCase() && line.unit === 'unit',
+      )?.id || null;
     bill.qty = 1;
     q('#eb-qty').value = '1';
     drawLines();
