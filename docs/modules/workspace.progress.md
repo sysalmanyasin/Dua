@@ -1,6 +1,6 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-18
+Updated: 2026-11-19
 
 ## Completed
 
@@ -11,9 +11,9 @@ Updated: 2026-11-18
 - [x] Browser side of Phase 3: `domain/` (validation, permissions, revisions, documents) and `data/` (api, documents, sharing, notes, revisions) with four unit-test files (93 tests).
 - [x] Local checks: clean PostgreSQL 16, every migration applied in order, all database test files pass (65). `npm run lint` and `prettier --check` pass.
 
-## Known problems that are NOT from Workspace
+## Main-branch verification update (19 Nov 2026)
 
-- 15 unit tests fail on a clean `origin/main` at `90e22e7`, identically with and without Workspace: `cover.test.js` (4), `shell.test.js` (4), `ebill-held-page.test.js` (1), `service-worker.test.js` (6, including "file list is up to date: run `node tools/sw-precache.mjs`"). Foundation should look at these before the next CI run: `npm test` is red on main.
+The older failure list below is superseded: the Audit handover records the Home/shell/service-worker test fixes on main, with 1,562/1,562 unit tests and the full database suite passing locally. Deno and workflow lint were not run locally. Re-run the current full workflow before release.
 
 ## Follow-ups noticed by the Supabase advisor (live project)
 
@@ -23,7 +23,7 @@ Updated: 2026-11-18
 
 ## Not yet done
 
-- [ ] Phase 4: ProseMirror (needs the vendored bundle, M-8), editor, sharing and history screens, first route; register `workspace` in `js/modules/index.js` and link `css/workspace.css` in `index.html`.
+- [ ] Phase 4: ProseMirror (needs the vendored bundle, M-8), editor, sharing and history screens, first route; register `workspace` in `js/modules/index.js` and link `css/workspace.css` in `index.html`. Until this passes, Workspace remains backend/domain work and is not an app module.
 - [ ] Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone).
 - [ ] Block-level three-way merge for notes (`domain/conflicts.js`) with the conflict screens, Phase 9.
 - [ ] Regenerate `sw.js` (M-6) when Workspace files are loadable by the app (Phase 4 onward).
