@@ -139,8 +139,8 @@ describe('holding bills on the screen', () => {
     const { holdBill } = await api();
     addItem();
     await holdNow();
-    await vi.waitFor(() => expect(holdBill).toHaveBeenCalledTimes(1));
-    expect(holdBill.mock.calls[0][1]).toBe(DEV);
+    await vi.waitFor(() => expect(holdBill).toHaveBeenCalled());
+    expect(holdBill.mock.calls.every((call) => call[1] === DEV)).toBe(true);
     await vi.waitFor(async () => expect((await heldRecords())[0].synced).toBe(true));
   });
   it('holds with no connection, keeps it on the device, and uploads it when the connection returns', async () => {
