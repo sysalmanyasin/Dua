@@ -1,7 +1,7 @@
 # Emergency Billing: handover for the next session
 
 Read this first, then `docs/modules/ebill.md` (decisions EB-1..EB-8 and what each phase built).
-Written at the end of the session of 17 Nov 2026. Branch `feature/backup-emergency-pos`; `main` is kept in step with it (owner's instruction EB-7).
+Original handover written 17 Nov 2026; status reconciled 19 Nov 2026. `feature/backup-emergency-pos` is now a stale branch ref (0 commits ahead, 16 behind main); the Phase 1–4 implementation is integrated on `main`. Continue new work from current `main`, not from the stale branch.
 
 ## 1. What the module is
 A desktop-first pharmacy POS used when the normal POS (Candela) is down. Emergency invoices live ONLY in Dua (`ebill_*` tables) and are NEVER posted to Sales or Candela. The owner exports history and re-enters transactions by hand (no reconciliation). Route `/ebill` (tabs: Emergency POS, History, Emergency Billing Settings). Reserved migration range **0600-0699**.
@@ -63,8 +63,8 @@ Permissions: `ebill.use` (bill), `ebill.history_all`, `ebill.manage` (manager: d
 8. Known cosmetic point: at a small window height (about 600 px visible) the totals panel scrolls internally; Full screen fixes it. Consider reducing the app header height for `/ebill` only.
 
 ## 6. How to work (environment and gotchas)
-- Repo `https://github.com/sysalmanyasin/Dua` (redirects from `/dua`), site `dua.duapharma.com` (GitHub Pages from `main`; the owner sees live screens after a push). The owner gave a GitHub PAT in chat for pushing; use it only as a one-off `-c http.extraHeader="Authorization: Basic ..."`, never store it, and ask for a fresh one (the old one should be revoked).
-- Others push to `main` often (Inventory, Closing). Always `git fetch`, merge `origin/main` into the feature branch, re-run everything, then fast-forward `main`. If `sw.js` conflicts or its test fails: `node tools/sw-precache.mjs` (the file is generated).
+- Repository: `https://github.com/sysalmanyasin/Dua`; GitHub Pages deployment is from `main`. Continue from current `main`; do not use the stale `feature/backup-emergency-pos` pointer. Never paste, store or reuse a GitHub token from an old session; if a credential was exposed, revoke it and use the approved GitHub connection.
+- Main is the integration baseline. Create a fresh feature branch from current `main`, keep it synchronized, run all checks, then use the repository's approved merge workflow. If `sw.js` conflicts or its test fails: `node tools/sw-precache.mjs` (the file is generated).
 - Checks: `npm run verify` (lint, prettier, vitest, secrets, vendor) and `bash supabase/tests/run.sh` (all migrations in filename order against a scratch Postgres with `supabase/tests/stub_auth.sql`). Both must pass before any push.
 - Local Postgres: `apt-get update && apt-get install -y postgresql postgresql-contrib`, `pg_ctlcluster 16 main start`, `su postgres -c "createuser -s root"`, `export PGUSER=root`. The cluster stops between tool calls: restart it at the start of each DB run.
 - Migrations: numbered by range; apply live by hand with the Supabase MCP `execute_sql` plus an insert into `supabase_migrations.schema_migrations (version, name, statements)` using the repo number (never `apply_migration`, which stamps a timestamp). `execute_sql` returns only the LAST statement's result. Never edit an applied migration: add a new one (0602, 0622 are examples). Migrations run in FILENAME order, so a fix to something created in 0610 cannot be numbered 0603.
