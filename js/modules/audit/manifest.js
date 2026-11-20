@@ -74,7 +74,7 @@ export default {
     {
       path: '/audit/compile',
       desc: 'Progress, compile, differences, corrections, conflicts and the next round',
-      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.view', 'audit.manage', 'audit.report'],
+      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.reopen', 'audit.view', 'audit.manage', 'audit.report'],
       load: () => import('./ui/compile.js'),
     },
     {
