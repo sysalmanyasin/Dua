@@ -99,13 +99,14 @@ function statusLabel(status) {
 
 function navCard(group) {
   const links = group.items.map(
-    (item) => html`<a class="aud-nav-link" href="#${item.path}">
-      <span class="aud-nav-link-copy">
-        <strong>${item.label}</strong>
-        <span class="muted small">${item.description}</span>
-      </span>
-      <span class="aud-nav-arrow" aria-hidden="true">›</span>
-    </a>`,
+    (item) =>
+      html`<a class="aud-nav-link" href="#${item.path}">
+        <span class="aud-nav-link-copy">
+          <strong>${item.label}</strong>
+          <span class="muted small">${item.description}</span>
+        </span>
+        <span class="aud-nav-arrow" aria-hidden="true">›</span>
+      </a>`,
   );
 
   return html`<section class="card aud-card aud-nav-group" aria-label="${group.title}">
@@ -335,9 +336,7 @@ export async function mount(el, { ctx } = {}) {
 
   const groups = navigationGroups(perms);
   const openAssignments = assignments.filter((item) => item.status !== 'revoked');
-  const pendingAssignments = openAssignments.filter(
-    (item) => item.round_state === 'counting' && item.status !== 'submitted',
-  );
+  const pendingAssignments = openAssignments.filter((item) => item.round_state === 'counting' && item.status !== 'submitted');
   const activeRounds = engagementDetails.reduce(
     (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length,
     0,
