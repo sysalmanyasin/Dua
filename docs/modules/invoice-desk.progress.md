@@ -1,6 +1,6 @@
 # Invoice Desk — Progress
 
-Updated: 2026-11-17
+Updated: 2026-11-19
 
 ## Completed
 - [x] Owner-approved scope and isolated `feature/invoice-desk` branch.
@@ -20,6 +20,12 @@ Updated: 2026-11-17
 - [x] Initial domain and SQL amount-words tests added.
 - [x] Live schema, RLS policies, migration registry and amount-word boundary examples inspected.
 
+## Current Git and integration state
+
+- The module ID `invoice-desk` is present in `js/modules/index.js` on `main`; its implementation directory and migrations 1000–1003 are also present on `main`.
+- The earlier branch note below saying `feature/invoice-desk` was not merged is historical and superseded. The branch is not present in the current branch list; continue new work from current `main`.
+- The progress record documents migrations 1000–1003 as applied live to DuaPharmaPlus. Verify the live registry before any further migration.
+
 ## In progress / not yet accepted
 - [ ] Run `npm ci && npm run verify` on this feature branch and fix every reported lint, format or test issue.
 - [ ] Run full `supabase/tests/run.sh` against a clean local Postgres database.
@@ -30,15 +36,15 @@ Updated: 2026-11-17
 - [ ] Physical Windows 80mm printer acceptance.
 
 ## Known limitations
-- The app code is committed but has not yet passed a full branch verification run.
+- The implementation is integrated on `main`, but this progress record does not contain evidence of a full verification run on the integrated main tree.
 - The Safari Book Land workbook contains an embedded image; current renderer is text-based and does not yet embed that logo.
 - Physical printer output and browser-specific page sizing remain unverified.
 - The `invoice_desk.manage` permission exists, but it must be explicitly assigned to the intended owner account through the existing permission workflow. No staff role preset is granted access.
 - Existing Supabase advisor warnings include the intentionally policy-less idempotency tables (direct access is revoked) and the expected authenticated SECURITY DEFINER write RPCs (each checks `has_perm`). Pre-existing unrelated advisor findings were left untouched.
 
-## Git
-- Branch: `feature/invoice-desk`.
-- Not merged to `main`; no merge was authorized.
+## Git history
+- Original implementation branch: `feature/invoice-desk`.
+- Current source and registry are on `main`; do not treat the historical branch note as current state.
 
 ## Supabase
 - Project: DuaPharmaPlus (`sdsynzsflubdxnelgthh`).

@@ -65,6 +65,16 @@ vi.mock('../../js/modules/ebill/data/api.js', () => ({
   offlineGrant: vi.fn(async () => ({ ok: true, secret: 'S3CRET', pin_set_at: '2026-11-01T00:00:00Z' })),
   registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),
   saveInvoice: vi.fn(async () => ({ ok: true, code: 'saved', invoice_no: 'EB-261115-00001' })),
+  getReceipt: vi.fn(async () => ({
+    shop_name: 'Test Pharmacy',
+    tax_no: '0870213-3',
+    pos_no: '99',
+    footer: 'Terms apply',
+    copies: 1,
+    auto_print: false,
+  })),
+  history: vi.fn(async () => ({ rows: [], total: 0 })),
+  invoiceDetail: vi.fn(async () => ({ ok: false })),
 }));
 vi.mock('../../js/modules/ebill/data/device.js', () => ({
   getDeviceId: () => '20000000-0000-0000-0000-000000000001',
@@ -117,7 +127,15 @@ describe('billing screen', () => {
     ])
       expect(el.querySelector(s), s).not.toBeNull();
     expect(el.querySelector('#eb-sp-name').value).toBe('Test Staff');
-    expect(el.textContent).toContain('not live');
+    expect(el.querySelector('#eb-status').textContent).toBe('');
+    expect(el.querySelector('.eb-bar').textContent).not.toContain('Stock copy:');
+    expect(el.querySelector('.eb-sync-why')).toBeNull();
+    expect(el.querySelector('.eb-top [data-act="hold"]')).toBeNull();
+    expect(el.querySelector('.eb-hold [data-act="hold"]')).not.toBeNull();
+    expect(el.querySelector('.eb-hold [data-act="cancel"]')).not.toBeNull();
+    expect(el.querySelectorAll('.eb-lines tbody .eb-filler')).toHaveLength(8);
+    expect(el.querySelector('.eb-lines thead th:last-child').textContent).toContain('Delete');
+    expect(el.querySelector('#eb-sku').placeholder).toContain('F2');
   });
   it('adds a scanned or typed code and totals it', () => {
     type(el.querySelector('#eb-qty'), '3');
@@ -156,6 +174,62 @@ describe('billing screen', () => {
     expect(el.querySelector('[data-edit="qty"]')).toBe(qty); // same element: focus is not lost
     el.querySelector('[data-del]').click();
     expect(el.querySelector('#eb-net').textContent).toBe('0.00');
+  });
+  it('F9 focuses and selects the active row quantity, or the top quantity when no row is active', () => {
+    key(document, 'F9');
+    expect(document.activeElement).toBe(el.querySelector('#eb-qty'));
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const qty = el.querySelector('[data-edit="qty"]');
+    key(sku, 'F9');
+    expect(document.activeElement).toBe(qty);
+    expect(qty.selectionStart).toBe(0);
+    expect(qty.selectionEnd).toBe(qty.value.length);
+  });
+  it('keeps Escape from exiting POS full view and unlocks it only on the Exit button', async () => {
+    const lock = vi.fn(async () => {});
+    const unlock = vi.fn();
+    Object.defineProperty(navigator, 'keyboard', {
+      configurable: true,
+      value: { lock, unlock },
+    });
+    document.documentElement.requestFullscreen = vi.fn(async () => {});
+    const full = el.querySelector('#eb-full');
+    full.click();
+    await tick();
+    expect(lock).toHaveBeenCalledWith(['Escape', 'F11']);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
+    full.click();
+    await tick();
+    expect(unlock).toHaveBeenCalled();
+    expect(document.documentElement.classList.contains('eb-full')).toBe(false);
+  });
+  it('F11 is intercepted, toggles the active pack unit and focuses its quantity', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const event = new KeyboardEvent('keydown', { key: 'F11', bubbles: true, cancelable: true });
+    sku.dispatchEvent(event);
+    const nextQty = el.querySelector('[data-edit="qty"]');
+    expect(event.defaultPrevented).toBe(true);
+    expect(el.querySelector('[data-edit="unit"]').value).toBe('pack');
+    expect(el.querySelector('#eb-net').textContent).toBe('50.00');
+    expect(document.activeElement).toBe(nextQty);
+    expect(nextQty.selectionEnd).toBe(nextQty.value.length);
+  });
+  it('Delete removes a focused billing row', () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'P001';
+    key(sku, 'Enter');
+    const row = el.querySelector('tr[data-id]');
+    row.focus();
+    key(row, 'Delete');
+    expect(el.querySelectorAll('tr[data-id]')).toHaveLength(0);
   });
   it('switching a line to pack re-prices it', () => {
     const sku = el.querySelector('#eb-sku');
@@ -204,10 +278,13 @@ describe('Candela-style layout details', () => {
     box.dispatchEvent(new Event('change', { bubbles: true }));
     expect(el.querySelector('#eb-net').textContent).toBe('90.00');
   });
-  it('offers the Candela receipt types, switched off until printing exists', () => {
+  it('offers the Candela receipt types, all switched on', () => {
     const sel = el.querySelector('#eb-rtype');
     expect([...sel.options].map((o) => o.textContent)).toEqual(['Primary Receipt', 'Gift Receipt', 'Summary Receipt', 'Secondary Receipt']);
-    expect(sel.disabled).toBe(true);
+    expect(sel.disabled).toBe(false);
+    expect(el.querySelector('#eb-print').disabled).toBe(false);
+    expect(el.querySelector('#eb-copies').disabled).toBe(false);
+    expect(el.querySelector('#eb-rsearch').disabled).toBe(false);
   });
   it('Cancel / New clears the bill after confirmation, and only then', () => {
     const sku = el.querySelector('#eb-sku');
@@ -341,6 +418,48 @@ describe('saving', () => {
     expect(el.querySelector('#eb-note').textContent).toContain('switched off by the manager');
     expect(saveInvoice).not.toHaveBeenCalled();
   });
+  it('Ctrl+S opens the same PIN-authorized save flow', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    const event = new KeyboardEvent('keydown', {
+      key: 's',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+    await tick();
+    expect(event.defaultPrevented).toBe(true);
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    expect(saveInvoice.mock.calls[0][1]).toBe('482913');
+  });
+  it('can disable cash received entry without blocking PIN-authorized saving', async () => {
+    const { saveInvoice } = await api();
+    saveInvoice.mockClear();
+    addOne();
+    const toggle = el.querySelector('#eb-cash-entry');
+    expect(toggle).not.toBeNull();
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelector('#eb-cash').disabled).toBe(true);
+    expect(el.querySelector('#eb-cash').value).toBe('0');
+    expect(el.querySelector('[data-out="due"]').textContent).toBe('90.00');
+    el.querySelector('#eb-save').click();
+    await tick();
+    expect(pinBox()).not.toBeNull();
+    pinBox().value = '482913';
+    press('yes');
+    await tick();
+    await tick();
+    expect(saveInvoice).toHaveBeenCalledTimes(1);
+    expect(saveInvoice.mock.calls[0][0].cash_received).toBe(0);
+  });
   it('warns before saving a Cash bill with too little cash', async () => {
     const { saveInvoice } = await api();
     saveInvoice.mockClear();
@@ -447,7 +566,7 @@ describe('desktop screen and Candela-style Product Help', () => {
     for (const gone of ['Return', 'Reason', '✎ Edit', '+']) expect(labels).not.toContain(gone);
     expect(el.querySelector('[aria-label="Customer code"]')).toBeNull();
     expect(el.querySelector('[aria-label="Add customer"]')).toBeNull();
-    for (const b of el.querySelectorAll('button:disabled')) expect(b.textContent).toMatch(/Search receipt|Save invoice/); // only what a later step will switch on
+    for (const b of el.querySelectorAll('button:disabled')) expect(b.textContent).toMatch(/Save invoice/); // only the save button waits, for items
   });
   it('F5 opens Product Help and the browser is not allowed to reload the page', () => {
     const e = f5();
@@ -540,5 +659,124 @@ describe('desktop screen and Candela-style Product Help', () => {
   });
   it('measures where the screen starts so it can fill the rest of the window', () => {
     expect(el.querySelector('.eb').style.getPropertyValue('--eb-top')).toMatch(/^\d+px$/);
+  });
+});
+
+describe('receipts', () => {
+  const api = () => import('../../js/modules/ebill/data/api.js');
+  const printed = [];
+  const stubPrint = () => {
+    printed.length = 0;
+    window.print = vi.fn(() => {
+      printed.push(document.getElementById('eb-print-root')?.textContent ?? '');
+      window.dispatchEvent(new Event('afterprint'));
+    });
+  };
+  const saveOne = async () => {
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'A100';
+    key(sku, 'Enter'); // 90.00
+    type(el.querySelector('#eb-cash'), '100');
+    el.querySelector('#eb-save').click();
+    await tick();
+    el.querySelector('#eb-dialog [data-f="pin"]').value = '482913';
+    el.querySelector('#eb-dialog [data-act="yes"]').click();
+    await tick();
+    await tick();
+  };
+  const choose = (id, v) => {
+    const c = el.querySelector(id);
+    if (c.type === 'checkbox') c.checked = v;
+    else c.value = String(v);
+    c.dispatchEvent(new Event('change', { bubbles: true }));
+  };
+
+  it('does not print when Print receipt is off, but offers a Print receipt button after the save', async () => {
+    stubPrint();
+    await saveOne();
+    expect(window.print).not.toHaveBeenCalled();
+    el.querySelector('[data-act="print-last"]').click();
+    await tick();
+    expect(window.print).toHaveBeenCalledTimes(1);
+    expect(printed[0]).toContain('Test Pharmacy');
+    expect(printed[0]).toContain('Purchase Slip');
+    expect(printed[0]).toContain('STN/NTN# 0870213-3');
+    expect(printed[0]).toContain('Receipt# EB-261115-00001');
+    expect(printed[0]).toContain('Net Payable');
+    expect(printed[0]).toContain('Terms apply');
+    expect(printed[0]).not.toContain('Duplicate'); // the first print of a bill is not a duplicate
+    expect(printed[0]).not.toMatch(/FBR/);
+    expect(document.getElementById('eb-print-root')).toBeNull(); // cleaned up afterwards
+    expect(document.body.classList.contains('eb-printing')).toBe(false);
+  });
+  it('prints the chosen number of copies and type straight after saving', async () => {
+    stubPrint();
+    choose('#eb-print', true);
+    choose('#eb-copies', 2);
+    choose('#eb-rtype', 'Gift Receipt');
+    await saveOne();
+    await tick();
+    expect(window.print).toHaveBeenCalledTimes(1); // both copies go in one print job, one page each
+    expect(printed[0]).toContain('Gift Slip');
+    expect(printed[0]).toContain('Copy 1 of 2');
+    expect(printed[0]).toContain('Copy 2 of 2');
+    expect((printed[0].match(/Duplicate/g) || []).length).toBe(1); // only the second copy
+    expect(printed[0]).not.toContain('Net Payable'); // a gift receipt shows no prices
+  });
+  it('Search receipt finds an earlier invoice and prints it marked Duplicate', async () => {
+    stubPrint();
+    const { history, invoiceDetail } = await api();
+    history.mockResolvedValueOnce({
+      rows: [
+        {
+          invoice_id: 'inv-9',
+          invoice_no: 'EB-261110-00009',
+          client_created_at: '2026-11-10T10:00:00Z',
+          customer: 'Mr Khan',
+          net_total: '90',
+        },
+      ],
+      total: 1,
+    });
+    invoiceDetail.mockResolvedValueOnce({
+      ok: true,
+      invoice: {
+        invoice_no: 'EB-261110-00009',
+        client_created_at: '2026-11-10T10:00:00Z',
+        staff_name: 'J',
+        customer: 'Mr Khan',
+        payment_mode: 'Cash',
+        gross_total: '90',
+        customer_discount: '0',
+        receipt_discount: '0',
+        tax: '0',
+        adjustment: '0',
+        net_total: '90',
+        cash_received: '100',
+        refunded_amount: '0',
+      },
+      lines: [{ code: 'A100', name: 'Test Tablet', unit: 'unit', qty: '1', rate: '90', line_total: '90' }],
+    });
+    el.querySelector('#eb-rsearch').click();
+    await tick();
+    await tick();
+    const row = el.querySelector('#eb-dialog [data-print="inv-9"]');
+    expect(row).not.toBeNull();
+    expect(el.querySelector('#eb-dialog').textContent).toContain('Mr Khan');
+    row.click();
+    await tick();
+    await tick();
+    expect(window.print).toHaveBeenCalledTimes(1);
+    expect(printed[0]).toContain('Duplicate');
+    expect(printed[0]).toContain('Receipt# EB-261110-00009');
+    expect(printed[0]).toContain('Test Tablet');
+  });
+  it('Search receipt says so when nothing matches, and closes with Escape', async () => {
+    el.querySelector('#eb-rsearch').click();
+    await tick();
+    await tick();
+    expect(el.querySelector('#eb-dialog').textContent).toContain('No receipt found');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(el.querySelector('#eb-dialog .eb-modal')).toBeNull();
   });
 });

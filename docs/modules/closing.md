@@ -1,7 +1,7 @@
-> **Status note (14 Nov 2026):** Sessions A to D are on `main`: the 14-section guided ledger and submit, the Credit and Misc ledgers (visible to cashiers, manager and owner) with the 3-inch receipt, `closing_credit_feed`, the Closing Book with print and Save as PDF, CC / RBD / MEDIQ history, Review with reopen-to-correct, and the settings screen (migrations `0201` to `0211`, all applied live). The Closing Book makes the old printed register as a PDF inside the app, and section 6 is the Inventory Audit card. Nothing is left to build; the module waits for the owner's phone try-outs and acceptance. See `docs/modules/closing.progress.md`.
+> **Current status (19 Nov 2026):** Closing's 14-section guided ledger, submit/reopen flow, Credit and Misc ledgers, Manager credit feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review and Settings are integrated on `main` and recorded built in [closing.progress.md](closing.progress.md). Migrations `0201`–`0211` are recorded live. Owner phone try-out #5 and formal acceptance remain. Manager progress also reports live migration `0214_closing_staff_see_all`, but no matching source migration exists in this repository; reconcile the live registry/source before creating or applying another Closing migration. Earlier session entries below are historical handoffs, not current build status.
 
-Status: **Building** (slices C1 + database part of C2–C4 done; no screens yet) · Owner approval: yes (9 Nov 2026, "go")
-Branch: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
+Status: **Built; owner acceptance pending** · Owner approval: yes (9 Nov 2026, "go")
+Branch history: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
 
 > Read `docs/MODULES.md` first. The calculation rules are **already written** in `docs/BUSINESS_RULES.md` §3–7 and the table design in `docs/DATABASE_DESIGN.md` ("closing"). This brief does not repeat them; it tells the session how to build them and what is new.
 

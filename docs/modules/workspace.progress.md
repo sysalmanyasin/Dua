@@ -1,6 +1,6 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-18
+Updated: 2026-11-19 (end of the session that built Phases 2–4; handover: `workspace.next-session.md`)
 
 ## Completed
 
@@ -11,9 +11,18 @@ Updated: 2026-11-18
 - [x] Browser side of Phase 3: `domain/` (validation, permissions, revisions, documents) and `data/` (api, documents, sharing, notes, revisions) with four unit-test files (93 tests).
 - [x] Local checks: clean PostgreSQL 16, every migration applied in order, all database test files pass (65). `npm run lint` and `prettier --check` pass.
 
+- [x] **Merged to `main`** at `468873a` on 19 Nov 2026 (after merging newer `main`; the conflicts were documentation only). Full suite on the merged result: 1,669 unit tests with one failure that also fails on clean `main` (`ebill-page.test.js`), lint, secret scan and vendor check clean, all 71 database test files pass locally on PostgreSQL 16. `prettier --check` fails only on `css/ebill.css`, which also fails on `main`.
+- [x] Documents updated on 19 Nov: PROJECT_STATUS, MODULE_PROGRESS_REGISTER, ROADMAP, CHANGELOG, TESTING, SESSIONS, README (root and docs), DECISIONS (D-41–D-47), DATABASE_DESIGN, SECURITY_MODEL, ADMIN_GUIDE, USER_GUIDE, ARCHITECTURE, MODULES (route rule, registry row), the brief, and the new `workspace.design.md` and `workspace.next-session.md`.
+
+## Needs the owner (cannot be done from here)
+
+- [ ] Revoke the GitHub token that was shared in chat on 18 Nov 2026.
+- [ ] **Try it on a real phone and a desktop browser.** I could only run jsdom: layout, touch selection, the on-screen keyboard, toolbar scrolling, the bottom-sheet dialogs and the Content-Security-Policy are unverified in a real browser. What I did verify by reading the code and bundle: no inline styles or handlers, no network calls, no `eval`, and `innerHTML` only inside ProseMirror's clipboard parser on an inert document.
+- [ ] Sign in as a user who has `workspace.use` + `workspace.create` (grant it to someone; no role carries it) and as a second user with only `workspace.use`; check create, share, edit from two devices, history, restore.
+
 ## Known problems that are NOT from Workspace
 
-- 15 unit tests fail on a clean `origin/main` at `90e22e7`, identically with and without Workspace: `cover.test.js` (4), `shell.test.js` (4), `ebill-held-page.test.js` (1), `service-worker.test.js` (6, including "file list is up to date: run `node tools/sw-precache.mjs`"). Foundation should look at these before the next CI run: `npm test` is red on main.
+- `tests/unit/ebill-page.test.js` (cash received entry) fails on clean `main`, and `css/ebill.css` fails `prettier --check` on `main`; both belong to the Emergency Billing work. The earlier failures in cover, shell and service-worker tests were fixed on `main` by another session (see the Audit handover's main-branch verification note).
 
 ## Follow-ups noticed by the Supabase advisor (live project)
 
@@ -23,10 +32,11 @@ Updated: 2026-11-18
 
 ## Not yet done
 
-- [ ] Phase 4: ProseMirror (needs the vendored bundle, M-8), editor, sharing and history screens, first route; register `workspace` in `js/modules/index.js` and link `css/workspace.css` in `index.html`.
-- [ ] Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone).
-- [ ] Block-level three-way merge for notes (`domain/conflicts.js`) with the conflict screens, Phase 9.
-- [ ] Regenerate `sw.js` (M-6) when Workspace files are loadable by the app (Phase 4 onward).
+- [ ] Phase 5: workbooks and the spreadsheet grid (`1102`, which also pins `search_path` on the four trigger-guard functions).
+- [ ] Phase 1 prototype checks in a real browser (CSP with `wss:` for Realtime, grid performance on a phone) before Phases 5 and 9.
+- [ ] Router: a route with an id segment would allow shareable links (Foundation request, not made yet).
+- [ ] Block-level three-way merge and the Compare screen for note conflicts (`domain/conflicts.js`), Phase 9.
+- [ ] Register the service worker for Workspace and keep the note editable offline (M-2, M-3, M-6), Phase 8.
 
 ## Notes for the next session
 
@@ -35,3 +45,5 @@ Updated: 2026-11-18
 - Edit `tests/fixtures/workspace-note-cases.json`, then run `node tools/workspace-note-cases.mjs`; a unit test fails if the generated SQL is stale. The browser and database validators must agree on every case.
 - Editors cannot rename documents (owner only, per the approved matrix). Say so if that should change.
 - Applying a migration by hand: read the live registry first, run the file as one batch, insert the registry row with the repo number in the same batch, then compare function bodies with comments stripped.
+- Workspace pages are tested by mocking the data layer (`tests/unit/workspace-pages.test.js`); the editor by running the real vendored ProseMirror in jsdom. Any change to the schema must keep `tests/unit/workspace-editor-model.test.js` passing: it proves the editor and the validators agree.
+- Block ids: turning a paragraph into a heading keeps its id; splitting a block copies it and `docToNote` gives the copy a fresh id.

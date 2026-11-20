@@ -1,4 +1,4 @@
-// Diff Report: Total Sale minus COMP SALE, by month with a running total. Tap a month for its days.
+// Diff Report: Total Sale minus COMP SALE, by month with a running total. Tap a month for its details.
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import { longDate, money, monthLabel, signed } from '../../../shared/format.js';
@@ -9,12 +9,13 @@ import { diffClass, errorCard, loadingCard } from './parts.js';
 export async function mount(el) {
   render(el, loadingCard());
   let days;
+  let history;
   try {
-    days = await api.listDays();
+    [days, history] = await Promise.all([api.listDays(), api.listMonthlyHistory()]);
   } catch {
     return render(el, errorCard('the diff report'));
   }
-  const months = buildDiffReport(days);
+  const months = buildDiffReport(days, history);
   const byMonth = new Map(months.map((m) => [m.month, m]));
 
   render(
@@ -33,7 +34,8 @@ export async function mount(el) {
         (m) =>
           html`<details class="month" data-month="${m.month}">
             <summary>
-              <span class="m-name">${monthLabel(`${m.month}-01`)}</span><span class="m-total ${diffClass(m.diff)}">${signed(m.diff)}</span>
+              <span class="m-name">${monthLabel(`${m.month}-01`)}${m.monthlyOnly ? ' · Monthly figures only' : ''}</span
+              ><span class="m-total ${diffClass(m.diff)}">${signed(m.diff)}</span>
               <span class="m-sub">run ${signed(m.cumulative)}</span>
             </summary>
             <div class="month-body" data-filled="0"></div>
@@ -49,38 +51,40 @@ export async function mount(el) {
       const body = d.querySelector('.month-body');
       if (body.dataset.filled === '1') return;
       const m = byMonth.get(d.dataset.month);
+      const monthlyNote = m.monthlyOnly ? html`<p>Monthly figures only. Daily breakdown was not imported for this month.</p>` : '';
       render(
         body,
-        html`<table class="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th class="num">Total</th>
-              <th class="num">Comp</th>
-              <th class="num">Diff</th>
-              <th class="num">Running</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${m.days.map(
-              (x) =>
-                html`<tr>
-                  <td>${longDate(x.date).slice(0, -5)}</td>
-                  <td class="num">${money(x.total)}</td>
-                  <td class="num">${money(x.comp_sale)}</td>
-                  <td class="num ${diffClass(x.diff)}">${signed(x.diff)}</td>
-                  <td class="num ${diffClass(x.running)}">${signed(x.running)}</td>
-                </tr>`,
-            )}
-            <tr class="sum">
-              <td>Month</td>
-              <td class="num">${money(m.total)}</td>
-              <td class="num">${money(m.comp_sale)}</td>
-              <td class="num ${diffClass(m.diff)}">${signed(m.diff)}</td>
-              <td></td>
-            </tr>
-          </tbody>
-        </table>`,
+        html`${monthlyNote}
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th class="num">Total</th>
+                <th class="num">Comp</th>
+                <th class="num">Diff</th>
+                <th class="num">Running</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${m.days.map(
+                (x) =>
+                  html`<tr>
+                    <td>${longDate(x.date).slice(0, -5)}</td>
+                    <td class="num">${money(x.total)}</td>
+                    <td class="num">${money(x.comp_sale)}</td>
+                    <td class="num ${diffClass(x.diff)}">${signed(x.diff)}</td>
+                    <td class="num ${diffClass(x.running)}">${signed(x.running)}</td>
+                  </tr>`,
+              )}
+              <tr class="sum">
+                <td>Month</td>
+                <td class="num">${money(m.total)}</td>
+                <td class="num">${money(m.comp_sale)}</td>
+                <td class="num ${diffClass(m.diff)}">${signed(m.diff)}</td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>`,
       );
       body.dataset.filled = '1';
     },

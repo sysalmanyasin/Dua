@@ -4,22 +4,28 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 
 **Live application:** https://sysalmanyasin.github.io/Dua/  
 **Canonical status:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)  
+**Full module register:** [docs/MODULE_PROGRESS_REGISTER.md](docs/MODULE_PROGRESS_REGISTER.md)  
 **Repository:** https://github.com/sysalmanyasin/Dua
 
-## Current project status (13 Nov 2026)
+## Current project status (19 Nov 2026)
 
 | Area | Status |
 |---|---|
-| Foundation, authentication, permissions and Sales | Integrated; live |
-| Manager | Integrated; migrations 0101–0103 applied and checked live; owner phone try-out pending |
-| Closing | Integrated; guided ledger is partially implemented; submit, remaining sections and ledgers still pending |
-| Candela / Dropbox inventory feed | Integrated and live: hourly changed-rows-only sync (migrations 0301–0307, Edge Function v23) |
-| Inventory screens and local product copy | Integrated and live: Overview, Stock Ledger, Reorder, Excess Working, Health, Sync; a Stock row on Home; Excel, PDF and CSV exports |
-| Daily encrypted backups | Workflow live; first successful Drive backup recorded 13 Nov; real Drive-to-separate-Supabase restore drill still pending |
-| Candela Sales | Integrated; migration 0900 applied and checked live 14 Nov; owner phone try-out pending |
-| STR, Audit Hub, Emergency Billing, unified Reports, assistant and Android widgets | Planned / later phases |
+| Foundation, Access and Tools | Integrated; authentication/permissions and operational tooling recorded live |
+| Home and Sales | Integrated; real-device acceptance and real Gmail send verification remain |
+| Manager | Integrated; migrations 0101–0108 recorded live; owner phone acceptance and real Closing inbox check remain |
+| Closing | Main UI and ledger/book/review/settings flows built; owner acceptance and migration-registry reconciliation remain |
+| Inventory | Feed and six screens integrated/live; real-phone PDF check and sync cleanup remain |
+| STR and Candela Sales | Integrated/live; owner phone acceptance remains |
+| Audit | A1–C1 integrated/live; phone acceptance, C2 barcode (paused) and hardening remain |
+| Emergency Billing | Phases 1–4 integrated/live; Phase 5 UI and migrations 0633/0634/0640/0641 remain |
+| Invoice Desk | Integrated on main; migrations 1000–1003 recorded live; full test and physical-printer acceptance remain |
+| Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101 recorded live; Sheets, offline sync and attachments not built; real-phone acceptance outstanding |
+| Unified Reports, assistant and Android | Future work |
 
-**Important:** a feature can be live in Supabase while its latest source is still on a feature branch. See [Project status](docs/PROJECT_STATUS.md) and [module progress files](docs/modules/).
+The full module-by-module evidence, branch comparison and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md).
+
+**Important:** “integrated”, “live”, “tested” and “accepted” are different states. Live deployment statements are recorded in module progress files and have not all been freshly rechecked against Supabase during this documentation update. Old progress-file test counts are historical and must not be added together.
 
 ## Read this first
 
@@ -31,6 +37,7 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | building a module | `docs/MODULES.md`, `docs/ARCHITECTURE.md`, `docs/DATABASE_DESIGN.md`, `docs/SECURITY_MODEL.md` |
 | checking business rules | `docs/BUSINESS_RULES.md`, `docs/DECISIONS.md` |
 | checking test evidence | `docs/TESTING.md` |
+| checking module progress | `docs/MODULE_PROGRESS_REGISTER.md`, `docs/modules/*.progress.md` |
 | planning work | `docs/PROJECT_STATUS.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `PROJECT_PROGRESS.md` |
 
 ## Local development

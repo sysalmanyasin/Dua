@@ -4,7 +4,7 @@ Written 11 Nov 2026 from `main` (`e635e23`) and `module/closing` (`3592512`). Ma
 Three Claude sessions run at the same time. Sessions have no memory (MODULES.md §0.3): this file and the three work orders are what keep them from colliding.
 
 
-> **Update, 18 Nov 2026.** The table in §1 is the 11 Nov plan and is historical: `module/inventory`, `module/closing`, `module/manager` and the other early branches no longer exist (merged, then deleted). Current working branches: **`module/audit-a5`** (Audit, migrations 0400–0499), **`feature/backup-emergency-pos`** (Emergency Billing, 0600–0699) and **`module/workspace`** (Workspace: Notes & Sheets, 1100–1199). Closing work continues from `main`. Everything else rule-wise below still holds. New sessions start with `git fetch && git merge origin/main`; the Audit, Emergency Billing and Workspace work orders are `docs/modules/audit.next-session.md`, `docs/modules/ebill.md` and `docs/modules/workspace.progress.md`.
+> **Current branch update, 19 Nov 2026.** The 11 Nov plan in §1 and the 18 Nov branch list below are historical. GitHub currently reports `main` plus nine non-main branches; every non-main branch is 0 commits ahead of `main` and behind it. None contains unique commits to merge. Treat them as stale refs, not active work branches. Start all new work from current `main`; do not merge these stale pointers. The owner may decide whether to delete/archive them. See `docs/MODULE_PROGRESS_REGISTER.md` for the exact branch-by-branch comparison and current module state. Module work orders remain useful as specifications, but progress files and the register are the current handoff sources.
 
 ## 1. The three sessions (11 Nov 2026, historical)
 
@@ -106,3 +106,7 @@ Stay inside your module's files and migration range. Ask the owner your question
 building. Never apply migrations to the live project, never paste or store a token, and never put real
 names, numbers or amounts in the repo. At the end, list every file you changed.
 ```
+
+## Workspace (19 Nov 2026)
+
+Notes (Phase 4) are merged to `main` and registered. The branch `module/workspace` was merged and should be recreated from current `main` for new work. A new Workspace session starts with `docs/modules/workspace.next-session.md`, then `docs/modules/workspace.md` (brief and owner decisions), `docs/modules/workspace.design.md` (design for Sheets, offline sync and attachments) and `docs/modules/workspace.progress.md` (evidence). Workspace owns migrations `1100`–`1199`; `1102`–`1104` are reserved for sheets, synchronisation and attachments.

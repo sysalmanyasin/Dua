@@ -17,10 +17,15 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
   createRound: vi.fn(),
   setMember: vi.fn(),
   createEngagement: vi.fn(),
+  listCompanies: vi.fn(async () => [
+    { company: 'Acme', skus: 2, value: 1025 },
+    { company: 'Beta, Inc', skus: 1, value: 440 },
+  ]),
 }));
 const api = await import('../../js/modules/audit/data/api.js');
 const { mount: mountRound } = await import('../../js/modules/audit/ui/round.js');
 const { mount: mountHub } = await import('../../js/modules/audit/ui/hub.js');
+const { mount: mountAudits } = await import('../../js/modules/audit/ui/engagements.js');
 const { setView } = await import('../../js/modules/audit/domain/nav.js');
 
 const people = [
@@ -138,5 +143,42 @@ describe('audit hub', () => {
     await mountHub(el2, { ctx: { permissions: ['audit.manage', 'users.manage'] } });
     expect(el2.querySelector('a[href="#/audit/team"]')).not.toBeNull();
     expect(el2.querySelector('a[href="#/audit/engagements"]')).not.toBeNull();
+  });
+});
+
+describe('new audit company list', () => {
+  it('lets the owner tick companies from the stock list, including names that contain a comma', async () => {
+    api.createEngagement.mockResolvedValueOnce('eng-new');
+    const el = document.getElementById('root');
+    await mountAudits(el, { ctx: { permissions: ['audit.manage'] } });
+    expect(el.querySelector('input[data-company]')).toBeNull(); // full stock needs no list
+    const scope = el.querySelector('select[data-f="scope"]');
+    scope.value = 'selected';
+    scope.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelectorAll('input[data-company]').length).toBe(2);
+    expect(el.textContent).toContain('2 SKUs · Rs 1,025');
+    const beta = [...el.querySelectorAll('input[data-company]')].find((i) => i.dataset.company === 'Beta, Inc');
+    beta.checked = true;
+    beta.dispatchEvent(new Event('change', { bubbles: true }));
+    el.querySelector('button[data-act="create"]').click();
+    await tick();
+    expect(api.createEngagement.mock.calls[0][0]).toMatchObject({ scopeType: 'selected', companies: ['Beta, Inc'] });
+  });
+
+  it('keeps one company at a time for a single-company audit, and falls back to typing if the list cannot load', async () => {
+    const el = document.getElementById('root');
+    await mountAudits(el, { ctx: { permissions: ['audit.manage'] } });
+    const scope = el.querySelector('select[data-f="scope"]');
+    scope.value = 'single';
+    scope.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelectorAll('input[type="radio"][data-company]').length).toBe(2);
+    api.listCompanies.mockRejectedValueOnce(new Error('offline'));
+    const el2 = document.createElement('div');
+    document.body.append(el2);
+    await mountAudits(el2, { ctx: { permissions: ['audit.manage'] } });
+    const s2 = el2.querySelector('select[data-f="scope"]');
+    s2.value = 'selected';
+    s2.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el2.querySelector('input[data-f="companies"]')).not.toBeNull();
   });
 });

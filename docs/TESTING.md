@@ -1,12 +1,18 @@
 # Testing and verification
 
-**Status snapshot:** 13 November 2026. This document separates test evidence from real-device / production verification.
+**Status snapshot:** 19 November 2026. This document separates automated test evidence from live deployment and real-device acceptance.
 
-## Current recorded test status
+## Latest recorded verification
 
-The latest `main` entry in `PROJECT_PROGRESS.md` reports **357 unit/jsdom tests** and a full database suite including Closing, Manager and Inventory. Earlier module progress files report counts from different snapshots (Manager: 294 unit tests / 385 DB checks; Closing: 351 unit tests at its Session A snapshot; Inventory: 242 at its earlier A0/A stage). These are not additive and must not be presented as one total.
+The 19 Nov 2026 Audit handover records the following local result on the merged main tree:
 
-For release decisions, use the current GitHub Actions run and rerun the commands below. Do not treat a dated count as proof that the current checkout passes.
+- `npm run verify`: lint, format, secret and vendor checks passed; **1,562 / 1,562 unit tests passed**.
+- `bash supabase/tests/run.sh`: full local PostgreSQL database suite passed.
+- Deno Edge Function type checks and workflow lint were **not run locally** in that session.
+
+This is dated repository evidence, not a test run performed by this documentation update. The GitHub commit-status endpoint returned no status entries for the inspected main HEAD, so a fresh green GitHub Actions run is not independently confirmed here. Before release, run the full workflow on current main and inspect each job.
+
+Do not add module-specific test counts from different dates/branches. They overlap and are not a current global total.
 
 ## Test suites
 
@@ -14,8 +20,9 @@ For release decisions, use the current GitHub Actions run and rerun the commands
 |---|---|---|
 | Front-end unit and page tests | `npm test`; `tests/unit/` | Domain calculations, parsing, permission registry, page interactions in jsdom, save/retry/conflict, view-only states, print/copy and Gmail dialogs |
 | Repository checks | `npm run lint`, `npm run format:check`, `npm run check:secrets`, `npm run check:vendor` | Style, unsafe DOM patterns, secret leakage and vendored-file hashes |
+| Combined repository verification | `npm run verify` | Runs the repository's configured app checks |
 | Database tests | `bash supabase/tests/run.sh` | Rebuilds a clean local PostgreSQL database from repository migrations, then checks RLS, grants, permissions, validation, idempotency, immutable records and module-specific rules |
-| Edge Function checks | CI Deno checks | Type-checks the Edge Functions included in the workflow |
+| Edge Function checks | CI Deno checks in `.github/workflows/ci.yml` | Type-checks the Edge Functions listed in the workflow |
 | Workflow lint | CI actionlint step | Checks GitHub Actions workflow syntax |
 
 ## How to run
@@ -26,30 +33,42 @@ npm run verify
 bash supabase/tests/run.sh
 ```
 
-The database runner needs a local PostgreSQL instance and `PGUSER`. GitHub Actions runs the repository checks on pushes and pull requests; inspect the actual run rather than assuming it passed.
+The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow also runs Deno and actionlint; local `npm run verify` alone does not prove those jobs passed. Inspect the actual GitHub Actions run.
 
-## Shared fixtures and real-data evidence
+## Recorded module-specific evidence
 
-- `tests/fixtures/sales-total-cases.json` is shared by browser maths and database tests for Sales TOTAL calculations.
-- The historical Sales import covered 2,379 days. The project record says 2,378 totals reproduce exactly under the signed rule; 79 of 80 monthly totals matched, with the documented September 2026 difference of 5,674.
-- Closing uses hand-worked fixtures in `tests/fixtures/closing-cases.json` and `closing-period-cases.json`; database and JavaScript calculations are compared against those fixtures.
-- Manager credit maths uses `tests/fixtures/manager-credit-cases.json` in both SQL and browser tests.
-- Inventory's delta-feed tests include paging, permissions, tombstones, removal guard, heartbeat and unique sequence counters. The 17 Nov additions are `tests/unit/inventory-xlsx.test.js` (the Excel writer: zip checksums, XML, text-never-a-formula, leading zeros, Unicode, sheet names), `tests/unit/inventory-export.test.js` (file names, export kinds, print limit and number formatting), the Excel / PDF cases in `tests/unit/inventory-screens.test.js`, and the Stock row cases in `tests/unit/cover.test.js`. The database test for `0307` is `supabase/tests/0307_inventory_apply_body_test.sql`. See `docs/modules/inventory.progress.md`.
+- Audit progress records DB tests through migrations 0401–0410 and unit/page tests for counting, compile, reports, final snapshot and expiry. Its 19 Nov handover records the full main test suite at 1,562 unit tests and the database suite passing.
+- Manager progress records a 2,434-check DB suite and 1,267 unit tests at its 17 Nov snapshot. These are historical module-session totals, not additive to the current main total.
+- Closing progress records successive DB and page tests through 0211; its individual session counts are historical snapshots.
+- Inventory progress records feed/delta, export, sync and screen tests; individual counts are from earlier snapshots.
+- Workspace (Phase 4, 19 Nov 2026): 176 unit tests in eight files (`tests/unit/workspace-*.test.js`: validation, permissions, revisions/documents/data layer, editor model, autosave, editor, pages) and database tests `1100_workspace_core_test.sql` (149 checks), `1101_workspace_notes_test.sql` (115 checks) and the generated `1101_workspace_note_cases_test.sql` (37 cases). The editor tests run the real vendored ProseMirror in jsdom; the page tests mock the data layer. After merging `main`, the full suite was 1,669 unit tests with one failure that also fails on clean `main` (`ebill-page.test.js`, cash-received entry) and 71 database test files passing.
+- Invoice Desk progress records initial domain and SQL amount-words tests, but explicitly says full repository verification, full DB suite and E2E/RLS coverage still need to be run with the integrated main tree.
+- Shared fixtures include Sales totals, Closing calculations/periods, Manager credit and Workspace note validation. Browser and SQL rules should remain in parity where fixtures are shared.
 
-## Live verification recorded
+## Live verification recorded (not independently re-run here)
 
-- Inventory migrations 0301–0304 and Edge Function v14 were applied and verified on DuaPharmaPlus on 12 Nov 2026, with hourly sync checks and a full first-install feed test. Migrations 0305–0306 followed. On 17 Nov 2026 `0307` and Edge Function v23 were applied; the live function body matches the file (same length and hash), the function is granted to the service role only, and five scheduled syncs in a row succeeded afterwards. The `0307` database test file has **not** been run against a database yet (no local Postgres was available when it was written); run `bash supabase/tests/run.sh` before treating it as passed.
-- Manager progress reports migrations 0101–0103 applied and checked live on 13 Nov 2026.
-- Foundation progress reports the first successful encrypted Drive backup on 13 Nov 2026.
-- A local backup restore round-trip passed 39/39 checks. This does **not** prove restoration from an actual Drive backup into a separate Supabase project.
+- Inventory migrations 0301–0308 and Edge Function v23 are recorded live; hourly sync has recorded successful runs. Real-phone PDF acceptance and sync fallback cleanup remain.
+- Manager migrations 0101–0108 are recorded live and registered; Credit Inbox still needs a real Closing-data test.
+- Closing migrations 0201–0211 are recorded live in progress notes. A live-only 0214 migration is reported by Manager progress but has no matching repository migration file; resolve this drift before further database work.
+- STR migrations 0500–0504 and scheduled archive/overdue jobs are recorded live.
+- Emergency Billing 0601/0602, 0610–0612, 0620–0622 and 0630–0632 are recorded live. Migrations 0633/0634/0640/0641 are documented as not applied live.
+- Audit migrations 0401–0410 and Inventory 0308 are recorded live.
+- Candela Sales 0900 is recorded live.
+- Invoice Desk migrations 1000–1003 are recorded live in its progress file.
+- Workspace migrations 1100 and 1101 are recorded live in its progress file.
+
+These statements come from module progress records. Before production changes, query the actual live migration registry and verify the deployed function bodies.
 
 ## Not yet proven / gaps
 
-- A complete real-device acceptance pass for the newest Sales, Manager and Closing pages.
-- Real Gmail sending from the deployed origin with the owner's Google account.
-- A restore drill from a real encrypted Drive backup into a separate, empty Supabase project.
-- Load, long-running, offline and low-memory behaviour on the actual pharmacy phones.
-- Full browser end-to-end automation (Playwright) and production error monitoring (Sentry).
-- Inventory's full screen set and local-copy flow; the live feed alone does not mean the Inventory module is complete.
+- Fresh green GitHub Actions run on current main, including Deno and actionlint jobs.
+- Complete real-device acceptance for the current UI across the pharmacy's Android/desktop devices.
+- Real Gmail send from the deployed origin with the owner's Google account.
+- A restore drill from a real encrypted Drive backup into a separate empty Supabase project.
+- Load, long-running, offline and low-memory behaviour on actual pharmacy phones.
+- Invoice Desk full save/product/history/RLS E2E tests and physical printer output.
+- Emergency Billing Phase 5 screens and real-device print/export acceptance.
+- Workspace Notes real-phone and two-account acceptance (jsdom only so far: layout, touch selection, on-screen keyboard, bottom-sheet dialogs and the Content-Security-Policy are unverified in a real browser).
+- Playwright browser end-to-end automation and Sentry production monitoring.
 
-A test passing in jsdom or local PostgreSQL is evidence for that test scope only. It is not evidence of real-device usability, Google integration, production restore or every live permission path.
+A passing jsdom or local PostgreSQL test proves only its test scope. It does not prove real-device usability, Google integration, production restore, or every live permission path.

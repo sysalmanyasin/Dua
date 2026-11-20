@@ -1,91 +1,80 @@
 # Project status — canonical snapshot
 
-**Snapshot date:** 18 November 2026  
+**Snapshot date:** 19 November 2026  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
+**Code baseline inspected:** [`a1737f1`] (documentation commits follow)(https://github.com/sysalmanyasin/Dua/commit/a1737f14931e032809fc94e138673bf28ddbf8ef)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
-**Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
+**Recorded Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
 
-This file is the current status summary. Older dated entries in `PROJECT_PROGRESS.md` and `docs/CHANGELOG.md` are historical snapshots, not statements of today's status. When status differs, use this file plus the module's latest progress file.
+This is the concise operational snapshot. For per-module evidence, migration notes, outstanding work and branch comparisons, see [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md). Module-specific progress files remain the detailed evidence. Older dated entries in `PROJECT_PROGRESS.md` and `docs/CHANGELOG.md` are historical records.
 
 ## Status vocabulary
 
-- **Integrated** — implementation is present on `main`.
-- **Live** — migration/function or operational change has been applied to the named Supabase project and checked, as recorded by the responsible session.
-- **In progress** — some implementation exists, but the module or slice is incomplete.
-- **Pending** — not yet implemented, not yet integrated, or awaiting owner action; the exact blocker is stated.
+- **Integrated** — application source is on `main` and the module is registered in `js/modules/index.js`.
+- **Backend / not registered** — database/domain work exists but the module is not exposed through the app registry.
+- **Live (recorded)** — a dated module progress file records that the migration/function was applied and checked in DuaPharmaPlus; not a fresh check performed by this document.
+- **Built; acceptance pending** — implementation and recorded tests exist, but owner/device acceptance remains.
+- **In progress** — approved scope is only partly implemented.
+- **Planned** — not implemented as an application module.
 
-## Module status
+## Registered module status
 
-| Area | Repository status | Live status | Remaining work |
+| Module | Main status | Live status recorded in repository | Remaining work |
 |---|---|---|---|
-| Foundation / authentication / permissions | Integrated | Live and owner-accepted | Operational hardening and separate production environment remain |
-| Sales | Integrated; core pages, reports, targets, fields, Cover and Gmail-send flow are implemented | Sales migrations and imported history are live | Owner's full real-device try-out; Google Cloud origin / real Gmail send verification; remaining dependent features below |
-| Manager | Integrated on `main`; Staff Registry, Staff Credit, Salary, Generic Sheet, Incentive, Petty Cash, Expenses, Jazz Cash, Misc Sections and Balance Tally implementation is recorded in the module progress file | Migrations 0101–0107 applied and checked live on 17 Nov 2026; `0108` Credit Inbox pushed 17 Nov (live status in `docs/modules/manager.progress.md`, Session M-D) | Owner phone acceptance (try-outs #2–#4); try the inbox on real Closing data; Attendance later |
-| Closing | Integrated on `main`; module shell and partial guided ledger are present. `feat/closing-staff-mobile-ux` (PR #32: staff-only ledger access, mobile swipe) was merged on 18 Nov 2026 and its branch removed; its changes already matched `main` | Database work through the documented 020x slices is in the repository; verify exact live registry before further apply | Sections 6–14, submit flow, ledgers/feed, print and remaining screens; owner phone try-out |
-| Inventory feed | Integrated; migrations 0301–0307 and Edge Function v23 source are on `main` | Live and registered; hourly sync at minute 0 | `0307` (17 Nov 2026) ended the hourly statement-timeout failures and was applied by hand, then registered. The function still falls back to the old call if `0307` is missing; remove the fallback after a few clean days |
-| Inventory screens / local copy / reports | Integrated: six screens, phone-local copy, Stock row on Home, Excel / PDF / CSV exports | Live; no migration needed for the screens | Real-phone check of the PDF print dialog on the pharmacy phones is still worth doing |
-| Candela Sales | Integrated on `main`: owner screens (Overview, Daily History, Credit by Customer, Reports) and the staff-safe "Candela today" status pill | Migration 0900 applied by hand and registered on 14 Nov; first capture of the 4 feed days and 8 customer rows checked | Owner phone try-out; confirm the next hourly sync adds days; optional import of days before 11 Nov if a source exists |
-| STR | Specification and decisions recorded in Inventory progress/brief | Existing STR source tables arrive through the feed | Separate STR module (0500–0599) is planned; not complete |
-| Audit | Integrated on `main` (19 Nov 2026): A1–A5 (core, counting, compile, shell/team, outbox/counting screen), B1 (review, corrections, conflicts, follow-up rounds), `0408` fresh stock, Individual Audit by company, B2 (Final Snapshot, reports with CSV and print/PDF, audit trail, owner alerts), C1 (Expiry register, racks, monthly rack assignment); C2 Barcode built on `module/audit-c2` (awaiting merge) | Migrations `0401`–`0410` and Inventory `0308` applied live on 17–19 Nov and registered (`0409_audit_final_reports`, `0410_audit_expiry` on 19 Nov); details in `docs/modules/audit.progress.md`; verify the live registry before the next apply | Real-phone tests PHONE 1 and PHONE 2; try B2 print/PDF and CSV on a real phone and desktop; apply `0411` live and confirm; merge C2; PHONE 3 (scanner); D Hardening and acceptance |
-| Emergency Billing (`ebill`) | Integrated on `main`: Phases 1–4 (billing screen, PIN-checked save, devices, offline billing and sync, held bills, history, refunds and corrections) | `0601`–`0622` applied by hand on 15 Nov 2026 per `docs/modules/ebill.md`; confirm the live registry for `0612` and `0630`–`0632` before relying on them | Phase 5: receipt printing and print settings, one settings page, CSV / Excel / PDF exports of history; owner try-out on a real device |
-| Workspace (Notes & Sheets) | Brief and Phase 2 database core (`1100_workspace_core.sql` plus its DB test) merged into `main` on 18 Nov 2026; no screens yet | **Not applied live.** Owner action: read the live registry, apply `1100` by hand and register it as `1100` | CI run on the branch; Phase 1 prototypes (CSP with ProseMirror, `wss:`, bundle size, grid on a phone); Phase 3 `1101_workspace_notes.sql` (note revisions) |
-| Unified Reports, assistant, Android widgets | Planned | Not live as Dua modules | Future roadmap |
+| Foundation / Access | Integrated; authentication, MFA gate, roles, per-person permissions and user access. | Foundation is recorded live and owner-accepted. | Production/staging separation, operational hardening and security-advisor follow-up. |
+| Tools | Integrated; notifications, backup workflow and operations status. | Daily encrypted Drive backup and monitoring are recorded live. | Real Drive-backup restore into a separate empty Supabase project; keep monitoring. |
+| Home | Integrated; Home 2.0 redesign in main. | Uses existing permission-aware summary RPCs; no new migration. | Real-device acceptance and fresh CI confirmation. |
+| Sales | Integrated; entry, checklist, dashboard, reports, targets, fields and Gmail-send flow. | Sales migrations and imported history recorded live. | Owner phone acceptance and real Gmail send from deployed origin; dependent extras remain decision-based. |
+| Manager | Integrated; Staff Registry, Staff Credit, Salary, Generic, Incentive, Petty Detail, Expenses, Jazz Cash, Misc, Balance Tally, Inbox and reports. | Migrations 0101–0108 recorded applied/registered live. | Phone try-outs #2–#4; verify Credit Inbox using real Closing feed. Attendance is later. |
+| Closing | Integrated; 14-section ledger, submit, ledgers/feed, Closing Book/PDF, history, review/reopen and settings are recorded built. | Module progress records 0201–0211 as applied/live. Manager progress reports live migration 0214 absent from repository; reconcile before another Closing migration. | Owner try-out #5, acceptance, live registry/source parity, decision on audit gate. |
+| Inventory | Integrated; feed, six screens, Home stock row and Excel/PDF/CSV exports. | 0301–0308 and Edge Function v23 recorded live. | Real-phone PDF check; remove legacy sync fallback after stable operation and verify failed-sync monitoring. |
+| STR | Integrated; list, detail, report, zero-dispatch, archive and overdue notifications. | 0500–0504 and scheduled jobs recorded live. | Phone try-outs #1/#2, owner acceptance, supplier/pack metadata and Foundation presentation follow-ups. |
+| Candela Sales | Integrated; four owner screens and staff-safe daily total pill. | 0900 and initial history capture recorded live. | Owner phone acceptance and confirmation that hourly history capture continues. |
+| Emergency Billing | Integrated; Phases 1–4 including offline billing, sync, holds, history, whole-invoice refunds and corrections. | 0601/0602, 0610–0612, 0620–0622 and 0630–0632 recorded live. | Phase 5 incomplete: 0633/0634/0640/0641 are documented in repo but not live; partial refund, receipt/settings/search and exports UI not built. Then Phase 6 hardening. |
+| Audit | Integrated; slices A1–A5, B1, B2, C1 expiry/racks and C2 Barcode (Center, scanner, hybrid counting, shared outbox). | 0401–0410 and Inventory 0308 recorded live; `0411_audit_barcode` written and DB-tested but NOT yet applied live (apply it before using barcodes; the app works without it). | Apply 0411 and confirm; real-phone PHONE 1/2/3 (`docs/modules/audit.phone-tests.md`) and print/CSV checks; then hardening. |
+| Invoice Desk | Integrated and registered on main; three template-based invoice flows, product/history and 80mm print path. | 1000–1003 recorded live in its progress file. | Correct stale handover; run full checks and add E2E/RLS coverage; verify workbook layout/logo and real printer/browser acceptance. |
+| Workspace (Notes) | Integrated and registered on main (19 Nov 2026, Phase 4): home with search and personal folders, rich-text editor with autosave, sharing (owner/editor/viewer), history and restore, archive/delete. **Sheets are not built.** | 1100–1101 recorded live and checked against the tested copy (18 Nov 2026). | Real-phone and two-account owner acceptance (jsdom only so far); Phase 5 Sheets; later offline and conflict-merge phases. See `docs/modules/workspace.next-session.md`. |
 
-## Operational status
+## Not yet an application module
 
-| Capability | Current evidence | Remaining caveat |
+**Workspace Sheets** (workbooks, grid, formulas, CSV), Workspace offline editing and synchronisation, and attachments are designed (`docs/modules/workspace.design.md`) but not built.
+
+**Unified Reports, assistant/AI and Android widgets** remain planned, not registered application modules.
+
+## Operational and test status
+
+| Area | Recorded evidence | Caveat |
 |---|---|---|
-| GitHub Actions CI | Main workflow runs lint, formatting, unit tests, secret/vendor checks, database tests and workflow lint; Deno checks cover Edge Functions | A green current run should be checked before each release |
-| GitHub Pages | Deploys from `main` | UI acceptance on current real devices remains incomplete |
-| Daily encrypted backup | Workflow and monitoring are implemented; first good Drive backup was recorded 13 Nov 2026 | A restore drill from an actual Drive backup into a separate real Supabase project is still outstanding |
-| Local restore verification | Local round-trip reported 39/39 checks passing | Does not prove the real Drive-to-Supabase restore path |
-| Migration registry | D-35 reconciliation was performed; RUNBOOK records repo-numbered migrations | Inventory 0301–0304 are live but absent from main at this snapshot; verify registry and source parity before future applies |
-| Owner notifications / Tools tab | Implemented and live according to Foundation close-out | Keep monitoring delivery and retry behaviour |
-| Security controls | RLS, permission checks, MFA gate, append-only activity log, secret scanning and hardened functions are implemented | Separate production project, Sentry, Playwright and remaining advisor findings are open |
+| Unit tests | 19 Nov Audit handover records 1,562/1,562 passing locally. | This is a dated local result, not a fresh run performed during this documentation update. |
+| Database suite | Same handover records the full local database suite passing. | Re-run on current main before release; do not add older module-specific counts. |
+| Deno and workflow lint | Present in CI workflow. | Not run locally in the cited 19 Nov session. |
+| GitHub Actions | CI workflow defines app, database and Edge Function checks. | The commit-status endpoint returned no status entries for inspected HEAD; a fresh green Actions run is not independently confirmed here. |
+| GitHub Pages | Main is the deployment source. | Current real-device UI acceptance remains outstanding. |
+| Backup | Daily encrypted Drive workflow and monitoring recorded live. | A real Drive-to-separate-Supabase restore drill remains outstanding; local 39/39 restore test is not a substitute. |
+| Gmail | Send-only Gmail flow is implemented. | Actual send from deployed origin and Google Cloud origin authorization remain to be verified. |
+| Migration registry | Most module progress files record repo-numbered live migrations. | Closing 0214 live/repository drift is explicitly unresolved. Verify registry and source parity before future applies. |
+| Security | RLS, permission-checked RPCs, MFA gate, append-only logs and secret/vendor checks are implemented. | Separate production project, Playwright, Sentry, accessibility/low-end-device checks and remaining advisor findings remain. |
 
-## Test status
+## Branch integration status (19 November 2026)
 
-The latest main-branch project progress entry (13 Nov) reports **357 unit/jsdom tests** and a full database suite including Closing, Manager and Inventory. Module progress files contain counts from different branch snapshots (for example Manager's 294 and Closing's 351); do not add those numbers together or present them as one current total. Run the current main CI and `bash supabase/tests/run.sh` to establish the exact reproducible counts before release.
-
-## Known test failures on `main` (18 Nov 2026)
-
-Run on the merged tree and, separately, on untouched `main`: `npm run lint` passes; `npm run format:check` passes after Prettier was applied to six files from the Home/shell redesign (`css/home.css`, `css/responsive-fixes.css`, `css/shell.css`, `css/tokens.css`, `js/core/shell.js`, `js/modules/home/ui/page.js`); `npm test` reports **15 failing of 1,366** in three files, **identical on `main` before the merge**: `tests/unit/cover.test.js` (4), `tests/unit/service-worker.test.js` (7), `tests/unit/shell.test.js` (4). One failure is `startShell` reading `.path` of an undefined first page (`js/core/shell.js:28`). These tests predate the Home redesign and have not been updated for it. Fix them before the next release. Database tests were not re-run locally here; CI's `database` and `functions` jobs passed on the branch heads. **Update 19 Nov 2026:** the failing cover, service-worker and shell tests were updated for the Home redesign and the service-worker cache bump (the service-worker tests now read the cache name from `sw.js`); the shell no longer crashes when the first module has no titled route and loads the landing page once. Local result: lint, format, secret and vendor checks pass, 1,562 of 1,562 unit tests pass, the full database suite passes. Not run locally: Deno checks and workflow lint (CI).
-
-## Branch integration status at this snapshot
-
-Cleaned up on 18 Nov 2026. `main` is the integration baseline. Only three working branches remain:
-
-| Branch | Purpose | State |
-|---|---|---|
-| `module/audit-a5`, `module/audit-b2` | Audit module | Merged into `main` (19 Nov 2026); kept for continued Audit work |
-| `feature/backup-emergency-pos` | Emergency Billing | Merged into `main`; kept for Phase 5 |
-| `module/workspace` | Dua Workspace, Notes & Sheets (active session) | Phase 2 merged into `main`; kept for Phase 3 onward |
-
-Every other branch was merged or superseded and deleted (three superseded ones remain recoverable as `archive/*` tags) (see `docs/CHANGELOG.md`, 18 Nov 2026). Branch divergence can change; re-check before merging. A migration being live does not mean its source is already on main.
-
-## Manager (17 Nov 2026)\n\n- Live `DuaPharmaPlus` migration registry contains Manager migrations `0101`–`0107` in order. `0105`–`0107` were applied from the exact `main` SQL files on 17 Nov 2026 and registered under their repository versions.\n- Live post-apply checks: 17 Manager tables have RLS enabled; no direct `anon` table grants, no direct authenticated write grants, no `anon` execution of Manager RPCs, and fixed search paths on Manager functions. Manager data access is through permission-checked RPCs, not direct table policies.\n- Built-in seed state checked: 4 rates, 2 ledgers, 6 tally accounts. No business transactions or staff records were imported.\n- `0108` / Credit Inbox is not in the current main migration directory and remains outstanding. Full local DB suite, current `npm run verify`, and owner phone acceptance still need to be run. See `docs/modules/manager.progress.md`.\n\n## Candela Sales (14 Nov 2026)
-
-- The Candela feed carries only the last 4 days and `inventory_apply_sync` replaces `sales_payment_summary` and `sales_credit_by_customer` on every run. Migration 0900 adds statement triggers on those two tables that copy every incoming day into `candela_daily_payments` and `candela_credit_daily` in the same transaction, so history is permanent and the Inventory-owned sync function is unchanged.
-- History starts at the first capture (11 Nov 2026); earlier days exist only in backups.
-- Owner-only reading needs `candela.view`; staff may be granted `candela.today_total` (one number). No role preset carries either.
-- Shared-core change made with owner approval: status pills may refresh (`refreshMs`) and are offered to people with no tab in that module (`js/core/statusbar.js`, `js/core/shell.js`).
-- Migration range 0900–0999 now belongs to Candela Sales. Branch `module/candela-sales` and PR #9 were closed after the work was merged to `main`.
+GitHub reports 10 branches including `main`. All nine non-main branches are 0 commits ahead of `main` and behind it; none contains unique commits to merge. They are stale refs, not active development bases. See [the full comparison table](MODULE_PROGRESS_REGISTER.md#branch-audit-19-november-2026). This update does not delete branches; owner approval is required for cleanup.
 
 ## Immediate priorities
 
-1. ~~Fix the 15 failing unit tests on `main`~~ done 19 Nov 2026. Still to confirm: a clean CI run (including the Deno and workflow jobs).
-2. Perform a restore drill using a real encrypted Drive backup into a separate empty Supabase project.
-3. Complete the owner phone try-outs for Sales, Manager and Closing; verify real Gmail sending.
-4. Finish Closing, then proceed to STR and the later planned modules.
-5. Create a separate production Supabase project before launch; complete Playwright, Sentry, accessibility and low-end-device checks.
+1. Reconcile Closing migration 0214 and the live Supabase registry with repository migrations before further database changes.
+2. Run and inspect a fresh full GitHub Actions run on current `main`.
+3. Complete real-device/owner acceptance across existing modules, plus Gmail send verification.
+4. Complete Emergency Billing Phase 5; accept Workspace Notes on real phones, then start Workspace Phase 5 (Sheets).
+5. Perform the real encrypted Drive restore drill and plan a separate production Supabase project.
+6. Expand into Reports, assistant and Android only after the above acceptance gates.
 
-## Source-of-truth documents
+## Source of truth
 
-- `PROJECT_PROGRESS.md` — dated project history and milestones.
-- `docs/ROADMAP.md` — remaining work, ordered by dependency and risk.
-- `docs/TESTING.md` — test scope, evidence and untested areas.
-- `docs/SECURITY_MODEL.md` — implemented security controls and accepted risks.
-- `docs/RUNBOOK.md` — live operations, migrations, backup and restore procedures.
-- `docs/modules/*.progress.md` — module-specific progress and handoffs.
+- [Master Module Progress Register](MODULE_PROGRESS_REGISTER.md) — consolidated module, branch and remaining-work index.
+- [Roadmap](ROADMAP.md) — ordered remaining work.
+- [Testing](TESTING.md) — test scope, evidence and limits.
+- [Module contract](MODULES.md) — build/security rules.
+- [Runbook](RUNBOOK.md) — deployment, migrations, backup and restore.
+- `docs/modules/*.progress.md` — detailed module evidence and handoffs.
 
-Do not infer that a feature is live merely because a screen, migration file, or plan exists. Confirm the status from the relevant progress record and live checks.
+Never infer that a feature is live because a screen, source file or migration exists. Use module evidence and fresh checks where needed.

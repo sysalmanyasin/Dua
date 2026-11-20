@@ -26,14 +26,14 @@ Push to `main`. GitHub Actions runs the checks; if they pass, Pages publishes th
 To rotate `IP_HASH_SECRET`, set a new value and save (old lockout history becomes irrelevant). To rotate the publishable key, create a new one in Supabase, update `config.js`, push, then disable the old one.
 
 ## 4. Changing the database
-1. Write `supabase/migrations/00NN_name.sql` using the **next number in the Sales/Foundation range** (`docs/MODULES.md` §5.1). Never edit an applied migration.
+1. Read `docs/MODULES.md` §7 and the module brief. Use the **next unused number inside that module's reserved migration range** (Foundation/core changes use the Foundation range). Check both repository filenames and the live `supabase_migrations.schema_migrations` registry first. Never allocate a number from another module's range and never edit an applied migration.
 2. Add or extend a SQL test in `supabase/tests/`. Run `bash supabase/tests/run.sh`.
 3. Push. If the live registry shows the migration did not apply (check `select version from supabase_migrations.schema_migrations`), apply it **by hand**: run the file's SQL in the SQL editor (or the connected tool's SQL runner), then record it under its repo version:
    `insert into supabase_migrations.schema_migrations (version, name, statements) values ('00NN','name', array['applied by hand from supabase/migrations/00NN_name.sql']);`
    Do **not** use a tool that invents a timestamp version for the file's content; that creates the mismatch described below.
 4. Check afterwards: RLS on every table, no `anon` grants, the new function works.
 
-**Resolved (12 Nov 2026, D-35):** the core registry was reconciled to repo-numbered migrations. Inventory migrations 0301–0307 are applied live, registered, and in `main` (0307 was applied by hand and registered on 17 Nov 2026); see `docs/PROJECT_STATUS.md`. Details and the exact SQL are in `docs/ops/f6-registry-reconciliation.md`. Keep applying by hand (step 3) until Supabase's automatic apply is confirmed to work on a pushed migration. **Never use a tool that registers a timestamp version** (such as `apply_migration`); that is exactly how D-35 happened.
+**Resolved baseline (12 Nov 2026, D-35):** the core registry was reconciled to repo-numbered migrations. Inventory migrations 0301–0307 are recorded live and in `main` (0307 was applied by hand and registered on 17 Nov 2026); see `docs/PROJECT_STATUS.md`. **Known exception to reconcile (19 Nov 2026):** Manager progress reports live Closing migration `0214_closing_staff_see_all`, but no matching migration file is present in the repository. Inspect the live registry and recover the exact SQL before any further Closing migration; do not invent or reapply it. Details and the exact SQL are in `docs/ops/f6-registry-reconciliation.md`. Keep applying by hand (step 3) until Supabase's automatic apply is confirmed to work on a pushed migration. **Never use a tool that registers a timestamp version** (such as `apply_migration`); that is exactly how D-35 happened.
 
 ## 5. Adding a module or page
 Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/`; list the module id in `js/modules/index.js`; add its permissions in a migration; write tests; read `docs/MODULES.md` first. Pages that draw bars or positions must set widths from script (the security policy blocks inline styles).

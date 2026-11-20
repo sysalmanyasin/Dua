@@ -3,7 +3,7 @@
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 
-Last updated: 13 Nov 2026 · Owner: the pharmacy owner · Maintained by: the Foundation session only.
+Last updated: 19 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file.
 
 ---
 
@@ -20,9 +20,9 @@ Last updated: 13 Nov 2026 · Owner: the pharmacy owner · Maintained by: the Fou
 
 ### 0.2 Session end protocol
 
-1. `npm run verify` and `npm run test:db` both pass.
+1. `npm run verify` and `bash supabase/tests/run.sh` both pass on the exact commit being handed off.
 2. Update **your own** progress file `docs/modules/<module>.progress.md` (what is done, tested, failed, next). Do not edit the shared `PROJECT_PROGRESS.md` while other modules are in progress.
-3. List every file you changed, so the owner can copy it into Git. (You cannot push to GitHub; the owner commits.)
+3. List every file changed and record the commit/branch. If GitHub write access is available and the owner authorized the target, commit/push through the approved workflow; otherwise provide the complete patch for the owner. Never claim a push or merge that did not happen.
 4. Write a "Handoff" paragraph at the bottom of your brief: what the next session must know first.
 
 ### 0.3 Sessions have no memory
@@ -41,7 +41,7 @@ A Claude session remembers nothing from another session. The repository is the o
   - `sysalmanyasin/Random` — Audit Hub (stock audits, barcode, expiry, Android app).
 - **No data import from the old apps.** We copy **rules, structure and layout** only. New modules start empty. Where a module needs a running balance (carried closing values, staff credit balance, petty cash balance), it provides an **opening-balance entry** screen/function instead. (The Sales history import done earlier is a finished one-off and is not repeated.)
 - **Inventory data** still comes from Candela → Dropbox → an Edge Function → Supabase tables. Candela stays the source of truth (D-07). The sync function moves into this project (Foundation task F3), and only the **latest** stock is kept (§8.4).
-- **Status of the foundation:** login, roles, permissions, shell, router, module loader and Sales are integrated; Manager is integrated; Closing has a partial guided ledger; Inventory is complete and integrated (feed, six screens, Home numbers and exports). See `docs/PROJECT_STATUS.md`, `PROJECT_PROGRESS.md` and each module progress file.
+- **Current implementation status:** the 12 registered IDs are `home`, `sales`, `manager`, `access`, `tools`, `closing`, `inventory`, `str`, `candela-sales`, `ebill`, `audit` and `invoice-desk`. Closing, Manager, STR, Audit and Invoice Desk have more implementation than the original early-November snapshot describes. Workspace has database/domain work but is not registered as a user-facing module. Use `docs/MODULE_PROGRESS_REGISTER.md` and `docs/PROJECT_STATUS.md`; do not rely on this contract for current progress.
 
 ---
 
@@ -142,6 +142,7 @@ Rules checked by `tests/unit/repo-consistency.test.js`:
 - `load` is a function returning a dynamic `import()` (modules load lazily, only when the route opens).
 - Any `permission` named in the manifest must be seeded in a migration (§5.3).
 - A route with a `title` appears in the module's sub-navigation; a route without one is reachable but hidden.
+- **Routes carry no ids.** The router matches exact paths and the hash may not contain `?`, `:` or parameters, so a page that needs to know which record is open must keep that in session storage under a key starting `dua.` (cleared at sign-out). Workspace does this (`dua.workspace.open`). Deep links would need a router change (Foundation).
 - A module can be switched off by an admin setting (`modules_disabled`) without breaking others, so **never import another module's files** (§8).
 
 ### 4.2 Pages
@@ -278,23 +279,25 @@ Copy the helper block at the top of `supabase/tests/0006_checklist_test.sql` (`a
 
 ## 7. Module registry
 
-Update only your own row (and only when your brief is accepted). Statuses: **Planned → Briefed → Building → Accepted**.
+Update only your own row (and only when your brief is accepted). Statuses: **Planned → Briefed → Building → Accepted**. This column tracks the owner acceptance gate, not whether source code is integrated; see `docs/MODULE_PROGRESS_REGISTER.md` for integration/live status.
 
 | Module id | Scope (source in old apps) | Table / function prefix | Permission prefix | Route prefix | Nav order | Migrations | Depends on | Status |
 |---|---|---|---|---|---|---|---|---|
-| `home` | Cover / landing (core) | — | — | `/home` | 0 | — | core | Built |
+| `home` | Cover / landing (core) | — | — | `/home` | 0 | — | core | Building |
 | `sales` | Daily sales, dashboard, reports, check list (BT-Sale-Data2 `js/sales`) | _(legacy, none)_ | `sales.`, `targets.`, `checklist.` | `/sales` | 10 | 0001–0099 | core | Building |
 | `candela-sales` | **Owner-only reports** on the Candela daily payment and customer-credit summaries, kept permanently; one staff-safe number (today's total) in the status bar | `candela_` | `candela.` | `/candela-sales` | 15 | 0900–0999 | core, inventory feed (landing tables, by trigger) | Building |
-| `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Planned |
-| `closing` | Shift closing, final closing, credit/misc ledgers, Closing Book, history tabs (Closing repo; BT-Sale-Data2 `js/closing`) | `closing_` | `closing.` | `/closing` | 30 | 0200–0299 | core, inventory interface | Planned |
-| `inventory` | Feed (F3), stock ledger, excess, reorder, health (BT-Sale-Data2 `js/inventory`, `inventory-search`) | `inventory_` | `inventory.` | `/inventory` | 40 | 0300–0399 (+ feed in 0001–0099) | core | Planned |
-| `audit` | Engagements, rounds, assignments, counting, barcode, expiry, reports (Random repo) | `audit_` | `audit.` | `/audit` | 50 | 0400–0499 | core, inventory interface | Planned |
-| `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Planned |
-| `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Planned |
+| `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Building |
+| `closing` | Shift closing, final closing, credit/misc ledgers, Closing Book, history tabs (Closing repo; BT-Sale-Data2 `js/closing`) | `closing_` | `closing.` | `/closing` | 30 | 0200–0299 | core, inventory interface | Building |
+| `inventory` | Feed (F3), stock ledger, excess, reorder, health (BT-Sale-Data2 `js/inventory`, `inventory-search`) | `inventory_` | `inventory.` | `/inventory` | 40 | 0300–0399 (+ feed in 0001–0099) | core | Building |
+| `audit` | Engagements, rounds, assignments, counting, barcode, expiry, reports (Random repo) | `audit_` | `audit.` | `/audit` | 50 | 0400–0499 | core, inventory interface | Building |
+| `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Building |
+| `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Building |
 | `reports` | Cross-module reports, Herald, cover signals | `reports_` | `reports.` | `/reports` | 80 | 0700–0799 | other modules' interfaces | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
-| `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Building |
-| `access` | Users & Access (core) | — | `users.` | `/access` | 90 | — | core | Built |
+| `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |
+| `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Notes integrated (Phase 4); Sheets planned |
+| `access` | Users & Access (core) | — | `users.` | `/access` | 90 | — | core | Accepted |
+| `tools` | Owner operations, alerts, backup status and feed health | core / ops | `tools.` | `/tools` | 95 | Foundation | core | Building |
 
 Android apps (attendance, widgets, mail routine, audit scanner) are **after** their web module is accepted and are not part of this contract yet.
 
