@@ -305,6 +305,131 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
   return { payload, invalid };
 }
 
+// ── live sync (migration 0217) ──
+// The single-box fields are saved one by one (closing_patch_draft) and refreshed from other devices one by one; every list
+// section (rows, cash counts, credit, opening figures) is still saved whole with the draft's version check.
+export const SIMPLE_PATHS = [
+  'sys_cash',
+  'last_bill_no',
+  'last_bill_amt',
+  'comp_sale',
+  'alfalah',
+  'keenu',
+  'ret_manual.0',
+  'ret_manual.1',
+  'ret_manual.2',
+  'ret_system',
+  'prev_mediq',
+  'book.0',
+  'book.1',
+  'overrides.shift_sale',
+  'overrides.customers',
+  'overrides.curr_cc',
+  'overrides.prev_cash',
+  'extra_cash',
+  'final_sys_returns',
+  'credit_adj',
+  'responsible_staff_id',
+];
+export const isSimplePath = (path) => SIMPLE_PATHS.includes(path);
+export const getPath = (o, path) => path.split('.').reduce((x, k) => x?.[k], o);
+
+// the key a simple path has in the payload the database takes
+const PAYLOAD_KEY = {
+  'ret_manual.0': 'ret_manual_1',
+  'ret_manual.1': 'ret_manual_2',
+  'ret_manual.2': 'ret_manual_3',
+  'book.0': 'book_bill_1',
+  'book.1': 'book_bill_2',
+};
+const SIMPLE_KEYS = new Set([...SIMPLE_PATHS.filter((p) => !p.startsWith('overrides.')).map((p) => PAYLOAD_KEY[p] ?? p), 'overrides']);
+
+/** The payload for the whole-draft save: everything except the simple fields, which travel on their own. */
+export function listPayload(payload) {
+  return Object.fromEntries(Object.entries(payload).filter(([k]) => !SIMPLE_KEYS.has(k)));
+}
+
+/** The fields object closing_patch_draft takes, for the given simple paths, read from an already validated payload. */
+export function patchFields(payload, paths) {
+  const fields = {};
+  for (const path of paths) {
+    if (path.startsWith('overrides.')) {
+      const k = path.slice('overrides.'.length);
+      fields.overrides = { ...(fields.overrides ?? {}), [k]: payload.overrides[k] };
+    } else if (path === 'responsible_staff_id') {
+      if (payload.responsible_staff_id) fields.responsible_staff_id = payload.responsible_staff_id;
+    } else {
+      const key = PAYLOAD_KEY[path] ?? path;
+      fields[key] = payload[key];
+    }
+  }
+  return fields;
+}
+
+/** The text each simple box shows for a saved row (closings columns), by path. Same rules as formFromRow. */
+export function simpleTexts(row) {
+  return {
+    sys_cash: amountText(row.sys_cash),
+    last_bill_no: amountText(row.last_bill_no),
+    last_bill_amt: amountText(row.last_bill_amt),
+    comp_sale: amountText(row.comp_sale),
+    alfalah: amountText(row.alfalah),
+    keenu: amountText(row.keenu),
+    'ret_manual.0': amountText(row.ret_manual_1),
+    'ret_manual.1': amountText(row.ret_manual_2),
+    'ret_manual.2': amountText(row.ret_manual_3),
+    ret_system: amountText(row.ret_system),
+    prev_mediq: amountText(row.prev_mediq),
+    'book.0': amountText(row.book_bill_1),
+    'book.1': amountText(row.book_bill_2),
+    'overrides.shift_sale': overrideText(row.ov_shift_sale),
+    'overrides.customers': overrideText(row.ov_customers),
+    'overrides.curr_cc': overrideText(row.ov_curr_cc),
+    'overrides.prev_cash': overrideText(row.ov_prev_cash),
+    extra_cash: amountText(row.extra_cash),
+    final_sys_returns: amountText(row.final_sys_returns),
+    credit_adj: amountText(row.credit_adj),
+    responsible_staff_id: row.responsible_staff_id ?? '',
+  };
+}
+
+/** Two box texts mean the same when they read as the same number ("5.50" and "5.5"), or are both empty, or are the same text. */
+export function sameText(a, b) {
+  const x = String(a ?? '').trim();
+  const y = String(b ?? '').trim();
+  if (x === y) return true;
+  const nx = parseAmount(x);
+  const ny = parseAmount(y);
+  return nx !== null && ny !== null && !Number.isNaN(nx) && !Number.isNaN(ny) && nx === ny;
+}
+
+/** Simple paths where two forms differ. */
+export const simpleDiff = (a, b) => SIMPLE_PATHS.filter((p) => !sameText(getPath(a, p), getPath(b, p)));
+
+/**
+ * `form` with the simple fields in `incoming` (path → text) laid over it, except the paths in `keep` (typed here and not yet
+ * saved) and the ones in `skip` (the box the person is in right now). Returns { form, changed } where `changed` lists the paths
+ * whose text actually changed. Never mutates `form`.
+ */
+export function mergeSimple(form, incoming, { keep = new Set(), skip = new Set() } = {}) {
+  const next = {
+    ...form,
+    ret_manual: [...form.ret_manual],
+    book: [...form.book],
+    overrides: { ...form.overrides },
+  };
+  const changed = [];
+  for (const path of SIMPLE_PATHS) {
+    if (keep.has(path) || skip.has(path) || !(path in incoming)) continue;
+    if (sameText(getPath(next, path), incoming[path])) continue;
+    const parts = path.split('.');
+    const holder = parts.slice(0, -1).reduce((o, k) => o[k], next);
+    holder[parts.at(-1)] = incoming[path];
+    changed.push(path);
+  }
+  return { form: next, changed };
+}
+
 // ── quick totals while typing (paisa). Same definitions as computeClosing; money is shown in rupees by the screen. ──
 const live = (rows) => rows.filter((r) => !r.deleted);
 const p = (s) => {
