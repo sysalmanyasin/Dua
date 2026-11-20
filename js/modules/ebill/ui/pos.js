@@ -13,8 +13,15 @@ import { clock, readCopy, refreshCopy } from '../data/products.js';
 import { openProductHelp } from './productHelp.js';
 import { openHeldBills } from './heldBills.js';
 import { ask } from './dialog.js';
+import { normalizeReceiptSettings, receiptFromBill, RECEIPT_TYPES } from '../domain/receipt.js';
+import { loadReceiptSettings } from '../data/receiptSettings.js';
+import { printCopies } from './receiptPrint.js';
+import { openReceiptSearch } from './receiptSearch.js';
 import {
   currentUserId,
+  getReceipt,
+  history,
+  invoiceDetail,
   getHeldState,
   holdBill,
   listHeld,
@@ -35,8 +42,6 @@ import { checkDiscount, classifyError, localRef } from '../domain/offline.js';
 
 const m2 = (n) => money(n, { decimals: true });
 const PAYMENT_MODES = ['Cash', 'Credit', 'Card'];
-const RECEIPT_TYPES = ['Primary Receipt', 'Gift Receipt', 'Summary Receipt', 'Secondary Receipt'];
-const SOON = 'Coming in a later phase';
 
 export async function mount(el, { ctx }) {
   let products = [];
@@ -45,6 +50,10 @@ export async function mount(el, { ctx }) {
   let note = '';
   let device = { status: 'unknown' }; // 'active' | 'deactivated' | 'unknown' (not registered yet or offline)
   let saving = false;
+  let receiptCfg = normalizeReceiptSettings(null); // the shop's receipt settings (a copy is kept on this device for offline printing)
+  let closeSearch = null;
+  let lastReceipt = null; // the receipt of the last saved invoice, so it can be printed again
+  let printTouched = false; // once the cashier changes a print option, loaded defaults no longer overwrite it
   let saved = null; // { no, local } for the last saved invoice, shown above the grid until the next bill
   let cashEntryEnabled = true; // cashier can disable cash tender entry without disabling invoice saving
   const stops = []; // things to switch off when this page is left
@@ -264,13 +273,13 @@ export async function mount(el, { ctx }) {
         <label class="eb-area"><span class="eb-lbl">Comments</span><textarea id="eb-comments" rows="2"></textarea></label>
         <label class="eb-area"><span class="eb-lbl">Additional comments</span><textarea id="eb-more" rows="2"></textarea></label>
         <div class="eb-print">
-          <label class="eb-check"><input type="checkbox" checked disabled title="${SOON}" /> Print receipt</label>
-          <label class="eb-copies"><span>Copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
-          <button type="button" class="btn btn-sm" disabled title="${SOON}">Search receipt</button>
+          <label class="eb-check"><input id="eb-print" type="checkbox" /> Print receipt</label>
+          <label class="eb-copies"><span>Copies</span><input id="eb-copies" type="number" value="1" min="1" max="5" step="1" inputmode="numeric" /></label>
+          <button type="button" class="btn btn-sm" id="eb-rsearch">Search receipt</button>
         </div>
         <div class="eb-rtype">
           <label class="eb-lbl" for="eb-rtype">Receipt type</label>
-          <select id="eb-rtype" disabled title="${SOON}">
+          <select id="eb-rtype">
             ${RECEIPT_TYPES.map((x) => html`<option>${x}</option>`)}
           </select>
         </div>
@@ -429,7 +438,7 @@ export async function mount(el, { ctx }) {
       html`${!online ? html`<p class="note note-info" role="status">You are offline. You can keep billing: bills are saved on this device and upload by themselves when you are back online. Products and stock come from the copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}, so stock may be out of date.</p>` : ''}
       ${flash ? html`<p class="note note-info" role="status">${flash}</p>` : ''}
       ${note && note !== 'offline' ? html`<p class="note note-error" role="status">${note}</p>` : ''}
-      ${saved ? (saved.local ? html`<p class="note note-info" role="status">Saved on this device as <b>${saved.no}</b>. It will upload by itself when you are online.</p>` : html`<p class="note note-info" role="status">Saved as <b>${saved.no}</b>. The invoice is on the server.</p>`) : ''}
+      ${saved ? (saved.local ? html`<p class="note note-info" role="status">Saved on this device as <b>${saved.no}</b>. It will upload by itself when you are online. <button type="button" class="btn btn-sm" data-act="print-last">Print receipt</button></p>` : html`<p class="note note-info" role="status">Saved as <b>${saved.no}</b>. The invoice is on the server. <button type="button" class="btn btn-sm" data-act="print-last">Print receipt</button></p>`) : ''}
       ${device.status === 'deactivated' ? html`<p class="note note-error" role="status">This device has been switched off by the manager. Invoices cannot be saved from it.</p>` : ''}
       ${!products.length ? html`<p class="note note-info" role="status">No product copy on this device yet. Connect to the internet once so it can download.</p>` : ''}`,
     );
@@ -443,6 +452,23 @@ export async function mount(el, { ctx }) {
       : device.status === 'deactivated'
         ? 'This device has been switched off'
         : 'Save invoice (asks for your PIN)';
+  }
+
+  const printOptions = () => ({
+    type: q('#eb-rtype')?.value || receiptCfg.receipt_type,
+    copies: Math.max(1, Math.min(5, Math.trunc(Number(q('#eb-copies')?.value)) || 1)),
+  });
+  /** Print the last saved invoice with the type and copies chosen on this screen. */
+  function printLast() {
+    if (!lastReceipt) return Promise.resolve(false);
+    return printCopies(lastReceipt, receiptCfg, printOptions());
+  }
+  /** Put the shop's receipt settings into the print controls, unless the cashier has already chosen something. */
+  function applyReceiptDefaults() {
+    if (printTouched || !q('#eb-print')) return;
+    q('#eb-print').checked = receiptCfg.auto_print;
+    q('#eb-copies').value = String(receiptCfg.copies);
+    q('#eb-rtype').value = receiptCfg.receipt_type;
   }
 
   async function registerThisDevice() {
@@ -529,12 +555,22 @@ export async function mount(el, { ctx }) {
             local = true; // the connection dropped: carry on with the same PIN, on this device
           }
           if (r?.ok) {
+            lastReceipt = receiptFromBill({
+              no: r.invoice_no,
+              time: invoice.client_created_at,
+              staff: ctx.full_name || ctx.username,
+              local: false,
+              bill,
+              cart,
+              totals: t,
+            });
             saved = { no: r.invoice_no, local: false };
             note = '';
             releaseCurrentHold();
             resetBill();
             drawStatus();
             kit.afterOnlineSave(v.pin).then(drawSync); // quietly get this device ready for offline billing
+            if (q('#eb-print')?.checked) printLast();
             return;
           }
           if (r) {
@@ -550,6 +586,15 @@ export async function mount(el, { ctx }) {
         }
         const r = await saveLocally(invoice, v.pin, t);
         if (r.ok) {
+          lastReceipt = receiptFromBill({
+            no: r.ref,
+            time: invoice.client_created_at,
+            staff: ctx.full_name || ctx.username,
+            local: true,
+            bill,
+            cart,
+            totals: t,
+          });
           saved = { no: r.ref, local: true };
           note = '';
           releaseCurrentHold();
@@ -557,6 +602,7 @@ export async function mount(el, { ctx }) {
           drawStatus();
           drawSync();
           sync.syncNow().catch(() => {}); // a no-op while offline; uploads at once if the connection is back
+          if (q('#eb-print')?.checked) printLast();
           return;
         }
         if (r.code === 'bad_pin') {
@@ -929,6 +975,23 @@ export async function mount(el, { ctx }) {
   for (const b of el.querySelectorAll('[data-act="hold"]')) b.addEventListener('click', holdCurrent);
   for (const b of el.querySelectorAll('[data-held-nav]')) b.addEventListener('click', () => openHeld(b.dataset.heldNav));
   q('#eb-save').addEventListener('click', save);
+  for (const id of ['#eb-print', '#eb-copies', '#eb-rtype']) q(id).addEventListener('change', () => (printTouched = true));
+  stops.push(() => closeSearch?.());
+  q('#eb-rsearch').addEventListener('click', () => {
+    if (closeSearch) return;
+    closeSearch = openReceiptSearch({
+      host: q('#eb-dialog'),
+      store,
+      userId: ctx.user_id,
+      api: { history, invoiceDetail },
+      settings: () => receiptCfg,
+      options: printOptions,
+      onClose: () => {
+        closeSearch = null;
+        q('#eb-sku')?.focus();
+      },
+    });
+  });
   for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', cancelCurrent);
   q('[data-act="new"]').addEventListener('click', newBill);
   // F5 (and F2) open Product Help from anywhere on this page. F5 would otherwise RELOAD the page and lose the bill, so it is taken here;
@@ -1121,9 +1184,10 @@ export async function mount(el, { ctx }) {
     window.removeEventListener('offline', onNet);
   });
   el.addEventListener('click', async (e) => {
-    const a = e.target.closest('[data-act="retry"],[data-act="syncnow"],[data-act="prep"]')?.dataset.act;
+    const a = e.target.closest('[data-act="retry"],[data-act="syncnow"],[data-act="prep"],[data-act="print-last"]')?.dataset.act;
     if (!a) return;
-    if (a === 'retry') await sync.retryFailed().catch(() => {});
+    if (a === 'print-last') await printLast();
+    else if (a === 'retry') await sync.retryFailed().catch(() => {});
     else if (a === 'syncnow') await sync.syncNow().catch(() => {});
     else if (a === 'prep') {
       const v = await ask(q('#eb-dialog'), {
@@ -1158,6 +1222,12 @@ export async function mount(el, { ctx }) {
   registerThisDevice(); // quietly, when online; the owner sees this device in Settings
   stops.push(sync.subscribe(drawSync));
   stops.push(startAutoSync(sync, { alive: () => el.isConnected })); // uploads when the connection returns, when the page is shown, and every minute while something waits
+  loadReceiptSettings({ store, api: { getReceipt } })
+    .then((cfg) => {
+      receiptCfg = cfg;
+      applyReceiptDefaults();
+    })
+    .catch(() => {});
   note = await refreshCopy(ctx); // the saved copy is usable at once; the refresh happens behind it
   if (note === '') kit.refreshLimits().catch(() => {});
   await load();

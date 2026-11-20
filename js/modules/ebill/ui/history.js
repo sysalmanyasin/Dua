@@ -6,6 +6,9 @@ import { html, render } from '../../../shared/html.js';
 import { money } from '../../../shared/format.js';
 import { ask } from './dialog.js';
 import { allRemaining, previewRefund, STATUS_WORDS } from '../domain/refund.js';
+import { normalizeReceiptSettings, receiptFromLocal, receiptFromServer, RECEIPT_TYPES } from '../domain/receipt.js';
+import { loadReceiptSettings } from '../data/receiptSettings.js';
+import { printCopies } from './receiptPrint.js';
 import * as api from '../data/api.js';
 import { openLocalDb } from '../data/localDb.js';
 import { createSync } from '../data/sync.js';
@@ -63,6 +66,10 @@ export async function mount(el, { ctx }) {
   const perms = new Set(ctx.permissions || []);
   const manager = perms.has('ebill.manage');
   const store = await openLocalDb();
+  let receiptCfg = normalizeReceiptSettings(null);
+  loadReceiptSettings({ store, api })
+    .then((c) => (receiptCfg = c))
+    .catch(() => {});
   const sync = createSync({ store, api, userId: api.currentUserId, deviceId: getDeviceId(), deviceLabel: deviceLabel() });
   const today = day(new Date());
   const f = { from: today, to: today, text: '', status: '', mode: '', sync: '' };
@@ -295,6 +302,7 @@ export async function mount(el, { ctx }) {
             <div class="eb-dlg-head">
               <h2>${row.no}</h2>
               <span class="eb-st eb-st-${r.status}">${SYNC[r.status]}</span><span class="eb-grow"></span
+              ><button type="button" class="btn btn-sm" data-act="print">Print receipt</button
               ><button type="button" class="btn btn-sm" data-close>Close</button>
             </div>
             <p class="note ${r.status === 'failed' ? 'note-error' : 'note-info'}">
@@ -310,6 +318,7 @@ export async function mount(el, { ctx }) {
         </div>`,
       );
       host.querySelector('[data-close]').addEventListener('click', close);
+      host.querySelector('[data-act="print"]')?.addEventListener('click', () => printDialog(() => receiptFromLocal(r)));
       return;
     }
     render(
@@ -359,6 +368,7 @@ export async function mount(el, { ctx }) {
             ${i.status !== 'posted' ? html`<span class="eb-st eb-st-${done ? 'failed' : 'pending'}">${STATUS_WORDS[i.status] || i.status}</span>` : ''}<span
               class="eb-grow"
             ></span
+            ><button type="button" class="btn btn-sm" data-act="print">Print receipt</button
             ><button type="button" class="btn btn-sm" data-close>Close</button>
           </div>
           <p>
@@ -446,6 +456,7 @@ export async function mount(el, { ctx }) {
       </div>`,
     );
     host.querySelector('[data-close]').addEventListener('click', close);
+    host.querySelector('[data-act="print"]')?.addEventListener('click', () => printDialog(() => receiptFromServer(d)));
     host.querySelector('[data-act="refund"]')?.addEventListener('click', async () => {
       const r = await refundDialog(q('#hs-dialog'), i, d.lines);
       if (!r) return;
@@ -496,6 +507,21 @@ export async function mount(el, { ctx }) {
         say(e?.message || 'The change was not made.');
       }
     }
+  }
+
+  // Reprint: choose the type and number of copies, then print. A reprint is always marked Duplicate.
+  async function printDialog(getData) {
+    const v = await ask(q('#hs-dialog'), {
+      title: 'Print receipt',
+      intro: 'The receipt is marked Duplicate.',
+      confirm: 'Print',
+      fields: [
+        { id: 'type', label: 'Receipt type', options: RECEIPT_TYPES, value: receiptCfg.receipt_type },
+        { id: 'copies', label: 'Copies (1 to 5)', type: 'number', value: String(receiptCfg.copies), inputmode: 'numeric' },
+      ],
+    });
+    if (!v) return;
+    await printCopies(getData(), receiptCfg, { type: v.type, copies: Number(v.copies), reprint: true });
   }
 
   // The partial-refund question: what, how many, why. The amount shown is a preview; the server works out the real one.

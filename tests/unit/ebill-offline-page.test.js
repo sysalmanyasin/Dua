@@ -45,6 +45,16 @@ vi.mock('../../js/modules/ebill/data/api.js', () => ({
   offlineGrant: vi.fn(async () => ({ ok: true, secret: 'S3CRET', pin_set_at: '2026-11-01T00:00:00Z' })),
   registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),
   saveInvoice: vi.fn(async (p) => ({ ok: true, code: 'saved', invoice_no: 'EB-' + p.invoice_id.slice(0, 4) })),
+  getReceipt: vi.fn(async () => ({
+    shop_name: 'Test Pharmacy',
+    tax_no: '0870213-3',
+    pos_no: '99',
+    footer: 'Terms apply',
+    copies: 1,
+    auto_print: false,
+  })),
+  history: vi.fn(async () => ({ rows: [], total: 0 })),
+  invoiceDetail: vi.fn(async () => ({ ok: false })),
 }));
 Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 
@@ -287,5 +297,61 @@ describe('offline billing on the screen', () => {
         /cannot keep an invoice safely|not set up on this device|Limits not downloaded/,
       ),
     );
+  });
+});
+
+describe('receipts with no connection', () => {
+  const printed = [];
+  const stubPrint = () => {
+    printed.length = 0;
+    window.print = vi.fn(() => {
+      printed.push(document.getElementById('eb-print-root')?.textContent ?? '');
+      window.dispatchEvent(new Event('afterprint'));
+    });
+  };
+  const saveOffline = async () => {
+    const { getReceipt } = await api();
+    getReceipt.mockRejectedValue(new Error('offline')); // the server cannot be asked: the copy on this device is used
+    setOnline(false);
+    await boot();
+    addItem();
+    el.querySelector('#eb-save').click();
+    await enterPin('482913');
+    await vi.waitFor(() => expect(el.querySelector('#eb-note').textContent).toContain('Saved on this device as'));
+  };
+
+  it('prints a device-only bill with the shop details kept on this device and a temporary reference', async () => {
+    stubPrint();
+    await seedReady();
+    const s = await openLocalDb();
+    await s.kvSet('receipt-settings', { shop_name: 'Kept Shop', pos_no: '77', auto_print: true, copies: 1 });
+    s.close();
+    await saveOffline();
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1)); // auto-print came from the kept settings
+    expect(printed[0]).toContain('Kept Shop');
+    expect(printed[0]).toContain('POS NO: 77');
+    expect(printed[0]).toMatch(/Receipt# LOCAL-/);
+    expect(printed[0]).toContain('Temporary reference');
+  });
+  it('with nothing ever saved it still prints, using plain defaults', async () => {
+    stubPrint();
+    await seedReady();
+    await saveOffline();
+    el.querySelector('[data-act="print-last"]').click();
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1));
+    expect(printed[0]).toContain('Purchase Slip');
+    expect(printed[0]).toContain('Thank you for your visit');
+  });
+  it('Search receipt reprints a pending bill from this device, marked Duplicate', async () => {
+    stubPrint();
+    await seedReady();
+    await saveOffline();
+    el.querySelector('#eb-rsearch').click();
+    await vi.waitFor(() => expect(el.querySelector('#eb-dialog [data-print]')).not.toBeNull());
+    expect(el.querySelector('#eb-dialog').textContent).toContain('This device only');
+    el.querySelector('#eb-dialog [data-print]').click();
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1));
+    expect(printed[0]).toContain('Duplicate');
+    expect(printed[0]).toMatch(/Receipt# LOCAL-/);
   });
 });

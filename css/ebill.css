@@ -1279,3 +1279,174 @@ html.eb-full .status-bar {
   height: 2.15rem;
   background: #fff;
 }
+
+/* Receipts: printed on a 58 mm or 80 mm roll; the same markup is the preview in Settings. */
+#eb-print-root {
+  display: none;
+}
+.eb-rc {
+  box-sizing: border-box;
+  color: #000;
+  background: #fff;
+  font:
+    12px/1.35 Verdana,
+    Arial,
+    sans-serif;
+  padding: 3mm 2mm;
+}
+.eb-rc-80 {
+  width: 76mm;
+}
+.eb-rc-58 {
+  width: 54mm;
+  font-size: 10.5px;
+}
+.eb-rc-logo {
+  display: block;
+  margin: 0 auto 2mm;
+  max-width: 60%;
+  max-height: 22mm;
+  object-fit: contain;
+}
+.eb-rc-dup,
+.eb-rc-title,
+.eb-rc-shop,
+.eb-rc-addr,
+.eb-rc-flag,
+.eb-rc-count,
+.eb-rc-temp,
+.eb-rc-foot {
+  text-align: center;
+}
+.eb-rc-dup {
+  font-weight: 700;
+  margin-bottom: 2mm;
+}
+.eb-rc-title {
+  margin-bottom: 2mm;
+}
+.eb-rc-shop {
+  font-weight: 700;
+  font-size: 1.1em;
+  margin-bottom: 1mm;
+}
+.eb-rc-addr {
+  margin-bottom: 1mm;
+}
+.eb-rc-flag {
+  font-style: italic;
+}
+.eb-rc-info {
+  margin: 2.5mm 0;
+}
+.eb-rc-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+  margin-bottom: 1.5mm;
+}
+.eb-rc-r {
+  text-align: right;
+}
+.eb-rc-items {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px dashed #000;
+  border-bottom: 1px dashed #000;
+  margin-bottom: 1mm;
+}
+.eb-rc-items th {
+  border-bottom: 1px dashed #000;
+  padding: 1mm 0;
+  text-align: left;
+  font-weight: 700;
+}
+.eb-rc-items td {
+  padding: 1mm 0;
+  vertical-align: top;
+}
+.eb-rc-items .eb-rc-n {
+  text-align: right;
+  padding-left: 1.5mm;
+  white-space: nowrap;
+}
+.eb-rc-u {
+  margin-left: 1.5mm;
+}
+.eb-rc-gen {
+  font-size: 0.85em;
+}
+.eb-rc-trow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4mm;
+  border-bottom: 1px dashed #000;
+  padding: 0.6mm 0;
+}
+.eb-rc-trow span:first-child {
+  flex: 1;
+  text-align: center;
+}
+.eb-rc-trow span:last-child {
+  min-width: 18mm;
+  text-align: right;
+}
+.eb-rc-strong {
+  font-weight: 700;
+}
+.eb-rc-count {
+  text-align: left;
+  font-weight: 700;
+  margin: 2mm 0;
+}
+.eb-rc-temp {
+  font-size: 0.9em;
+  margin: 1mm 0;
+}
+.eb-rc-line {
+  border: 0;
+  border-top: 1px dashed #000;
+  margin: 2mm 0;
+}
+.eb-rc-foot {
+  text-align: left;
+}
+@page eb58 {
+  size: 58mm auto;
+  margin: 2mm;
+}
+@page eb80 {
+  size: 80mm auto;
+  margin: 2mm;
+}
+@media print {
+  body.eb-printing > *:not(#eb-print-root) {
+    display: none !important;
+  }
+  body.eb-printing #eb-print-root {
+    display: block;
+  }
+  body.eb-printing .eb-rc {
+    padding: 0;
+    break-after: page;
+  }
+  body.eb-printing .eb-rc:last-child {
+    break-after: auto;
+  }
+  body.eb-printing .eb-rc-58 {
+    page: eb58;
+  }
+  body.eb-printing .eb-rc-80 {
+    page: eb80;
+  }
+}
+/* the on-screen preview */
+.eb-rc-preview {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+}

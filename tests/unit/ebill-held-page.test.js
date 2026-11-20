@@ -45,6 +45,9 @@ vi.mock('../../js/modules/ebill/data/api.js', () => ({
   offlineGrant: vi.fn(async () => ({ ok: true, secret: 'S3CRET', pin_set_at: '2026-11-01T00:00:00Z' })),
   registerDevice: vi.fn(async () => ({ ok: true, status: 'active' })),
   saveInvoice: vi.fn(async (p) => ({ ok: true, code: 'saved', invoice_no: 'EB-' + p.invoice_id.slice(0, 4) })),
+  getReceipt: vi.fn(async () => ({ shop_name: 'Test Pharmacy', tax_no: '0870213-3', pos_no: '99', footer: 'Terms apply', copies: 1, auto_print: false })),
+  history: vi.fn(async () => ({ rows: [], total: 0 })),
+  invoiceDetail: vi.fn(async () => ({ ok: false })),
 }));
 Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
 

@@ -37,6 +37,7 @@ vi.mock('../../js/modules/ebill/data/api.js', () => ({
   releaseHeld: vi.fn(async () => ({ ok: true })),
   history: vi.fn(async () => ({ rows: [], total: 0, sum_net: 0, sum_refunded: 0 })),
   invoiceDetail: vi.fn(),
+  getReceipt: vi.fn(async () => ({ shop_name: 'Test Pharmacy', copies: 1 })),
   refundLines: vi.fn(async () => ({ ok: true, code: 'refunded', amount: 90, remaining_amount: 0 })),
   correctInvoice: vi.fn(async () => ({ ok: true, code: 'corrected' })),
 }));
@@ -402,6 +403,24 @@ describe('invoice detail', () => {
     fields().querySelector('[data-act="no"]').click();
     await tick();
     expect(refundLines).not.toHaveBeenCalled();
+  });
+  it('reprints a server invoice, always marked Duplicate, with the chosen type and copies', async () => {
+    const printed = [];
+    window.print = vi.fn(() => {
+      printed.push(document.getElementById('eb-print-root')?.textContent ?? '');
+      window.dispatchEvent(new Event('afterprint'));
+    });
+    await openFirst(['ebill.use']); // a plain biller may reprint too
+    el.querySelector('[data-act="print"]').click();
+    await vi.waitFor(() => expect(fields().querySelector('[data-f="type"]')).not.toBeNull());
+    fields().querySelector('[data-f="type"]').value = 'Summary Receipt';
+    fields().querySelector('[data-f="copies"]').value = '2';
+    fields().querySelector('[data-act="yes"]').click();
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1));
+    expect(printed[0]).toContain('Test Pharmacy');
+    expect(printed[0]).toContain('Summary Slip');
+    expect(printed[0]).toContain('Receipt# EB-261116-00001');
+    expect((printed[0].match(/Duplicate/g) || []).length).toBe(2); // a reprint: both copies say Duplicate
   });
   it('a correction sends only what changed, with the reason', async () => {
     const { correctInvoice } = await api();
