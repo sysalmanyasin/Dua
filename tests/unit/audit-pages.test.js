@@ -139,7 +139,7 @@ describe('audit hub', () => {
   it('shows the empty state and only the pages the person may open', async () => {
     const el = document.getElementById('root');
     await mountHub(el, { ctx: { permissions: ['audit.count'] } });
-    expect(el.textContent).toContain('No audits are currently visible to you.');
+    expect(el.textContent).toContain('No counting assignments are currently assigned to you.');
     expect(el.querySelector('a[href="#/audit/team"]')).toBeNull();
     expect(el.querySelector('a[href="#/audit/engagements"]')).toBeNull();
     const el2 = document.createElement('div');
