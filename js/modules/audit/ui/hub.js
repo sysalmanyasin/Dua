@@ -37,8 +37,16 @@ const GROUPS = [
     routes: [
       ['/audit/engagements', 'All audits', 'Create and browse audit engagements.'],
       ['/audit/engagement', 'Engagement details', 'Manage members and rounds within an audit.'],
-      ['/audit/round', 'Rounds & assignments', 'Split work, assign counters, lock and start rounds.'],
-      ['/audit/compile', 'Review & reconciliation', 'Inspect submissions, differences, corrections and conflicts.'],
+      [
+        '/audit/round',
+        'Rounds & assignments',
+        'Split work, assign counters, lock and start rounds.',
+      ],
+      [
+        '/audit/compile',
+        'Review & reconciliation',
+        'Inspect submissions, differences, corrections and conflicts.',
+      ],
       ['/audit/final', 'Final snapshots', 'Finalize and inspect immutable round results.'],
     ],
   },
@@ -54,7 +62,9 @@ const GROUPS = [
   {
     title: 'Reports & history',
     description: 'Results, submissions and accountability.',
-    routes: [['/audit/reports', 'Audit reports & trail', 'Review round results, people and the activity trail.']],
+    routes: [
+      ['/audit/reports', 'Audit reports & trail', 'Review round results, people and the activity trail.'],
+    ],
   },
   {
     title: 'Expiry management',
@@ -72,7 +82,13 @@ const GROUPS = [
   {
     title: 'Administration',
     description: 'People and access to Audit functions.',
-    routes: [['/audit/team', 'Team & permissions', 'Manage Deputy, Sub-Auditor and individual audit permissions.']],
+    routes: [
+      [
+        '/audit/team',
+        'Team & permissions',
+        'Manage Deputy, Sub-Auditor and individual audit permissions.',
+      ],
+    ],
   },
 ];
 
@@ -166,7 +182,9 @@ function engagementCard(engagement, overview) {
   const roundCount = `${rounds.length} round${rounds.length === 1 ? '' : 's'}`;
   let latestLabel = '';
   if (latest) {
-    latestLabel = ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(latest.state)}`;
+    latestLabel = ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(
+      latest.state,
+    )}`;
   }
 
   // prettier-ignore
@@ -321,7 +339,9 @@ export async function mount(el, { ctx } = {}) {
         .then(async (rows) => {
           engagements = rows ?? [];
           const recentOpen = engagements.filter((item) => item.status === 'open').slice(0, 6);
-          const details = await Promise.allSettled(recentOpen.map((item) => api.engagementOverview(item.id)));
+          const details = await Promise.allSettled(
+            recentOpen.map((item) => api.engagementOverview(item.id)),
+          );
           engagementDetails = recentOpen.map((item, index) => ({
             engagement: item,
             overview: details[index].status === 'fulfilled' ? details[index].value : null,
@@ -338,11 +358,13 @@ export async function mount(el, { ctx } = {}) {
   const openAssignments = assignments.filter((item) => item.status !== 'revoked');
   const pendingAssignments = openAssignments.filter((item) => item.round_state === 'counting' && item.status !== 'submitted');
   const activeRounds = engagementDetails.reduce(
-    (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length,
+    (sum, item) =>
+      sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length,
     0,
   );
   const compiledRounds = engagementDetails.reduce(
-    (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length,
+    (sum, item) =>
+      sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length,
     0,
   );
 
@@ -364,7 +386,13 @@ export async function mount(el, { ctx } = {}) {
 
   let managementContent = '';
   if (canSeeEngagements) {
-    managementContent = engagementSection(engagements, engagementDetails, engagementError, activeRounds, compiledRounds);
+    managementContent = engagementSection(
+      engagements,
+      engagementDetails,
+      engagementError,
+      activeRounds,
+      compiledRounds,
+    );
   }
 
   let accessNotice = '';
