@@ -122,7 +122,7 @@ function assignmentCard(assignment) {
       <div class="aud-work-title"><strong>${assignment.engagement_name || 'Audit assignment'}</strong><span class="aud-badge aud-badge-${assignment.status}">${statusLabel(assignment.status)}</span></div>
       <p class="muted small">${round ? `Round ${round} · ` : ''}${statusLabel(assignment.round_state)} · ${counted.toLocaleString()} of ${items.toLocaleString()} counted</p>
       <div class="aud-progress" role="progressbar" aria-label="Counting progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
-        <span style="width:${percent}%"></span>
+        <span data-progress="${percent}"></span>
       </div>
       <p class="muted small">${remaining.toLocaleString()} remaining · ${percent}% complete</p>
     </div>
@@ -253,6 +253,11 @@ export async function mount(el, { ctx } = {}) {
       </section>
     </div>`,
   );
+
+  // CSP forbids inline style attributes; widths are applied as DOM properties after escaped rendering.
+  el.querySelectorAll('[data-progress]').forEach((bar) => {
+    bar.style.width = `${Math.max(0, Math.min(100, Number(bar.dataset.progress) || 0))}%`;
+  });
 
   // Preserve the current route hand-off convention for pages that need an engagement/round id.
   el.onclick = (event) => {
