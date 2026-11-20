@@ -13,6 +13,7 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
   startRound: vi.fn(),
   companyItemIds: vi.fn(),
   listEngagements: vi.fn(async () => []),
+  myAssignments: vi.fn(async () => []),
   engagementOverview: vi.fn(),
   createRound: vi.fn(),
   setMember: vi.fn(),
@@ -52,6 +53,8 @@ beforeEach(() => {
   setView({ engagement: 'e1', round: 'r1' });
   vi.clearAllMocks();
   api.listPeopleForAudit.mockResolvedValue(people);
+  api.myAssignments.mockResolvedValue([]);
+  api.listEngagements.mockResolvedValue([]);
   api.roundOverview.mockResolvedValue(overview());
 });
 
@@ -136,13 +139,64 @@ describe('audit hub', () => {
   it('shows the empty state and only the pages the person may open', async () => {
     const el = document.getElementById('root');
     await mountHub(el, { ctx: { permissions: ['audit.count'] } });
-    expect(el.textContent).toContain('No audits yet');
+    expect(el.textContent).toContain('No counting assignments are currently assigned to you.');
     expect(el.querySelector('a[href="#/audit/team"]')).toBeNull();
     expect(el.querySelector('a[href="#/audit/engagements"]')).toBeNull();
     const el2 = document.createElement('div');
     await mountHub(el2, { ctx: { permissions: ['audit.manage', 'users.manage'] } });
     expect(el2.querySelector('a[href="#/audit/team"]')).not.toBeNull();
     expect(el2.querySelector('a[href="#/audit/engagements"]')).not.toBeNull();
+  });
+
+  it('loads only personal assignments for a counter and shows their own progress', async () => {
+    api.myAssignments.mockResolvedValueOnce([
+      {
+        assignment_id: 'a1',
+        engagement_name: 'Monthly Stock Audit',
+        round_number: 2,
+        round_suffix: null,
+        round_state: 'counting',
+        status: 'counting',
+        items: 20,
+        counted: 15,
+      },
+    ]);
+    const el = document.getElementById('root');
+    await mountHub(el, { ctx: { permissions: ['audit.count'] } });
+    expect(api.myAssignments).toHaveBeenCalledOnce();
+    expect(api.listEngagements).not.toHaveBeenCalled();
+    expect(el.textContent).toContain('Monthly Stock Audit');
+    expect(el.textContent).toContain('15 of 20 counted');
+    expect(el.textContent).toContain('Continue counting');
+    expect(el.querySelector('a[href="#/audit/engagements"]')).toBeNull();
+  });
+
+  it('shows role-permitted grouped navigation and a bounded engagement overview to managers', async () => {
+    api.listEngagements.mockResolvedValueOnce([
+      { id: 'e1', name: 'Annual Audit', scope_type: 'full', status: 'open', created_at: '2026-11-19T08:00:00Z' },
+    ]);
+    api.engagementOverview.mockResolvedValueOnce({
+      rounds: [{ id: 'r1', round_number: 1, round_suffix: null, state: 'counting', items: 100, assignments: 2 }],
+    });
+    const el = document.getElementById('root');
+    await mountHub(el, { ctx: { permissions: ['audit.manage', 'audit.view'] } });
+    expect(el.textContent).toContain('Audit Command Centre');
+    expect(el.textContent).toContain('Stock audits');
+    expect(el.textContent).toContain('Annual Audit');
+    expect(el.textContent).toContain('Active rounds');
+    expect(el.querySelector('a[href="#/audit/engagements"]')).not.toBeNull();
+    expect(el.querySelector('a[href="#/audit/team"]')).toBeNull();
+    expect(el.querySelector('a[href="#/audit/barcode"]')).toBeNull();
+    expect(api.engagementOverview).toHaveBeenCalledWith('e1');
+  });
+
+  it('shows team administration only with users.manage and expiry links only when permitted', async () => {
+    const el = document.getElementById('root');
+    await mountHub(el, { ctx: { permissions: ['audit.expiry_log', 'users.manage'] } });
+    expect(el.querySelector('a[href="#/audit/team"]')).not.toBeNull();
+    expect(el.querySelector('a[href="#/audit/expiry"]')).not.toBeNull();
+    expect(el.querySelector('a[href="#/audit/expiry/racks"]')).toBeNull();
+    expect(el.querySelector('a[href="#/audit/engagements"]')).toBeNull();
   });
 });
 

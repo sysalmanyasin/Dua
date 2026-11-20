@@ -51,6 +51,7 @@ export async function mount(el, { ctx }) {
   let device = { status: 'unknown' }; // 'active' | 'deactivated' | 'unknown' (not registered yet or offline)
   let saving = false;
   let receiptCfg = normalizeReceiptSettings(null); // the shop's receipt settings (a copy is kept on this device for offline printing)
+  let receiptSettingsReady = Promise.resolve();
   let closeSearch = null;
   let lastReceipt = null; // the receipt of the last saved invoice, so it can be printed again
   let printTouched = false; // once the cashier changes a print option, loaded defaults no longer overwrite it
@@ -461,7 +462,7 @@ export async function mount(el, { ctx }) {
   /** Print the last saved invoice with the type and copies chosen on this screen. */
   function printLast() {
     if (!lastReceipt) return Promise.resolve(false);
-    return printCopies(lastReceipt, receiptCfg, printOptions());
+    return receiptSettingsReady.then(() => printCopies(lastReceipt, receiptCfg, printOptions()));
   }
   /** Put the shop's receipt settings into the print controls, unless the cashier has already chosen something. */
   function applyReceiptDefaults() {
@@ -1222,12 +1223,13 @@ export async function mount(el, { ctx }) {
   registerThisDevice(); // quietly, when online; the owner sees this device in Settings
   stops.push(sync.subscribe(drawSync));
   stops.push(startAutoSync(sync, { alive: () => el.isConnected })); // uploads when the connection returns, when the page is shown, and every minute while something waits
-  loadReceiptSettings({ store, api: { getReceipt } })
+  receiptSettingsReady = loadReceiptSettings({ store, api: { getReceipt } })
     .then((cfg) => {
       receiptCfg = cfg;
       applyReceiptDefaults();
+      return cfg;
     })
-    .catch(() => {});
+    .catch(() => receiptCfg);
   note = await refreshCopy(ctx); // the saved copy is usable at once; the refresh happens behind it
   if (note === '') kit.refreshLimits().catch(() => {});
   await load();

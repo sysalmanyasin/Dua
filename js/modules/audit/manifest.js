@@ -9,13 +9,20 @@ export default {
   routes: [
     {
       path: '/audit',
-      title: 'Audit',
-      desc: 'Your audits and the pages you may open',
+      title: 'Overview',
+      desc: 'Your role-aware Audit Command Centre',
       anyOf: [
         'audit.count',
         'audit.individual',
         'audit.view',
         'audit.manage',
+        'audit.assign',
+        'audit.compile',
+        'audit.suggest',
+        'audit.finalize',
+        'audit.reopen',
+        'audit.templates',
+        'audit.expiry_manage',
         'audit.review',
         'audit.report',
         'audit.expiry_log',
@@ -67,7 +74,7 @@ export default {
     {
       path: '/audit/compile',
       desc: 'Progress, compile, differences, corrections, conflicts and the next round',
-      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.view', 'audit.manage', 'audit.report'],
+      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.reopen', 'audit.view', 'audit.manage', 'audit.report'],
       load: () => import('./ui/compile.js'),
     },
     {
