@@ -165,26 +165,32 @@ export async function mount(el, { ctx } = {}) {
   const tasks = [];
   if (canCount) {
     tasks.push(
-      api.myAssignments().then((rows) => {
-        assignments = rows ?? [];
-      }).catch((error) => {
-        assignmentError = friendlyError(error).message;
-      }),
+      api
+        .myAssignments()
+        .then((rows) => {
+          assignments = rows ?? [];
+        })
+        .catch((error) => {
+          assignmentError = friendlyError(error).message;
+        }),
     );
   }
   if (canSeeEngagements) {
     tasks.push(
-      api.listEngagements(20).then(async (rows) => {
-        engagements = rows ?? [];
-        const recentOpen = engagements.filter((item) => item.status === 'open').slice(0, 6);
-        const details = await Promise.allSettled(recentOpen.map((item) => api.engagementOverview(item.id)));
-        engagementDetails = recentOpen.map((item, index) => ({
-          engagement: item,
-          overview: details[index].status === 'fulfilled' ? details[index].value : null,
-        }));
-      }).catch((error) => {
-        engagementError = friendlyError(error).message;
-      }),
+      api
+        .listEngagements(20)
+        .then(async (rows) => {
+          engagements = rows ?? [];
+          const recentOpen = engagements.filter((item) => item.status === 'open').slice(0, 6);
+          const details = await Promise.allSettled(recentOpen.map((item) => api.engagementOverview(item.id)));
+          engagementDetails = recentOpen.map((item, index) => ({
+            engagement: item,
+            overview: details[index].status === 'fulfilled' ? details[index].value : null,
+          }));
+        })
+        .catch((error) => {
+          engagementError = friendlyError(error).message;
+        }),
     );
   }
   await Promise.all(tasks);
@@ -192,8 +198,14 @@ export async function mount(el, { ctx } = {}) {
   const groups = navigationGroups(perms);
   const openAssignments = assignments.filter((item) => item.status !== 'revoked');
   const pendingAssignments = openAssignments.filter((item) => item.round_state === 'counting' && item.status !== 'submitted');
-  const activeRounds = engagementDetails.reduce((sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length, 0);
-  const reviewRounds = engagementDetails.reduce((sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length, 0);
+  const activeRounds = engagementDetails.reduce(
+    (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length,
+    0,
+  );
+  const reviewRounds = engagementDetails.reduce(
+    (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length,
+    0,
+  );
 
   const primaryAction = perms.has('audit.manage')
     ? html`<a class="btn btn-primary" href="#/audit/engagements">+ New stock audit</a>`
