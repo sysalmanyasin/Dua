@@ -132,3 +132,5 @@
 - Added hub tests for counter privacy, personal progress, manager overview, and permission-filtered navigation.
 - Branch: `feature/audit-2.0`, created from current `main`. The older `module/audit-c2` branch is intentionally untouched because it is 90 commits behind main and contains separate barcode work.
 - Verification status: not yet run in a local checkout (the execution environment cannot resolve GitHub to clone the repository). A draft PR is required to trigger the repository's CI; final acceptance remains pending on CI and real-phone testing.
+
+- Opened draft PR [#47](https://github.com/sysalmanyasin/Dua/pull/47) against `main` so the change can be reviewed before merge. No merge has been performed. CI status is not yet available from the repository checks endpoint; do not treat this slice as accepted until CI and phone tests pass.
