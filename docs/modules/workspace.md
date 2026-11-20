@@ -1,7 +1,9 @@
 # Dua Workspace — brief
 
-Status: Building (Phase 4 of 11: Notes editor, sharing and history screens and the Workspace home are built and registered) · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
-Branch history: `module/workspace` (merged to main) · Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
+Status: Notes integrated on main (Phase 4 of 11 done, 19 Nov 2026); Sheets, offline sync and attachments planned · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
+Branch history: `module/workspace` merged to main at `468873a` · Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
+
+> **New session? Start with [workspace.next-session.md](workspace.next-session.md).** Design of everything not yet built: [workspace.design.md](workspace.design.md). Evidence: [workspace.progress.md](workspace.progress.md).
 
 ## 1. Scope
 
@@ -64,7 +66,7 @@ Functions: `workspace_note_open`, `workspace_note_save` (needs the version the e
 
 Browser code built in Phase 3 (no screens yet): `domain/validation.js` (note format, mirrors the database rules; `tests/fixtures/workspace-note-cases.json` holds the shared cases and `tools/workspace-note-cases.mjs` turns them into `supabase/tests/1101_workspace_note_cases_test.sql`, so browser and database are checked against the same list), `domain/permissions.js`, `domain/revisions.js`, `domain/documents.js`, and the data layer `data/api.js`, `documents.js`, `sharing.js`, `notes.js`, `revisions.js`.
 
-Planned: `1102` sheets, cells, styles, operations, snapshots; `1103` sheet conflicts, pull, Realtime publication; `1104` attachments and Storage policies.
+Planned (design: `workspace.design.md`): `1102` sheets, cells, styles, operations, snapshots; `1103` sheet conflicts, pull, Realtime publication; `1104` attachments and Storage policies.
 
 Rich-text format: `{"v":1,"doc":{"type":"doc","content":[...]}}` with only the nodes `paragraph heading(1–3) bullet_list ordered_list list_item task_list task_item text hard_break` and marks `bold italic underline link(http, https, mailto, tel)`. Every top-level block has `attrs.id`. Maximum 256 KB and 8 levels of nesting.
 
@@ -117,7 +119,7 @@ Requests to Foundation (approved by the owner acting as Foundation, 18 Nov 2026;
 | 1 | Final design and prototypes | Done as the plan; prototypes still to run before Phases 4 and 9 |
 | 2 | Database core: `1100_workspace_core.sql` | Done; applied to the shared project 18 Nov 2026 |
 | 3 | Notes backend (`1101`), domain and data layers | Built and tested; see progress file for the live status |
-| 4 | Notes editor, sharing and history screens, home page, module registered | Built and tested; needs a real-phone check by the owner |
+| 4 | Notes editor, sharing and history screens, home page, module registered | Done and merged to main 19 Nov 2026; needs a real-phone check by the owner |
 | 5 | Workbooks and grid (`1102`) | Next |
 | 6 | Formula engine | Planned |
 | 7 | Formatting, sort, filter, CSV | Planned |

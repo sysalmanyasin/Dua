@@ -3,6 +3,15 @@
 Dates are 2026. Counts are as of the end of each step.
 
 
+## 19 Nov — Workspace Phase 4: Notes editor, sharing and history
+- Workspace Notes are now a registered module (`/workspace`, `/workspace/note`): home with search (titles and note text), Mine / Shared / Archived / Trash tabs and personal folders; rich-text editor (headings, bold, italic, underline, bulleted/numbered/checklists, links, undo/redo); autosave with same-operation-id retry; conflict banner (keep mine / use latest / copy mine); sharing dialog (owner/editor/viewer, transfer ownership, hide history from viewers); history with preview and owner-only restore; archive and delete.
+- Vendored ProseMirror bundle (`vendor/workspace/`, nine MIT packages pinned at least 14 days old, reproducible esbuild recipe, licences, SHA-256 in `tools/check-vendor.mjs`). The editor schema is proved equal to the note validators by running the shared cases through the real library.
+- `sw.js` file list regenerated (adds Workspace files and two stylesheets `main` had missed).
+- Database: no new migration. Live registry: `1100` and `1101` applied by hand on 18 Nov 2026; function bodies verified identical to the tested copy.
+- Tests: 176 Workspace unit tests; full suite after merging `main` 1,669 unit tests (one pre-existing failure in `ebill-page.test.js`), 71 database test files pass.
+- Known: the router carries no ids, so the open note id lives in session storage (no deep links); `css/ebill.css` fails Prettier on `main` itself.
+- Handover for the next session: `docs/modules/workspace.next-session.md`; remaining design: `docs/modules/workspace.design.md`.
+
 ## 19 Nov — Documentation reconciliation
 - Added `docs/MODULE_PROGRESS_REGISTER.md` as the consolidated source for registered modules, backend-only work, live-status evidence, outstanding acceptance and all branch comparisons.
 - Corrected stale status in README, canonical project status, roadmap, testing guide, shared module contract and module briefs/progress handovers: Manager 0108, Closing through 0211 (with 0214 live/source drift flagged), STR, Audit C1, Emergency Billing Phase 5, Invoice Desk integration and Workspace Phase 3 backend-only state.

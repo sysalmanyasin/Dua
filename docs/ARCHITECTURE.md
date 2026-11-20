@@ -28,7 +28,7 @@ Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
 | `js/modules/manager/` | Staff Registry and Staff Credit (further Manager slices remain planned) |
 | `js/modules/closing/` | Partial guided closing ledger; remaining sections and submit/ledger flows are in progress |
 | `css/` | `tokens.css` (the original brand colours, light and dark), `fonts.css`, `base.css`, `components.css`, `sales.css`, `checklist.css` |
-| `vendor/` | Third-party code copied into the repo and hash-checked: Supabase client 2.45.4, Chart.js 4.4.7, Inter and IBM Plex Mono fonts. Nothing third-party is fetched at run time except Google's sign-in script when Gmail is used. |
+| `vendor/` | Third-party code copied into the repo and hash-checked: Supabase client 2.45.4, Chart.js 4.4.7, Inter and IBM Plex Mono fonts, and `vendor/workspace/prosemirror-bundle-1.0.0.mjs` (nine ProseMirror packages bundled once for Workspace Notes; recipe and licences beside it). Nothing third-party is fetched at run time except Google's sign-in script when Gmail is used. |
 | `supabase/` | `migrations/`, `functions/`, `tests/`, `seed/` (templates only) |
 | `tools/` | `check-secrets.mjs`, `check-vendor.mjs`, `import/` (the check-only history importer), `backup/` (encrypted backup and restore verification) |
 | `tests/unit/` | front-end tests |
