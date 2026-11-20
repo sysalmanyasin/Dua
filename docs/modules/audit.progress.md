@@ -136,3 +136,5 @@
 - Opened draft PR [#47](https://github.com/sysalmanyasin/Dua/pull/47) against `main` so the change can be reviewed before merge. No merge has been performed. CI status is not yet available from the repository checks endpoint; do not treat this slice as accepted until CI and phone tests pass.
 
 - CI run 359 (`93a124e`) result: ESLint passed and Edge Function type-check passed. `prettier --check .` still flags `js/modules/audit/ui/hub.js`; because the app job stops there, Vitest and subsequent app checks were skipped. The database job independently fails while applying an existing migration because the test Postgres instance lacks the `supabase_realtime` publication; this redesign adds no migration. PR #47 has been returned to Draft until formatting is resolved and app tests can execute.
+
+- Latest CI run 361 (`a90fe92`): ESLint and Edge Function type-check pass; Prettier still flags the new hub file, so the Vitest and remaining app checks do not execute. The database job continues to fail on the pre-existing migration step that attempts to add `public.closings` to a missing `supabase_realtime` publication. PR #47 is Draft; no merge or deployment has occurred.
