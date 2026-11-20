@@ -118,3 +118,17 @@
 - PHONE 1 / PHONE 2 on real phones.
 - C2 Barcode (Center, register, verify, conflicts, scanner, scan outbox); needs the Foundation requests (OD-6, vendored scanner libraries).
 - D Hardening and acceptance.
+
+
+## Audit 2.0 — landing page and navigation redesign (in progress)
+- Owner-approved direction: role/permission-aware dashboard, six grouped navigation sections, complete landing-page UI/UX redesign.
+- Added `docs/modules/audit-2.0.md` as the implementation contract. The work is presentation-only and uses existing APIs; no database migrations or business-rule changes.
+- Replaced the directory-style `ui/hub.js` with a role-aware Command Centre:
+  - counters load only `audit_my_assignments()` and see their own work/progress;
+  - users with `audit.view` or `audit.manage` see RLS-filtered engagements and bounded detail reads for up to six recent open engagements;
+  - individual-audit, expiry, reporting, barcode (when its route exists) and team links are filtered against the existing manifest route permissions.
+- Grouped navigation is generated from manifest route permission metadata, rather than introducing a second permission map.
+- Updated the landing route label to Overview and added responsive, scoped styles under `.aud`. Progress bars use DOM style properties after render to comply with the Content Security Policy (no inline style attributes).
+- Added hub tests for counter privacy, personal progress, manager overview, and permission-filtered navigation.
+- Branch: `feature/audit-2.0`, created from current `main`. The older `module/audit-c2` branch is intentionally untouched because it is 90 commits behind main and contains separate barcode work.
+- Verification status: not yet run in a local checkout (the execution environment cannot resolve GitHub to clone the repository). A draft PR is required to trigger the repository's CI; final acceptance remains pending on CI and real-phone testing.
