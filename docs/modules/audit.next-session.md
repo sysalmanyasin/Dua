@@ -1,6 +1,6 @@
 # Audit module: handover for the next session
 
-**State on 20 Nov 2026.** Slices A1–C1 are on `main`. **C2 Barcode is built and tested on branch `module/audit-c2`** (not yet merged). Migration `0411` is written and passes the DB suite but its live apply was blocked (the Supabase tool timed out waiting for the owner to approve a prompt); **check `select * from supabase_migrations.schema_migrations where name like '%0411%'` and the three tables before assuming it is live**. Next: confirm 0411 live, PHONE 1/2/3, then D Hardening. Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` first.
+**State on 20 Nov 2026.** Slices A1–C2 are on `main`. Migration `0411` is applied live (20 Nov 2026; 17 functions, RLS on the 3 new tables, registry `0411_audit_barcode`). Next: PHONE 1/2/3, then D Hardening. Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` first.
 
 ## What exists
 - **Database** `0401`–`0410` (Audit) and `0308` (Inventory interface), all applied live on project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`) and registered in `supabase_migrations.schema_migrations`. Live migrations are applied with the Supabase `apply_migration` tool (0409 was) or by hand with `execute_sql` plus a registry insert; the file in `supabase/migrations/` is the source.

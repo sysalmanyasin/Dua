@@ -115,7 +115,7 @@
 - Not built: CSV / print of the register, and an expiry-by-month summary. Easy to add on top of `audit_expiry_search`.
 
 ## Slice C2 (Barcode) — built 20 Nov 2026
-- `supabase/migrations/0411_audit_barcode.sql` (**file written and DB-tested; apply status: see `audit.next-session.md`**): tables `audit_barcodes`, `audit_barcode_log` (append-only), `audit_scan_events` (append-only, idempotent by `client_event_id`), all RLS with no direct grants. Functions: `audit_barcode_products/register/verify/change/disable/enable/conflict_resolve/list/overview/mirror/history`, `audit_scan_history`, `audit_scan_batch`, `audit_engagement_set_method`, and `audit_my_assignments` now returns `counting_method` (individual audits are always `hybrid`).
+- `supabase/migrations/0411_audit_barcode.sql` (applied live 20 Nov 2026): tables `audit_barcodes`, `audit_barcode_log` (append-only), `audit_scan_events` (append-only, idempotent by `client_event_id`), all RLS with no direct grants. Functions: `audit_barcode_products/register/verify/change/disable/enable/conflict_resolve/list/overview/mirror/history`, `audit_scan_history`, `audit_scan_batch`, `audit_engagement_set_method`, and `audit_my_assignments` now returns `counting_method` (individual audits are always `hybrid`).
 - Rules: unverified -> verified; a second claim on a barcode never changes the link: it goes to `conflict` and only `audit.barcode_admin` can keep, reassign or disable, with a reason. A scan only FINDS an item and never adds a quantity (AUD-4). A counter only sees their own assignment (AUD-5). Scan events are safe to resend.
 - App: `/audit/barcode` (Find, Register, To verify, Conflicts, All barcodes, scan history; tabs follow permissions), scanner dialog (browser BarcodeDetector first, vendored ZXing wasm as fallback, typed entry always possible, camera stops on close, hidden page and after 45 s idle), hybrid counting in the counting screen (Scan button, scanned item moves to the top and its quantity box is focused, pick-one when two items share a code).
 - Foundation touched (OD-6, owner agreed): `js/shared/outbox.js` (new shared queue, unsent-work registry and sign-out guard), `js/core/app.js` (registers manifest outboxes, installs the guard), `index.html` CSP (`'wasm-unsafe-eval'` added; no `unsafe-eval`), `tools/check-vendor.mjs` and `vendor/` (ZXing 3.1.7 JS, wasm, licence, hashes).
@@ -124,7 +124,7 @@
 - Page tests found and fixed a double-click bug (working tabs and page shell both handled the same button).
 
 ## Next
-- Apply `0411` live and confirm; PHONE 1 / 2 / 3 on real phones.
+- PHONE 1 / 2 / 3 on real phones.
 - D Hardening and acceptance (offline end-to-end, accessibility, low-end phone, data-use review, MODULES.md §11). Optional: Expiry CSV/print and by-month summary; `inventory_companies()` for the Individual Audit picker.
 
 ## Audit 2.0 — landing page and navigation redesign (in progress)
