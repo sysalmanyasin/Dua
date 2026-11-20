@@ -209,7 +209,7 @@ export async function mount(el, { ctx } = {}) {
       ${hero({ label: 'AUDIT WORKSPACE', title: 'Audit Command Centre', sub: 'A clear view of your audit work, active stock checks and the tools you are allowed to use.', actions: primaryAction })}
       <section class="aud-welcome" aria-label="Dashboard introduction">
         <div><strong>${ctx?.full_name ? `Welcome, ${ctx.full_name}` : 'Welcome to Audit'}</strong><p class="muted small">Your dashboard is tailored to your Audit permissions.</p></div>
-        <a class="aud-refresh" href="#/audit" aria-label="Refresh dashboard">Refresh ↻</a>
+        <button type="button" class="aud-refresh" data-refresh aria-label="Refresh dashboard">Refresh ↻</button>
       </section>
 
       ${canCount ? html`<section class="card aud-card" aria-label="My work">
@@ -258,6 +258,10 @@ export async function mount(el, { ctx } = {}) {
 
   // Preserve the current route hand-off convention for pages that need an engagement/round id.
   el.onclick = (event) => {
+    if (event.target.closest('[data-refresh]')) {
+      mount(el, { ctx });
+      return;
+    }
     const engagementLink = event.target.closest('[data-open-engagement]');
     if (engagementLink) setView({ engagement: engagementLink.dataset.openEngagement });
   };
