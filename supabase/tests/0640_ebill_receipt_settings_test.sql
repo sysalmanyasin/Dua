@@ -63,7 +63,7 @@ do $t$ declare r jsonb; v0 int; begin
   perform pg_temp.denied($q$select public.ebill_set_receipt('{"mystery":1}', 'because')$q$, 'unknown setting');
   perform pg_temp.denied($q$select public.ebill_set_receipt('{"shop_name":5}', 'because')$q$, 'text must be text');
   perform pg_temp.denied(format($q$select public.ebill_set_receipt(%L, 'because')$q$, jsonb_build_object('shop_name', repeat('x', 81))), 'shop name too long');
-  perform pg_temp.denied(format($q$select public.ebill_set_receipt(%L, 'because')$q$, jsonb_build_object('footer', repeat('x', 201))), 'footer too long');
+  perform pg_temp.denied(format($q$select public.ebill_set_receipt(%L, 'because')$q$, jsonb_build_object('footer', repeat('x', 401))), 'footer too long');
   perform pg_temp.denied($q$select public.ebill_set_receipt('{"logo":"https://evil.example/x.png"}', 'because')$q$, 'a logo must be an embedded image, not a link');
   perform pg_temp.denied($q$select public.ebill_set_receipt('{"logo":"data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="}', 'because')$q$, 'SVG images can carry scripts and are refused');
   perform pg_temp.denied($q$select public.ebill_set_receipt('{"logo":"data:image/png;base64,AAA<script>"}', 'because')$q$, 'a logo with stray characters is refused');

@@ -86,8 +86,13 @@ Open question for the owner: the product copy's `price` is treated as the price 
 - **Refund** (manager only): the whole invoice, one per invoice, reason required. **Correct** (manager only): customer, payment mode and comments only; for an amount, refund and bill again. Neither edits the saved invoice: each adds an event (who, when, why, what changed), shown in the detail and written to the audit log. The history overlays events on the saved record.
 - **Return / Reason** buttons on the billing screen stay off: refunds are a manager action in History.
 
-Still to build (Phase 5): receipt printing and print settings, device/limits/receipt settings in one place, and CSV / Excel / PDF exports of the history.
+## Phase 5 (built, 20 Nov 2026)
 
-## Status (reconciled 19 Nov 2026)
+- **Partial refunds**: History detail > Refund opens a dialog (item, sold, already back, can refund, quantity, Refund all remaining, reason). The screen previews the amount; the database decides it (`ebill_refund_lines`, 0633). The last refund returns exactly what is left. A request id per dialog makes a retry safe. Statuses: Posted, Corrected, Part refunded, Refunded.
+- **Receipts**: `domain/receipt.js` (pure description, four types), `ui/receiptPrint.js` (drawing, print via a hidden `#eb-print-root`, named `@page` sizes for 58/80 mm), `ui/receiptForm.js` (Settings > Receipt with live preview, test slip, logo), `ui/receiptSearch.js` (Search receipt: server plus this device). Settings are cached on the device (`data/receiptSettings.js`) so receipts print offline. The layout follows the owner's own slip (no FBR logo, QR or FBR number).
+- **Reports and exports**: History > Reports & export (export right or manager). Daily totals on screen; CSV (daily, invoices), Excel (two sheets) and PDF. Invoices still on this device (waiting or failed) are not on the server: the window warns, offers Upload now, adds the warning to the PDF and Excel notes, and names the files `-INCOMPLETE`. A cut-short list (over 5,000 invoices) is also stated.
+- Database: 0633, 0634, 0640, 0641, 0642, all live.
 
-Phase 5 is partly done: the database for partial refunds, receipt settings and reports is written and tested but **not yet applied live**, and the screens for them (partial refund dialog, receipt printing and settings form, Search receipt, exports) are **not built**. The billing screen now fits the desktop (full-screen mode, F5 Product Help with three filters). See `docs/modules/ebill-handover.md` for the exact state, the live-vs-repo database gap and the next steps.
+## Status (20 Nov 2026)
+
+Phases 1 to 5 are built and live. Phase 6 (stabilise, real-device and printer checks) is next. See `docs/modules/ebill-handover.md` for the exact state and remaining steps.
