@@ -108,6 +108,7 @@ function navCard(group) {
     </a>`,
   );
 
+  // prettier-ignore
   return html`<section class="card aud-card aud-nav-group" aria-label="${group.title}">
     <div class="aud-group-heading">
       <h2>${group.title}</h2>
@@ -128,6 +129,7 @@ function assignmentCard(assignment) {
   const buttonClass = active ? 'btn-primary' : '';
   const buttonLabel = active ? 'Continue counting' : 'Open my work';
 
+  // prettier-ignore
   return html`<article class="aud-work-item">
     <div class="aud-work-main">
       <div class="aud-work-title">
@@ -167,6 +169,7 @@ function engagementCard(engagement, overview) {
     latestLabel = ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(latest.state)}`;
   }
 
+  // prettier-ignore
   return html`<article class="aud-engagement-item">
     <div class="aud-engagement-copy">
       <strong>${engagement.name}</strong>
@@ -179,6 +182,7 @@ function engagementCard(engagement, overview) {
 }
 
 function metric(label, value, detail) {
+  // prettier-ignore
   return html`<div class="aud-metric">
     <span class="muted small">${label}</span>
     <strong>${value}</strong>
@@ -205,6 +209,7 @@ function myWorkSection(assignments, pendingAssignments, error, perms) {
     </div>`;
   }
 
+  // prettier-ignore
   return html`<section class="card aud-card" aria-label="My work">
     <div class="aud-section-head">
       <div>
@@ -222,6 +227,7 @@ function myWorkSection(assignments, pendingAssignments, error, perms) {
 }
 
 function individualSection() {
+  // prettier-ignore
   return html`<section class="card aud-card">
     <h2>Individual audit</h2>
     <p class="muted small">Start a personal stock count or use one of your saved templates.</p>
@@ -265,6 +271,7 @@ function engagementSection(engagements, details, error, activeRounds, compiledRo
     limitNote = html`<p class="muted small">Showing the 20 most recent engagements.</p>`;
   }
 
+  // prettier-ignore
   return html`<section class="card aud-card" aria-label="Stock audit overview">
     <div class="aud-section-head">
       <div>
@@ -379,6 +386,7 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   }
 
+  // prettier-ignore
   render(
     el,
     html`<div class="aud aud-dashboard">
