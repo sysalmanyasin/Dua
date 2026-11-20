@@ -1,0 +1,419 @@
+/* Dua Workspace. Uses the shared tokens only (css/tokens.css), so light and dark themes follow the rest of the app. */
+
+/* ── ProseMirror base rules (prosemirror-view 1.42.9 style/prosemirror.css, MIT, © Marijn Haverbeke and contributors) ── */
+.ProseMirror {
+  position: relative;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0;
+}
+.ProseMirror pre {
+  white-space: pre-wrap;
+}
+.ProseMirror li {
+  position: relative;
+}
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+.ProseMirror-hideselection {
+  caret-color: transparent;
+}
+.ProseMirror [draggable][contenteditable='false'] {
+  user-select: text;
+}
+.ProseMirror-selectednode {
+  outline: 2px solid var(--blue-400);
+}
+img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+/* ── Layout helpers ── */
+.ws-grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ws-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.ws-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.ws-search {
+  margin: 0;
+  min-width: 200px;
+  flex: 1 1 220px;
+  max-width: 340px;
+}
+.ws-search input {
+  width: 100%;
+}
+.ws-home .tabs-seg {
+  margin-bottom: var(--space-3);
+  overflow-x: auto;
+}
+.ws-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.ws-chips .pill.is-active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+.ws-sheets-note {
+  margin-top: var(--space-4);
+}
+
+/* ── Lists ── */
+.ws-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+}
+.ws-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.ws-open {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+.ws-open:hover strong {
+  text-decoration: underline;
+}
+.ws-open:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.ws-open .muted {
+  font-size: 0.85em;
+}
+.ws-inline select {
+  max-width: 160px;
+}
+.ws-check {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+/* ── The note page ── */
+.ws-note {
+  max-width: 860px;
+  margin: 0 auto;
+}
+.ws-note-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+}
+.ws-title {
+  width: 100%;
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+}
+input.ws-title:hover,
+input.ws-title:focus {
+  border-color: var(--border);
+  background: var(--surface);
+}
+.ws-status[data-tone='warn'] {
+  background: var(--amber);
+  color: #3a2a00;
+}
+.ws-toolbar {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding: var(--space-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+  border-radius: var(--radius) var(--radius) 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  scrollbar-width: thin;
+}
+.ws-toolbar[hidden] {
+  display: none;
+}
+.ws-tb {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 40px;
+}
+.ws-tb[aria-pressed='true'] {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+.ws-linkbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-bottom: 0;
+}
+.ws-linkbar[hidden] {
+  display: none;
+}
+.ws-editor {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  min-height: 55vh;
+  padding: var(--space-4);
+}
+.ws-toolbar[hidden] + .ws-linkbar + .ws-editor,
+.ws-toolbar[hidden] + .ws-linkbar[hidden] + .ws-editor {
+  border-radius: var(--radius);
+}
+.ws-editor .ProseMirror {
+  min-height: 50vh;
+  outline: none;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+.ws-editor .ProseMirror:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+.ws-editor h1 {
+  font-size: 1.6rem;
+  margin: 1.2em 0 0.4em;
+}
+.ws-editor h2 {
+  font-size: 1.3rem;
+  margin: 1.1em 0 0.4em;
+}
+.ws-editor h3 {
+  font-size: 1.1rem;
+  margin: 1em 0 0.3em;
+}
+.ws-editor p {
+  margin: 0 0 0.7em;
+}
+.ws-editor ul,
+.ws-editor ol {
+  padding-left: 1.5em;
+  margin: 0 0 0.7em;
+}
+.ws-editor a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.ws-editor ul.ws-tasks {
+  list-style: none;
+  padding-left: 0;
+}
+.ws-task {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+.ws-task-box {
+  flex: 0 0 auto;
+  padding-top: 0.25em;
+}
+.ws-task-box input {
+  width: 1.15em;
+  height: 1.15em;
+  cursor: pointer;
+}
+.ws-task-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ws-task[data-checked='true'] .ws-task-body {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+.ws-readonly .ws-task-box input {
+  pointer-events: none;
+}
+.ws-conflict .actions {
+  margin: var(--space-2) 0;
+}
+.ws-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.ws-danger-text {
+  color: var(--danger);
+}
+.ws-copy {
+  width: 100%;
+  font: inherit;
+  font-size: 16px;
+}
+
+/* ── Dialogs: centred on a large screen, a bottom sheet on a phone ── */
+.ws-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: rgb(11 23 48 / 55%);
+}
+.ws-panel {
+  width: min(520px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.ws-panel.ws-wide {
+  width: min(820px, 100%);
+}
+.ws-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.ws-panel-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+.ws-panel-body {
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+.ws-history {
+  display: grid;
+  grid-template-columns: minmax(200px, 280px) 1fr;
+  gap: var(--space-4);
+}
+.ws-version {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-1);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  cursor: pointer;
+  min-height: 44px;
+}
+.ws-version.is-active {
+  border-color: var(--primary);
+  background: var(--blue-50);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .ws-version.is-active {
+    background: var(--surface-2);
+  }
+}
+.ws-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.ws-panel .ws-editor {
+  min-height: 160px;
+  border-radius: var(--radius);
+}
+.ws-panel .ws-editor .ProseMirror {
+  min-height: 120px;
+}
+
+@media (max-width: 640px) {
+  .ws-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .ws-panel,
+  .ws-panel.ws-wide {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .ws-history {
+    grid-template-columns: 1fr;
+  }
+  .ws-editor {
+    padding: var(--space-3);
+    min-height: 60vh;
+  }
+  .ws-title {
+    font-size: 1.2rem;
+  }
+  .ws-search {
+    max-width: none;
+  }
+  /* 16px stops iOS from zooming into fields */
+  .ws-note input,
+  .ws-panel input,
+  .ws-panel select,
+  .ws-home input {
+    font-size: 16px;
+  }
+}

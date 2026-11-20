@@ -12,4 +12,5 @@ export const MODULE_IDS = [
   'ebill',
   'audit',
   'invoice-desk',
+  'workspace',
 ];
