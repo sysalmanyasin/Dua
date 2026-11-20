@@ -633,3 +633,12 @@
     transition: none;
   }
 }
+
+.aud-refresh {
+  min-height: 44px;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
