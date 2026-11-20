@@ -133,7 +133,6 @@ function assignmentCard(assignment) {
 function engagementCard(engagement, overview) {
   const rounds = overview?.rounds ?? [];
   const latest = rounds.length ? rounds[rounds.length - 1] : null;
-  const openRounds = rounds.filter((round) => !['final', 'closed'].includes(round.state));
   return html`<article class="aud-engagement-item">
     <div class="aud-engagement-copy">
       <strong>${engagement.name}</strong>
