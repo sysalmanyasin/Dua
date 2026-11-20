@@ -14,6 +14,8 @@ const EXPECTED = {
   'vendor/fonts/inter-latin-800-normal.woff2': 'a7d0a50f15d389cad679238466bdb5fc9787aa0715719064ce25abaff042820d',
   'vendor/chart-4.4.7.umd.js': '2812cb8825fdc57469eb2f7bb055e9429244e599920511ee477e828499b632cb',
   'vendor/591.supabase.js': '9c305b77dab63dd79eb96efab9069366fb2255bd8731d6b862287558d2560406',
+  'vendor/workspace/prosemirror-bundle-1.0.0.mjs': 'f6de61193d391398600993b08f2c1b6d5373f5ec71ca3b2a68978d66f906bccb',
+  'vendor/workspace/LICENSES.txt': '9a9d215ea18f56cc14f7be8694b05e336960886e9cadc0c919ea534d00f1d00a',
 };
 let bad = 0;
 for (const [file, hash] of Object.entries(EXPECTED)) {

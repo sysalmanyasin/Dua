@@ -34,13 +34,14 @@ The source registry currently contains these 12 IDs, in order: `home`, `sales`, 
 | **Candela Sales** | Integrated; owner Overview, Daily History, Credit by Customer and Reports, plus staff-safe “Candela today” pill. | Migration `0900` and initial history capture are recorded live. | Owner phone try-out; confirm subsequent hourly syncs continue appending history. Older history import is optional and source-dependent. |
 | **Emergency Billing** | Integrated; Phases 1–4: POS, PIN-checked save, devices/limits, offline queue/sync, held bills, history, whole-invoice refunds and corrections. | `0601`, `0602`, `0610`–`0612`, `0620`–`0622`, `0630`–`0632` are recorded live. | Phase 5 remains incomplete: migrations `0633`, `0634`, `0640`, `0641` are in the repo but documented as not live; partial-refund, receipt/settings/search and reports/export UI are not built. Then Phase 6 device/end-to-end hardening. |
 | **Audit** | Integrated; A1–A5, B1, B2 and C1 Expiry tracking are built. Includes counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports/CSV/print/PDF, audit trail, alerts, expiry register/racks. | Audit migrations `0401`–`0410` and Inventory `0308` are recorded live. | Real-phone PHONE 1/PHONE 2 tests and print/CSV acceptance; C2 Barcode is paused pending owner go, vendored scanner libraries and Foundation OD-6; then D hardening. |
+| **Workspace (Notes)** | Integrated and registered on `main` (Phase 4, 19 Nov 2026): home, search, personal folders, rich-text editor (vendored ProseMirror), autosave, sharing, history/restore, archive/delete. Sheets, offline and attachments are not built. 176 Workspace unit tests, 1100/1101 DB tests. | Migrations `1100` and `1101` recorded live (18 Nov 2026) with function bodies verified identical to the tested copy. | Real-phone and two-account acceptance; Phase 5 Sheets (`1102`); Phase 1 browser prototypes (CSP `wss:`, grid on a phone); offline queue and conflict merge later. Handover: `docs/modules/workspace.next-session.md`. |
 | **Invoice Desk** | Integrated and registered on `main`; three business templates, create/history/product screens and 80mm browser print path are present. The old progress note incorrectly says it was not merged. | Migrations `1000`–`1003` are recorded live in the module progress note. | Re-run full main verification and DB suite with this code; add end-to-end authorization/save/history tests; compare prints with source workbooks; include Safari Book Land logo; Android/Windows and physical printer acceptance. |
 
 ## Work in the repository but not yet an application module
 
 | Workstream | Current state | Next work |
 |---|---|---|
-| **Dua Workspace (Notes & Sheets)** | Database core `1100`, Notes backend `1101`, domain/data layers and tests are present. Progress records both migrations applied live. It is **not** in `js/modules/index.js`; no user-facing Workspace screens/manifest are integrated. | Phase 1 browser/security prototypes; Phase 4 editor, sharing/history UI and first route; register the module only when the approved UI slice is ready. Sheets and later conflict UI remain future phases. |
+| **Workspace Sheets, offline sync, attachments** | Designed in `docs/modules/workspace.design.md`; no code or migrations yet (`1102`–`1104` reserved in range 1100–1199). | Start with Phase 5 after the owner has accepted Notes on real devices. |
 | **Unified Reports** | Planned, not a registered module. | Define data contracts and scope after source modules are stable. |
 | **Assistant / AI** | Planned, not a registered module. | Only after deterministic permission-safe data interfaces exist. |
 | **Android widgets / Android shell** | Later phase, not part of current web-app module registry. | Plan separately after web app acceptance. |
@@ -59,7 +60,7 @@ GitHub reported 10 branches including `main` when compared with the pre-document
 | `fix/closing-signed-rows` | 0 | 13 | Stale pointer; no unique commits. |
 | `module/audit-a5` | 0 | 75 | Stale pointer; Audit A5/B1 work is on main. |
 | `module/audit-b2` | 0 | 15 | Stale pointer; Audit B2/C1 work is on main. |
-| `module/workspace` | 0 | 36 | Stale pointer; Workspace 1100/1101 and domain/data work are on main. |
+| `module/workspace` | 0 | — | Merged to main at `468873a` (19 Nov 2026); delete or reset the ref before new Workspace work, which must branch from current `main`. |
 
 **Action:** retain or delete stale branch refs only after the owner decides; this documentation update does not delete branches. New work must branch from current `main`.
 
@@ -76,7 +77,7 @@ GitHub reported 10 branches including `main` when compared with the pre-document
 1. Reconcile this register with the live Supabase migration registry, especially Closing `0214`, and preserve exact repo-numbered migration history.
 2. Run/inspect a fresh full GitHub Actions run on current `main`.
 3. Complete owner phone acceptance for Sales, Manager, Closing, Inventory, STR, Candela Sales, Audit and Invoice Desk.
-4. Complete Emergency Billing Phase 5 and Workspace's first user-facing Notes slice.
+4. Complete Emergency Billing Phase 5; accept Workspace Notes on real phones, then Workspace Phase 5 (Sheets).
 5. Perform the real encrypted Drive restore drill and separate production-project plan.
 6. Only then expand into Reports, assistant and Android work.
 

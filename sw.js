@@ -26,6 +26,7 @@ const PRECACHE = [
   "css/shell.css",
   "css/str.css",
   "css/tokens.css",
+  "css/workspace.css",
   "index.html",
   "js/core/app.js",
   "js/core/auth.js",
@@ -263,6 +264,24 @@ const PRECACHE = [
   "js/modules/tools/domain/tools.js",
   "js/modules/tools/manifest.js",
   "js/modules/tools/ui/page.js",
+  "js/modules/workspace/data/api.js",
+  "js/modules/workspace/data/documents.js",
+  "js/modules/workspace/data/notes.js",
+  "js/modules/workspace/data/revisions.js",
+  "js/modules/workspace/data/sharing.js",
+  "js/modules/workspace/domain/autosave.js",
+  "js/modules/workspace/domain/documents.js",
+  "js/modules/workspace/domain/editorModel.js",
+  "js/modules/workspace/domain/permissions.js",
+  "js/modules/workspace/domain/revisions.js",
+  "js/modules/workspace/domain/validation.js",
+  "js/modules/workspace/manifest.js",
+  "js/modules/workspace/ui/history.js",
+  "js/modules/workspace/ui/home.js",
+  "js/modules/workspace/ui/note.js",
+  "js/modules/workspace/ui/noteEditor.js",
+  "js/modules/workspace/ui/panel.js",
+  "js/modules/workspace/ui/sharing.js",
   "js/shared/alerts.js",
   "js/shared/chartjs.js",
   "js/shared/format.js",
@@ -278,7 +297,8 @@ const PRECACHE = [
   "vendor/fonts/inter-latin-600-normal.woff2",
   "vendor/fonts/inter-latin-700-normal.woff2",
   "vendor/fonts/inter-latin-800-normal.woff2",
-  "vendor/supabase-js-2.45.4.umd.js"
+  "vendor/supabase-js-2.45.4.umd.js",
+  "vendor/workspace/prosemirror-bundle-1.0.0.mjs"
 ];
 /* PRECACHE:END */
 const WAIT_FOR_NETWORK_MS = 6000; // with a saved copy to fall back on, do not wait longer than this for a slow connection

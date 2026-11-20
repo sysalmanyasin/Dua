@@ -1,7 +1,9 @@
 # Dua Workspace — brief
 
-Status: Building (Phase 3 of 11: Notes database/domain/data layer built; no user-facing UI yet) · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
-Branch history: `module/workspace` (stale pointer; 0 commits ahead of main) · Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
+Status: Notes integrated on main (Phase 4 of 11 done, 19 Nov 2026); Sheets, offline sync and attachments planned · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
+Branch history: `module/workspace` merged to main at `468873a` · Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
+
+> **New session? Start with [workspace.next-session.md](workspace.next-session.md).** Design of everything not yet built: [workspace.design.md](workspace.design.md). Evidence: [workspace.progress.md](workspace.progress.md).
 
 ## 1. Scope
 
@@ -64,7 +66,7 @@ Functions: `workspace_note_open`, `workspace_note_save` (needs the version the e
 
 Browser code built in Phase 3 (no screens yet): `domain/validation.js` (note format, mirrors the database rules; `tests/fixtures/workspace-note-cases.json` holds the shared cases and `tools/workspace-note-cases.mjs` turns them into `supabase/tests/1101_workspace_note_cases_test.sql`, so browser and database are checked against the same list), `domain/permissions.js`, `domain/revisions.js`, `domain/documents.js`, and the data layer `data/api.js`, `documents.js`, `sharing.js`, `notes.js`, `revisions.js`.
 
-Planned: `1102` sheets, cells, styles, operations, snapshots; `1103` sheet conflicts, pull, Realtime publication; `1104` attachments and Storage policies.
+Planned (design: `workspace.design.md`): `1102` sheets, cells, styles, operations, snapshots; `1103` sheet conflicts, pull, Realtime publication; `1104` attachments and Storage policies.
 
 Rich-text format: `{"v":1,"doc":{"type":"doc","content":[...]}}` with only the nodes `paragraph heading(1–3) bullet_list ordered_list list_item task_list task_item text hard_break` and marks `bold italic underline link(http, https, mailto, tel)`. Every top-level block has `attrs.id`. Maximum 256 KB and 8 levels of nesting.
 
@@ -79,7 +81,17 @@ Per-document rights (owner / editor / viewer) are in the matrix in the plan and 
 
 ## 6. Screens (layout)
 
-Not built yet (Phase 4 onward). The module is deliberately **not** listed in `js/modules/index.js` until Phase 4 brings the first screen, so nobody ever sees an empty Workspace. Route `/workspace` (home: Notes and Sheets, recent, search, folders, shared with me); `/workspace/note?id=…`; `/workspace/sheet?id=…`. Phone first, Dua design system only.
+Two routes (`js/modules/workspace/manifest.js`), both needing `workspace.use`:
+
+- `/workspace` — **home**: New note, New folder, search (titles and note text), tabs All / Mine / Shared with me / Archived / Trash, personal folder chips, one row per document (title, kind, owner, last edited, your role, a "move to folder" box). "New workbook" is shown disabled with a note: Sheets arrive later.
+- `/workspace/note` — **one note**: back link, title (owner edits it), a status pill (Saved / Unsaved changes / Saving / Offline / Needs your attention), Share (or "Who has access"), History, Save version, Archive and Delete (owner), a formatting toolbar (H1 to H3, bold, italic, underline, bulleted, numbered and checklists, link, undo, redo) and the editor. Viewers and archived notes get no toolbar and a read-only editor.
+- Dialogs (`ui/panel.js`): sharing, history with preview and restore, confirmations. On a phone they are bottom sheets; the toolbar scrolls sideways; all inputs are 16 px so iOS does not zoom.
+
+**Deviation from the plan (router):** the router only accepts exact paths made of letters, digits, `/`, `_` and `-` and carries no ids, so `/workspace/note?id=…` is impossible. The open note's id is kept in session storage (`dua.workspace.open`, cleared at sign-out with the other `dua.` keys). Consequences: reloading the tab reopens the same note; there are no shareable deep links yet. A small router change (a route with an id segment) would fix that; it is a Foundation file and is **not** requested yet.
+
+Editing: ProseMirror (vendored, `vendor/workspace/`) with a schema that allows exactly the note format, so the editor cannot produce a note the database would refuse; pasted content is reduced to what the format allows (scripts, images, styles and unsafe links are dropped). Typing in `# `, `- `, `1. ` or `[] ` at the start of a line starts a heading or list. Autosave runs 1.5 s after typing stops; a save that fails in transit is resent with the **same** operation id and content before anything newer, so a lost reply can never make a person conflict with their own earlier save. Until offline editing exists (Phase 8), unsaved text is also kept in session storage and offered back after a reload.
+
+Conflicts (Phase 4 version): when someone else saved first, autosave stops, the person's text is already stored on the server as an open conflict, and a banner offers **Keep my version on top**, **Use the latest version** (asks first) and **Copy my text**. The side-by-side Compare and automatic block-level merge arrive in Phase 9.
 
 ## 7. Interfaces
 
@@ -94,9 +106,9 @@ Requests to Foundation (approved by the owner acting as Foundation, 18 Nov 2026;
 | M-3 | Sign-out cleanup hook (`js/core/cleanup.js`, `signOut()` awaits hooks) | Phase 8 |
 | M-4 | CSP `wss://*.supabase.co` only if a prototype proves it is needed; Realtime publication | Phase 9 |
 | M-5 | Private bucket `workspace-attachments` | Phase 10 |
-| M-6 | Service worker registration and precache for Workspace | Phase 8 |
+| M-6 | Service worker registration and precache for Workspace | Precache list regenerated in Phase 4 (done); registering the worker for Workspace is Phase 8 |
 | M-7 | `storage` stub for database tests | Phase 10 |
-| M-8 | ProseMirror set, exact versions, bundling option (a): one-off bundle committed with its hash | Phase 4 |
+| M-8 | ProseMirror set, exact versions, bundling option (a): one-off bundle committed with its hash | Done in Phase 4 (`vendor/workspace/`, see `build/BUILD.md`) |
 | M-9 | Formatting baseline restored (done, separate commit); new Edge Function in the CI loop | Phase 10 |
 | M-10 | Database security design (this brief and the plan, sections E and F) | Phase 2 |
 
@@ -107,8 +119,8 @@ Requests to Foundation (approved by the owner acting as Foundation, 18 Nov 2026;
 | 1 | Final design and prototypes | Done as the plan; prototypes still to run before Phases 4 and 9 |
 | 2 | Database core: `1100_workspace_core.sql` | Done; applied to the shared project 18 Nov 2026 |
 | 3 | Notes backend (`1101`), domain and data layers | Built and tested; see progress file for the live status |
-| 4 | Notes editor, sharing and history screens | Planned |
-| 5 | Workbooks and grid (`1102`) | Planned |
+| 4 | Notes editor, sharing and history screens, home page, module registered | Done and merged to main 19 Nov 2026; needs a real-phone check by the owner |
+| 5 | Workbooks and grid (`1102`) | Next |
 | 6 | Formula engine | Planned |
 | 7 | Formatting, sort, filter, CSV | Planned |
 | 8 | IndexedDB and offline queue | Planned |

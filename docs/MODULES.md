@@ -142,6 +142,7 @@ Rules checked by `tests/unit/repo-consistency.test.js`:
 - `load` is a function returning a dynamic `import()` (modules load lazily, only when the route opens).
 - Any `permission` named in the manifest must be seeded in a migration (§5.3).
 - A route with a `title` appears in the module's sub-navigation; a route without one is reachable but hidden.
+- **Routes carry no ids.** The router matches exact paths and the hash may not contain `?`, `:` or parameters, so a page that needs to know which record is open must keep that in session storage under a key starting `dua.` (cleared at sign-out). Workspace does this (`dua.workspace.open`). Deep links would need a router change (Foundation).
 - A module can be switched off by an admin setting (`modules_disabled`) without breaking others, so **never import another module's files** (§8).
 
 ### 4.2 Pages
@@ -294,7 +295,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `reports` | Cross-module reports, Herald, cover signals | `reports_` | `reports.` | `/reports` | 80 | 0700–0799 | other modules' interfaces | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
 | `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |
-| `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Building |
+| `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Notes integrated (Phase 4); Sheets planned |
 | `access` | Users & Access (core) | — | `users.` | `/access` | 90 | — | core | Accepted |
 | `tools` | Owner operations, alerts, backup status and feed health | core / ops | `tools.` | `/tools` | 95 | Foundation | core | Building |
 

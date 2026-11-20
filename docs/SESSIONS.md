@@ -106,3 +106,7 @@ Stay inside your module's files and migration range. Ask the owner your question
 building. Never apply migrations to the live project, never paste or store a token, and never put real
 names, numbers or amounts in the repo. At the end, list every file you changed.
 ```
+
+## Workspace (19 Nov 2026)
+
+Notes (Phase 4) are merged to `main` and registered. The branch `module/workspace` was merged and should be recreated from current `main` for new work. A new Workspace session starts with `docs/modules/workspace.next-session.md`, then `docs/modules/workspace.md` (brief and owner decisions), `docs/modules/workspace.design.md` (design for Sheets, offline sync and attachments) and `docs/modules/workspace.progress.md` (evidence). Workspace owns migrations `1100`–`1199`; `1102`–`1104` are reserved for sheets, synchronisation and attachments.

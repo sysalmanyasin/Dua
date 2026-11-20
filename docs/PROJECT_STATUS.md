@@ -33,10 +33,11 @@ This is the concise operational snapshot. For per-module evidence, migration not
 | Emergency Billing | Integrated; Phases 1–4 including offline billing, sync, holds, history, whole-invoice refunds and corrections. | 0601/0602, 0610–0612, 0620–0622 and 0630–0632 recorded live. | Phase 5 incomplete: 0633/0634/0640/0641 are documented in repo but not live; partial refund, receipt/settings/search and exports UI not built. Then Phase 6 hardening. |
 | Audit | Integrated; slices A1–A5, B1, B2 and C1 expiry/racks. | 0401–0410 and Inventory 0308 recorded live. | Real-phone PHONE 1/2 and print/CSV checks; C2 Barcode paused pending owner go, vendored scanner libraries and OD-6; then hardening. |
 | Invoice Desk | Integrated and registered on main; three template-based invoice flows, product/history and 80mm print path. | 1000–1003 recorded live in its progress file. | Correct stale handover; run full checks and add E2E/RLS coverage; verify workbook layout/logo and real printer/browser acceptance. |
+| Workspace (Notes) | Integrated and registered on main (19 Nov 2026, Phase 4): home with search and personal folders, rich-text editor with autosave, sharing (owner/editor/viewer), history and restore, archive/delete. **Sheets are not built.** | 1100–1101 recorded live and checked against the tested copy (18 Nov 2026). | Real-phone and two-account owner acceptance (jsdom only so far); Phase 5 Sheets; later offline and conflict-merge phases. See `docs/modules/workspace.next-session.md`. |
 
 ## Not yet an application module
 
-**Workspace (Notes & Sheets):** migrations 1100 and 1101, Notes domain/data layers and tests are present; progress records both migrations applied live. It is not listed in `js/modules/index.js` and has no integrated user-facing module manifest/screens. Phase 1 prototypes and Phase 4 editor/sharing/history UI remain. Sheets and later conflict UI are future phases.
+**Workspace Sheets** (workbooks, grid, formulas, CSV), Workspace offline editing and synchronisation, and attachments are designed (`docs/modules/workspace.design.md`) but not built.
 
 **Unified Reports, assistant/AI and Android widgets** remain planned, not registered application modules.
 
@@ -63,7 +64,7 @@ GitHub reports 10 branches including `main`. All nine non-main branches are 0 co
 1. Reconcile Closing migration 0214 and the live Supabase registry with repository migrations before further database changes.
 2. Run and inspect a fresh full GitHub Actions run on current `main`.
 3. Complete real-device/owner acceptance across existing modules, plus Gmail send verification.
-4. Complete Emergency Billing Phase 5 and Workspace's first user-facing Notes slice.
+4. Complete Emergency Billing Phase 5; accept Workspace Notes on real phones, then start Workspace Phase 5 (Sheets).
 5. Perform the real encrypted Drive restore drill and plan a separate production Supabase project.
 6. Expand into Reports, assistant and Android only after the above acceptance gates.
 

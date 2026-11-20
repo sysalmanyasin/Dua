@@ -30,4 +30,6 @@ Start with these documents; dated history is not a substitute for current status
 
 Each module has a brief and, where applicable, a `*.progress.md` file under [modules/](modules/). Use the progress file for detailed session evidence and handoff. Use the Master Module Progress Register for the cross-module view.
 
+Workspace has three extra files: [workspace.next-session.md](modules/workspace.next-session.md) (start here), [workspace.design.md](modules/workspace.design.md) (design for the parts not built yet) and [workspace.progress.md](modules/workspace.progress.md) (evidence).
+
 **Status rule:** distinguish source integrated on `main`, migration/function recorded live, tests run, real-device acceptance and owner sign-off. Never collapse them into a single “complete” label.

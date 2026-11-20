@@ -37,10 +37,10 @@
 - Optional later improvements: expiry-register CSV/print and expiry-by-month summary.
 
 ### Workspace (Notes & Sheets)
-- Complete Phase 1 prototypes: CSP compatibility with vendored ProseMirror, `wss:` connectivity, bundle-size measurement and grid performance on a phone.
-- Phase 4: Notes editor, sharing, history/revisions UI and first route; add manifest/registry/CSS only when this slice passes its gate.
-- Later phases: block-level conflict UI, Sheets grid/formula engine, import/export and remaining sharing/offline flows according to the approved brief.
-- Workspace is not a registered or user-ready module today.
+- **Done (Phases 2–4, merged 19 Nov 2026):** database core and Notes backend (`1100`, `1101`), Notes editor, sharing, history/restore, home with search and folders; registered at `/workspace`.
+- **Now:** owner acceptance of Notes on real phones with two accounts (`workspace.use` + `workspace.create`, and `workspace.use` only). Run the Phase 1 browser prototypes (CSP `wss:`, grid performance on a phone).
+- **Next (Phase 5):** workbooks and the spreadsheet grid (`1102`: sheets, cells with stable row/column ids, styles, operation log, snapshots).
+- **Then:** formula engine (6), formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
 
 ### Closing / Manager / STR
 - Treat the core implementations as built; prioritize acceptance and documented integration gaps rather than rebuilding their existing screens.

@@ -66,6 +66,16 @@ Staff with the basic permission see only the **latest closed day's total** (toda
   - **Sync** (for people with `inventory.sync`): see the last check and the last runs, or press **Sync now**.
   - **Excel, PDF and CSV:** Stock Ledger, Reorder and Excess Working have three buttons at the end of the totals card. The file holds exactly what is on screen after your tab, search and settings. Excel (all rows) has a second sheet, About, with the settings and the data time. PDF opens the print window: choose *Save as PDF*; it prints the first 1,500 rows and says so, so use Excel for the full list. CSV is the plain table.
 
+## 5a. Workspace: notes (where enabled)
+Open **Workspace** from the menu. **New note** starts a note and opens it (you need permission to create notes; otherwise you can still open notes shared with you).
+- **Writing:** the toolbar has headings, bold, italic, underline, bulleted, numbered and tick-box lists, links, undo and redo. Typing `# `, `- `, `1. ` or `[] ` at the start of a line starts a heading or list. The note saves by itself a moment after you stop typing; the label at the top says **Saved**, **Unsaved changes**, **Saving** or **Offline**. If it says Offline, keep the page open: it keeps trying. Notes cannot be edited without a connection yet.
+- **Sharing (owner):** **Share** lists who has access. Add a colleague as *Can edit* or *Can view*, change or remove access, hand over ownership, and choose whether people who can only view may see earlier versions. Only the owner can change this.
+- **If two people edit at once:** you see *Someone else saved a newer version*. Your text is safe. Choose **Keep my version on top**, **Use the latest version**, or **Copy my text**. Their version stays in History either way.
+- **History (earlier versions):** open **History**, pick a version to preview it. The owner can **Restore** it: this adds a new version with that text and erases nothing.
+- **Archive and Delete (owner):** an archived note is read-only and leaves the main list. Delete moves it to **Trash**, where only the owner can see it.
+- **Finding things:** search looks in titles and in note text. Folders are your own: other people do not see how you file things.
+- Not available yet: sheets and spreadsheets, attachments, editing offline, and links you can send to a colleague.
+
 ## 6. Users & Access (owner)
 See the Admin Guide.
 

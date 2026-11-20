@@ -38,6 +38,8 @@ const SAFE_HREF = /^(https?:\/\/|mailto:|tel:)[^\s\u0000-\u001f\u007f]+$/i;
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const chars = (s) => [...s].length;
 
+export const isValidBlockId = (id) => typeof id === 'string' && BLOCK_ID.test(id);
+
 export const isSafeHref = (href) => typeof href === 'string' && chars(href) <= NOTE_LIMITS.href && SAFE_HREF.test(href);
 
 // Returns an error message, or null when the node is fine. `where` is a short path used in the message.

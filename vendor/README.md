@@ -10,3 +10,4 @@ To upgrade: pack the new version, replace the files, update the hashes in `tools
 
 | fonts/*.woff2 | `@fontsource/inter@5` and `@fontsource/ibm-plex-mono@5` (latin subset) | listed in `tools/check-vendor.mjs` |
 | chart-4.4.7.umd.js | `npm pack chart.js@4.4.7` → `dist/chart.umd.js` (MIT), loaded only when the Dashboard opens | `2812cb8825fdc57469eb2f7bb055e9429244e599920511ee477e828499b632cb` |
+| workspace/prosemirror-bundle-1.0.0.mjs | Nine ProseMirror packages (MIT) bundled with esbuild; exact versions, licences and the rebuild recipe are in `vendor/workspace/build/BUILD.md` and `vendor/workspace/LICENSES.txt`. Loaded only when a Workspace note opens | `f6de61193d391398600993b08f2c1b6d5373f5ec71ca3b2a68978d66f906bccb` |

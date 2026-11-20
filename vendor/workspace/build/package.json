@@ -1,0 +1,17 @@
+{
+  "name": "dua-prosemirror-bundle",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "prosemirror-model": "1.25.12",
+    "prosemirror-state": "1.4.4",
+    "prosemirror-view": "1.42.9",
+    "prosemirror-transform": "1.12.5",
+    "prosemirror-commands": "1.7.2",
+    "prosemirror-schema-list": "1.6.0",
+    "prosemirror-history": "1.5.1",
+    "prosemirror-keymap": "1.2.3",
+    "prosemirror-inputrules": "1.5.1"
+  },
+  "devDependencies": { "esbuild": "0.28.2" }
+}

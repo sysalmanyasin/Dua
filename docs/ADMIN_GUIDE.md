@@ -42,12 +42,16 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 | `str.create` | Create stock transfer requests |
 | `targets.manage` | Manage sales targets |
 | `users.manage` | Manage users, roles and permissions |
+| `workspace.create` | Create Workspace notes, share them and receive ownership |
+| `workspace.use` | Open Workspace and work on notes shared with you |
 
 ## 2. Current module availability
 - **Sales:** implemented; see the User Guide for available pages.
 - **Manager:** Staff Registry and Staff Credit are implemented. Migrations 0101–0103 are live. Owner phone acceptance and later slices (including payslips and petty cash) remain outstanding. See `docs/modules/manager.progress.md`.
 - **Closing:** partially implemented. The guided ledger is in progress; remaining sections, submit flow, ledgers and print are not complete. See `docs/modules/closing.progress.md`.
 - **Inventory:** live and complete. The Candela feed syncs every hour (migrations 0301–0307, Edge Function v23). Screens: Overview, Stock Ledger, Reorder, Excess Working, Health, Sync. Home shows a Stock row to people with `inventory.view`. Reports export to Excel, PDF and CSV. Do not reapply the migrations. The sync schedule is a pg_cron job (`inventory-hourly-sync`); see `docs/RUNBOOK.md`.
+
+- **Workspace (Notes):** live. No role carries `workspace.use` or `workspace.create`: grant them per person in Users & Access. A person needs `workspace.use` to open Workspace and see what is shared with them, and `workspace.create` to start notes and share them. Your own admin account holds both (at the second factor) but, by design, sees a colleague's note only if it was shared with you. Remove someone's access to Workspace by denying `workspace.use`; they lose every note at once. Sheets are not built yet. Details: `docs/modules/workspace.md`.
 
 ## 3. Sales settings
 - **Sales → Fields (Manage Fields):** add your own bank or client column, rename a field, tick whether it appears on the Add Entry page, move it up/down, or **switch it off** (kept in history, not usable for new days). Once a field has saved figures its **type (adds / deducts / info only) and section cannot change**; hide it and add a new field instead.
