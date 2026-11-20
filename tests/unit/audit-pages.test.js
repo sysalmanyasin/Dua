@@ -192,7 +192,19 @@ describe('audit hub', () => {
 
   it('renders navigation groups collapsed by default and expands them accessibly on tap', async () => {
     const el = document.getElementById('root');
-    await mountHub(el, { ctx: { permissions: ['audit.manage', 'audit.view', 'audit.individual', 'audit.templates', 'audit.report', 'audit.expiry_log', 'users.manage'] } });
+    await mountHub(el, {
+      ctx: {
+        permissions: [
+          'audit.manage',
+          'audit.view',
+          'audit.individual',
+          'audit.templates',
+          'audit.report',
+          'audit.expiry_log',
+          'users.manage',
+        ],
+      },
+    });
     const toggles = [...el.querySelectorAll('[data-aud-toggle]')];
     expect(toggles.length).toBeGreaterThanOrEqual(5);
     for (const toggle of toggles) {
