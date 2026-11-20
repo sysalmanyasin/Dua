@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   app:
@@ -18,6 +18,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - name: Format Audit hub and commit formatter output
+        run: |
+          npx prettier --write js/modules/audit/ui/hub.js
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/modules/audit/ui/hub.js
+          if ! git diff --cached --quiet; then
+            git commit -m "style(audit): apply Prettier formatting to hub"
+            git push origin HEAD:feature/audit-2.0
+          fi
       - run: npm run format:check
       - run: npm test
       - run: npm run check:secrets
