@@ -24,7 +24,7 @@ const STATUS = {
   draft: 'Draft',
   locked: 'Locked',
   counting: 'Counting',
-  compiled: 'Review required',
+  compiled: 'Compiled',
   final: 'Finalized',
   assigned: 'Assigned',
   submitted: 'Submitted',
@@ -76,26 +76,25 @@ const GROUPS = [
   },
 ];
 
-const canOpen = (route, perms) =>
-  route.permission ? perms.has(route.permission) : (route.anyOf ?? []).some((key) => perms.has(key));
+const canOpen = (route, perms) => {
+  if (route.permission) return perms.has(route.permission);
+  return (route.anyOf ?? []).some((key) => perms.has(key));
+};
 
 function navigationGroups(perms) {
   const routes = new Map(manifest.routes.map((route) => [route.path, route]));
-  return GROUPS.map((group) => ({
-    ...group,
-    items: group.routes.flatMap(([path, label, description]) => {
+  return GROUPS.map((group) => {
+    const items = group.routes.flatMap(([path, label, description]) => {
       const route = routes.get(path);
       return route && canOpen(route, perms) ? [{ path, label, description }] : [];
-    }),
-  })).filter((group) => group.items.length);
+    });
+    return { ...group, items };
+  }).filter((group) => group.items.length > 0);
 }
 
-const dateLabel = (value) => {
-  if (!value) return '';
-  return shortDate(String(value).slice(0, 10));
-};
-const roundLabel = (round) => `Round ${round.round_number}${round.round_suffix ?? ''}`;
-const statusLabel = (status) => STATUS[status] ?? String(status ?? 'Unknown').replaceAll('_', ' ');
+function statusLabel(status) {
+  return STATUS[status] ?? String(status ?? 'Unknown').replaceAll('_', ' ');
+}
 
 function navCard(group) {
   return html`<section class="card aud-card aud-nav-group" aria-label="${group.title}">
@@ -136,14 +135,7 @@ function assignmentCard(assignment) {
         ${round ? `Round ${round} · ` : ''}${statusLabel(assignment.round_state)} ·
         ${counted.toLocaleString()} of ${items.toLocaleString()} counted
       </p>
-      <div
-        class="aud-progress"
-        role="progressbar"
-        aria-label="Counting progress"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow="${percent}"
-      >
+      <div class="aud-progress" role="progressbar" aria-label="Counting progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
         <span data-progress="${percent}"></span>
       </div>
       <p class="muted small">${remaining.toLocaleString()} remaining · ${percent}% complete</p>
@@ -157,18 +149,18 @@ function assignmentCard(assignment) {
 function engagementCard(engagement, overview) {
   const rounds = overview?.rounds ?? [];
   const latest = rounds.length ? rounds[rounds.length - 1] : null;
+  const date = engagement.created_at ? shortDate(String(engagement.created_at).slice(0, 10)) : '';
+  const scope = SCOPE[engagement.scope_type] ?? engagement.scope_type;
 
   return html`<article class="aud-engagement-item">
     <div class="aud-engagement-copy">
       <strong>${engagement.name}</strong>
       <span class="muted small">
-        ${SCOPE[engagement.scope_type] ?? engagement.scope_type}
-        ${engagement.scope_month ? ` · ${engagement.scope_month}` : ''}
-        ${engagement.created_at ? ` · ${dateLabel(engagement.created_at)}` : ''}
+        ${scope}${engagement.scope_month ? ` · ${engagement.scope_month}` : ''}${date ? ` · ${date}` : ''}
       </span>
       <span class="muted small">
         ${rounds.length} round${rounds.length === 1 ? '' : 's'}
-        ${latest ? ` · Latest: ${roundLabel(latest)} — ${statusLabel(latest.state)}` : ''}
+        ${latest ? ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(latest.state)}` : ''}
       </span>
     </div>
     <span class="aud-badge aud-badge-${engagement.status}">${statusLabel(engagement.status)}</span>
@@ -184,12 +176,87 @@ function metric(label, value, detail) {
   </div>`;
 }
 
+function myWorkSection(assignments, pendingAssignments, error, perms) {
+  const content = error
+    ? html`<p class="note note-error" role="alert">Could not load your assignments: ${error}</p>`
+    : assignments.length
+      ? html`<div class="aud-work-list">${assignments.slice(0, 5).map(assignmentCard)}</div>`
+      : html`<p class="aud-empty">No counting assignments are currently assigned to you.</p>`;
+
+  return html`<section class="card aud-card" aria-label="My work">
+    <div class="aud-section-head">
+      <div>
+        <h2>My work</h2>
+        <p class="muted small">
+          ${pendingAssignments.length} assignment${pendingAssignments.length === 1 ? '' : 's'} currently in counting ·
+          your own progress only.
+        </p>
+      </div>
+      <a href="#/audit/count">View all</a>
+    </div>
+    ${content}
+    ${perms.has('audit.individual')
+      ? html`<div class="aud-inline-action">
+          <a class="btn btn-sm" href="#/audit/individual">Start an individual audit</a>
+          <a class="btn btn-sm" href="#/audit/templates">Browse templates</a>
+        </div>`
+      : ''}
+  </section>`;
+}
+
+function individualSection() {
+  return html`<section class="card aud-card">
+    <h2>Individual audit</h2>
+    <p class="muted small">Start a personal stock count or use one of your saved templates.</p>
+    <div class="aud-inline-action">
+      <a class="btn btn-primary" href="#/audit/individual">Start individual audit</a>
+      <a class="btn" href="#/audit/templates">Browse templates</a>
+    </div>
+  </section>`;
+}
+
+function engagementSection(engagements, details, error, activeRounds, compiledRounds) {
+  let content = '';
+  if (error) {
+    content = html`<p class="note note-error" role="alert">Could not load audits: ${error}</p>`;
+  } else {
+    content = html`<div class="aud-metrics">
+      ${metric('Recent engagements', engagements.length.toLocaleString(), 'Up to 20 most recent')}
+      ${metric('Active rounds', activeRounds.toLocaleString(), 'In the six most recent open audits')}
+      ${metric('Compiled rounds', compiledRounds.toLocaleString(), 'In that same group of open audits')}
+    </div>`;
+  }
+
+  let list = '';
+  if (engagements.length) {
+    const rows = details.length
+      ? details.map((item) => engagementCard(item.engagement, item.overview))
+      : engagements.slice(0, 6).map((item) => engagementCard(item, null));
+    list = html`<div class="aud-engagement-list">${rows}</div>`;
+  } else if (!error) {
+    list = html`<p class="aud-empty">No audits are currently visible to you.</p>`;
+  }
+
+  return html`<section class="card aud-card" aria-label="Stock audit overview">
+    <div class="aud-section-head">
+      <div>
+        <h2>Stock audit overview</h2>
+        <p class="muted small">Engagements visible to your account, according to Audit access.</p>
+      </div>
+      <a href="#/audit/engagements">All audits</a>
+    </div>
+    ${content}
+    ${list}
+    ${engagements.length >= 20 ? html`<p class="muted small">Showing the 20 most recent engagements.</p>` : ''}
+  </section>`;
+}
+
 export async function mount(el, { ctx } = {}) {
   const perms = new Set(ctx?.permissions ?? []);
   const canCount = perms.has('audit.count');
+  const canIndividual = perms.has('audit.individual');
   const canSeeEngagements = perms.has('audit.view') || perms.has('audit.manage');
   installSignOutGuard(); // unsent count events must remain protected (AUD-9)
-
   render(el, loadingCard());
 
   let assignments = [];
@@ -240,18 +307,39 @@ export async function mount(el, { ctx } = {}) {
     (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length,
     0,
   );
-  const reviewRounds = engagementDetails.reduce(
+  const compiledRounds = engagementDetails.reduce(
     (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length,
     0,
   );
 
-  const primaryAction = perms.has('audit.manage')
-    ? html`<a class="btn btn-primary" href="#/audit/engagements">+ New stock audit</a>`
-    : canCount
-      ? html`<a class="btn btn-primary" href="#/audit/count">Open my counting</a>`
-      : perms.has('audit.individual')
-        ? html`<a class="btn btn-primary" href="#/audit/individual">Start individual audit</a>`
-        : '';
+  let primaryAction = '';
+  if (perms.has('audit.manage')) {
+    primaryAction = html`<a class="btn btn-primary" href="#/audit/engagements">+ New stock audit</a>`;
+  } else if (canCount) {
+    primaryAction = html`<a class="btn btn-primary" href="#/audit/count">Open my counting</a>`;
+  } else if (canIndividual) {
+    primaryAction = html`<a class="btn btn-primary" href="#/audit/individual">Start individual audit</a>`;
+  }
+
+  let personalContent = '';
+  if (canCount) {
+    personalContent = myWorkSection(openAssignments, pendingAssignments, assignmentError, perms);
+  } else if (canIndividual) {
+    personalContent = individualSection();
+  }
+
+  let managementContent = '';
+  if (canSeeEngagements) {
+    managementContent = engagementSection(engagements, engagementDetails, engagementError, activeRounds, compiledRounds);
+  }
+
+  const accessNotice =
+    !canCount && !canSeeEngagements && !canIndividual
+      ? html`<section class="card aud-card">
+          <h2>Audit tools</h2>
+          <p class="muted">Your account has access to the sections below. Choose a section to continue.</p>
+        </section>`
+      : '';
 
   render(
     el,
@@ -269,84 +357,9 @@ export async function mount(el, { ctx } = {}) {
         </div>
         <button type="button" class="aud-refresh" data-refresh aria-label="Refresh dashboard">Refresh ↻</button>
       </section>
-
-      ${canCount
-        ? html`<section class="card aud-card" aria-label="My work">
-            <div class="aud-section-head">
-              <div>
-                <h2>My work</h2>
-                <p class="muted small">
-                  ${pendingAssignments.length} assignment${pendingAssignments.length === 1 ? '' : 's'} currently in counting ·
-                  your own progress only.
-                </p>
-              </div>
-              <a href="#/audit/count">View all</a>
-            </div>
-            ${assignmentError
-              ? html`<p class="note note-error" role="alert">Could not load your assignments: ${assignmentError}</p>`
-              : ''}
-            ${openAssignments.length
-              ? html`<div class="aud-work-list">${openAssignments.slice(0, 5).map(assignmentCard)}</div>`
-              : assignmentError
-                ? ''
-                : html`<p class="aud-empty">No counting assignments are currently assigned to you.</p>`}
-            ${perms.has('audit.individual')
-              ? html`<div class="aud-inline-action">
-                  <a class="btn btn-sm" href="#/audit/individual">Start an individual audit</a>
-                  <a class="btn btn-sm" href="#/audit/templates">Browse templates</a>
-                </div>`
-              : ''}
-          </section>`
-        : perms.has('audit.individual')
-          ? html`<section class="card aud-card">
-              <h2>Individual audit</h2>
-              <p class="muted small">Start a personal stock count or use one of your saved templates.</p>
-              <div class="aud-inline-action">
-                <a class="btn btn-primary" href="#/audit/individual">Start individual audit</a>
-                <a class="btn" href="#/audit/templates">Browse templates</a>
-              </div>
-            </section>`
-          : ''}
-
-      ${canSeeEngagements
-        ? html`<section class="card aud-card" aria-label="Stock audit overview">
-            <div class="aud-section-head">
-              <div>
-                <h2>Stock audit overview</h2>
-                <p class="muted small">Engagements visible to your account, according to Audit access.</p>
-              </div>
-              <a href="#/audit/engagements">All audits</a>
-            </div>
-            ${engagementError
-              ? html`<p class="note note-error" role="alert">Could not load audits: ${engagementError}</p>`
-              : ''}
-            ${!engagementError
-              ? html`<div class="aud-metrics">
-                  ${metric('Recent engagements', engagements.length.toLocaleString(), 'Up to 20 most recent')}
-                  ${metric('Active rounds', activeRounds.toLocaleString(), 'In the six most recent open audits')}
-                  ${metric('Compiled rounds', reviewRounds.toLocaleString(), 'In that same group of open audits')}
-                </div>`
-              : ''}
-            ${engagements.length
-              ? html`<div class="aud-engagement-list">
-                  ${engagementDetails.length
-                    ? engagementDetails.map((item) => engagementCard(item.engagement, item.overview))
-                    : engagements.slice(0, 6).map((item) => engagementCard(item, null))}
-                </div>`
-              : engagementError
-                ? ''
-                : html`<p class="aud-empty">No audits are currently visible to you.</p>`}
-            ${engagements.length >= 20 ? html`<p class="muted small">Showing the 20 most recent engagements.</p>` : ''}
-          </section>`
-        : ''}
-
-      ${!canCount && !canSeeEngagements && !perms.has('audit.individual')
-        ? html`<section class="card aud-card">
-            <h2>Audit tools</h2>
-            <p class="muted">Your account has access to the sections below. Choose a section to continue.</p>
-          </section>`
-        : ''}
-
+      ${personalContent}
+      ${managementContent}
+      ${accessNotice}
       <section class="aud-navigation" aria-label="Audit navigation">
         <div class="aud-section-title">
           <h2>Audit sections</h2>
