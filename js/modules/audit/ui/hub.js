@@ -213,7 +213,7 @@ export async function mount(el, { ctx } = {}) {
       </section>
 
       ${canCount ? html`<section class="card aud-card" aria-label="My work">
-        <div class="aud-section-head"><div><h2>My work</h2><p class="muted small">Assignments and personal counting progress.</p></div><a href="#/audit/count">View all</a></div>
+        <div class="aud-section-head"><div><h2>My work</h2><p class="muted small">${pendingAssignments.length} assignment${pendingAssignments.length === 1 ? '' : 's'} currently in counting · your own progress only.</p></div><a href="#/audit/count">View all</a></div>
         ${assignmentError ? html`<p class="note note-error" role="alert">Could not load your assignments: ${assignmentError}</p>` : ''}
         ${openAssignments.length
           ? html`<div class="aud-work-list">${openAssignments.slice(0, 5).map(assignmentCard)}</div>`
