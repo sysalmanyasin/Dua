@@ -97,7 +97,9 @@ function statusLabel(status) {
   return STATUS[status] ?? String(status ?? 'Unknown').replaceAll('_', ' ');
 }
 
-function navCard(group) {
+function navCard(group, index) {
+  const panelId = `aud-nav-panel-${index}`;
+  const tone = index % 5;
   const links = group.items.map(
     (item) =>
       html`<a class="aud-nav-link" href="#${item.path}">
@@ -109,13 +111,18 @@ function navCard(group) {
       </a>`,
   );
 
-  return html`<section class="card aud-card aud-nav-group" aria-label="${group.title}">
-    <div class="aud-group-heading">
-      <h2>${group.title}</h2>
-      <span class="aud-group-count">${group.items.length}</span>
-    </div>
-    <p class="muted small">${group.description}</p>
-    <div class="aud-group-links">${links}</div>
+  return html`<section class="card aud-card aud-nav-group aud-nav-tone-${tone}" aria-label="${group.title}">
+    <button type="button" class="aud-group-toggle" data-aud-toggle aria-expanded="false" aria-controls="${panelId}">
+      <span class="aud-group-copy">
+        <span class="aud-group-heading">
+          <strong>${group.title}</strong>
+          <span class="aud-group-count">${group.items.length}</span>
+        </span>
+        <span class="aud-group-description">${group.description}</span>
+      </span>
+      <span class="aud-group-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <div class="aud-group-links" id="${panelId}" data-aud-panel hidden>${links}</div>
   </section>`;
 }
 
@@ -346,15 +353,6 @@ export async function mount(el, { ctx } = {}) {
     0,
   );
 
-  let primaryAction = '';
-  if (perms.has('audit.manage')) {
-    primaryAction = html`<a class="btn btn-primary" href="#/audit/engagements">+ New stock audit</a>`;
-  } else if (canCount) {
-    primaryAction = html`<a class="btn btn-primary" href="#/audit/count">Open my counting</a>`;
-  } else if (canIndividual) {
-    primaryAction = html`<a class="btn btn-primary" href="#/audit/individual">Start individual audit</a>`;
-  }
-
   let personalContent = '';
   if (canCount) {
     personalContent = myWorkSection(openAssignments, pendingAssignments, assignmentError, perms);
@@ -377,7 +375,7 @@ export async function mount(el, { ctx } = {}) {
 
   let navigationContent;
   if (groups.length) {
-    navigationContent = groups.map(navCard);
+    navigationContent = groups.map((group, index) => navCard(group, index));
   } else {
     navigationContent = html`<section class="card aud-card">
       <p class="aud-empty">No Audit pages are available for your current permissions.</p>
@@ -390,9 +388,7 @@ export async function mount(el, { ctx } = {}) {
     html`<div class="aud aud-dashboard">
       ${hero({
         label: 'AUDIT WORKSPACE',
-        title: 'Audit Command Centre',
-        sub: 'A clear view of your audit work, active stock checks and the tools you are allowed to use.',
-        actions: primaryAction,
+        title: 'Audit Overview',
       })}
       <section class="aud-welcome" aria-label="Dashboard introduction">
         <div>
@@ -421,6 +417,18 @@ export async function mount(el, { ctx } = {}) {
 
   // Preserve the current route hand-off convention for pages that need an engagement/round id.
   el.onclick = (event) => {
+    const toggle = event.target.closest('[data-aud-toggle]');
+    if (toggle) {
+      const panelId = toggle.getAttribute('aria-controls');
+      const panel = panelId ? el.querySelector(`#${panelId}`) : null;
+      if (panel) {
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        panel.hidden = expanded;
+        toggle.closest('.aud-nav-group')?.classList.toggle('is-expanded', !expanded);
+      }
+      return;
+    }
     if (event.target.closest('[data-refresh]')) {
       mount(el, { ctx });
       return;
