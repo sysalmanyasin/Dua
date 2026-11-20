@@ -6,6 +6,10 @@ DB="${TEST_DB:-dua_test}"
 psql -v ON_ERROR_STOP=1 -d postgres -qc "drop database if exists $DB" -c "create database $DB"
 export PGDATABASE="$DB"
 psql -v ON_ERROR_STOP=1 -q -f stub_auth.sql
+# Supabase provisions this publication in hosted projects. The bare PostgreSQL
+# service used by CI does not, so create the empty publication before migrations
+# that add application tables to it (for example, closings in migration 0217).
+psql -v ON_ERROR_STOP=1 -q -c "create publication supabase_realtime"
 for f in ../migrations/*.sql; do echo "== migrate $f"; psql -v ON_ERROR_STOP=1 -q -f "$f"; done
 for t in *_test.sql; do echo "== test $t"; psql -v ON_ERROR_STOP=1 -f "$t" 2>&1 | grep -E "pass|FAIL|ERROR" ; done
 echo "ALL DATABASE TESTS PASSED"
