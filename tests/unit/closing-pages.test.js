@@ -31,6 +31,9 @@ const api = {
   loadById: vi.fn(async () => ROW),
   refreshDraftCarry: vi.fn(async () => ({ refreshed: true })),
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
+  patchDraft: vi.fn(async () => ({ closing_id: 'c1', version: 1, updated_at: '2026-11-10T08:05:00Z' })),
+  loadSync: vi.fn(async () => null),
+  watchDraft: vi.fn(() => () => {}),
   computePreview: vi.fn(async () => ({ net_sale: 1234, shift_sale: 1000, customers: 7 })),
   myRecent: vi.fn(async () => []),
   savedList: vi.fn(async () => []),
@@ -245,10 +248,20 @@ describe('Closing ledger', () => {
       closing_cash_counts: [{ area: 'till', denomination: 5000, qty: 12 }],
     }));
     await ledger();
+    api.saveDraft.mockClear();
+    // a single box is saved on its own: the cash counts are not part of that save at all
     type(el.querySelector('#f-sys_cash'), '151000');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(api.patchDraft).toHaveBeenCalledTimes(1);
+    expect(api.saveDraft).not.toHaveBeenCalled();
+    // and a list save that follows still carries the saved counts
+    el.querySelector('[data-jump="3"]').click();
+    el.querySelector('[data-act="add"][data-list="hs"]').click();
+    type(el.querySelector('[data-list="hs"][data-k="amount"]'), '50');
     await vi.advanceTimersByTimeAsync(3000);
     const sent = api.saveDraft.mock.calls.at(-1)[0].payload;
     expect(sent.till[0]).toBe(12);
+    expect(sent).not.toHaveProperty('sys_cash'); // the single boxes travel on their own
   });
   it('shows the calculated deltas in the override boxes and the previous closing card', async () => {
     openTarget();
@@ -346,36 +359,65 @@ describe('Closing ledger', () => {
     await ledger();
     expect(el.textContent).toContain('The slot before this one has not been submitted yet');
   });
-  it('keeps typing locally at once and saves to the server after a pause, with the version it last saw', async () => {
+  it('keeps typing locally at once and saves the single box on its own after a short pause, with no version check', async () => {
     openTarget();
     await ledger();
     api.saveDraft.mockClear();
+    api.patchDraft.mockClear();
     type(el.querySelector('#f-sys_cash'), '150,000');
     expect(JSON.parse(localStorage.getItem('dua.closing.draft.k1')).dirty).toBe(true);
+    expect(api.patchDraft).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(api.patchDraft).toHaveBeenCalledTimes(1);
+    expect(api.patchDraft.mock.calls[0][0]).toEqual({ key: 'k1', fields: { sys_cash: 150000 } });
     expect(api.saveDraft).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(2600);
+    expect(localStorage.getItem('dua.closing.draft.k1')).toBeNull(); // saved, so the local copy is dropped
+    expect(el.querySelector('#cls-chip').textContent).toContain('Saved');
+  });
+  it('saves a changed override on its own: only that override is sent', async () => {
+    openTarget();
+    await ledger();
+    api.patchDraft.mockClear();
+    el.querySelector('[data-jump="2"]').click();
+    type(el.querySelector('[data-f="overrides.customers"]'), '12');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(api.patchDraft.mock.calls[0][0].fields).toEqual({ overrides: { customers: 12 } });
+  });
+  it('saves list sections whole after the usual pause, with the version it last saw, and leaves the single boxes out', async () => {
+    openTarget();
+    await ledger();
+    api.saveDraft.mockClear();
+    api.patchDraft.mockClear();
+    el.querySelector('[data-jump="3"]').click();
+    el.querySelector('[data-act="add"][data-list="hs"]').click();
+    type(el.querySelector('[data-list="hs"][data-k="amount"]'), '1000');
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(api.saveDraft).not.toHaveBeenCalled(); // lists keep the longer pause
+    await vi.advanceTimersByTimeAsync(2000);
     expect(api.saveDraft).toHaveBeenCalledTimes(1);
     const call = api.saveDraft.mock.calls[0][0];
     expect(call.expectedVersion).toBe(1); // the version adopted from the created draft
-    expect(call.payload.sys_cash).toBe(150000);
-    expect(Object.keys(call.payload.overrides).sort()).toEqual(['curr_cc', 'customers', 'prev_cash', 'shift_sale']);
-    expect(localStorage.getItem('dua.closing.draft.k1')).toBeNull(); // saved, so the local copy is dropped
+    expect(call.payload.hs).toEqual([{ label: '', amount: 1000, deleted: false }]);
+    for (const k of ['sys_cash', 'alfalah', 'overrides', 'responsible_staff_id']) expect(call.payload).not.toHaveProperty(k);
+    expect(api.patchDraft).not.toHaveBeenCalled();
     expect(el.querySelector('#cls-chip').textContent).toContain('Saved');
   });
   it('does not send a typo: it marks the field and says what to do', async () => {
     openTarget();
     await ledger();
     api.saveDraft.mockClear();
+    api.patchDraft.mockClear();
     type(el.querySelector('#f-sys_cash'), '12O00');
     await vi.advanceTimersByTimeAsync(2600);
     expect(api.saveDraft).not.toHaveBeenCalled();
+    expect(api.patchDraft).not.toHaveBeenCalled();
     expect(el.querySelector('#f-sys_cash').getAttribute('aria-invalid')).toBe('true');
     expect(el.querySelector('#cls-chip').textContent).toContain('Fix the marked fields');
   });
   it('keeps the draft and says Offline when the connection drops, then saves again from the chip', async () => {
     openTarget();
     await ledger();
-    api.saveDraft.mockImplementationOnce(async () => {
+    api.patchDraft.mockImplementationOnce(async () => {
       throw new TypeError('Failed to fetch');
     });
     type(el.querySelector('#f-sys_cash'), '5');
@@ -392,7 +434,9 @@ describe('Closing ledger', () => {
     api.saveDraft.mockImplementationOnce(async () => {
       throw Object.assign(new Error('x'), { hint: 'draft_conflict', details: 'version=7' });
     });
-    type(el.querySelector('#f-sys_cash'), '99');
+    el.querySelector('[data-jump="3"]').click();
+    el.querySelector('[data-act="add"][data-list="hs"]').click();
+    type(el.querySelector('[data-list="hs"][data-k="amount"]'), '99');
     await vi.advanceTimersByTimeAsync(2600);
     expect(document.querySelector('dialog')?.textContent).toContain('changed on another device');
     expect(localStorage.getItem('dua.closing.draft.k1.mine')).not.toBeNull();

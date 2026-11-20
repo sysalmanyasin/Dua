@@ -126,3 +126,31 @@
 ## Next
 - Apply `0411` live and confirm; PHONE 1 / 2 / 3 on real phones.
 - D Hardening and acceptance (offline end-to-end, accessibility, low-end phone, data-use review, MODULES.md §11). Optional: Expiry CSV/print and by-month summary; `inventory_companies()` for the Individual Audit picker.
+
+## Audit 2.0 — landing page and navigation redesign (in progress)
+- Owner-approved direction: role/permission-aware dashboard, six grouped navigation sections, complete landing-page UI/UX redesign.
+- Added `docs/modules/audit-2.0.md` as the implementation contract. The work is presentation-only and uses existing APIs; no database migrations or business-rule changes.
+- Replaced the directory-style `ui/hub.js` with a role-aware Command Centre:
+  - counters load only `audit_my_assignments()` and see their own work/progress;
+  - users with `audit.view` or `audit.manage` see RLS-filtered engagements and bounded detail reads for up to six recent open engagements;
+  - individual-audit, expiry, reporting, barcode (when its route exists) and team links are filtered against the existing manifest route permissions.
+- Grouped navigation is generated from manifest route permission metadata, rather than introducing a second permission map.
+- Updated the landing route label to Overview and added responsive, scoped styles under `.aud`. Progress bars use DOM style properties after render to comply with the Content Security Policy (no inline style attributes).
+- Added hub tests for counter privacy, personal progress, manager overview, and permission-filtered navigation.
+- Branch: `feature/audit-2.0`, created from current `main`. The older `module/audit-c2` branch is intentionally untouched because it is 90 commits behind main and contains separate barcode work.
+- Verification status: not yet run in a local checkout (the execution environment cannot resolve GitHub to clone the repository). A draft PR is required to trigger the repository's CI; final acceptance remains pending on CI and real-phone testing.
+
+- Opened draft PR [#47](https://github.com/sysalmanyasin/Dua/pull/47) against `main` so the change can be reviewed before merge. No merge has been performed. CI status is not yet available from the repository checks endpoint; do not treat this slice as accepted until CI and phone tests pass.
+
+- CI run 359 (`93a124e`) result: ESLint passed and Edge Function type-check passed. `prettier --check .` still flags `js/modules/audit/ui/hub.js`; because the app job stops there, Vitest and subsequent app checks were skipped. The database job independently fails while applying an existing migration because the test Postgres instance lacks the `supabase_realtime` publication; this redesign adds no migration. PR #47 has been returned to Draft until formatting is resolved and app tests can execute.
+
+- Latest CI run 361 (`a90fe92`): ESLint and Edge Function type-check pass; Prettier still flags the new hub file, so the Vitest and remaining app checks do not execute. The database job continues to fail on the pre-existing migration step that attempts to add `public.closings` to a missing `supabase_realtime` publication. PR #47 is Draft; no merge or deployment has occurred.
+
+
+## Audit 2.0 — release verification (2026-11-20)
+- CI run 373 (`92c86f4`) passed all jobs: ESLint, Prettier, Vitest (112 files / 1,738 tests), secret scan, vendor check, workflow lint, database migrations/security tests, and Edge Function type-check.
+- Fixed the bare-PostgreSQL CI harness by creating the `supabase_realtime` publication before applying migrations; this mirrors the publication provisioned by hosted Supabase and does not change application schema or hosted data.
+- Corrected the counter-only hub test to assert the new personal-work empty state.
+- Full-suite testing exposed an existing eBill receipt-settings race: printing could start before asynchronous receipt settings loaded. Printing now waits for the settings load; the auto-print test waits for that asynchronous operation. This preserves the shop name/tax/footer in printed receipts and avoids printing with incomplete defaults.
+- The temporary formatter workflow and temporary CI workflow edits were removed; `.github/workflows/ci.yml` matches `main` again. The formatted Audit hub is committed on the feature branch.
+- All automated CI checks are green. Real-device Android acceptance is still pending with the owner after deployment.

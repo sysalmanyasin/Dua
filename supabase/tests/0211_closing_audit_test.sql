@@ -113,7 +113,7 @@ end $t$;
 -- who may do what
 do $t$ begin
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
-  perform pg_temp.refused($q$select public.closing_audit_verify('a0000000-0000-0000-0000-000000000002', 'x')$q$, 'not_allowed', 'C1: another cashier cannot verify someone else''s draft');
+  perform pg_temp.refused($q$select public.closing_audit_verify('a0000000-0000-0000-0000-000000000002', 'x')$q$, 'audit_already_verified', 'C1 (0217): another cashier is no longer refused as a stranger: the shared draft is already verified, which is the reason given');
   perform pg_temp.ok(jsonb_array_length(public.closing_audit_preview() -> 'items') = 2, 'C1: but any cashier can look at the stock');
   reset role;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b3');
