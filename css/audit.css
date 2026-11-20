@@ -642,7 +642,6 @@
   cursor: pointer;
 }
 
-
 /* Audit 2.1 — compact Android-first dashboard and coloured collapsed navigation */
 .aud-dashboard > .hero {
   min-height: 0;
@@ -786,8 +785,12 @@
     background: #293746;
     border-color: #40556a;
   }
-  :root:not([data-theme='light']) .aud .aud-group-toggle { color: #f3f6fb; }
-  :root:not([data-theme='light']) .aud .aud-group-description { color: #d1dbea; }
+  :root:not([data-theme='light']) .aud .aud-group-toggle {
+    color: #f3f6fb;
+  }
+  :root:not([data-theme='light']) .aud .aud-group-description {
+    color: #d1dbea;
+  }
 }
 :root[data-theme='dark'] .aud .aud-nav-tone-0 {
   background: #1c3150;
@@ -809,8 +812,14 @@
   background: #293746;
   border-color: #40556a;
 }
-:root[data-theme='dark'] .aud .aud-group-toggle { color: #f3f6fb; }
-:root[data-theme='dark'] .aud .aud-group-description { color: #d1dbea; }
+:root[data-theme='dark'] .aud .aud-group-toggle {
+  color: #f3f6fb;
+}
+:root[data-theme='dark'] .aud .aud-group-description {
+  color: #d1dbea;
+}
 @media (prefers-reduced-motion: reduce) {
-  .aud .aud-group-chevron { transition: none; }
+  .aud .aud-group-chevron {
+    transition: none;
+  }
 }
