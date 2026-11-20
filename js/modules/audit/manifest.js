@@ -6,6 +6,11 @@ export default {
   blurb: 'Stock audits, counting teams and reports',
   hub: true, // its first page lists the other audit pages
   permission: null, // each page below says who may open it
+  // counts and scans waiting on the device block signing out (AUD-9, OD-6)
+  outbox: async () => {
+    await import('./data/outboxStore.js');
+    return import('./data/barcodeStore.js');
+  },
   routes: [
     {
       path: '/audit',
@@ -21,6 +26,7 @@ export default {
         'audit.expiry_log',
         'audit.barcode_scan',
         'audit.barcode_register',
+        'audit.barcode_admin',
       ],
       load: () => import('./ui/hub.js'),
     },
@@ -95,6 +101,13 @@ export default {
       desc: 'Racks and who checks which rack each month',
       anyOf: ['audit.expiry_manage', 'audit.manage'],
       load: () => import('./ui/racks.js'),
+    },
+    {
+      path: '/audit/barcode',
+      title: 'Barcodes',
+      desc: 'Find a product by barcode, register and verify barcodes, settle conflicts',
+      anyOf: ['audit.barcode_scan', 'audit.barcode_register', 'audit.barcode_admin'],
+      load: () => import('./ui/barcode.js'),
     },
     {
       path: '/audit/team',

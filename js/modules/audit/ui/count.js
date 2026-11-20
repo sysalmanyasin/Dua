@@ -4,13 +4,16 @@
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
+import { loadMirror, refreshMirror, saveScan, sendScans } from '../data/barcodeStore.js';
 import { outboxStore } from '../data/outboxStore.js';
+import { cleanBarcode, lookup, makeScanEvent, resolveScan, scanMessage } from '../domain/barcode.js';
 import { computeRowTimeDelta, truncateExtraNote } from '../domain/compile.js';
 import { filterItems, parseQty, rowView, rupees, summarize } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, setView } from '../domain/nav.js';
 import { flushOutbox, latestByItem, makeEvent, timing } from '../domain/outbox.js';
 import { errorCard, loadingCard, toast } from './parts.js';
+import { openScanner } from './scanner.js';
 import { installSignOutGuard } from './signoutGuard.js';
 
 const ROUND = { draft: 'being set up', locked: 'locked, not started', counting: 'counting', compiled: 'compiled', final: 'final' };
@@ -115,6 +118,14 @@ async function mountCounting(el, assignmentId, ctx) {
     extraNote: '',
     busy: false,
     fromCache: false,
+    // barcode counting (migration 0411): a scan only finds an item; the quantity is always typed
+    method: 'manual',
+    canScan: false,
+    index: new Map(),
+    pinned: null,
+    unlocked: new Set(),
+    scanMsg: '',
+    choices: [],
   };
 
   // the assignment's facts and its items: from the database, or the copy saved on this device
@@ -152,6 +163,16 @@ async function mountCounting(el, assignmentId, ctx) {
     s.notes[itemId] = ev.note ?? '';
   }
   s.waiting = waitingEvents.length;
+  s.method = s.a.counting_method ?? 'manual';
+  s.canScan = s.method !== 'manual' && (ctx?.permissions ?? []).includes('audit.barcode_scan');
+  if (s.canScan) {
+    const m = await loadMirror().catch(() => ({ index: new Map(), count: 0 }));
+    s.index = m.index;
+    if (!s.fromCache)
+      refreshMirror({ fetchPage: api.barcodeMirrorPage })
+        .then((r) => (s.index = r.index))
+        .catch(() => {});
+  }
 
   const open = () => s.a.round_state === 'counting' && s.a.status !== 'submitted';
   const companies = [...new Set(s.items.map((i) => i.company))].sort();
@@ -163,11 +184,13 @@ async function mountCounting(el, assignmentId, ctx) {
     return { text: `${v.difference > 0 ? '+' : ''}${q(v.difference)} · ${rupees(v.value)}`, cls: 'aud-diff-bad' };
   };
 
+  // with the barcode method a row starts locked: scan it, or choose Count by hand for a damaged or unregistered label
+  const locked = (id) => s.method === 'barcode' && s.canScan && !s.unlocked.has(id) && !s.entries[id];
   const rowHtml = (it) => {
     const id = it.round_item_id;
     const d = diffText(it);
     const e = s.entries[id];
-    return html`<div class="aud-row" data-item="${id}">
+    return html`<div class="aud-row ${s.pinned === id ? 'aud-row-scanned' : ''}" data-item="${id}">
       <div class="aud-row-main">
         <strong>${it.name || it.code}</strong>
         <span class="muted small">${it.code ? `${it.code} · ` : ''}${it.company}</span>
@@ -189,11 +212,12 @@ async function mountCounting(el, assignmentId, ctx) {
           data-qty="${id}"
           aria-label="Counted quantity for ${it.name || it.code}"
           value="${e ? q(e.qty) : ''}"
-          ${open() ? '' : 'disabled'}
+          ${open() && !locked(id) ? '' : 'disabled'}
         />
-        ${open() ? html`<button type="button" class="btn btn-ghost btn-sm" data-match="${id}">Matches</button>` : ''}
+        ${open() && locked(id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-hand="${id}">Count by hand</button>` : ''}
+        ${open() && !locked(id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-match="${id}">Matches</button>` : ''}
         ${
-          open() && it.prev_counted !== null && it.prev_counted !== undefined
+          open() && !locked(id) && it.prev_counted !== null && it.prev_counted !== undefined
             ? html`<button type="button" class="btn btn-ghost btn-sm" data-same="${id}">Same as last</button>`
             : ''
         }
@@ -216,7 +240,11 @@ async function mountCounting(el, assignmentId, ctx) {
     </div>`;
   };
 
-  const visible = () => filterItems(s.items, s.entries, { text: s.text, company: s.company, mode: s.mode });
+  const visible = () => {
+    const rows = filterItems(s.items, s.entries, { text: s.text, company: s.company, mode: s.mode });
+    const pin = s.pinned && s.byId.get(s.pinned);
+    return pin ? [pin, ...rows.filter((r) => r.round_item_id !== s.pinned)] : rows;
+  };
 
   function drawList() {
     const rows = visible();
@@ -288,6 +316,7 @@ async function mountCounting(el, assignmentId, ctx) {
         }
         <section class="card aud-card" id="aud-summary" aria-label="Progress"></section>
         <section class="card aud-card" aria-label="Find items">
+          ${scanBox()}
           <div class="aud-filters">
             <input type="search" data-f="text" placeholder="Search name, code or company" value="${s.text}" aria-label="Search items" />
             <select data-f="company" aria-label="Company">
@@ -310,6 +339,61 @@ async function mountCounting(el, assignmentId, ctx) {
     );
     drawSummary();
     drawList();
+  }
+
+  const scanBox = () =>
+    s.canScan && open()
+      ? html`<div class="aud-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-act="scan">Scan a barcode</button>
+            ${s.pinned ? html`<button type="button" class="btn btn-ghost btn-sm" data-act="unpin">Show the whole list</button>` : ''}
+          </div>
+          <p class="small" id="aud-scan-note" role="status" aria-live="polite">${s.scanMsg}</p>
+          ${
+            s.choices.length
+              ? html`<ul class="aud-list">
+                  ${s.choices.map((id) => {
+                    const it = s.byId.get(id);
+                    return html`<li>
+                      <button type="button" class="btn btn-ghost btn-sm" data-choose="${id}">
+                        <strong>${it.name || it.code}</strong> <span class="muted small">${it.company}</span>
+                      </button>
+                    </li>`;
+                  })}
+                </ul>`
+              : ''
+          }`
+      : '';
+
+  // a scan finds an item in the person's own list and puts it first; the quantity is always typed (AUD-4, AUD-5)
+  function pin(id) {
+    s.pinned = id;
+    s.unlocked.add(id);
+    s.choices = [];
+    s.text = '';
+    s.company = '';
+    s.mode = 'all';
+    s.shown = PAGE;
+    drawShell();
+    const input = [...el.querySelectorAll('input[data-qty]')].find((i) => i.dataset.qty === id);
+    input?.focus();
+  }
+  async function onScan({ code }) {
+    const clean = cleanBarcode(code);
+    const row = lookup(s.index, clean);
+    const r = resolveScan(row, s.items);
+    s.scanMsg =
+      s.index.size === 0 && !row
+        ? 'No barcode list is saved on this phone yet. Connect once to download it, or find the item by name.'
+        : scanMessage(r, clean);
+    try {
+      await saveScan(makeScanEvent({ barcode: clean, type: 'count', result: r.result, assignmentId, code: row?.product_code ?? null }));
+    } catch {
+      toast('This device could not save the scan record. Your counts are not affected.', 'error');
+    }
+    void sendScans(api.scanBatch).catch(() => {});
+    if (r.result === 'matched') return pin(r.items[0].round_item_id);
+    s.choices = r.result === 'ambiguous' ? r.items.map((i) => i.round_item_id) : [];
+    drawShell();
   }
 
   const submitCard = () => {
@@ -387,6 +471,7 @@ async function mountCounting(el, assignmentId, ctx) {
     s.flushing = true;
     drawSummary();
     const r = await flushOutbox({ store, send: api.countBatch, assignmentId });
+    if (s.canScan) await sendScans(api.scanBatch).catch(() => {}); // scan history is best effort; counts are what block submitting
     s.flushing = false;
     s.waiting = r.left;
     s.online = !(r.error && r.error.kind === 'offline');
@@ -450,6 +535,12 @@ async function mountCounting(el, assignmentId, ctx) {
       return drawList();
     }
     if (b.dataset.match) return void record(b.dataset.match, { auto: true });
+    if (b.dataset.hand) {
+      s.unlocked.add(b.dataset.hand);
+      drawList();
+      return void [...el.querySelectorAll('input[data-qty]')].find((i) => i.dataset.qty === b.dataset.hand)?.focus();
+    }
+    if (b.dataset.choose) return pin(b.dataset.choose);
     if (b.dataset.same) {
       const it = s.byId.get(b.dataset.same);
       return void record(b.dataset.same, { qty: Number(it.prev_counted), confirmed: true });
@@ -458,6 +549,13 @@ async function mountCounting(el, assignmentId, ctx) {
       case 'back':
         setView({ ...(getView() ?? {}), assignment: null });
         return mountList(el, ctx);
+      case 'scan':
+        return void openScanner({ title: 'Scan an item', onCode: onScan, onClose: () => el.querySelector('[data-act="scan"]')?.focus() });
+      case 'unpin':
+        s.pinned = null;
+        s.scanMsg = '';
+        s.choices = [];
+        return drawShell();
       case 'send':
         return flush(true);
       case 'ask-submit':

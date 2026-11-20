@@ -193,3 +193,33 @@ export const expiryPeople = () => one(db().rpc('audit_expiry_people'));
 export const assignRack = ({ rackId, userId, month }) =>
   one(db().rpc('audit_rack_assign', { p_rack: rackId, p_user: userId, p_month: month }));
 export const unassignRack = (id) => one(db().rpc('audit_rack_unassign', { p_assignment: id }));
+
+// ── barcodes (migration 0411) ──
+/** Product search for registering a barcode (two letters at least). Each row says how many barcodes the product already has. */
+export const barcodeProducts = (query, limit = 20) => one(db().rpc('audit_barcode_products', { p_query: query, p_limit: limit }));
+/** Registers a barcode for a product. Returns { outcome: 'created'|'exists'|'conflict'|'disabled', id, status }. Safe to repeat. */
+export const registerBarcode = ({ barcode, productId, type = 'unknown', notes = null }) =>
+  one(db().rpc('audit_barcode_register', { p_barcode: barcode, p_product: productId, p_type: type, p_notes: notes }));
+export const verifyBarcode = (id) => one(db().rpc('audit_barcode_verify', { p_id: id }));
+/** Administrators: move a barcode to another product, switch it off or on, or settle a conflict (keep, reassign, disable). */
+export const changeBarcode = ({ id, productId, reason }) =>
+  one(db().rpc('audit_barcode_change', { p_id: id, p_product: productId, p_reason: reason }));
+export const disableBarcode = (id, reason) => one(db().rpc('audit_barcode_disable', { p_id: id, p_reason: reason }));
+export const enableBarcode = (id, reason) => one(db().rpc('audit_barcode_enable', { p_id: id, p_reason: reason }));
+export const resolveBarcodeConflict = ({ id, decision, reason }) =>
+  one(db().rpc('audit_barcode_conflict_resolve', { p_id: id, p_decision: decision, p_reason: reason }));
+/** The Center list. Each row carries `total`, the number of rows that match. status: '' for all. */
+export const listBarcodes = ({ status = '', query = '', limit = 50, offset = 0 } = {}) =>
+  one(db().rpc('audit_barcode_list', { p_status: status || null, p_query: query, p_limit: limit, p_offset: offset }));
+export const barcodeOverview = () => one(db().rpc('audit_barcode_overview'));
+/** One page of rows changed since a cursor, for the phone's copy of the list. */
+export const barcodeMirrorPage = ({ since = null, after = null, limit = 1000 } = {}) =>
+  one(db().rpc('audit_barcode_mirror', { p_since: since, p_after: after, p_limit: limit }));
+export const barcodeHistory = (id, limit = 100) => one(db().rpc('audit_barcode_history', { p_id: id, p_limit: limit }));
+/** Scan history: everyone's for administrators, the person's own for everyone else. */
+export const scanHistory = ({ limit = 50, offset = 0 } = {}) => one(db().rpc('audit_scan_history', { p_limit: limit, p_offset: offset }));
+/** Saves scans. Each carries its own id, so sending a batch twice changes nothing. Returns { saved, duplicates, rejected }. */
+export const scanBatch = (events) => one(db().rpc('audit_scan_batch', { p_events: events }));
+/** Owner: how an audit is counted ('manual', 'barcode' or 'hybrid'). */
+export const setCountingMethod = (engagementId, method) =>
+  one(db().rpc('audit_engagement_set_method', { p_engagement: engagementId, p_method: method }));

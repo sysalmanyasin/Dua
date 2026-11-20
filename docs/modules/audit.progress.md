@@ -114,7 +114,15 @@
 - `audit.expiry_log` people can search products through `audit_expiry_products` without holding an Inventory key.
 - Not built: CSV / print of the register, and an expiry-by-month summary. Easy to add on top of `audit_expiry_search`.
 
+## Slice C2 (Barcode) — built 20 Nov 2026
+- `supabase/migrations/0411_audit_barcode.sql` (**file written and DB-tested; apply status: see `audit.next-session.md`**): tables `audit_barcodes`, `audit_barcode_log` (append-only), `audit_scan_events` (append-only, idempotent by `client_event_id`), all RLS with no direct grants. Functions: `audit_barcode_products/register/verify/change/disable/enable/conflict_resolve/list/overview/mirror/history`, `audit_scan_history`, `audit_scan_batch`, `audit_engagement_set_method`, and `audit_my_assignments` now returns `counting_method` (individual audits are always `hybrid`).
+- Rules: unverified -> verified; a second claim on a barcode never changes the link: it goes to `conflict` and only `audit.barcode_admin` can keep, reassign or disable, with a reason. A scan only FINDS an item and never adds a quantity (AUD-4). A counter only sees their own assignment (AUD-5). Scan events are safe to resend.
+- App: `/audit/barcode` (Find, Register, To verify, Conflicts, All barcodes, scan history; tabs follow permissions), scanner dialog (browser BarcodeDetector first, vendored ZXing wasm as fallback, typed entry always possible, camera stops on close, hidden page and after 45 s idle), hybrid counting in the counting screen (Scan button, scanned item moves to the top and its quantity box is focused, pick-one when two items share a code).
+- Foundation touched (OD-6, owner agreed): `js/shared/outbox.js` (new shared queue, unsent-work registry and sign-out guard), `js/core/app.js` (registers manifest outboxes, installs the guard), `index.html` CSP (`'wasm-unsafe-eval'` added; no `unsafe-eval`), `tools/check-vendor.mjs` and `vendor/` (ZXing 3.1.7 JS, wasm, licence, hashes).
+- Design notes: the `barcode` counting method is scan-first in the screen only (rows locked until scanned or "Count by hand"); the server does not enforce it, since the typed count is still the only count. A registrar may verify their own registration (as in the old app). Registering, verifying and admin actions need a connection; only scans are queued offline. The phone's barcode list refreshes by delta with a 5-minute overlap for late commits. The wasm file is not precached: it is fetched the first time on phones without native BarcodeDetector (a warm-up does this while online), so the very first scan on such a phone needs a connection once.
+- Tests: DB 0411 (87 checks), `audit-barcode-domain`, `-store`, `-pages` (34), `audit-scanner`, `shared-outbox`, `csp-wasm`. `npm run verify`: 1,674 tests pass.
+- Page tests found and fixed a double-click bug (working tabs and page shell both handled the same button).
+
 ## Next
-- PHONE 1 / PHONE 2 on real phones.
-- C2 Barcode (Center, register, verify, conflicts, scanner, scan outbox); needs the Foundation requests (OD-6, vendored scanner libraries).
-- D Hardening and acceptance.
+- Apply `0411` live and confirm; PHONE 1 / 2 / 3 on real phones.
+- D Hardening and acceptance (offline end-to-end, accessibility, low-end phone, data-use review, MODULES.md §11). Optional: Expiry CSV/print and by-month summary; `inventory_companies()` for the Individual Audit picker.
