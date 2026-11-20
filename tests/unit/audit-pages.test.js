@@ -190,6 +190,25 @@ describe('audit hub', () => {
     expect(api.engagementOverview).toHaveBeenCalledWith('e1');
   });
 
+  it('renders navigation groups collapsed by default and expands them accessibly on tap', async () => {
+    const el = document.getElementById('root');
+    await mountHub(el, { ctx: { permissions: ['audit.manage', 'audit.view', 'audit.individual', 'audit.templates', 'audit.report', 'audit.expiry_log', 'users.manage'] } });
+    const toggles = [...el.querySelectorAll('[data-aud-toggle]')];
+    expect(toggles.length).toBeGreaterThanOrEqual(5);
+    for (const toggle of toggles) {
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      const panel = el.querySelector(`#${toggle.getAttribute('aria-controls')}`);
+      expect(panel.hidden).toBe(true);
+    }
+    const first = toggles[0];
+    first.click();
+    expect(first.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelector(`#${first.getAttribute('aria-controls')}`).hidden).toBe(false);
+    first.click();
+    expect(first.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelector(`#${first.getAttribute('aria-controls')}`).hidden).toBe(true);
+  });
+
   it('shows team administration only with users.manage and expiry links only when permitted', async () => {
     const el = document.getElementById('root');
     await mountHub(el, { ctx: { permissions: ['audit.expiry_log', 'users.manage'] } });
