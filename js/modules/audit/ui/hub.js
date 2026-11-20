@@ -76,17 +76,18 @@ const GROUPS = [
   },
 ];
 
-const canOpen = (route, perms) => {
+function canOpen(route, perms) {
   if (route.permission) return perms.has(route.permission);
   return (route.anyOf ?? []).some((key) => perms.has(key));
-};
+}
 
 function navigationGroups(perms) {
   const routes = new Map(manifest.routes.map((route) => [route.path, route]));
   return GROUPS.map((group) => {
     const items = group.routes.flatMap(([path, label, description]) => {
       const route = routes.get(path);
-      return route && canOpen(route, perms) ? [{ path, label, description }] : [];
+      if (!route || !canOpen(route, perms)) return [];
+      return [{ path, label, description }];
     });
     return { ...group, items };
   }).filter((group) => group.items.length > 0);
@@ -97,23 +98,23 @@ function statusLabel(status) {
 }
 
 function navCard(group) {
+  const links = group.items.map(
+    (item) => html`<a class="aud-nav-link" href="#${item.path}">
+      <span class="aud-nav-link-copy">
+        <strong>${item.label}</strong>
+        <span class="muted small">${item.description}</span>
+      </span>
+      <span class="aud-nav-arrow" aria-hidden="true">›</span>
+    </a>`,
+  );
+
   return html`<section class="card aud-card aud-nav-group" aria-label="${group.title}">
     <div class="aud-group-heading">
       <h2>${group.title}</h2>
       <span class="aud-group-count">${group.items.length}</span>
     </div>
     <p class="muted small">${group.description}</p>
-    <div class="aud-group-links">
-      ${group.items.map(
-        (item) => html`<a class="aud-nav-link" href="#${item.path}">
-          <span class="aud-nav-link-copy">
-            <strong>${item.label}</strong>
-            <span class="muted small">${item.description}</span>
-          </span>
-          <span class="aud-nav-arrow" aria-hidden="true">›</span>
-        </a>`,
-      )}
-    </div>
+    <div class="aud-group-links">${links}</div>
   </section>`;
 }
 
@@ -124,6 +125,8 @@ function assignmentCard(assignment) {
   const percent = items ? Math.round((counted / items) * 100) : 0;
   const round = `${assignment.round_number ?? ''}${assignment.round_suffix ?? ''}`;
   const active = assignment.round_state === 'counting' && assignment.status !== 'submitted';
+  const buttonClass = active ? 'btn-primary' : '';
+  const buttonLabel = active ? 'Continue counting' : 'Open my work';
 
   return html`<article class="aud-work-item">
     <div class="aud-work-main">
@@ -147,9 +150,7 @@ function assignmentCard(assignment) {
       </div>
       <p class="muted small">${remaining.toLocaleString()} remaining · ${percent}% complete</p>
     </div>
-    <a class="btn btn-sm ${active ? 'btn-primary' : ''}" href="#/audit/count">
-      ${active ? 'Continue counting' : 'Open my work'}
-    </a>
+    <a class="btn btn-sm ${buttonClass}" href="#/audit/count">${buttonLabel}</a>
   </article>`;
 }
 
@@ -158,17 +159,19 @@ function engagementCard(engagement, overview) {
   const latest = rounds.length ? rounds[rounds.length - 1] : null;
   const date = engagement.created_at ? shortDate(String(engagement.created_at).slice(0, 10)) : '';
   const scope = SCOPE[engagement.scope_type] ?? engagement.scope_type;
+  const month = engagement.scope_month ? ` · ${engagement.scope_month}` : '';
+  const created = date ? ` · ${date}` : '';
+  const roundCount = `${rounds.length} round${rounds.length === 1 ? '' : 's'}`;
+  let latestLabel = '';
+  if (latest) {
+    latestLabel = ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(latest.state)}`;
+  }
 
   return html`<article class="aud-engagement-item">
     <div class="aud-engagement-copy">
       <strong>${engagement.name}</strong>
-      <span class="muted small">
-        ${scope}${engagement.scope_month ? ` · ${engagement.scope_month}` : ''}${date ? ` · ${date}` : ''}
-      </span>
-      <span class="muted small">
-        ${rounds.length} round${rounds.length === 1 ? '' : 's'}
-        ${latest ? ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(latest.state)}` : ''}
-      </span>
+      <span class="muted small">${scope}${month}${created}</span>
+      <span class="muted small">${roundCount}${latestLabel}</span>
     </div>
     <span class="aud-badge aud-badge-${engagement.status}">${statusLabel(engagement.status)}</span>
     <a class="btn btn-sm" href="#/audit/engagement" data-open-engagement="${engagement.id}">Open</a>
@@ -184,11 +187,23 @@ function metric(label, value, detail) {
 }
 
 function myWorkSection(assignments, pendingAssignments, error, perms) {
-  const content = error
-    ? html`<p class="note note-error" role="alert">Could not load your assignments: ${error}</p>`
-    : assignments.length
-      ? html`<div class="aud-work-list">${assignments.slice(0, 5).map(assignmentCard)}</div>`
-      : html`<p class="aud-empty">No counting assignments are currently assigned to you.</p>`;
+  let content;
+  if (error) {
+    content = html`<p class="note note-error" role="alert">Could not load your assignments: ${error}</p>`;
+  } else if (assignments.length) {
+    const rows = assignments.slice(0, 5).map(assignmentCard);
+    content = html`<div class="aud-work-list">${rows}</div>`;
+  } else {
+    content = html`<p class="aud-empty">No counting assignments are currently assigned to you.</p>`;
+  }
+
+  let actions = '';
+  if (perms.has('audit.individual')) {
+    actions = html`<div class="aud-inline-action">
+      <a class="btn btn-sm" href="#/audit/individual">Start an individual audit</a>
+      <a class="btn btn-sm" href="#/audit/templates">Browse templates</a>
+    </div>`;
+  }
 
   return html`<section class="card aud-card" aria-label="My work">
     <div class="aud-section-head">
@@ -202,12 +217,7 @@ function myWorkSection(assignments, pendingAssignments, error, perms) {
       <a href="#/audit/count">View all</a>
     </div>
     ${content}
-    ${perms.has('audit.individual')
-      ? html`<div class="aud-inline-action">
-          <a class="btn btn-sm" href="#/audit/individual">Start an individual audit</a>
-          <a class="btn btn-sm" href="#/audit/templates">Browse templates</a>
-        </div>`
-      : ''}
+    ${actions}
   </section>`;
 }
 
@@ -223,25 +233,36 @@ function individualSection() {
 }
 
 function engagementSection(engagements, details, error, activeRounds, compiledRounds) {
-  let content = '';
-  if (error) {
-    content = html`<p class="note note-error" role="alert">Could not load audits: ${error}</p>`;
-  } else {
-    content = html`<div class="aud-metrics">
+  let metrics = '';
+  if (!error) {
+    metrics = html`<div class="aud-metrics">
       ${metric('Recent engagements', engagements.length.toLocaleString(), 'Up to 20 most recent')}
       ${metric('Active rounds', activeRounds.toLocaleString(), 'In the six most recent open audits')}
       ${metric('Compiled rounds', compiledRounds.toLocaleString(), 'In that same group of open audits')}
     </div>`;
   }
 
+  let errorMessage = '';
+  if (error) {
+    errorMessage = html`<p class="note note-error" role="alert">Could not load audits: ${error}</p>`;
+  }
+
   let list = '';
   if (engagements.length) {
-    const rows = details.length
-      ? details.map((item) => engagementCard(item.engagement, item.overview))
-      : engagements.slice(0, 6).map((item) => engagementCard(item, null));
+    let rows;
+    if (details.length) {
+      rows = details.map((item) => engagementCard(item.engagement, item.overview));
+    } else {
+      rows = engagements.slice(0, 6).map((item) => engagementCard(item, null));
+    }
     list = html`<div class="aud-engagement-list">${rows}</div>`;
   } else if (!error) {
     list = html`<p class="aud-empty">No audits are currently visible to you.</p>`;
+  }
+
+  let limitNote = '';
+  if (engagements.length >= 20) {
+    limitNote = html`<p class="muted small">Showing the 20 most recent engagements.</p>`;
   }
 
   return html`<section class="card aud-card" aria-label="Stock audit overview">
@@ -252,9 +273,10 @@ function engagementSection(engagements, details, error, activeRounds, compiledRo
       </div>
       <a href="#/audit/engagements">All audits</a>
     </div>
-    ${content}
+    ${errorMessage}
+    ${metrics}
     ${list}
-    ${engagements.length >= 20 ? html`<p class="muted small">Showing the 20 most recent engagements.</p>` : ''}
+    ${limitNote}
   </section>`;
 }
 
@@ -340,13 +362,22 @@ export async function mount(el, { ctx } = {}) {
     managementContent = engagementSection(engagements, engagementDetails, engagementError, activeRounds, compiledRounds);
   }
 
-  const accessNotice =
-    !canCount && !canSeeEngagements && !canIndividual
-      ? html`<section class="card aud-card">
-          <h2>Audit tools</h2>
-          <p class="muted">Your account has access to the sections below. Choose a section to continue.</p>
-        </section>`
-      : '';
+  let accessNotice = '';
+  if (!canCount && !canSeeEngagements && !canIndividual) {
+    accessNotice = html`<section class="card aud-card">
+      <h2>Audit tools</h2>
+      <p class="muted">Your account has access to the sections below. Choose a section to continue.</p>
+    </section>`;
+  }
+
+  let navigationContent;
+  if (groups.length) {
+    navigationContent = groups.map(navCard);
+  } else {
+    navigationContent = html`<section class="card aud-card">
+      <p class="aud-empty">No Audit pages are available for your current permissions.</p>
+    </section>`;
+  }
 
   render(
     el,
@@ -372,11 +403,7 @@ export async function mount(el, { ctx } = {}) {
           <h2>Audit sections</h2>
           <p class="muted small">Grouped by the work each section supports.</p>
         </div>
-        ${groups.length
-          ? groups.map(navCard)
-          : html`<section class="card aud-card">
-              <p class="aud-empty">No Audit pages are available for your current permissions.</p>
-            </section>`}
+        ${navigationContent}
       </section>
     </div>`,
   );
