@@ -134,3 +134,5 @@
 - Verification status: not yet run in a local checkout (the execution environment cannot resolve GitHub to clone the repository). A draft PR is required to trigger the repository's CI; final acceptance remains pending on CI and real-phone testing.
 
 - Opened draft PR [#47](https://github.com/sysalmanyasin/Dua/pull/47) against `main` so the change can be reviewed before merge. No merge has been performed. CI status is not yet available from the repository checks endpoint; do not treat this slice as accepted until CI and phone tests pass.
+
+- CI run 359 (`93a124e`) result: ESLint passed and Edge Function type-check passed. `prettier --check .` still flags `js/modules/audit/ui/hub.js`; because the app job stops there, Vitest and subsequent app checks were skipped. The database job independently fails while applying an existing migration because the test Postgres instance lacks the `supabase_realtime` publication; this redesign adds no migration. PR #47 has been returned to Draft until formatting is resolved and app tests can execute.
