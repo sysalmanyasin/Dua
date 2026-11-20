@@ -180,7 +180,7 @@ describe('audit hub', () => {
     });
     const el = document.getElementById('root');
     await mountHub(el, { ctx: { permissions: ['audit.manage', 'audit.view'] } });
-    expect(el.textContent).toContain('Audit Command Centre');
+    expect(el.textContent).toContain('Audit Overview');
     expect(el.textContent).toContain('Stock audits');
     expect(el.textContent).toContain('Annual Audit');
     expect(el.textContent).toContain('Active rounds');
