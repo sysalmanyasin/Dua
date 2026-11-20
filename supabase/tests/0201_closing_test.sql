@@ -125,10 +125,13 @@ do $t$ declare n int; begin
   select count(*) into n from public.closing_slots; perform pg_temp.ok(n = 3, 'and the slot list');
   reset role;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
-  select count(*) into n from public.closings; perform pg_temp.ok(n = 0, 'another staff member sees none of them');
-  select count(*) into n from public.closing_credit_lines; perform pg_temp.ok(n = 0, 'nor their credit lines');
-  select count(*) into n from public.closing_results; perform pg_temp.ok(n = 0, 'nor results');
-  perform pg_temp.fails($q$select public.closing_compute('30000000-0000-0000-0000-000000000002')$q$, 'nor compute them', '42501');
+  -- 0217: a regular draft is shared with every closing user; a submitted closing of someone else still is not
+  select count(*) into n from public.closings; perform pg_temp.ok(n = 1, 'another staff member sees the shared draft only');
+  perform pg_temp.ok((select status from public.closings) = 'draft', 'and it is the draft, not the submitted closing');
+  select count(*) into n from public.closing_credit_lines; perform pg_temp.ok(n > 0, 'with its credit lines');
+  select count(*) into n from public.closing_results; perform pg_temp.ok(n = 0, 'no results (nothing of theirs is submitted)');
+  perform pg_temp.ok(public.closing_compute('30000000-0000-0000-0000-000000000002') is not null, 'and can compute the shared draft');
+  perform pg_temp.fails($q$select public.closing_compute('30000000-0000-0000-0000-000000000001')$q$, 'but not someone else''s submitted closing', '42501');
   reset role;
   -- permission removed: nothing at all
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b3');

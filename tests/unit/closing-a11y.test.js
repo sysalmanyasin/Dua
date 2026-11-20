@@ -42,6 +42,9 @@ const api = {
   loadById: vi.fn(async () => ROW),
   refreshDraftCarry: vi.fn(async () => ({ refreshed: true })),
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
+  patchDraft: vi.fn(async () => ({ closing_id: 'c1', version: 1, updated_at: '2026-11-10T08:05:00Z' })),
+  loadSync: vi.fn(async () => null),
+  watchDraft: vi.fn(() => () => {}),
   computePreview: vi.fn(async () => FULL_PREVIEW),
   myRecent: vi.fn(async () => []),
   savedList: vi.fn(async () => []),
@@ -117,7 +120,7 @@ describe('ledger: figures', () => {
     jump(13);
     el.querySelector('[data-act="submit"]').click();
     await tick(500);
-    expect(api.saveDraft.mock.calls.at(-1)[0].payload.sys_cash).toBe(160000);
+    expect(api.patchDraft.mock.calls.at(-1)[0].fields.sys_cash).toBe(160000);
     expect(document.querySelector('dialog h2')?.textContent).toBe('Review closing');
   });
   it('does not let two saves of the same draft stack conflict dialogs, and can keep what was typed', async () => {
@@ -126,17 +129,21 @@ describe('ledger: figures', () => {
     api.saveDraft.mockImplementation(async () => {
       throw conflict();
     });
-    type(el.querySelector('#f-sys_cash'), '111');
+    // the version check belongs to the list sections; a single box never conflicts
+    jump(3);
+    el.querySelector('[data-act="add"][data-list="hs"]').click();
+    const amount = () => el.querySelector('[data-list="hs"][data-k="amount"]');
+    type(amount(), '111');
     await tick(3000);
-    type(el.querySelector('#f-sys_cash'), '112');
+    type(amount(), '112');
     await tick(3000);
     expect(document.querySelectorAll('dialog[open]')).toHaveLength(1);
     expect(el.querySelector('#cls-chip').textContent).toContain('Changed elsewhere');
     api.saveDraft.mockImplementation(async () => ({ closing_id: 'c1', version: 6 }));
     document.querySelector('dialog [data-act="keep"]').click();
     await tick(200);
-    expect(api.saveDraft.mock.calls.at(-1)[0].payload.sys_cash).toBe(112);
-    expect(el.querySelector('#f-sys_cash').value).toBe('112');
+    expect(api.saveDraft.mock.calls.at(-1)[0].payload.hs[0].amount).toBe(112);
+    expect(amount().value).toBe('112');
   });
 });
 
@@ -147,17 +154,17 @@ describe('ledger: keyboard and screen reader', () => {
     const chip = el.querySelector('#cls-chip');
     expect(chip.tagName).toBe('BUTTON');
     expect(chip.disabled).toBe(true); // "Saved"
-    api.saveDraft.mockImplementationOnce(async () => {
+    api.patchDraft.mockImplementationOnce(async () => {
       throw new Error('boom');
     });
     type(el.querySelector('#f-sys_cash'), '5');
     expect(el.querySelector('#cls-chip').disabled).toBe(false); // "Not saved yet"
     await tick(3000);
     expect(el.querySelector('#cls-chip').textContent).toContain('Failed');
-    api.saveDraft.mockClear();
+    api.patchDraft.mockClear();
     el.querySelector('#cls-chip').click();
     await tick();
-    expect(api.saveDraft).toHaveBeenCalledTimes(1);
+    expect(api.patchDraft).toHaveBeenCalledTimes(1);
   });
   it('moves focus to the new row when a row is added (it used to land on the first row)', async () => {
     openTarget();

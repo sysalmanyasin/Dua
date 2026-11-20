@@ -46,6 +46,34 @@ export const saveDraft = ({ key, date, kind, mode, payload, handoverSeq = null, 
     }),
   );
 
+/**
+ * Saves single simple fields (amounts, returns, books, overrides, responsible) without the whole-draft version check, so
+ * two people typing in different fields never collide. Returns { closing_id, version, updated_at }.
+ */
+export const patchDraft = ({ key, fields }) => one(db().rpc('closing_patch_draft', { p_key: key, p_fields: fields }));
+
+// The simple fields of a draft, light: what a live refresh needs to see what another device typed.
+const SYNC_SELECT =
+  'id, status, draft_version, updated_at, sys_cash, last_bill_no, last_bill_amt, comp_sale, alfalah, keenu, ret_manual_1, ret_manual_2, ' +
+  'ret_manual_3, ret_system, prev_mediq, book_bill_1, book_bill_2, ov_shift_sale, ov_customers, ov_curr_cc, ov_prev_cash, ' +
+  'responsible_staff_id, extra_cash, final_sys_returns, credit_adj';
+export const loadSync = (id) => one(db().from('closings').select(SYNC_SELECT).eq('id', id).maybeSingle());
+
+/**
+ * Tells `onChange` whenever this draft is updated on any device (Supabase Realtime, migration 0217). `onStatus` hears the
+ * connection state ('SUBSCRIBED', 'CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'). Returns a function that stops listening.
+ */
+export function watchDraft(id, onChange, onStatus) {
+  const client = db();
+  const channel = client
+    .channel(`closing-draft-${id}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'closings', filter: `id=eq.${id}` }, () => onChange())
+    .subscribe((status) => onStatus?.(status));
+  return () => {
+    client.removeChannel(channel);
+  };
+}
+
 /** Admin only: starts the one-time opening closing (CLS-10). */
 export const startOpening = ({ key, date, kind }) => one(db().rpc('closing_start_opening', { p_key: key, p_date: date, p_kind: kind }));
 

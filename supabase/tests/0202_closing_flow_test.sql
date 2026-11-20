@@ -39,7 +39,7 @@ do $t$ declare r jsonb; begin
   reset role;
 end $t$;
 
--- 1. drafts: idempotent, private, validated
+-- 1. drafts: idempotent, shared with every closing user (0217), validated
 do $t$ declare r jsonb; r2 jsonb; n int; begin
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
   r := public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift',
@@ -59,9 +59,9 @@ do $t$ declare r jsonb; r2 jsonb; n int; begin
   reset role;
 
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
-  perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{}')$q$, 'another staff member cannot use that key', '42501');
+  r2 := public.closing_patch_draft('a0000000-0000-0000-0000-000000000001', '{"sys_cash": 100000}');
+  perform pg_temp.ok(r2 ->> 'closing_id' = r ->> 'closing_id' and (r2 ->> 'version')::int = 2, '0217: another staff member can patch the shared draft (same closing, version unchanged)');
   perform pg_temp.fails($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000002', current_date - 5, 'night', 'shift', '{}')$q$, 'nor start a second closing in the same slot', 'already exists');
-  perform pg_temp.fails($q$select public.closing_submit('a0000000-0000-0000-0000-000000000001')$q$, 'nor submit it', '42501');
   reset role;
 
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
