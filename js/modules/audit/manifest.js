@@ -9,8 +9,8 @@ export default {
   routes: [
     {
       path: '/audit',
-      title: 'Audit',
-      desc: 'Your audits and the pages you may open',
+      title: 'Overview',
+      desc: 'Your role-aware Audit Command Centre',
       anyOf: [
         'audit.count',
         'audit.individual',
