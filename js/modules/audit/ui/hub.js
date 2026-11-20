@@ -10,7 +10,13 @@ import manifest from '../manifest.js';
 import { loadingCard } from './parts.js';
 import { installSignOutGuard } from './signoutGuard.js';
 
-const SCOPE = { full: 'Full stock', selected: 'Selected companies', single: 'One company', template: 'Template', individual: 'Individual' };
+const SCOPE = {
+  full: 'Full stock',
+  selected: 'Selected companies',
+  single: 'One company',
+  template: 'Template',
+  individual: 'Individual',
+};
 const STATUS = {
   open: 'Open',
   archived: 'Archived',
