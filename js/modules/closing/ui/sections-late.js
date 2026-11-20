@@ -16,13 +16,20 @@ const DENOM_LABELS = [
   'Rs. 10 notes',
   'Coins / loose change',
 ];
-const amber = (label, value) =>
-  html`<div class="cls-row">
-    <label>${label}</label
-    ><input class="cls-in is-carried" readonly value="${money(value ?? 0, { decimals: true })}" aria-label="${label}" />
+const amber = (label, value) => {
+  const id = `carried-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`;
+  return html`<div class="cls-row">
+    <label for="${id}">${label}</label
+    ><input id="${id}" class="cls-in is-carried" readonly value="${money(value ?? 0, { decimals: true })}" />
   </div>`;
+};
+// the "＋" in front of the button text is decoration; a screen reader should only hear "Add Row"
 const add = (list, text) =>
-  html`<div class="actions"><button type="button" class="btn btn-sm" data-act="add" data-list="${list}">${text}</button></div>`;
+  html`<div class="actions">
+    <button type="button" class="btn btn-sm" data-act="add" data-list="${list}">
+      <span aria-hidden="true">＋</span> ${text.replace(/^＋\s*/, '')}
+    </button>
+  </div>`;
 
 /** h: helpers from the ledger (S, field, total, textCell, numCell, strike, canManage). Returns one render function per section index. */
 export function lateSections(h) {
@@ -45,9 +52,9 @@ export function lateSections(h) {
         </div>`,
     );
 
-  const rowsTable = (list, cols, cells) =>
+  const rowsTable = (list, cols, cells, extra = '') =>
     html`<div class="cls-table" style="--cols: ${cols}">
-      ${h.listOf(list).map((r) => html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
+      ${h.listOf(list).map((r) => html`<div class="cls-trow ${extra} ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
     </div>`;
 
   const auditRows = (items) =>
@@ -107,7 +114,7 @@ export function lateSections(h) {
   };
 
   const invaudit = () =>
-    html`<h2>6 — Inventory Audit</h2>
+    html`<h2>6 · Inventory Audit</h2>
       ${auditCard()}
       ${
         h.canManage
@@ -130,6 +137,7 @@ export function lateSections(h) {
     html`<h2>8 · Credit Card Summary (D)</h2>
       ${amber('Carried CC from Previous', S.carry?.cc)}
       ${field('overrides.curr_cc', 'Card Sales This Shift (D)', { note: 'Leave empty to use Bank Alfalah + Keenu − Computer Card Sale. A typed 0 counts.' })}
+      <div class="cls-row"><span class="cls-meta">Calculated card sales this shift</span><strong data-total="currCC">–</strong></div>
       ${total('Total CC', 'ccTotal')}`;
 
   const till = () =>
@@ -157,7 +165,15 @@ export function lateSections(h) {
       <div class="cls-row">
         <label for="f-credit_adj">Credit Adjustment<small>Use ± for a reduction, for example −500.</small></label>
         <div class="cls-signed">
-          <button type="button" class="btn btn-sm" data-act="sign" data-f="credit_adj" aria-label="Toggle positive or negative">±</button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            data-act="sign"
+            aria-label="Reduction (negative) for Credit Adjustment"
+            aria-pressed="${/^[-−]/.test(String(S.form.credit_adj).trim()) ? 'true' : 'false'}"
+          >
+            <span aria-hidden="true">±</span>
+          </button>
           <input
             class="cls-in"
             id="f-credit_adj"
@@ -180,7 +196,7 @@ export function lateSections(h) {
                     <div class="cls-table" style="--cols: 1">
                       ${acc.rows.map(
                         (r) =>
-                          html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
+                          html`<div class="cls-trow cls-trow-signed ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
                             ${textCell('credit.named', r, 'desc', 'Description (optional)')}
                             ${h.signed('credit.named', r, 'amount', acc.label)} ${strike('credit.named', r)}
                           </div>`,
@@ -199,10 +215,16 @@ export function lateSections(h) {
       <div class="cls-table" style="--cols: 1">
         ${S.form.credit.tier.map(
           (r, slot) =>
-            html`<div class="cls-trow" style="--cols: 1">
+            html`<div class="cls-trow cls-trow-signed" style="--cols: 1">
               ${
                 S.tierNames[slot].length
-                  ? html`<select class="cls-in cls-text" data-list="credit.tier" data-id="${r.id}" data-k="label" aria-label="Group">
+                  ? html`<select
+                      class="cls-in cls-text"
+                      data-list="credit.tier"
+                      data-id="${r.id}"
+                      data-k="label"
+                      aria-label="Group, tier ${slot + 1}"
+                    >
                       <option value="">— Group —</option>
                       ${S.tierNames[slot].map((t) => html`<option value="${t}" ${t === r.label ? 'selected' : ''}>${t}</option>`)}
                     </select>`
@@ -213,7 +235,7 @@ export function lateSections(h) {
         )}
       </div>
       <h3 class="sec-label">Aux / Other Credit</h3>
-      ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${h.signed('credit.free', r, 'amount', 'Amount')}`)}
+      ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${h.signed('credit.free', r, 'amount', 'Amount')}`, 'cls-trow-signed')}
       ${add('credit.free', '＋ Add Aux Row')} ${total('Total Credit Detail (G)', 'debt')}`;
 
   const deposits = () =>
@@ -233,11 +255,13 @@ export function lateSections(h) {
 
   const audit = () =>
     html`<h2>13 · Final Audit</h2>
-      <div class="cls-row"><label>Grand Total (A+B+C+D+E+F+G+H)</label><strong class="cls-val" data-total="grand">–</strong></div>
       <div class="cls-row">
-        <label>Less: Cash Reserve (held in till)</label><strong class="cls-val cls-neg" data-total="reserve">–</strong>
+        <span class="cls-lbl">Grand Total (A+B+C+D+E+F+G+H)</span><strong class="cls-val" data-total="grand">–</strong>
       </div>
-      <div class="cls-row"><label>Net Cash Available</label><strong class="cls-val" data-total="liquid">–</strong></div>
+      <div class="cls-row">
+        <span class="cls-lbl">Less: Cash Reserve (held in till)</span><strong class="cls-val cls-neg" data-total="reserve">–</strong>
+      </div>
+      <div class="cls-row"><span class="cls-lbl">Net Cash Available</span><strong class="cls-val" data-total="liquid">–</strong></div>
       ${amber("Previous Shift's Cash Position (carried)", S.carry?.cash)}
       ${field('overrides.prev_cash', "Less: Previous Shift's Cash Position", { note: 'Leave empty to use the carried figure. A typed 0 counts.' })}
       <div class="cls-total cls-total-net"><span>Net Committed Cash (this shift)</span><strong data-total="netCash">–</strong></div>
@@ -246,39 +270,42 @@ export function lateSections(h) {
 
   const final = () =>
     html`<h2>14 · Final Closing — Period Aggregation</h2>
-      <div class="cls-row"><label>Shifts since last Final</label><strong class="cls-val" data-total="shifts">–</strong></div>
+      <div class="cls-row"><span class="cls-lbl">Shifts since last Final</span><strong class="cls-val" data-total="shifts">–</strong></div>
       <h3 class="sec-label">Part 1 — Net Final Sale (POS)</h3>
       <div class="cls-row">
-        <label>＋ POS Sale — same-date shifts &amp; this closing</label><strong class="cls-val" data-total="pSale">–</strong>
+        <span class="cls-lbl">＋ POS Sale — same-date shifts &amp; this closing</span><strong class="cls-val" data-total="pSale">–</strong>
       </div>
       <div class="cls-row">
-        <label>＋ Book Bills — all periods ＋ prev. final</label><strong class="cls-val" data-total="pBooks">–</strong>
+        <span class="cls-lbl">＋ Book Bills — all periods ＋ prev. final</span><strong class="cls-val" data-total="pBooks">–</strong>
       </div>
-      <div class="cls-row"><label>＋ Customers — same-date (count)</label><strong class="cls-val" data-total="pCust">–</strong></div>
       <div class="cls-row">
-        <label>＋ Extra MEDIQ Collected — all periods ＋ prev. final</label><strong class="cls-val" data-total="pMediq">–</strong>
+        <span class="cls-lbl">＋ Customers — same-date (count)</span><strong class="cls-val" data-total="pCust">–</strong>
+      </div>
+      <div class="cls-row">
+        <span class="cls-lbl">＋ Extra MEDIQ Collected — all periods ＋ prev. final</span
+        ><strong class="cls-val" data-total="pMediq">–</strong>
       </div>
       <div class="cls-row cls-return">
-        <label>－ Manual Returns — all periods ＋ prev. final</label><strong class="cls-val" data-total="pManRet">–</strong>
+        <span class="cls-lbl">－ Manual Returns — all periods ＋ prev. final</span><strong class="cls-val" data-total="pManRet">–</strong>
       </div>
       <div class="cls-row cls-return">
-        <label>－ System Returns — same-date</label><strong class="cls-val" data-total="pSysRet">–</strong>
+        <span class="cls-lbl">－ System Returns — same-date</span><strong class="cls-val" data-total="pSysRet">–</strong>
       </div>
       ${field('final_sys_returns', 'Additional Sys Returns (entered here)', { cls: 'cls-return' })}
       <div class="cls-total cls-total-net"><span>＝ Net Final Sale</span><strong data-total="finalNetSale">–</strong></div>
       <h3 class="sec-label">Part 2 — Net Final Cash Available</h3>
       <div class="cls-row">
-        <label>Net Cash Available (after the cash reserve)</label><strong class="cls-val" data-total="liquid">–</strong>
+        <span class="cls-lbl">Net Cash Available (after the cash reserve)</span><strong class="cls-val" data-total="liquid">–</strong>
       </div>
       <div class="cls-row cls-return">
-        <label>－ Pre-date Total (earlier-date sales ＋ customers － system returns)</label
+        <span class="cls-lbl">－ Pre-date Total (earlier-date sales ＋ customers － system returns)</span
         ><strong class="cls-val" data-total="pPre">–</strong>
       </div>
       <div class="cls-row cls-return">
-        <label>－ Extra Cash Added to Pharmacy (period)</label><strong class="cls-val" data-total="pExtra">–</strong>
+        <span class="cls-lbl">－ Extra Cash Added to Pharmacy (period)</span><strong class="cls-val" data-total="pExtra">–</strong>
       </div>
       <div class="cls-row cls-return">
-        <label>－ Target Net Sales (this Final)</label><strong class="cls-val" data-total="finalNetSale">–</strong>
+        <span class="cls-lbl">－ Target Net Sales (this Final)</span><strong class="cls-val" data-total="finalNetSale">–</strong>
       </div>
       <div class="cls-total cls-total-net"><span>＝ Net Final Cash Available</span><strong data-total="finalNetCash">–</strong></div>
       ${banner('Aggregated Final Closing', 'Always the full period since the last Final Closing', 'f')}`;

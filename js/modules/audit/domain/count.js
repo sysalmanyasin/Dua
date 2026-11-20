@@ -61,6 +61,35 @@ export function rowView(item, entry) {
   };
 }
 
+/**
+ * How a row's difference reads on the counting screen, as in the old Audit Hub: an item not counted yet reads as zero in
+ * stock ("assumed"), so the company total starts at the full shortage and shrinks as items are counted (R1).
+ * hint is 'assumed', 'auto-matched' or ''.
+ */
+export function varianceView(item, entry) {
+  const counted = !!entry && entry.qty !== null && entry.qty !== undefined;
+  const auto = counted && !!entry.auto;
+  const eff = computeEffectiveRow(item.system_qty, counted ? entry.qty : null, auto);
+  return {
+    counted,
+    delta: eff.variance,
+    value: varianceValuePaisa(eff.variance, toPaisa(item.retail_price)),
+    hint: !counted ? 'assumed' : auto ? 'auto-matched' : '',
+  };
+}
+
+/** The running difference in paisa for a set of items (a whole company), uncounted items read as zero in stock. */
+export const impactPaisa = (items, entries) => items.reduce((sum, it) => sum + varianceView(it, entries[it.round_item_id]).value, 0);
+
+/** The items grouped by company for display (names in order). One group with no company when there is only one company. */
+export function groupByCompany(items) {
+  const byName = (a, b) => String(a.name || a.code).localeCompare(String(b.name || b.code));
+  const sorted = [...items].sort(byName);
+  if (new Set(items.map((i) => i.company)).size <= 1) return [{ company: null, items: sorted }];
+  const names = [...new Set(sorted.map((i) => i.company))].sort((a, b) => a.localeCompare(b));
+  return names.map((company) => ({ company, items: sorted.filter((i) => i.company === company) }));
+}
+
 /** Totals for the header. Items not yet counted are not in the difference figures; they are shown as "to count". */
 export function summarize(items, entries) {
   let counted = 0;

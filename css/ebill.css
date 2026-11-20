@@ -4,6 +4,9 @@
 } /* the POS uses the whole screen; other pages keep the narrow column */
 .eb {
   display: grid;
+  background: #D9F0F7;
+  padding: 0.5rem;
+  border-radius: var(--radius-lg);
   gap: var(--space-3);
   --eb-edit: color-mix(in srgb, var(--primary) 9%, var(--surface));
 }
@@ -40,6 +43,7 @@
 
 .eb-top {
   display: grid;
+  background: #E6F4F9;
   gap: var(--space-2);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -87,10 +91,16 @@
   background: var(--eb-edit);
 }
 .eb-date {
-  width: 7.5rem;
+  width: 9rem;
+  min-width: 9rem;
+  padding-inline: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 .eb-time {
-  width: 5.5rem;
+  width: 8rem;
+  min-width: 8rem;
+  padding-inline: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 .eb-bal {
   min-width: 4rem;
@@ -139,7 +149,7 @@
 .eb-table th,
 .eb-table td {
   padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--border);
+  border: 3px solid #B8D4E3;
   text-align: left;
   vertical-align: middle;
 }
@@ -154,7 +164,7 @@
 .eb-table tfoot td {
   position: sticky;
   bottom: 0;
-  background: var(--surface-2);
+  background: #FFF9C4;
   font-weight: 700;
   border-top: 2px solid var(--primary);
 }
@@ -211,6 +221,7 @@
 
 .eb-side {
   position: sticky;
+  background: #E6F4F9;
   top: var(--space-2);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -294,6 +305,9 @@
 
 .eb-bottom {
   display: grid;
+  background: #D9F0F7;
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
   grid-template-columns: auto auto 1fr 1fr auto auto;
   gap: var(--space-3);
   align-items: start;
@@ -625,4 +639,625 @@
 .eb-net-line {
   text-align: right;
   font-size: 1.2rem;
+}
+
+/* Product Help: fills the screen like Candela's Product Code Help */
+.eb-ph {
+  width: min(1500px, 98vw);
+  height: 94vh;
+  max-height: 94vh;
+  grid-template-rows: auto auto auto 1fr auto;
+}
+.eb-ph .eb-dlg-head {
+  flex-wrap: nowrap;
+}
+.eb-ph-code {
+  width: 9rem;
+  flex: 0 0 auto;
+}
+.eb-ph-search {
+  flex: 1 1 18rem;
+  min-width: 10rem;
+}
+.eb-ph-note {
+  font-size: 0.85em;
+}
+.eb-ph-wrap {
+  height: 100%;
+}
+.eb-table tfoot .eb-sigma td {
+  background: color-mix(in srgb, var(--warn, #f2c94c) 22%, var(--surface));
+  font-weight: 700;
+  border-top: 2px solid var(--primary);
+}
+.eb-table tr.sel td {
+  font-weight: 600;
+}
+.eb-recnav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ───────── desktop fit (Candela style): one screen, no page scroll ───────── */
+html.eb-full .hdr,
+html.eb-full .nav-sub,
+html.eb-full .tabs,
+html.eb-full .status-bar {
+  display: none;
+}
+.content:has(.eb-desk) {
+  padding: 6px 10px;
+}
+.eb.eb-desk {
+  --eb-top: 130px;
+  height: calc(100dvh - var(--eb-top) - 6px);
+  min-height: 24rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+.eb-desk > * {
+  flex: 0 0 auto;
+}
+.eb-desk .eb-main {
+  flex: 1 1 0;
+  min-height: 0;
+  align-items: stretch;
+}
+.eb-desk .eb-grid {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+}
+.eb-desk .eb-lines-wrap {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  height: 100%;
+}
+.eb-desk .eb-side {
+  position: static;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 10px;
+  gap: 6px;
+}
+.eb-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 4px;
+}
+.eb-bar .eb-tab {
+  padding: 0.15rem 0.8rem;
+}
+.eb-bar .eb-title {
+  font-weight: 700;
+}
+.eb-desk .eb-top {
+  padding: 6px 10px;
+  gap: 6px;
+}
+.eb-desk .eb-row {
+  gap: 6px 14px;
+}
+.eb-desk input,
+.eb-desk select {
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  min-height: 0;
+}
+.eb-desk .eb-sku {
+  flex: 1;
+  width: auto;
+  min-width: 12rem;
+}
+.eb-desk .eb-sync .eb-sync-row {
+  padding: 2px 10px;
+}
+.eb-desk .eb-sync-why {
+  display: none;
+}
+.eb-desk .note {
+  margin: 0;
+  padding: 4px 10px;
+}
+.eb-desk .eb-totals {
+  gap: 4px;
+}
+.eb-desk .eb-net {
+  padding: 6px 10px;
+}
+.eb-desk .eb-net output {
+  font-size: clamp(1.8rem, 4.2vh, 2.8rem);
+}
+.eb-desk .eb-netlabel {
+  margin-top: 0;
+  font-size: 1rem;
+}
+.eb-desk .eb-receipt {
+  padding: 2px 10px 6px;
+}
+.eb-desk .eb-bottom {
+  grid-template-columns: auto auto 1fr 1fr auto auto auto;
+  gap: 8px;
+  padding-top: 6px;
+  align-items: stretch;
+}
+.eb-desk .eb-pay {
+  flex-direction: row;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 2px 10px 6px;
+  align-content: center;
+}
+.eb-desk .eb-area textarea {
+  min-height: 0;
+  height: 3.1rem;
+  resize: none;
+}
+.eb-desk .eb-print,
+.eb-desk .eb-rtype {
+  gap: 4px;
+  align-content: start;
+}
+.eb-desk .eb-actions {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.eb-desk .eb-save {
+  padding: 0.55rem 1rem;
+  font-size: 1rem;
+}
+.eb-desk .eb-table {
+  font-size: 0.9em;
+}
+.eb-desk .eb-lines th,
+.eb-desk .eb-lines td {
+  padding: 0.2rem 0.45rem;
+}
+@media (max-width: 1100px) {
+  .eb.eb-desk {
+    height: auto;
+    overflow: visible;
+  }
+  .eb-desk .eb-main {
+    flex: 0 0 auto;
+  }
+  .eb-desk .eb-lines-wrap {
+    min-height: 14rem;
+  }
+  .eb-desk .eb-bottom {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ───────── compact desktop pass (one screen at ~600px high) ───────── */
+.eb-desk .eb-bar {
+  gap: var(--space-3);
+  min-height: 34px;
+}
+.eb-desk .eb-bar .eb-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  position: relative;
+  min-width: 0;
+}
+.eb-desk .eb-bar .eb-sync-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: 0;
+  background: none;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  min-width: 0;
+}
+.eb-desk .eb-bar .eb-sync-why {
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  margin: 0;
+}
+.eb-desk .eb-ellip {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eb-desk .eb-sync-list > summary {
+  cursor: pointer;
+}
+.eb-desk .eb-sync-list[open] > .eb-table-wrap {
+  position: absolute;
+  right: 0;
+  top: 120%;
+  z-index: 30;
+  width: min(60rem, 90vw);
+  max-height: 50vh;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.eb-desk .eb-top {
+  padding: 4px 8px;
+}
+.eb-desk .eb-row {
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.eb-desk .eb-group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1px;
+}
+.eb-desk .eb-group .eb-inline {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.eb-desk .eb-group.eb-grow {
+  flex: 1 1 10rem;
+}
+.eb-desk .eb-group.eb-grow2 {
+  flex: 3 1 24rem;
+}
+.eb-desk .eb-wide {
+  width: 100%;
+}
+.eb-desk .eb-code {
+  width: 5.5rem;
+}
+.eb-desk .eb-date {
+  width: 7.2rem;
+}
+.eb-desk .eb-time {
+  width: 5.2rem;
+}
+.eb-desk .eb-lbl {
+  font-size: 0.68rem;
+}
+.eb-desk input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.eb-desk input[type='number']::-webkit-inner-spin-button,
+.eb-desk input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.eb-desk .eb-edit {
+  width: 3.8rem;
+}
+.eb-desk .eb-disc {
+  white-space: nowrap;
+}
+.eb-desk .eb-disc input {
+  width: 3.4rem;
+}
+.eb-desk .eb-disc select {
+  width: 3.6rem;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+.eb-desk .eb-table td.num,
+.eb-desk .eb-table td[data-line-total] {
+  white-space: nowrap;
+}
+.eb-desk .eb-table input,
+.eb-desk .eb-table select {
+  max-width: none;
+}
+.eb-desk .eb-bottom {
+  gap: 6px;
+  padding-top: 4px;
+}
+.eb-desk .eb-bottom .btn {
+  padding: 0.2rem 0.5rem;
+  min-height: 0;
+}
+.eb-desk .eb-hold {
+  gap: 2px;
+}
+.eb-desk .eb-pay legend {
+  font-size: 0.75rem;
+}
+.eb-desk .eb-area textarea {
+  height: 2.6rem;
+}
+.eb-desk .eb-print {
+  gap: 2px;
+}
+.eb-desk .eb-totals > div {
+  min-height: 24px;
+}
+.eb-desk .eb-num {
+  width: 3.6rem;
+}
+.eb-desk .eb-side {
+  gap: 4px;
+}
+.eb-desk .eb-net {
+  padding: 4px 10px;
+}
+.eb-desk .eb-net output {
+  font-size: clamp(1.6rem, 4vh, 2.6rem);
+}
+.eb-desk .eb-receipt {
+  padding: 0 10px 4px;
+}
+.eb-desk .eb-receipt legend {
+  font-size: 0.8rem;
+}
+.eb-desk .eb-cash {
+  width: 7.5rem;
+  font-size: 1rem;
+}
+.eb-desk .eb-change {
+  font-size: 1.1rem;
+}
+
+/* Product Help: the column filter row (input above operator) and column widths */
+.eb-fcell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.eb-fcell select {
+  order: 2;
+  font-size: 0.72rem;
+  padding: 0 2px;
+  width: 100%;
+  max-width: none;
+}
+.eb-fcell input {
+  order: 1;
+  width: 100%;
+  max-width: none;
+  font-size: 0.85rem;
+}
+.eb-ph .eb-table {
+  min-width: 1150px;
+  table-layout: fixed;
+}
+.eb-ph .eb-table th:nth-child(1) {
+  width: 8rem;
+}
+.eb-ph .eb-table th:nth-child(2) {
+  width: 22rem;
+}
+.eb-ph .eb-table th:nth-child(3) {
+  width: 6rem;
+}
+.eb-ph .eb-table th:nth-child(4) {
+  width: 6.5rem;
+}
+.eb-ph .eb-table th:nth-child(5) {
+  width: 10rem;
+}
+.eb-ph .eb-table th:nth-child(6) {
+  width: 11rem;
+}
+.eb-ph .eb-table th:nth-child(7) {
+  width: 5rem;
+}
+.eb-ph .eb-table th:nth-child(8) {
+  width: 9rem;
+}
+.eb-ph .eb-table th:nth-child(n + 9) {
+  width: 8.5rem;
+}
+.eb-ph .eb-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.eb-filter-row th {
+  vertical-align: top;
+}
+
+/* one-line title bar; the shop name is already in the app header */
+.eb-desk .eb-bar {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.eb-desk .eb-bar .eb-title {
+  display: none;
+}
+.eb-desk .eb-bar .eb-tab {
+  white-space: nowrap;
+}
+.eb-desk .eb-status {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-size: 0.85em;
+}
+.eb-desk #eb-full {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.eb-desk .eb-netlabel {
+  display: none;
+}
+.eb-desk .eb-net {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.eb-desk .eb-net::before {
+  content: 'Net total';
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+/* bottom bar: small buttons stay small */
+.eb-desk .eb-navs {
+  align-items: center;
+}
+.eb-desk .eb-bottom .btn {
+  height: 28px;
+  padding: 0 0.55rem;
+}
+.eb-desk .eb-bottom .eb-save {
+  height: 38px;
+}
+.eb-desk .eb-area textarea {
+  height: 2.3rem;
+}
+.eb-desk .eb-pay {
+  padding: 0 10px 4px;
+}
+.eb-desk .eb-print input[type='number'] {
+  width: 3.2rem;
+}
+
+/* Candela-inspired ergonomics for the Emergency POS */
+.eb.eb-desk {
+  background: #d9f0f7;
+  border: 1px solid #b8d4e3;
+  border-radius: 8px;
+  padding: 8px;
+  color: #172b3a;
+}
+.eb-desk .eb-bar,
+.eb-desk .eb-top,
+.eb-desk .eb-side,
+.eb-desk .eb-bottom,
+.eb-desk .eb-hold {
+  background: #e6f4f9;
+}
+.eb-desk .eb-top,
+.eb-desk .eb-side,
+.eb-desk .eb-bottom {
+  border: 1px solid #b8d4e3;
+  border-radius: 7px;
+  padding: 8px 10px;
+}
+.eb-desk input,
+.eb-desk select,
+.eb-desk textarea {
+  background: #fff;
+  border: 1px solid #b8d4e3;
+  border-radius: 4px;
+  color: #172b3a;
+}
+.eb-desk input:focus,
+.eb-desk select:focus,
+.eb-desk textarea:focus {
+  outline: 2px solid #397da4;
+  outline-offset: 1px;
+}
+.eb-desk .eb-date {
+  width: 9.2rem;
+  min-width: 9.2rem;
+  padding-inline: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+.eb-desk .eb-time {
+  width: 7.1rem;
+  min-width: 7.1rem;
+  padding-inline: 0.65rem;
+  font-variant-numeric: tabular-nums;
+}
+.eb-desk .eb-lines-wrap {
+  background: #fff;
+}
+.eb-desk .eb-lines {
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.eb-desk .eb-table th,
+.eb-desk .eb-table td {
+  border: 3px solid #b8d4e3;
+  padding: 0.3rem 0.45rem;
+}
+.eb-desk .eb-lines thead th {
+  background: #2454cf;
+  color: #fff;
+}
+.eb-desk .eb-lines tbody tr[data-id]:focus,
+.eb-desk .eb-lines tbody tr[data-id]:focus-within {
+  outline: 2px solid #2454cf;
+  outline-offset: -2px;
+  background: #eef7fb;
+}
+.eb-desk .eb-lines tfoot td {
+  background: #fff9c4;
+  border-top: 3px solid #b8d4e3;
+  font-weight: 800;
+}
+.eb-desk .eb-del {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 1.8rem;
+  border: 1px solid #b8d4e3;
+  border-radius: 4px;
+  background: #fff;
+  color: #9b2525;
+  text-decoration: none;
+  cursor: pointer;
+}
+.eb-desk .eb-net {
+  background: #2454cf;
+  color: #fff;
+  border: 2px solid #b8d4e3;
+  min-height: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.eb-desk .eb-hold {
+  border: 1px solid #b8d4e3;
+  border-radius: 6px;
+  padding: 6px;
+}
+.eb-desk .eb-sync-row {
+  background: #e6f4f9;
+  border-color: #b8d4e3;
+}
+@media (max-width: 1100px) {
+  .eb.eb-desk {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .eb-desk .eb-main {
+    flex: 0 0 auto;
+  }
+  .eb-desk .eb-bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .eb-desk .eb-row,
+  .eb-desk .eb-group,
+  .eb-desk .eb-inline {
+    width: 100%;
+    min-width: 0;
+  }
+  .eb-desk .eb-bottom {
+    grid-template-columns: 1fr;
+  }
+  .eb-desk .eb-lines-wrap {
+    overflow-x: auto;
+  }
+  .eb-desk .eb-table {
+    min-width: 900px;
+  }
+}
+
+.eb-desk .eb-lines tbody tr.eb-filler td {
+  height: 2.15rem;
+  background: #fff;
 }

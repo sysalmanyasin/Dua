@@ -1,5 +1,7 @@
 # Closing — progress
 
+> **Current status (19 Nov 2026):** This file's dated session table is historical evidence. The current implementation is built on `main`: 14-section ledger, submit/reopen, Credit and Misc ledgers, Manager feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review, Settings and Inventory Audit card (migrations through 0211 are recorded live). Owner phone try-out #5 and formal acceptance remain. Manager progress reports live-only migration `0214_closing_staff_see_all`, absent from this repository; verify/reconcile the live registry and recover its exact SQL before further Closing database changes. Do not follow older handoff instructions below to apply migrations already recorded live.
+
 | Date | Slice | Done | Tested | Failed / not done | Next |
 |---|---|---|---|---|---|
 | 2026-11-09 | C1 maths + tables | `domain/compute.js` (integer paisa); `0201_closing_tables.sql` (15 tables, RLS, lock triggers, `closing_calc`, `closing_compute`, internal `closing_build_input` / `closing_write_result`); shared fixture `tests/fixtures/closing-cases.json` (9 hand-worked cases) | 16 unit tests; 0201 DB tests (formula parity on all 9 cases, build-from-rows parity on case B, read isolation between staff, anon, no direct writes, locked submitted rows, append-only results, one live closing per slot); 3 deliberate breaks caught by the tests; `npm run verify` 226 pass | Period roll-up (`agg`) for **Shift** closings is empty until C4 (exact for Final closings); not tried on a phone (no screens yet) | 0202: slot creation, `closing_save_draft`, `closing_submit`, `closing_correct`, carry-forward |
@@ -19,7 +21,7 @@
 - Slot positions: night 10, morning 20, handovers 21–9998 (first one 30), evening 9999 (same idea as the old `getSeq`).
 - A submitted closing can only move to `superseded` (trigger `closing_lock_closing`); every child row follows its closing's status (`closing_lock_children`).
 - `closing_results` stores the `till_float` and `per_customer_charge` used, so a later settings change never rewrites history.
-- The 31 audit codes are not seeded yet (slice C9 seeds them from the old `AUDIT_CODES`; item codes are not sensitive).
+- Superseded by Session E / migration `0211_closing_audit`: the 31 legacy audit codes are seeded and the Inventory Audit card is implemented. Confirm the live setting state with the owner; the requirement was recorded switched off pending try-out.
 
 ## Session A handoff (read before Session B)
 

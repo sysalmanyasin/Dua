@@ -24,9 +24,11 @@ export function startShell(root, ctx, manifests) {
   const home = modules.find((m) => m.id === 'home');
   const first = modules.find((m) => m.id !== 'home');
   const hash = location.hash.replace(/^#/, '');
+  // Landing page. replaceState (not location.hash) so the router does not see a second navigation and load the page twice.
+  const land = (path) => path && history.replaceState(null, '', `#${path}`);
   if (!hash || hash === '/' || hash === '/home') {
-    if (!home && first) location.hash = `#${titled(first)[0].path}`;
-    else if (!hash || hash === '/') location.hash = '#/home';
+    if (!home && first) land((titled(first)[0] ?? first.routes[0])?.path);
+    else if (!hash || hash === '/') land('/home');
   }
   render(
     root,
@@ -91,6 +93,9 @@ export function startShell(root, ctx, manifests) {
     async (route) => {
       const mine = ++token,
         mod = modules.find((m) => m.id === route.moduleId);
+      const appShell = root.querySelector('.app-shell');
+      appShell.classList.toggle('ebill-mode', mod.id === 'ebill');
+      setMenu(false);
       root.querySelector('#hdr-sub').textContent = mod.title;
       render(
         root.querySelector('#workspace-crumb'),

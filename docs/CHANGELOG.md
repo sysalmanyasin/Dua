@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+
+## 19 Nov — Documentation reconciliation
+- Added `docs/MODULE_PROGRESS_REGISTER.md` as the consolidated source for registered modules, backend-only work, live-status evidence, outstanding acceptance and all branch comparisons.
+- Corrected stale status in README, canonical project status, roadmap, testing guide, shared module contract and module briefs/progress handovers: Manager 0108, Closing through 0211 (with 0214 live/source drift flagged), STR, Audit C1, Emergency Billing Phase 5, Invoice Desk integration and Workspace Phase 3 backend-only state.
+- Reconciled the branch list: nine non-main refs are all 0 commits ahead of `main`; no branch should be merged again. Branch deletion was not performed.
+- No application source, migrations, Supabase data, secrets or runtime configuration were changed.
+
 ## 4–5 Nov — Plan, rules and design
 - Owner's fresh-build plan received; decisions confirmed (GitHub Pages, free Supabase, Candela stays the source of truth, midnight business day, username + PIN for staff).
 - **Phase 0:** business rules read from the old code and written down (`BUSINESS_RULES.md`): closing calculation, sales TOTAL/DIFF, carry-forward, Final Closing, STR/audit rules, emergency billing.

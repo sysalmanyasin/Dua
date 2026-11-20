@@ -8,7 +8,11 @@ const one = async (query) => {
   return data;
 };
 
-const DRAFT_SELECT = '*, closing_slots(business_date, kind, seq), closing_hs_rows(*), closing_strip_lines(*), closing_mediq_orders(*)';
+// Every child table formFromRow() reads. If one is missing here its section opens blank on reopen, and the next autosave
+// (closing_save_draft replaces those rows with what the form holds) would overwrite what was saved with zeros.
+const DRAFT_SELECT =
+  '*, closing_slots(business_date, kind, seq), closing_hs_rows(*), closing_strip_lines(*), closing_mediq_orders(*), closing_misc_rows(*), ' +
+  'closing_cash_counts(*), closing_credit_lines(*), closing_deposits(*)';
 
 /** Active strips from the catalogue, in the order the owner set. */
 export const listStrips = () =>
@@ -46,6 +50,8 @@ export const saveDraft = ({ key, date, kind, mode, payload, handoverSeq = null, 
 export const startOpening = ({ key, date, kind }) => one(db().rpc('closing_start_opening', { p_key: key, p_date: date, p_kind: kind }));
 
 /** The full calculation for a saved draft, run by the server (the browser may not read every setting). */
+/** Refresh a draft's carry-forward balances and outstanding misc rows on reopen. */
+export const refreshDraftCarry = (closingId) => one(db().rpc('closing_refresh_draft', { p_closing: closingId }));
 export const computePreview = (closingId) => one(db().rpc('closing_compute', { p_closing: closingId }));
 /** The "since the last Final" roll-up for a saved closing. */
 export const periodFor = (closingId) => one(db().rpc('closing_period', { p_closing: closingId }));

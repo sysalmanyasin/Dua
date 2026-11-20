@@ -1,4 +1,4 @@
-// Emergency POS: the desktop billing screen, laid out like the Candela "Sale and Return" screen the cashiers already know
+// Emergency POS: Candela-inspired desktop billing screen with keyboard-first cashier controls, laid out like the Candela "Sale and Return" screen the cashiers already know
 // (header rows, invoice grid with totals row, right-hand totals panel, bottom payment and receipt bar) in Dua's own look.
 // Phase 1 works: bill building, Product Help, totals, new bill and cancel. Saving, holding, printing and returns arrive in
 // later phases; their controls are shown but switched off, never faked.
@@ -46,6 +46,7 @@ export async function mount(el, { ctx }) {
   let device = { status: 'unknown' }; // 'active' | 'deactivated' | 'unknown' (not registered yet or offline)
   let saving = false;
   let saved = null; // { no, local } for the last saved invoice, shown above the grid until the next bill
+  let cashEntryEnabled = true; // cashier can disable cash tender entry without disabling invoice saving
   const stops = []; // things to switch off when this page is left
   let closeHelp = null;
   const helpHolder = { state: emptyState() }; // survives closing and reopening Product Help
@@ -72,6 +73,7 @@ export async function mount(el, { ctx }) {
   let flash = ''; // a short information line: held, resumed, connection lost / back
   let flashTimer = null;
   let closeHeld = null;
+  let activeRowId = null;
   const fresh = () => ({
     customer: '',
     customerDiscountPct: 0,
@@ -97,58 +99,62 @@ export async function mount(el, { ctx }) {
 
   render(
     el,
-    html`<section class="eb">
-      <div class="eb-titlebar">
+    html`<section class="eb eb-desk">
+      <div class="eb-bar">
         <span class="eb-tab">Sale and Return</span>
-        <span class="eb-title">${BRAND.title} · Emergency POS</span>
-        <span class="eb-grow"></span>
+        <span class="eb-title">${BRAND.title}</span>
         <span id="eb-status" class="eb-status"></span>
+        <span class="eb-grow"></span>
+        <div id="eb-sync" class="eb-sync"></div>
+        <button
+          type="button"
+          class="btn btn-sm"
+          data-act="fullscreen"
+          id="eb-full"
+          title="Use the whole screen: hides the menu and the browser bars"
+        >
+          ⛶ Full screen
+        </button>
       </div>
       <div id="eb-note"></div>
-      <div id="eb-sync" class="eb-sync"></div>
 
       <div class="eb-top">
         <div class="eb-row">
           <div class="eb-group">
             <span class="eb-lbl">Sale person</span>
-            <input class="eb-code" value="${ctx.username || ''}" readonly aria-label="Salesperson code" />
             <input class="eb-wide" id="eb-sp-name" value="${ctx.full_name || ctx.username || ''}" readonly aria-label="Salesperson" />
           </div>
           <div class="eb-group eb-grow">
             <span class="eb-lbl">Customer / member</span>
-            <input class="eb-code" disabled title="${SOON}" aria-label="Customer code" />
-            <button type="button" class="btn btn-sm" disabled title="${SOON}" aria-label="Add customer">+</button>
-            <input class="eb-wide eb-grow" id="eb-customer" autocomplete="off" placeholder="Walk-in" aria-label="Customer name" />
-            <output class="eb-bal" title="Customer balance">0.00</output>
+            <input class="eb-wide" id="eb-customer" autocomplete="off" placeholder="Walk-in" aria-label="Customer name" />
           </div>
-        </div>
-        <div class="eb-row">
-          <div class="eb-group">
+          <div class="eb-group eb-grow2">
             <span class="eb-lbl">Qty / product (SKU)</span>
-            <input class="eb-qtyin" id="eb-qty" type="number" min="1" step="any" value="1" inputmode="decimal" aria-label="Quantity" />
-            <input
-              class="eb-sku"
-              id="eb-sku"
-              autocomplete="off"
-              spellcheck="false"
-              placeholder="Scan or type a code, then Enter (F2: Product Help)"
-              aria-label="Product code"
-            />
-            <button type="button" class="btn" data-act="help" title="Product Help (F2)" aria-label="Open Product Help">🔍</button>
+            <span class="eb-inline">
+              <input class="eb-qtyin" id="eb-qty" type="text" inputmode="decimal" value="1" aria-label="Quantity" />
+              <input
+                class="eb-sku"
+                id="eb-sku"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="Scan or type a code, then Enter · F2"
+                aria-label="Product code"
+              />
+              <button type="button" class="btn" data-act="help" title="Product Help (F2)" aria-label="Open Product Help">🔍</button>
+            </span>
           </div>
-          <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold bill</button>
-          <button type="button" class="btn btn-sm" disabled title="Refunds are done by a manager from History">Return</button>
-          <button type="button" class="btn btn-sm" disabled title="Refunds are done by a manager from History">Reason</button>
           <div class="eb-group">
             <span class="eb-lbl">Receipt #</span><input class="eb-code" value="Draft" readonly aria-label="Receipt number" />
           </div>
           <div class="eb-group">
-            <span class="eb-lbl">Date / time</span><input class="eb-date" id="eb-date" readonly aria-label="Date" /><input
-              class="eb-time"
-              id="eb-time"
-              readonly
-              aria-label="Time"
-            />
+            <span class="eb-lbl">Date / time</span>
+            <span class="eb-inline"
+              ><input class="eb-date" id="eb-date" readonly aria-label="Date" /><input
+                class="eb-time"
+                id="eb-time"
+                readonly
+                aria-label="Time"
+            /></span>
           </div>
         </div>
       </div>
@@ -224,6 +230,7 @@ export async function mount(el, { ctx }) {
                 <dt>Cash</dt>
                 <dd><input id="eb-cash" class="eb-cash" type="number" min="0" step="any" value="0" aria-label="Cash received" /></dd>
               </div>
+              <div class="eb-cash-toggle"><label class="eb-check"><input id="eb-cash-entry" type="checkbox" checked /> Enable cash received entry</label></div>
               <div>
                 <dt>Change</dt>
                 <dd class="eb-change"><output data-out="change"></output></dd>
@@ -245,10 +252,8 @@ export async function mount(el, { ctx }) {
             ><button type="button" class="btn btn-sm" data-held-nav="prev" title="Previous held bill" aria-label="Previous held bill">
               ‹</button
             ><button type="button" class="btn btn-sm" data-held-nav="next" title="Next held bill" aria-label="Next held bill">›</button
-            ><button type="button" class="btn btn-sm" data-held-nav="last" title="Last held bill" aria-label="Last held bill">»</button>
-          </div>
-          <div class="eb-navs">
-            <button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button
+            ><button type="button" class="btn btn-sm" data-held-nav="last" title="Last held bill" aria-label="Last held bill">»</button
+            ><button type="button" class="btn btn-sm" data-act="hold" title="Hold this bill and serve the next customer">Hold</button
             ><button type="button" class="btn btn-sm" data-act="cancel" title="Clear this bill">Cancel</button>
           </div>
         </div>
@@ -256,11 +261,11 @@ export async function mount(el, { ctx }) {
           <legend>Payment mode</legend>
           ${PAYMENT_MODES.map((x) => html`<label class="eb-check"><input type="radio" name="eb-mode" value="${x}" ${x === 'Cash' ? 'checked' : ''} /> ${x}</label>`)}
         </fieldset>
-        <label class="eb-area"><span class="eb-lbl">Comments</span><textarea id="eb-comments" rows="3"></textarea></label>
-        <label class="eb-area"><span class="eb-lbl">Additional comments</span><textarea id="eb-more" rows="3"></textarea></label>
+        <label class="eb-area"><span class="eb-lbl">Comments</span><textarea id="eb-comments" rows="2"></textarea></label>
+        <label class="eb-area"><span class="eb-lbl">Additional comments</span><textarea id="eb-more" rows="2"></textarea></label>
         <div class="eb-print">
           <label class="eb-check"><input type="checkbox" checked disabled title="${SOON}" /> Print receipt</label>
-          <label class="eb-copies"><span>No. of copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
+          <label class="eb-copies"><span>Copies</span><input type="number" value="1" min="1" disabled title="${SOON}" /></label>
           <button type="button" class="btn btn-sm" disabled title="${SOON}">Search receipt</button>
         </div>
         <div class="eb-rtype">
@@ -269,14 +274,15 @@ export async function mount(el, { ctx }) {
             ${RECEIPT_TYPES.map((x) => html`<option>${x}</option>`)}
           </select>
         </div>
-      </div>
-      <div class="eb-toolbar">
-        <button type="button" class="btn" data-act="new" title="New bill">＋ New</button>
-        <button type="button" class="btn btn-primary" id="eb-save" data-act="save" disabled title="Add items to save">
-          💾 Save invoice
-        </button>
-        <button type="button" class="btn" disabled title="Managers only, later phase">✎ Edit</button>
-        <button type="button" class="btn" data-act="cancel" title="Clear this bill">⃠ Cancel</button>
+        <div class="eb-actions">
+          <button type="button" class="btn btn-primary eb-save" id="eb-save" data-act="save" disabled title="Add items to save">
+            💾 Save invoice
+          </button>
+          <div class="eb-navs">
+            <button type="button" class="btn btn-sm" data-act="new" title="New bill">＋ New</button
+
+          </div>
+        </div>
       </div>
       <div id="eb-help"></div>
       <div id="eb-dialog"></div>
@@ -298,7 +304,7 @@ export async function mount(el, { ctx }) {
 
   function drawTotals() {
     const t = totals();
-    const p = payment(t.netTotal, bill.cash);
+    const p = payment(t.netTotal, cashEntryEnabled ? bill.cash : 0);
     const out = { ...t, change: p.change, due: p.due };
     for (const node of el.querySelectorAll('[data-out]')) node.textContent = m2(out[node.dataset.out]);
     const sum = (f) => cart.lines.reduce((s, l, i) => s + f(l, t.lines[i]), 0);
@@ -337,7 +343,7 @@ export async function mount(el, { ctx }) {
             cart.lines.length
               ? cart.lines.map((l, i) => {
                   const issue = stockIssue(l, byCode.get(String(l.code).toLowerCase()));
-                  return html`<tr data-id="${l.id}">
+                  return html`<tr data-id="${l.id}" tabindex="0" aria-label="Bill item ${i + 1}: ${l.name}">
                     <td>${i + 1}</td>
                     <td>${l.code}</td>
                     <td>
@@ -345,7 +351,7 @@ export async function mount(el, { ctx }) {
                     </td>
                     <td>
                       <select data-edit="unit" aria-label="Unit for ${l.name}">
-                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Single</option>
+                        <option value="unit" ${l.unit === 'unit' ? 'selected' : ''}>Loose</option>
                         ${l.pack > 1 ? html`<option value="pack" ${l.unit === 'pack' ? 'selected' : ''}>Pack of ${l.pack}</option>` : ''}
                       </select>
                     </td>
@@ -354,9 +360,8 @@ export async function mount(el, { ctx }) {
                       <input
                         class="eb-edit"
                         data-edit="qty"
-                        type="number"
-                        min="0"
-                        step="any"
+                        type="text"
+                        inputmode="decimal"
                         value="${l.qty}"
                         aria-label="Quantity of ${l.name}"
                       />
@@ -377,7 +382,9 @@ export async function mount(el, { ctx }) {
                       </select>
                     </td>
                     <td class="num" data-line-total="${l.id}">${m2(t.lines[i].total)}</td>
-                    <td><button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}">Delete</button></td>
+                    <td>
+                      <button type="button" class="eb-del" data-del="${l.id}" aria-label="Remove ${l.name}" title="Remove item">🗑</button>
+                    </td>
                   </tr>`;
                 })
               : html`<tr>
@@ -386,6 +393,13 @@ export async function mount(el, { ctx }) {
                   </td>
                 </tr>`
           }
+          ${Array.from(
+            { length: Math.max(0, 8 - cart.lines.length) },
+            () =>
+              html`<tr class="eb-filler" aria-hidden="true">
+                ${Array.from({ length: 10 }, () => html`<td>&nbsp;</td>`)}
+              </tr>`,
+          )}
         </tbody>
         <tfoot>
           <tr>
@@ -409,13 +423,7 @@ export async function mount(el, { ctx }) {
 
   function drawStatus() {
     const online = navigator.onLine !== false;
-    render(
-      q('#eb-status'),
-      html`<span class="pill ${online ? '' : 'eb-pill-off'}">${online ? 'Online' : 'Offline'}</span>
-        <span class="muted"
-          >Stock copy: ${meta?.syncedAt ? `updated ${clock(meta.syncedAt)} (saved on this device, not live)` : 'none yet'}</span
-        >`,
-    );
+    render(q('#eb-status'), html``);
     render(
       q('#eb-note'),
       html`${!online ? html`<p class="note note-info" role="status">You are offline. You can keep billing: bills are saved on this device and upload by themselves when you are back online. Products and stock come from the copy saved on this device${meta?.syncedAt ? `, updated ${clock(meta.syncedAt)}` : ''}, so stock may be out of date.</p>` : ''}
@@ -486,6 +494,7 @@ export async function mount(el, { ctx }) {
     if (saving || !cart.lines.length) return;
     const t = totals();
     if (
+      cashEntryEnabled &&
       bill.mode === 'Cash' &&
       payment(t.netTotal, bill.cash).due > 0 &&
       !window.confirm('Cash received is less than the net total. Save anyway?')
@@ -583,18 +592,16 @@ export async function mount(el, { ctx }) {
       html`<div class="eb-sync-row">
           <span class="pill ${online ? '' : 'eb-pill-off'}">${online ? 'Online' : 'Offline'}</span>
           <span>Pending <b>${s.pending}</b></span>
-          <span class="${s.failed ? 'neg' : ''}">Failed <b>${s.failed}</b></span>
+          ${s.failed ? html`<span class="neg">Failed <b>${s.failed}</b></span>` : ''}
           <span class="muted">Last sync: ${s.lastSyncAt ? clock(s.lastSyncAt) : 'never'}</span>
-          <span class="${ready.ready && shell ? '' : 'muted'}" title="${ready.ready ? '' : ready.why}"
+          <span class="${ready.ready && shell ? '' : 'muted eb-ellip'}" title="${ready.ready ? '' : ready.why}"
             >${ready.ready && shell ? '✓ Ready for offline billing' : 'Not ready for offline billing yet'}</span
           >
           ${s.failed ? html`<button type="button" class="btn btn-sm" data-act="retry">Retry failed</button>` : ''}
           ${s.pending && online ? html`<button type="button" class="btn btn-sm" data-act="syncnow">Upload now</button>` : ''}
           ${online && !ready.ready && !String(ready.why).includes('Ask the owner') ? html`<button type="button" class="btn btn-sm" data-act="prep">Prepare offline</button>` : ''}
         </div>
-        ${!ready.ready ? html`<p class="muted eb-sync-why">${ready.why}</p>` : ''}
-        ${!shell && ready.ready ? html`<p class="muted eb-sync-why">The page is not saved for offline use yet. Keep this page open online for a moment, then reload once.</p>` : ''}
-        ${s.others ? html`<p class="note note-info">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</p>` : ''}
+        ${s.others ? html`<span class="muted">${s.others} invoice${s.others === 1 ? '' : 's'} on this device belong to another login and will upload when that person signs in.</span>` : ''}
         ${
           s.items.length
             ? html`<details class="eb-sync-list">
@@ -647,6 +654,8 @@ export async function mount(el, { ctx }) {
       drawStatus();
     }
     cart = addProduct(cart, product, { qty: bill.qty });
+    const activeLine = cart.lines.find((line) => line.code === product.code && line.unit === 'unit');
+    activeRowId = activeLine?.id ?? null;
     bill.qty = 1;
     q('#eb-qty').value = '1';
     drawLines();
@@ -667,6 +676,12 @@ export async function mount(el, { ctx }) {
         closeHelp();
         add(p);
       },
+      onRefresh: async () => {
+        await refreshCopy(ctx); // download the latest stock, then show it
+        await load();
+        drawStatus();
+        return { products, meta };
+      },
       onClose: () => {
         closeHelp = null;
         q('#eb-sku')?.focus();
@@ -679,6 +694,23 @@ export async function mount(el, { ctx }) {
     saved = null;
     resetBill();
     drawStatus();
+  }
+  async function cancelCurrent() {
+    if (!bill.heldId) return newBill();
+    if (!window.confirm('Discard this held bill? It will be permanently removed.')) return;
+    const id = bill.heldId;
+    const result = await held.release(id);
+    if (!result.ok) {
+      note = result.message;
+      drawStatus();
+      return;
+    }
+    saved = null;
+    note = '';
+    resetBill();
+    say('Held bill discarded.');
+    await drawHeldCount();
+    sync.syncNow().catch(() => {});
   }
   // Put every input on the screen in step with `bill`.
   function syncInputs() {
@@ -693,6 +725,8 @@ export async function mount(el, { ctx }) {
     set('#eb-adj', String(bill.adjustment));
     set('#eb-tax', String(bill.taxPct));
     set('#eb-cash', String(bill.cash));
+    q('#eb-cash-entry').checked = cashEntryEnabled;
+    q('#eb-cash').disabled = !cashEntryEnabled;
     set('#eb-comments', bill.comments || '');
     set('#eb-more', bill.more || '');
     q('#eb-rdon').checked = bill.receiptOn;
@@ -703,11 +737,93 @@ export async function mount(el, { ctx }) {
   }
   function resetBill() {
     cart = emptyCart();
+    activeRowId = null;
     bill = fresh();
     syncInputs();
     drawLines();
     q('#eb-sku').focus();
   }
+
+  // ───────── fit the screen ─────────
+  // The billing screen is laid out like Candela's: it takes exactly the height left in the window, the grid takes whatever is left in
+  // the middle and scrolls inside itself, and the page itself never scrolls. The height is measured from where the screen starts.
+  const root = document.documentElement;
+  const section = q('.eb');
+  const fit = () => {
+    const top = section.getBoundingClientRect().top + window.scrollY;
+    section.style.setProperty('--eb-top', `${Math.max(0, Math.round(top))}px`);
+  };
+  const setFullLabel = () => {
+    const b = q('#eb-full');
+    if (b) b.textContent = root.classList.contains('eb-full') ? '⛶ Exit full screen' : '⛶ Full screen';
+  };
+  const lockFullscreenEscape = () => {
+    try {
+      // Progressive enhancement: Chromium's Keyboard Lock API keeps a normal Esc
+      // press inside the POS. Browsers without this API retain their native behaviour.
+      return navigator.keyboard?.lock?.(['Escape', 'F11']) || Promise.resolve();
+    } catch {
+      return Promise.resolve();
+    }
+  };
+  /** Enter fullscreen from the button; the explicit Exit full screen button is the normal exit path. */
+  async function toggleFull() {
+    const on = !root.classList.contains('eb-full');
+    if (on) {
+      root.classList.add('eb-full');
+      try {
+        // Request the lock and fullscreen in the same user gesture. Do not await
+        // the lock first: requestFullscreen needs the button's transient activation.
+        const lockRequest = lockFullscreenEscape();
+        const fullscreenRequest = root.requestFullscreen?.();
+        await Promise.allSettled([lockRequest, Promise.resolve(fullscreenRequest)]);
+        if (document.fullscreenElement) await lockFullscreenEscape();
+      } catch {
+        /* CSS full view remains available if the browser denies fullscreen. */
+      }
+    } else {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+      } catch {
+        /* Keep the UI usable if the browser refuses the exit request. */
+      }
+      try {
+        navigator.keyboard?.unlock?.();
+      } catch {
+        /* Keyboard Lock is an optional browser capability. */
+      }
+      root.classList.remove('eb-full');
+    }
+    setFullLabel();
+    fit();
+  }
+  const onFullChange = () => {
+    if (document.fullscreenElement) {
+      lockFullscreenEscape().catch(() => {});
+    } else {
+      try {
+        navigator.keyboard?.unlock?.();
+      } catch {
+        /* Keyboard Lock is an optional browser capability. */
+      }
+      root.classList.remove('eb-full');
+    }
+    setFullLabel();
+    fit();
+  };
+  window.addEventListener('resize', fit);
+  document.addEventListener('fullscreenchange', onFullChange);
+  stops.push(() => {
+    window.removeEventListener('resize', fit);
+    document.removeEventListener('fullscreenchange', onFullChange);
+    root.classList.remove('eb-full'); // leaving this page always gives the menu back
+    try {
+      navigator.keyboard?.unlock?.();
+    } catch {
+      /* Keyboard Lock is an optional browser capability. */
+    }
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  });
 
   // ───────── held bills ─────────
   const say = (text, ms = 8000) => {
@@ -745,8 +861,8 @@ export async function mount(el, { ctx }) {
     note = '';
     saved = null;
     resetBill();
+    await drawHeldCount();
     say('Bill held. Serve the next customer; open "Held" to bring it back.');
-    drawHeldCount();
     sync.syncNow().catch(() => {}); // sends the hold to the server when there is a connection
   }
   async function resumeHeld(id) {
@@ -760,6 +876,7 @@ export async function mount(el, { ctx }) {
     note = '';
     saved = null;
     cart = { lines: r.state.lines };
+    activeRowId = null;
     bill = { ...fresh(), ...r.state.bill, invoiceId: null, heldId: id, qty: 1 };
     syncInputs();
     drawLines();
@@ -808,19 +925,96 @@ export async function mount(el, { ctx }) {
     e.target.value = '';
   });
   q('[data-act="help"]').addEventListener('click', () => openHelp());
+  q('#eb-full').addEventListener('click', toggleFull);
   for (const b of el.querySelectorAll('[data-act="hold"]')) b.addEventListener('click', holdCurrent);
   for (const b of el.querySelectorAll('[data-held-nav]')) b.addEventListener('click', () => openHeld(b.dataset.heldNav));
   q('#eb-save').addEventListener('click', save);
-  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', newBill);
+  for (const b of el.querySelectorAll('[data-act="cancel"]')) b.addEventListener('click', cancelCurrent);
   q('[data-act="new"]').addEventListener('click', newBill);
+  // F5 (and F2) open Product Help from anywhere on this page. F5 would otherwise RELOAD the page and lose the bill, so it is taken here;
+  // Ctrl+F5 and Shift+F5 are left alone for anyone who really wants to reload. Whatever is typed in the code box goes into the search.
   const onF2 = (e) => {
     if (!el.isConnected) return document.removeEventListener('keydown', onF2);
-    if (e.key === 'F2') {
-      e.preventDefault();
-      openHelp();
-    }
+    if ((e.key !== 'F2' && e.key !== 'F5') || e.ctrlKey || e.shiftKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    if (closeHelp) return;
+    const typed = q('#eb-sku').value.trim();
+    if (typed) q('#eb-sku').value = '';
+    openHelp(typed || undefined);
   };
   document.addEventListener('keydown', onF2);
+  stops.push(() => document.removeEventListener('keydown', onF2));
+  // Ctrl/Cmd+S saves through the exact same PIN-authorized online/offline workflow as the Save button.
+  const onSaveShortcut = (e) => {
+    if (!el.isConnected) return document.removeEventListener('keydown', onSaveShortcut);
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!closeHelp && !closeHeld) save();
+    }
+  };
+  document.addEventListener('keydown', onSaveShortcut, { capture: true });
+  stops.push(() => document.removeEventListener('keydown', onSaveShortcut, { capture: true }));
+  const focusSelect = (node) => {
+    if (node) {
+      node.focus();
+      node.select?.();
+    }
+  };
+  const onPosKeys = (e) => {
+    if (!el.isConnected) return;
+    if (e.key === 'Escape' && root.classList.contains('eb-full')) {
+      // Escape is never a POS command. Keyboard Lock (where supported) routes
+      // it here instead of allowing the browser's ordinary fullscreen exit.
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return;
+    }
+    if (e.key === 'F11') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      if (closeHelp || closeHeld) return;
+      const line = cart.lines.find((x) => x.id === activeRowId);
+      if (!line || line.pack <= 1) return;
+      const unit = line.unit === 'pack' ? 'unit' : 'pack';
+      const product = byCode.get(String(line.code).toLowerCase());
+      if (!product) return;
+      cart = addProduct(removeLine(cart, line.id), product, { qty: line.qty, unit });
+      const switched = cart.lines.find((x) => x.code === line.code && x.unit === unit);
+      activeRowId = switched?.id || null;
+      drawLines();
+      focusSelect(activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`));
+      return;
+    }
+    if (e.key === 'F9') {
+      e.preventDefault();
+      e.stopPropagation();
+      focusSelect((activeRowId && q(`tr[data-id="${activeRowId}"] [data-edit="qty"]`)) || q('#eb-qty'));
+      return;
+    }
+    if (e.key === 'Delete' && activeRowId) {
+      const row = e.target.closest?.('tr[data-id]');
+      if (!row || e.target.matches?.('input,select,textarea,button')) return;
+      e.preventDefault();
+      cart = removeLine(cart, row.dataset.id);
+      activeRowId = null;
+      drawLines();
+      q('#eb-sku').focus();
+    }
+  };
+  const trackRow = (e) => {
+    const row = e.target.closest?.('tr[data-id]');
+    if (row) activeRowId = row.dataset.id;
+  };
+  window.addEventListener('keydown', onPosKeys, { capture: true });
+  q('#eb-lines').addEventListener('focusin', trackRow);
+  q('#eb-lines').addEventListener('click', trackRow);
+  stops.push(() => {
+    window.removeEventListener('keydown', onPosKeys, { capture: true });
+    q('#eb-lines')?.removeEventListener('focusin', trackRow);
+  });
 
   q('#eb-qty').addEventListener('input', (e) => {
     bill.qty = Number(e.target.value) > 0 ? Number(e.target.value) : 1;
@@ -848,6 +1042,12 @@ export async function mount(el, { ctx }) {
   bindNum('#eb-tax', (v) => (bill.taxPct = v));
   bindNum('#eb-adj', (v) => (bill.adjustment = v));
   bindNum('#eb-cash', (v) => (bill.cash = v));
+  q('#eb-cash-entry').addEventListener('change', (e) => {
+    cashEntryEnabled = e.target.checked;
+    q('#eb-cash').disabled = !cashEntryEnabled;
+    if (!cashEntryEnabled) bill.cash = 0;
+    drawTotals();
+  });
   q('#eb-rmode').addEventListener('change', (e) => {
     bill.receiptDiscount = { ...bill.receiptDiscount, mode: e.target.value };
     drawTotals();
@@ -888,12 +1088,14 @@ export async function mount(el, { ctx }) {
     const id = e.target.closest('[data-del]')?.dataset.del;
     if (!id) return;
     cart = removeLine(cart, id);
+    activeRowId = null;
     drawLines();
     q('#eb-sku').focus();
   });
 
   // ───────── start ─────────
   tick();
+  fit();
   const clockTimer = setInterval(() => {
     if (el.isConnected) return tick();
     stops.forEach((f) => f());

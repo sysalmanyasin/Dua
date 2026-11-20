@@ -44,6 +44,8 @@ const api = {
   staffChoices: vi.fn(async () => []),
   loadByKey: vi.fn(),
   loadById: vi.fn(async () => ROW),
+  refreshDraftCarry: vi.fn(async () => ({ refreshed: true })),
+  prevPage: vi.fn(async () => null),
   saveDraft: vi.fn(async () => ({ closing_id: 'c1', version: 2 })),
   computePreview: vi.fn(async () => ({})),
   myRecent: vi.fn(async () => []),
@@ -129,7 +131,7 @@ describe('audit display helpers', () => {
 describe('Inventory Audit card (section 6)', () => {
   it('starts with a Sync & audit button and says it is required', async () => {
     await card();
-    expect(el.textContent).toContain('6 — Inventory Audit');
+    expect(el.textContent).toContain('6 · Inventory Audit');
     expect(el.querySelector('[data-act="audit-sync"]').textContent).toContain('Sync & audit');
     expect(el.textContent).toContain('It must be verified before this closing can be submitted.');
     expect(el.querySelector('[data-act="audit-verify"]')).toBeNull();

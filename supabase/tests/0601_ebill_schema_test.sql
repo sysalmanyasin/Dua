@@ -37,7 +37,7 @@ insert into public.user_permissions(user_id, perm_key, effect) values
   ('00000000-0000-0000-0000-0000000000b1','ebill.use','grant'), ('00000000-0000-0000-0000-0000000000b2','ebill.use','grant');
 
 do $t$ begin
-  perform pg_temp.ok((select count(*) from public.permissions where key like 'ebill.%') = 5, 'five ebill permissions are seeded');
+  perform pg_temp.ok((select count(*) from public.permissions where key in ('ebill.use','ebill.history_all','ebill.manage','ebill.discount_override','ebill.set_pin')) = 5, 'the five original ebill permissions are seeded');
     perform pg_temp.ok(not exists (select 1 from public.role_permissions where perm_key like 'ebill.%'), 'no role preset carries any ebill right (the owner grants them per person)');
   perform pg_temp.ok((select count(*) from public.settings where key in ('ebill.max_discount_pct','ebill.max_discount_amount','ebill.pin_required')) = 3, 'settings defaults exist');
   perform pg_temp.ok((select bool_and(relrowsecurity) from pg_class where relname in ('ebill_devices','ebill_invoices','ebill_invoice_lines','ebill_pins','ebill_staff_limits')), 'RLS is on for every ebill table');

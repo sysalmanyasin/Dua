@@ -6,7 +6,7 @@ import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { outboxStore } from '../data/outboxStore.js';
 import { computeRowTimeDelta, truncateExtraNote } from '../domain/compile.js';
-import { filterItems, parseQty, rowView, rupees, summarize } from '../domain/count.js';
+import { filterItems, groupByCompany, impactPaisa, parseQty, rupees, summarize, varianceView } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, setView } from '../domain/nav.js';
 import { flushOutbox, latestByItem, makeEvent, timing } from '../domain/outbox.js';
@@ -110,6 +110,7 @@ async function mountCounting(el, assignmentId, ctx) {
     company: '',
     mode: 'all',
     shown: PAGE,
+    collapsed: new Set(),
     lastAction: null,
     confirmSubmit: false,
     extraNote: '',
@@ -155,50 +156,51 @@ async function mountCounting(el, assignmentId, ctx) {
 
   const open = () => s.a.round_state === 'counting' && s.a.status !== 'submitted';
   const companies = [...new Set(s.items.map((i) => i.company))].sort();
-  const diffText = (it) => {
-    const v = rowView(it, s.entries[it.round_item_id]);
-    if (!v.counted) return { text: 'Not counted', cls: '' };
-    if (v.auto) return { text: 'Marked as matching', cls: 'aud-diff-ok' };
-    if (v.difference === 0) return { text: 'Matches', cls: 'aud-diff-ok' };
-    return { text: `${v.difference > 0 ? '+' : ''}${q(v.difference)} · ${rupees(v.value)}`, cls: 'aud-diff-bad' };
+  const signedRs = (delta, value) => `${delta > 0 ? '+' : '-'}${rupees(Math.abs(value))}`;
+  const diffHtml = (it) => {
+    const v = varianceView(it, s.entries[it.round_item_id]);
+    const cls = v.delta === 0 ? 'aud-diff-ok' : v.delta > 0 ? 'aud-diff-over' : 'aud-diff-bad';
+    return html`<span class="aud-diff-qty ${cls}${v.hint ? ' aud-dim' : ''}">${v.delta > 0 ? '+' : ''}${q(v.delta)}</span
+      >${v.delta !== 0 ? html`<span class="aud-diff-rs">${signedRs(v.delta, v.value)}</span>` : ''}${v.hint ? html`<span class="aud-diff-hint">${v.hint}</span>` : ''}`;
   };
 
+  // one row: medicine | system | count | difference, as in the old Audit Hub
   const rowHtml = (it) => {
     const id = it.round_item_id;
-    const d = diffText(it);
     const e = s.entries[id];
+    const prev = it.prev_counted !== null && it.prev_counted !== undefined;
     return html`<div class="aud-row" data-item="${id}">
-      <div class="aud-row-main">
-        <strong>${it.name || it.code}</strong>
-        <span class="muted small">${it.code ? `${it.code} · ` : ''}${it.company}</span>
-        <span class="muted small">System ${q(it.system_qty)} · ${rupees(Math.round(Number(it.retail_price) * 100))} each</span>
-        ${it.is_new ? html`<span class="small aud-diff-bad">New product since the last round</span>` : ''}
-        ${
-          it.prev_counted !== null && it.prev_counted !== undefined
-            ? html`<span class="muted small"
-                >Last round: counted ${q(it.prev_counted)} (${Number(it.prev_variance) > 0 ? '+' : ''}${q(it.prev_variance)})</span
-              >`
-            : ''
-        }
+      <div class="aud-grid">
+        <div class="aud-row-main">
+          <strong>${it.name || it.code}</strong>
+          <span class="muted small">${it.code ? it.code : 'No SKU'} · Rs ${q(Number(it.retail_price))}</span>
+          ${it.is_new ? html`<span class="small aud-diff-bad">New product since the last round</span>` : ''}
+          ${
+            prev
+              ? html`<span class="muted small"
+                  >Last round: Var ${Number(it.prev_variance) > 0 ? '+' : ''}${q(it.prev_variance)}
+                  ${open() ? html`<button type="button" class="aud-mini" data-same="${id}">Same</button>` : ''}</span
+                >`
+              : ''
+          }
+        </div>
+        <div class="aud-sys">${q(it.system_qty)}</div>
+        <div class="aud-row-entry">
+          <input
+            type="text"
+            inputmode="decimal"
+            enterkeyhint="next"
+            autocomplete="off"
+            placeholder="-"
+            data-qty="${id}"
+            aria-label="Counted quantity for ${it.name || it.code}, system quantity ${q(it.system_qty)}"
+            value="${e ? q(e.qty) : ''}"
+            ${open() ? '' : 'disabled'}
+          />
+          ${open() ? html`<button type="button" class="aud-mini" data-match="${id}">Matches</button>` : ''}
+        </div>
+        <div class="aud-diff" data-diff="${id}">${diffHtml(it)}</div>
       </div>
-      <div class="aud-row-entry">
-        <input
-          type="text"
-          inputmode="decimal"
-          autocomplete="off"
-          data-qty="${id}"
-          aria-label="Counted quantity for ${it.name || it.code}"
-          value="${e ? q(e.qty) : ''}"
-          ${open() ? '' : 'disabled'}
-        />
-        ${open() ? html`<button type="button" class="btn btn-ghost btn-sm" data-match="${id}">Matches</button>` : ''}
-        ${
-          open() && it.prev_counted !== null && it.prev_counted !== undefined
-            ? html`<button type="button" class="btn btn-ghost btn-sm" data-same="${id}">Same as last</button>`
-            : ''
-        }
-      </div>
-      <div class="aud-diff ${d.cls}" data-diff="${id}">${d.text}</div>
       ${
         open()
           ? html`<details class="aud-note">
@@ -216,17 +218,49 @@ async function mountCounting(el, assignmentId, ctx) {
     </div>`;
   };
 
+  const groupHeader = (g) => {
+    const collapsed = s.collapsed.has(g.company);
+    const all = s.items.filter((i) => i.company === g.company);
+    return html`<button type="button" class="aud-group" data-group="${g.company}" aria-expanded="${!collapsed}">
+      <span>${collapsed ? '▸' : '▾'} ${g.company}</span><span class="aud-group-impact" data-impact="${g.company}">${impactText(all)}</span>
+    </button>`;
+  };
+  const impactText = (all) => {
+    const v = impactPaisa(all, s.entries);
+    return v === 0 ? 'Rs 0' : `${v < 0 ? '-' : '+'}${rupees(Math.abs(v))}`;
+  };
+  const refreshImpacts = () => {
+    for (const node of el.querySelectorAll('[data-impact]')) {
+      const all = s.items.filter((i) => i.company === node.dataset.impact);
+      const v = impactPaisa(all, s.entries);
+      node.textContent = impactText(all);
+      node.className = `aud-group-impact${v < 0 ? ' aud-diff-bad' : v > 0 ? ' aud-diff-over' : ''}`;
+    }
+  };
+
   const visible = () => filterItems(s.items, s.entries, { text: s.text, company: s.company, mode: s.mode });
 
   function drawList() {
     const rows = visible();
     const box = el.querySelector('#aud-list');
     if (!box) return;
+    const groups = groupByCompany(rows);
+    let budget = s.shown;
+    const parts = [];
+    for (const g of groups) {
+      if (g.company) parts.push(groupHeader(g));
+      if (g.company && s.collapsed.has(g.company)) continue;
+      const take = g.items.slice(0, Math.max(budget, 0));
+      budget -= take.length;
+      parts.push(...take.map(rowHtml));
+    }
     render(
       box,
-      html`${rows.length === 0 ? html`<p class="muted">No items match.</p>` : rows.slice(0, s.shown).map(rowHtml)}
-      ${rows.length > s.shown ? html`<button type="button" class="btn btn-ghost" data-more>Show ${Math.min(PAGE, rows.length - s.shown)} more (${rows.length - s.shown} left)</button>` : ''}`,
+      html`<div class="aud-cols" aria-hidden="true"><span>Medicine</span><span>Sys</span><span>Count</span><span>Var</span></div>
+        ${rows.length === 0 ? html`<p class="muted">No items match.</p>` : parts}
+        ${rows.length > s.shown ? html`<button type="button" class="btn btn-ghost" data-more>Show ${Math.min(PAGE, rows.length - s.shown)} more (${rows.length - s.shown} left)</button>` : ''}`,
     );
+    refreshImpacts();
   }
 
   function drawSummary() {
@@ -258,13 +292,11 @@ async function mountCounting(el, assignmentId, ctx) {
     const it = s.byId.get(id);
     const row = [...el.querySelectorAll('.aud-row')].find((r) => r.dataset.item === id);
     if (!it || !row) return;
-    const d = diffText(it);
-    const box = row.querySelector('[data-diff]');
-    box.textContent = d.text;
-    box.className = `aud-diff ${d.cls}`;
+    render(row.querySelector('[data-diff]'), diffHtml(it));
     const input = row.querySelector('input[data-qty]');
     const e = s.entries[id];
     if (input && e && document.activeElement !== input) input.value = q(e.qty);
+    refreshImpacts();
   }
 
   function drawShell() {
@@ -289,7 +321,7 @@ async function mountCounting(el, assignmentId, ctx) {
         <section class="card aud-card" id="aud-summary" aria-label="Progress"></section>
         <section class="card aud-card" aria-label="Find items">
           <div class="aud-filters">
-            <input type="search" data-f="text" placeholder="Search name, code or company" value="${s.text}" aria-label="Search items" />
+            <input type="search" data-f="text" placeholder="Search items…" value="${s.text}" aria-label="Search items" />
             <select data-f="company" aria-label="Company">
               <option value="">All companies</option>
               ${companies.map((c) => html`<option value="${c}" ${s.company === c ? 'selected' : ''}>${c}</option>`)}
@@ -445,6 +477,11 @@ async function mountCounting(el, assignmentId, ctx) {
   el.onclick = async (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
+    if (b.dataset.group !== undefined) {
+      if (s.collapsed.has(b.dataset.group)) s.collapsed.delete(b.dataset.group);
+      else s.collapsed.add(b.dataset.group);
+      return drawList();
+    }
     if (b.dataset.more !== undefined) {
       s.shown += PAGE;
       return drawList();

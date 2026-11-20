@@ -1,3 +1,5 @@
+> **SUPERSEDED HISTORICAL WORK ORDER — 19 Nov 2026.** This file describes the original pre-UI build plan. Closing's 14-section ledger, submit/reopen, ledgers/feed, Book/PDF, history, review, settings and Inventory Audit card are now integrated on `main`; migrations through 0211 are recorded live. The remaining work is owner phone try-out #5, acceptance and reconciliation of reported live-only migration 0214. Do not follow the old 'no screens' instructions below. See `docs/modules/closing.progress.md` and `docs/MODULE_PROGRESS_REGISTER.md`.
+
 # Closing — plan for the next session
 
 Written 11 Nov 2026, after re-reading `main` (commit `e635e23`) and the `module/closing` branch (commit `3592512`).

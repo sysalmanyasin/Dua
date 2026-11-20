@@ -2,27 +2,30 @@
    Look kept from the original Closing app (owner decision CLS-15): teal #0D8C78, navy #0E241F,
    amber = carried-forward values, red = deficits only, Night / Morning / Evening shift dots. */
 .cls {
-  --cls-teal: #0d8c78;
+  --cls-teal: #0b7d6a; /* was #0d8c78 (4.2:1 with white text); 5.0:1 now */
+  --cls-teal-text: #0b7d6a;
   --cls-navy: #0e241f;
-  --cls-amber: #b9660f;
+  --cls-amber: #9a5208; /* was #b9660f (3.8:1 on the amber tint); 5.3:1 now */
   --cls-amber-bg: #fdf3e3;
   --cls-red: #c0392b;
   --cls-night: #6366f1;
-  --cls-morning: #b9660f;
-  --cls-evening: #f97316;
-  --cls-handover: #0d8c78;
+  --cls-morning: #9a5208;
+  --cls-evening: #ea580c;
+  --cls-handover: #0b7d6a;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cls {
     --cls-amber: #f2b84b;
     --cls-amber-bg: #2a2110;
     --cls-red: #f97066;
+    --cls-teal-text: #3dd6bf;
   }
 }
 :root[data-theme='dark'] .cls {
   --cls-amber: #f2b84b;
   --cls-amber-bg: #2a2110;
   --cls-red: #f97066;
+  --cls-teal-text: #3dd6bf;
 }
 
 /* shift dots */
@@ -176,7 +179,7 @@
 .cls .cls-sec h2 {
   margin: 0;
   font-size: 1.05rem;
-  color: var(--cls-teal);
+  color: var(--cls-teal-text);
 }
 .cls .cls-row {
   display: grid;
@@ -184,7 +187,8 @@
   gap: var(--space-3);
   align-items: center;
 }
-.cls .cls-row label {
+.cls .cls-row label,
+.cls .cls-row .cls-lbl {
   font-size: 0.9rem;
 }
 .cls .cls-row small {
@@ -216,7 +220,8 @@
   color: var(--cls-amber);
 }
 .cls .cls-return .cls-in,
-.cls .cls-return label {
+.cls .cls-return label,
+.cls .cls-return .cls-lbl {
   color: var(--cls-red);
 }
 .cls .cls-total {
@@ -557,7 +562,7 @@
   cursor: pointer;
 }
 .cls .cls-viewall .cls-va-row[aria-current='step'] {
-  color: var(--cls-teal);
+  color: var(--cls-teal-text);
   font-weight: 700;
 }
 .cls .cls-review {
@@ -606,7 +611,7 @@
 }
 .cls .cls-acct-head {
   font-weight: 700;
-  color: var(--cls-teal);
+  color: var(--cls-teal-text);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cls .cls-var-ok {
@@ -660,4 +665,261 @@
 }
 .nav-home {
   font-weight: 700;
+}
+
+/* ── Old Closing app look: gridlined rows, label left / figure right, fits the phone screen ──
+   The section card is one bordered table: a header band, then one ruled row per field. Rows stay
+   side by side on a phone (no stacking), figures sit in grey boxes, returns are tinted red. */
+.cls .cls-swipe,
+.cls.cls-swipe {
+  touch-action: pan-y pinch-zoom;
+}
+.cls.cls-swipe .cls-jump {
+  touch-action: pan-x pan-y;
+}
+.cls .cls-anchor {
+  height: 0;
+  scroll-margin-top: 0;
+}
+.cls.cls-swipe .cls-grid {
+  gap: var(--space-2);
+}
+.cls.cls-swipe .cls-grid > .card {
+  padding: 0;
+  margin-bottom: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.cls.cls-swipe .cls-sec {
+  gap: 0;
+}
+.cls.cls-swipe .cls-sec > h2 {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-sec > :not(h2, .cls-row, .cls-table, .cls-total) {
+  margin: var(--space-2) 12px;
+}
+.cls.cls-swipe .cls-row {
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 44%);
+  gap: var(--space-2);
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-row:last-child {
+  border-bottom: 0;
+}
+.cls.cls-swipe .cls-row label,
+.cls.cls-swipe .cls-row .cls-lbl {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+.cls.cls-swipe .cls-in {
+  min-height: 44px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+.cls.cls-swipe .cls-in.is-carried {
+  background: var(--cls-amber-bg);
+}
+.cls.cls-swipe .cls-in:focus {
+  background: var(--surface);
+}
+.cls.cls-swipe .cls-val {
+  padding: 0 10px;
+}
+/* returns: red band, red labels, red-edged boxes */
+.cls.cls-swipe .cls-row.cls-return {
+  background: color-mix(in srgb, var(--cls-red) 10%, var(--surface));
+}
+.cls.cls-swipe .cls-row.cls-return label,
+.cls.cls-swipe .cls-row.cls-return .cls-lbl {
+  font-weight: 700;
+}
+.cls.cls-swipe .cls-row.cls-return .cls-in {
+  background: var(--surface);
+  border-color: var(--cls-red);
+}
+/* totals are ruled rows too, not floating bars; the net lines keep the teal emphasis */
+.cls.cls-swipe .cls-sec .cls-total {
+  border-radius: 0;
+  border-top: 2px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 10px 12px;
+}
+.cls.cls-swipe .cls-sec .cls-total strong {
+  min-width: 104px;
+  padding: 8px 10px;
+  text-align: right;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-sec .cls-total-net {
+  background: var(--cls-teal);
+  color: #fff;
+  border-top-color: var(--cls-teal);
+}
+.cls.cls-swipe .cls-sec .cls-total-net strong {
+  background: transparent;
+  border-color: rgb(255 255 255 / 0.5);
+  color: #fff;
+}
+/* tables (MEDIQ, HS, Strips, deposits, credit, misc): ruled rows */
+.cls.cls-swipe .cls-table {
+  gap: 0;
+}
+.cls.cls-swipe .cls-trow {
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-trow.is-head {
+  padding: 8px;
+  background: var(--surface-2);
+}
+.cls.cls-swipe .cls-trow .cls-in {
+  min-height: 44px;
+  padding: 0 6px;
+}
+/* previous-closing card: same ruled look */
+.cls.cls-swipe .cls-prev {
+  margin-top: var(--space-3);
+  padding: 0;
+  overflow: hidden;
+  border-style: solid;
+  border-radius: 12px;
+}
+.cls.cls-swipe .cls-prev-head {
+  padding: 10px 12px;
+  background: var(--surface-2);
+}
+.cls.cls-swipe .cls-prev-row {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cls.cls-swipe .cls-prev-row:last-child {
+  border-bottom: 0;
+}
+.cls.cls-swipe .cls-prev > .cls-meta {
+  padding: 12px;
+}
+/* fit: tighter chrome around the cards */
+.cls.cls-swipe .cls-tools,
+.cls.cls-swipe .cls-nav {
+  margin-top: var(--space-2);
+}
+.cls.cls-swipe .cls-nav .btn {
+  flex: 1;
+  min-height: 44px;
+}
+@media (max-width: 480px) {
+  .cls.cls-swipe .cls-row {
+    grid-template-columns: minmax(0, 1fr) minmax(104px, 44%);
+    gap: var(--space-2);
+  }
+}
+
+/* ── accessibility additions ── */
+/* a page heading that only a screen reader needs (the start page has no banner) */
+.cls .cls-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+/* the save chip is a real button now (it retries a failed save); keep it looking like the chip */
+.cls button.cls-chip {
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  min-height: 28px;
+  padding: 2px 12px;
+  border-radius: 99px;
+  cursor: default;
+}
+.cls button.cls-chip:not(:disabled) {
+  cursor: pointer;
+}
+.cls button.cls-chip:disabled {
+  opacity: 1;
+}
+/* the message that names the fields to fix is only there while there is something to fix */
+.cls #cls-errors:empty {
+  display: none;
+}
+/* today is marked by more than a border colour */
+.cls .cls-cal-day.is-today > span:first-child {
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cls .cls-progress > span {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .cls .cls-in[aria-invalid='true'] {
+    outline: 2px solid Mark;
+  }
+  .cls .cls-cal-day.is-sel {
+    outline: 3px solid Highlight;
+  }
+}
+
+/* ── signed rows (credit: named accounts, tier / staff, aux) and the ± toggle ── */
+/* The shared stylesheet hides every <span> inside a small button on a phone (it is meant for "icon + word" buttons).
+   Our small buttons carry a symbol in a span that is hidden from screen readers only, so it must stay visible. */
+.cls .btn-sm > span[aria-hidden='true'] {
+  display: inline;
+}
+/* A row with a description AND a signed amount does not fit on one line on a phone: the description gets the whole first
+   line, and the ± button, the amount and the strike-out button share the second, so the amount box is wide enough to read. */
+.cls .cls-trow.cls-trow-signed {
+  grid-template-columns: minmax(0, 1fr) 44px;
+  row-gap: 6px;
+}
+.cls .cls-trow.cls-trow-signed > :first-child {
+  grid-column: 1 / -1;
+}
+.cls .cls-signed {
+  width: 100%;
+}
+.cls .cls-signed > .cls-in {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cls .cls-signed > .btn {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+/* when the ± is on (the amount is a reduction) it is filled, so it can be seen at a glance */
+.cls .cls-signed > .btn[aria-pressed='true'] {
+  background: var(--cls-red);
+  border-color: var(--cls-red);
+  color: var(--surface);
+}
+/* rows that are only a name and one amount: give the amount a little more of the line */
+.cls .cls-trow[style*='--cols: 1']:not(.cls-trow-signed) {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 44px;
 }

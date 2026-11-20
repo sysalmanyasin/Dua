@@ -186,3 +186,235 @@
   align-items: flex-start;
   padding: 6px 0;
 }
+
+/* Final and Reports: tables, and the print page. The print block is built by ui/print.js and everything else is hidden. */
+.aud .aud-scroll {
+  overflow-x: auto;
+}
+.aud .aud-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.aud .aud-table th,
+.aud .aud-table td {
+  padding: 0.5rem 0.4rem;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+#aud-print-root {
+  display: none;
+}
+@media print {
+  body.aud-printing > *:not(#aud-print-root) {
+    display: none !important;
+  }
+  body.aud-printing #aud-print-root {
+    display: block;
+    color: #000;
+    background: #fff;
+    font:
+      12px/1.4 system-ui,
+      sans-serif;
+    padding: 12mm;
+  }
+  #aud-print-root h1 {
+    font-size: 18px;
+  }
+  #aud-print-root h2 {
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  #aud-print-root table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #aud-print-root th,
+  #aud-print-root td {
+    border-bottom: 1px solid #999;
+    padding: 3px 4px;
+    text-align: left;
+  }
+  #aud-print-root .num {
+    text-align: right;
+  }
+  #aud-print-root tr {
+    break-inside: avoid;
+  }
+}
+
+/* Expiry tracking */
+.aud .aud-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.aud .aud-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.5rem;
+}
+.aud .aud-edit {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Company picker (Individual Audit and New audit) */
+.aud .aud-picker-tools {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.aud .aud-picker-tools input {
+  flex: 1;
+  min-width: 0;
+}
+.aud .aud-picker-tools .btn {
+  flex: 0 0 auto;
+}
+.aud .aud-picker-list {
+  max-height: 18rem;
+  overflow-y: auto;
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  border-radius: 0.6rem;
+}
+.aud .aud-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+  cursor: pointer;
+}
+.aud .aud-picker-row:first-child {
+  border-top: 0;
+}
+.aud .aud-picker-row input {
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.aud .aud-picker-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.aud .aud-picker-empty {
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Counting screen: medicine | system | count | difference, grouped by company (as in the old Audit Hub) */
+.aud .aud-filters input[type='search'] {
+  grid-column: 1 / -1;
+}
+.aud .aud-cols,
+.aud .aud-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.4rem 4.9rem 4.6rem;
+  gap: 0.4rem;
+  align-items: start;
+}
+.aud .aud-cols {
+  padding: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, inherit);
+  border-bottom: 1px solid var(--border, rgba(127, 127, 127, 0.25));
+}
+.aud .aud-cols span:nth-child(n + 2) {
+  text-align: right;
+}
+.aud .aud-sys {
+  text-align: right;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding-top: 8px;
+}
+.aud .aud-grid .aud-row-entry {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.aud .aud-grid .aud-row-entry input {
+  width: 100%;
+  font-size: 1rem;
+  padding: 8px 6px;
+  text-align: right;
+}
+.aud .aud-mini {
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.35));
+  background: transparent;
+  color: inherit;
+  border-radius: 0.5rem;
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  min-height: 28px;
+  cursor: pointer;
+}
+.aud .aud-grid .aud-diff {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  padding-top: 6px;
+  font-weight: 700;
+}
+.aud .aud-diff-rs {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted, inherit);
+  overflow-wrap: anywhere;
+}
+.aud .aud-diff-hint {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--aud-gold, #a16207);
+}
+.aud .aud-dim {
+  opacity: 0.6;
+}
+.aud .aud-diff-over {
+  color: var(--aud-ok);
+}
+.aud .aud-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--aud-group-bg, rgba(127, 127, 127, 0.12));
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
+}
+.aud .aud-group-impact {
+  font-weight: 800;
+}
+
+/* Individual Audit: From a template / Pick companies */
+.aud .aud-seg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.aud .aud-link-inline {
+  text-decoration: underline;
+}

@@ -16,9 +16,9 @@ Updated: 2026-11-19
 - [ ] **Try it on a real phone and a desktop browser.** I could only run jsdom: layout, touch selection, the on-screen keyboard, toolbar scrolling, the bottom-sheet dialogs and the Content-Security-Policy are unverified in a real browser. What I did verify by reading the code and bundle: no inline styles or handlers, no network calls, no `eval`, and `innerHTML` only inside ProseMirror's clipboard parser on an inert document.
 - [ ] Sign in as a user who has `workspace.use` + `workspace.create` (grant it to someone; no role carries it) and as a second user with only `workspace.use`; check create, share, edit from two devices, history, restore.
 
-## Known problems that are NOT from Workspace
+## Main-branch verification update (19 Nov 2026)
 
-- 14 unit tests fail on a clean `origin/main` at `90e22e7`, identically with Workspace: `cover.test.js` (4), `shell.test.js` (4), `service-worker.test.js` behaviour tests (6). (A fifth service-worker test, the file list, failed on `main` and is fixed by the regenerated list.) Foundation should look at these before the next CI run.
+The earlier failure list is superseded: the Audit handover records the Home/shell/service-worker test fixes on main, with 1,562/1,562 unit tests and the full database suite passing locally. Deno and workflow lint were not run locally. Re-run the current full workflow before release.
 
 ## Follow-ups noticed by the Supabase advisor (live project)
 

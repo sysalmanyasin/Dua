@@ -260,3 +260,19 @@ describe('invalid paths point at the row as shown, not as sent', () => {
     expect(payloadFromForm(f).invalid).toEqual(['hs.1.amount']);
   });
 });
+
+describe('whole-number rules', () => {
+  it('flags a bill number or a count of notes that has a fraction (the database would round it silently)', async () => {
+    const { emptyForm, payloadFromForm } = await import('../../js/modules/closing/domain/form.js');
+    const f = emptyForm();
+    f.last_bill_no = '12.5';
+    f.till[0] = '2.5';
+    f.vault[7] = '10.5'; // coins / loose change is an amount, so a fraction is fine here
+    f.till[7] = '40.25';
+    const { invalid } = payloadFromForm(f);
+    expect(invalid).toContain('last_bill_no');
+    expect(invalid).toContain('till.0');
+    expect(invalid).not.toContain('vault.7');
+    expect(invalid).not.toContain('till.7');
+  });
+});

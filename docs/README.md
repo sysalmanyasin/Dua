@@ -1,18 +1,33 @@
-# Documentation index
+# Dua documentation index
 
-| Document | What it is |
-|---|---|
-| `USER_GUIDE.md` | How to use every page, for staff and owner |
-| `ADMIN_GUIDE.md` | People, permissions, settings, Google, backups status |
-| `SETUP.md` | One-time setup: Supabase, secrets, first owner, Gmail, private defaults |
-| `RUNBOOK.md` | Deploying, changing the database, backups/restore, troubleshooting, incident log |
-| `ARCHITECTURE.md` | How the app is built (as built) |
-| `DATABASE_DESIGN.md` | The real schema: tables, views, functions, migrations (as built) |
-| `SECURITY_MODEL.md` | Identity, permissions, protections, tests, known gaps |
-| `TESTING.md` | What is tested, how to run it, what is not covered |
-| `BUSINESS_RULES.md` | The pharmacy's rules as the app implements them |
-| `DECISIONS.md` | Every decision with its reason (D-01 … D-35) |
-| `SALES_DESIGN.md` | The Sales design and its status |
-| `CHANGELOG.md` | What was built, by date |
-| `ROADMAP.md` | What is left, in order |
-| `MODULES.md`, `modules/*.md` | The shared contract and briefs for the Manager, Closing and Inventory modules (written in a parallel session) |
+Start with these documents; dated history is not a substitute for current status.
+
+## Project status and planning
+
+- [Canonical project status](PROJECT_STATUS.md) — concise current operational snapshot.
+- [Master module progress register](MODULE_PROGRESS_REGISTER.md) — all registered modules, non-registered work, branches, evidence and outstanding work.
+- [Roadmap](ROADMAP.md) — remaining work ordered by risk and dependency.
+- [Changelog](CHANGELOG.md) and [project progress history](../PROJECT_PROGRESS.md) — historical milestones; older entries are not current status.
+
+## Building and design
+
+- [Shared module contract](MODULES.md) — required before changing code.
+- [Architecture](ARCHITECTURE.md)
+- [Database design](DATABASE_DESIGN.md)
+- [Security model](SECURITY_MODEL.md)
+- [Business rules](BUSINESS_RULES.md)
+- [Owner decisions](DECISIONS.md)
+
+## Operations and verification
+
+- [Testing and verification](TESTING.md)
+- [Runbook](RUNBOOK.md)
+- [Setup](SETUP.md)
+- [Admin guide](ADMIN_GUIDE.md)
+- [User guide](USER_GUIDE.md)
+
+## Module specifications and progress
+
+Each module has a brief and, where applicable, a `*.progress.md` file under [modules/](modules/). Use the progress file for detailed session evidence and handoff. Use the Master Module Progress Register for the cross-module view.
+
+**Status rule:** distinguish source integrated on `main`, migration/function recorded live, tests run, real-device acceptance and owner sign-off. Never collapse them into a single “complete” label.

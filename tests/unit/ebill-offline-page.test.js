@@ -228,7 +228,7 @@ describe('offline billing on the screen', () => {
     saveInvoice.mockClear();
     el.querySelector('[data-act="retry"]').click();
     await vi.waitFor(() => expect(saveInvoice).toHaveBeenCalledTimes(1));
-    await vi.waitFor(() => expect(el.querySelector('#eb-sync').textContent).toContain('Failed 0'));
+    await vi.waitFor(() => expect(el.querySelector('#eb-sync').textContent).not.toContain('Failed')); // the count is only shown when there is something failed
   });
   it("another person's invoices stay put and are explained", async () => {
     await seedReady();

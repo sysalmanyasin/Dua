@@ -6,6 +6,8 @@ import { computePrecache, currentList } from '../../tools/sw-precache.mjs';
 const ROOT = resolve(import.meta.dirname, '../..');
 const SW = readFileSync(resolve(ROOT, 'sw.js'), 'utf8');
 const BASE = 'https://dua.test/';
+// The cache name changes whenever the worker's caching rules change, so read it from the worker instead of repeating it here.
+const CACHE = /const CACHE = '([^']+)'/.exec(SW)[1];
 
 describe('service worker file list', () => {
   const list = currentList(SW);
@@ -97,7 +99,7 @@ function load({ files = {}, net } = {}) {
     Promise,
   );
   for (const [path, body] of Object.entries(files))
-    stores.set('dua-shell-v1', (stores.get('dua-shell-v1') ?? new Map()).set(new URL(path, BASE).href, new Response(body)));
+    stores.set(CACHE, (stores.get(CACHE) ?? new Map()).set(new URL(path, BASE).href, new Response(body)));
   const event = (extra) => {
     const e = {
       waits: [],
@@ -131,7 +133,7 @@ describe('service worker behaviour', () => {
     const e = w.event({ request: w.req('js/app.js') });
     w.handlers.fetch(e);
     expect(await text(e.response)).toBe('live');
-    const c = await w.caches.open('dua-shell-v1');
+    const c = await w.caches.open(CACHE);
     await vi.waitFor(async () => expect(await text(c.match('js/app.js'))).toBe('live')); // the copy is kept in the background
   });
   it('offline: serves the last copy it saw', async () => {
@@ -166,7 +168,7 @@ describe('service worker behaviour', () => {
     const e = w.event({ request: w.req('js/app.js') });
     w.handlers.fetch(e);
     await e.response;
-    const c = await w.caches.open('dua-shell-v1');
+    const c = await w.caches.open(CACHE);
     expect(await text(c.match('js/app.js'))).toBe('saved');
   });
   it('leaves other sites (Supabase, Google) and non-GET requests entirely alone', () => {
@@ -188,7 +190,7 @@ describe('service worker behaviour', () => {
     await Promise.all(e.waits);
     expect(w.fetched.length).toBe(list.length);
     expect(w.self.skipWaiting).toHaveBeenCalled();
-    const c = await w.caches.open('dua-shell-v1');
+    const c = await w.caches.open(CACHE);
     expect(await c.match('index.html')).toBeTruthy();
     expect(await c.match('./')).toBeTruthy(); // the bare address opens the shell too
     expect(await c.match('js/core/app.js')).toBeUndefined();
@@ -204,12 +206,12 @@ describe('service worker behaviour', () => {
   it('activate removes old Dua caches only, then claims the open pages', async () => {
     const w = load({ net: ok() });
     w.stores.set('dua-shell-v0', new Map());
-    w.stores.set('dua-shell-v1', new Map());
+    w.stores.set(CACHE, new Map());
     w.stores.set('someone-elses', new Map());
     const e = w.event({});
     w.handlers.activate(e);
     await Promise.all(e.waits);
-    expect([...w.stores.keys()].sort()).toEqual(['dua-shell-v1', 'someone-elses']);
+    expect([...w.stores.keys()].sort()).toEqual([CACHE, 'someone-elses']);
     expect(w.self.clients.claim).toHaveBeenCalled();
   });
 });

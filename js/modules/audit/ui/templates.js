@@ -4,11 +4,12 @@ import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { parseCodes } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
+import { parseTemplateImport } from '../domain/templateImport.js';
 import { errorCard, loadingCard, toast } from './parts.js';
 
 export async function mount(el, { ctx } = {}) {
   const canEdit = (ctx?.permissions ?? []).includes('audit.templates');
-  const s = { list: [], editing: null, name: '', codes: '', busy: false, error: null, confirmDelete: null };
+  const s = { list: [], editing: null, name: '', codes: '', busy: false, error: null, confirmDelete: null, importText: '' };
 
   async function load() {
     s.list = await api.listTemplates();
@@ -80,6 +81,22 @@ export async function mount(el, { ctx } = {}) {
               </section>`
             : ''
         }
+        ${
+          canEdit
+            ? html`<section class="card aud-card" aria-label="Import templates">
+                <h2>Import from the old app</h2>
+                <p class="muted small">Paste the templates exported from the old Audit Hub. Names already here are left alone.</p>
+                <label class="field"
+                  ><span>Exported templates</span
+                  ><textarea data-f="import" rows="4" spellcheck="false" placeholder='[{"name":"Syrups","codes":["040700"]}]'>
+${s.importText}</textarea>
+                </label>
+                <button type="button" class="btn" data-act="import" ${s.busy || s.importText.trim() === '' ? 'disabled' : ''}>
+                  Import
+                </button>
+              </section>`
+            : ''
+        }
       </div>`,
     );
   }
@@ -101,6 +118,12 @@ export async function mount(el, { ctx } = {}) {
 
   el.oninput = (e) => {
     const f = e.target.dataset?.f;
+    if (f === 'import') {
+      s.importText = e.target.value;
+      const b = el.querySelector('button[data-act="import"]');
+      if (b) b.disabled = s.busy || s.importText.trim() === '';
+      return;
+    }
     if (f !== 'name' && f !== 'codes') return;
     s[f === 'name' ? 'name' : 'codes'] = e.target.value;
     const n = parseCodes(s.codes).length;
@@ -127,6 +150,27 @@ export async function mount(el, { ctx } = {}) {
           await api.saveTemplate({ id: s.editing, name: s.name.trim(), codes: parseCodes(s.codes) });
           Object.assign(s, { editing: null, name: '', codes: '' });
         }, 'Template saved.');
+      case 'import': {
+        const r = parseTemplateImport(
+          s.importText,
+          s.list.map((t) => t.name),
+        );
+        if (r.error) {
+          s.error = r.error;
+          return draw();
+        }
+        if (r.templates.length === 0) {
+          s.error = 'Nothing new to import.';
+          return draw();
+        }
+        return run(
+          async () => {
+            for (const t of r.templates) await api.saveTemplate({ id: null, name: t.name, codes: t.codes });
+            s.importText = '';
+          },
+          `${r.templates.length} ${r.templates.length === 1 ? 'template' : 'templates'} imported${r.skipped ? `, ${r.skipped} skipped` : ''}.`,
+        );
+      }
       case 'delete':
         s.confirmDelete = id;
         return draw();

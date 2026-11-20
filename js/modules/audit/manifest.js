@@ -71,6 +71,32 @@ export default {
       load: () => import('./ui/compile.js'),
     },
     {
+      path: '/audit/final',
+      desc: 'The Final Snapshot of a round: make it final, then print or save it',
+      anyOf: ['audit.finalize', 'audit.review', 'audit.report', 'audit.view', 'audit.manage'],
+      load: () => import('./ui/final.js'),
+    },
+    {
+      path: '/audit/reports',
+      title: 'Reports',
+      desc: 'Rounds, results, people and the audit trail, with print and save as PDF',
+      anyOf: ['audit.report', 'audit.review', 'audit.manage'],
+      load: () => import('./ui/reports.js'),
+    },
+    {
+      path: '/audit/expiry',
+      title: 'Expiry tracking',
+      desc: 'Log near-expiry stock and search the shared register',
+      anyOf: ['audit.expiry_log', 'audit.expiry_manage', 'audit.manage'],
+      load: () => import('./ui/expiry.js'),
+    },
+    {
+      path: '/audit/expiry/racks',
+      desc: 'Racks and who checks which rack each month',
+      anyOf: ['audit.expiry_manage', 'audit.manage'],
+      load: () => import('./ui/racks.js'),
+    },
+    {
       path: '/audit/team',
       title: 'Team access',
       desc: 'Give a person the Deputy or Sub-Auditor set of audit permissions, or switch single ones',

@@ -8,7 +8,7 @@ import * as api from '../data/api.js';
 import { PRESETS, SHIFTS, inRange, pageTitle, rangeFor, variance } from '../domain/book.js';
 import { friendlyError } from '../domain/errors.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { errorCard, focusHeading, keepFocus, loadingCard, toast } from './parts.js';
 
 export const todayKarachi = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
 
@@ -38,7 +38,8 @@ export async function mount(el) {
 
   const shown = () => all.filter((p) => inRange(p, { from, fromShift, to, toShift }));
 
-  const draw = () => {
+  const draw = () => keepFocus(el, paint);
+  const paint = () => {
     const list = shown();
     render(
       el,
@@ -93,7 +94,9 @@ export async function mount(el) {
                               ${variance(p.results?.shift_variance)}</span
                             >
                           </span>
-                          <button type="button" class="btn btn-sm" data-one="${p.closing_id}">PDF</button>
+                          <button type="button" class="btn btn-sm" data-one="${p.closing_id}" aria-label="PDF of ${pageTitle(p)}">
+                            PDF
+                          </button>
                         </li>`,
                     )}
                   </ul>
@@ -109,7 +112,7 @@ export async function mount(el) {
         ({ from, to } = rangeFor(preset, today));
         fromShift = 'any';
         toShift = 'any';
-        load();
+        load(true);
       }),
     );
     el.querySelector('#bk-apply').addEventListener('click', () => {
@@ -122,15 +125,20 @@ export async function mount(el) {
       to = t;
       fromShift = el.querySelector('#bk-from-shift').value;
       toShift = el.querySelector('#bk-to-shift').value;
-      load();
+      load(true);
     });
-    el.querySelector('#bk-pdf').addEventListener('click', () => download(shown()));
+    el.querySelector('#bk-pdf').addEventListener('click', () => download(shown(), '#bk-pdf'));
     el.querySelectorAll('[data-one]').forEach((b) =>
-      b.addEventListener('click', () => download(all.filter((p) => p.closing_id === b.dataset.one))),
+      b.addEventListener('click', () =>
+        download(
+          all.filter((p) => p.closing_id === b.dataset.one),
+          `[data-one="${b.dataset.one}"]`,
+        ),
+      ),
     );
   };
 
-  function download(pages) {
+  function download(pages, returnTo) {
     if (!pages.length || busy) return;
     busy = true;
     draw();
@@ -145,10 +153,11 @@ export async function mount(el) {
       }
       busy = false;
       draw();
+      el.querySelector(returnTo)?.focus({ preventScroll: true }); // the button that was pressed, back in place
     }, 30);
   }
 
-  async function load() {
+  async function load(announce = false) {
     render(el, loadingCard());
     try {
       all = await api.closingBook({ from, to, limit: MAX });
@@ -156,6 +165,7 @@ export async function mount(el) {
       return render(el, errorCard('the Closing Book', friendlyError(e).message));
     }
     draw();
+    if (announce) focusHeading(el.querySelector('#bk-count')); // says how many closings the new range found
   }
   await load();
 }

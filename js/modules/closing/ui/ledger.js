@@ -22,7 +22,7 @@ import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { SECTIONS, clampSection, sectionIndex } from '../domain/sections.js';
 import { slotLabel } from '../domain/slots.js';
 import { clearLocal, getOpen, loadLocal, saveLocal } from '../domain/store.js';
-import { errorCard, loadingCard, openDialog, toast } from './parts.js';
+import { errorCard, focusHeading, keepFocus, loadingCard, openDialog, toast } from './parts.js';
 import { saveBlob } from './book.js';
 import { lateSections, previewFigures } from './sections-late.js';
 
@@ -80,6 +80,7 @@ export async function mount(el, { ctx } = {}) {
     done: null,
     seen: new Set([0]),
     prev: null,
+    prevError: '',
     showWarn: false,
     status: 'saved', // saved | saving | dirty | offline | failed | conflict | invalid
     invalid: [],
@@ -105,13 +106,32 @@ export async function mount(el, { ctx } = {}) {
     if (row.status !== 'draft') {
       return render(el, errorCard('this closing', 'It is already submitted. Reopen it from Closing to correct it.'));
     }
-    adopt(row);
-    // typing that never reached the server (connection dropped) comes back if it is newer than the saved draft
+    // Capture the local recovery snapshot before refreshing: the carry RPC may update
+    // the row timestamp, but that must not make newer unsent typing look stale.
+    const savedDraftUpdatedAt = row.updated_at;
     const local = loadLocal(S.key);
-    if (local?.dirty && local.version === S.version && local.form && local.savedAt > row.updated_at) {
-      S.form = local.form;
+    // Reconcile carry-forward on every draft open. This is a server-side, idempotent
+    // operation: it refreshes balances and merges outstanding misc charges without
+    // replacing the cashier's saved fields or struck-through rows.
+    if (!row.is_opening) {
+      try {
+        await api.refreshDraftCarry(row.id);
+        row = await api.loadById(row.id);
+      } catch (e) {
+        return render(el, errorCard('this draft', friendlyError(e).message));
+      }
+    }
+    adopt(row);
+    // Typing that never reached the server (connection dropped) comes back if it is newer
+    // than the saved draft. Merge in any newly carried misc rows from the refreshed server row.
+    if (local?.dirty && local.version === S.version && local.form && local.savedAt > savedDraftUpdatedAt) {
+      const localForm = local.form;
+      const localMisc = Array.isArray(localForm.misc) ? localForm.misc : [];
+      const haveCharges = new Set(localMisc.map((r) => r.charge_id).filter(Boolean));
+      const newlyCarried = S.form.misc.filter((r) => r.charge_id && !haveCharges.has(r.charge_id));
+      S.form = { ...localForm, misc: [...localMisc, ...newlyCarried] };
       S.status = 'dirty';
-      toast('Restored your unsent typing.');
+      toast('Restored your unsent typing and refreshed carried charges.');
     }
   } else {
     // a new draft is created at once so the slot rules and the carried figures are checked before anything is typed
@@ -155,11 +175,12 @@ export async function mount(el, { ctx } = {}) {
   // what the closing before this one entered (read-only card under each section); absent when there is none or it cannot be read
   async function loadPrev() {
     S.prev = null;
+    S.prevError = '';
     if (S.opening || !S.carry?.from) return;
     try {
       S.prev = await api.prevPage(S.id);
-    } catch {
-      /* the card simply does not show */
+    } catch (e) {
+      S.prevError = friendlyError(e).message;
     }
   }
   await loadPrev();
@@ -221,6 +242,8 @@ export async function mount(el, { ctx } = {}) {
     const [text, tone] = chipText();
     c.textContent = text;
     c.className = `cls-chip cls-chip-${tone}`;
+    // only a state that can be retried is a working button; the rest are just the status text
+    c.disabled = !['failed', 'offline', 'dirty', 'invalid', 'conflict'].includes(S.status);
   };
   const keepLocal = () => saveLocal(S.key, { form: S.form, version: S.version, dirty: true });
 
@@ -230,11 +253,12 @@ export async function mount(el, { ctx } = {}) {
       S.again = true;
       return;
     }
+    if (S.conflict) return onConflict(); // nothing more is sent on an old version until the person chooses
     const { payload, invalid } = payloadFromForm(S.form, { isOpening: S.opening });
     S.invalid = invalid;
+    paintMarks();
     if (invalid.length) {
       S.status = 'invalid';
-      paintMarks();
       return paintChip();
     }
     S.saving = true;
@@ -284,32 +308,59 @@ export async function mount(el, { ctx } = {}) {
     S.timer = setTimeout(doSave, ms);
   };
 
-  async function onConflict(e) {
-    saveLocal(`${S.key}.mine`, { form: S.form, version: conflictVersion(e), dirty: false });
+  function onConflict(e) {
+    S.conflict = true;
+    S.conflictErr = e ?? S.conflictErr;
+    saveLocal(`${S.key}.mine`, { form: S.form, version: conflictVersion(S.conflictErr), dirty: false });
     paintChip();
+    if (S.conflictDlg?.open) return; // one dialog at a time, however many saves were refused
     const dlg = openDialog(
-      html`<h3>This draft was changed on another device</h3>
-        <p>Someone saved a newer version. Your typing is kept as a copy on this phone. Reload to see the latest saved draft.</p>
-        <div class="actions"><button type="button" class="btn btn-primary" data-act="reload">Reload latest</button></div>`,
+      html`<h2>This draft was changed on another device</h2>
+        <p>Someone saved a newer version. Choose which one to carry on with.</p>
+        <div class="actions">
+          <button type="button" class="btn" data-act="reload">Use the latest saved</button>
+          <button type="button" class="btn btn-primary" data-act="keep">Keep what I typed</button>
+        </div>
+        <p class="cls-meta">“Keep what I typed” saves your version over the other one.</p>`,
       { label: 'Draft changed' },
     );
-    dlg.querySelector('[data-act="reload"]').addEventListener('click', async () => {
+    S.conflictDlg = dlg;
+    const resume = async (keepMine) => {
+      const mine = S.form;
       dlg.close();
       try {
         adopt(await api.loadById(S.id));
-        clearLocal(S.key);
-        S.status = 'saved';
+        S.conflict = false;
+        if (keepMine) {
+          // the server row gives the new version and the carried figures; the typing stays as typed
+          const have = new Set((mine.misc ?? []).map((r) => r.charge_id).filter(Boolean));
+          S.form = { ...mine, misc: [...(mine.misc ?? []), ...S.form.misc.filter((r) => r.charge_id && !have.has(r.charge_id))] };
+          S.status = 'dirty';
+          keepLocal();
+          queueSave(0);
+        } else {
+          clearLocal(S.key);
+          S.status = 'saved';
+        }
       } catch (err) {
         toast(friendlyError(err).message, 'error');
       }
       draw();
-    });
+      refreshPreview();
+    };
+    dlg.querySelector('[data-act="reload"]').addEventListener('click', () => resume(false));
+    dlg.querySelector('[data-act="keep"]').addEventListener('click', () => resume(true));
   }
 
+  let previewSeq = 0;
   async function refreshPreview() {
+    const mine = ++previewSeq;
     try {
-      S.preview = await api.computePreview(S.id);
-      S.period = await api.periodFor(S.id).catch(() => S.period);
+      const preview = await api.computePreview(S.id);
+      const period = await api.periodFor(S.id).catch(() => S.period);
+      if (mine !== previewSeq) return; // a newer request is on its way; never let an older answer overwrite it
+      S.preview = preview;
+      S.period = period;
     } catch {
       return; // the preview is a convenience; typing and saving carry on without it
     }
@@ -361,7 +412,8 @@ export async function mount(el, { ctx } = {}) {
   function auditBlocks() {
     return !S.opening && S.auditRequired === true && !S.audit.snap;
   }
-  function askSubmit() {
+  async function askSubmit() {
+    if (S.submitting) return;
     if (auditBlocks()) {
       toast('Inventory Audit is not done. Tap Sync & audit, then Verify & confirm.', 'error');
       S.section = sectionIndex('invaudit');
@@ -373,6 +425,16 @@ export async function mount(el, { ctx } = {}) {
       draw();
       return el.querySelector('#cls-staff')?.focus();
     }
+    // the review must show the figures of what is saved, not of the save before the last keystrokes
+    if (S.status !== 'saved') {
+      if (!(await settle())) {
+        return toast(
+          S.invalid.length ? 'Fix the marked fields first.' : 'Your draft is not saved yet. Check the connection and try again.',
+          'error',
+        );
+      }
+      await refreshPreview();
+    }
     const p = S.preview;
     const final = S.mode === 'final';
     const v = p ? Number(final ? p.final_net_cash : p.shift_variance) : null;
@@ -380,7 +442,7 @@ export async function mount(el, { ctx } = {}) {
     const who = staff.find((x) => x.id === S.form.responsible_staff_id)?.name;
     const skipped = unopened();
     const dlg = openDialog(
-      html`<h3>Review closing</h3>
+      html`<h2>Review closing</h2>
         <p>${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}${who ? html` · ${who}` : ''}</p>
         ${
           p
@@ -399,7 +461,7 @@ export async function mount(el, { ctx } = {}) {
               </div>`
             : html`<p class="cls-meta">The figures are still being worked out. You can submit; the saved closing will have them.</p>`
         }
-        ${tone !== 'ok' ? html`<p class="cls-warn" role="alert">⚠ This is a ${tone === 'bad' ? 'large ' : ''}shortage. Recount the till and check credit and deposits before submitting.</p>` : ''}
+        ${tone !== 'ok' ? html`<p class="cls-warn" role="alert"><span aria-hidden="true">⚠</span> This is a ${tone === 'bad' ? 'large ' : ''}shortage. Recount the till and check credit and deposits before submitting.</p>` : ''}
         ${skipped.length ? html`<p class="cls-warn">Some sections were not opened: ${skipped.join(', ')}. You can still submit, but check them first.</p>` : ''}
         <p class="cls-meta">After submitting, the closing is locked and the next shift picks up its carried values.</p>
         <div class="actions">
@@ -493,7 +555,7 @@ export async function mount(el, { ctx } = {}) {
   };
   const touched = () => {
     S.form = { ...S.form }; // a new object marks "typed since the last save"
-    S.status = 'dirty';
+    S.status = S.conflict ? 'conflict' : 'dirty';
     keepLocal();
     paintChip();
     paintTotals();
@@ -503,7 +565,7 @@ export async function mount(el, { ctx } = {}) {
   const rowOf = (list, id) => listOf(list).find((r) => r.id === id);
 
   // ── drawing ──
-  const field = (path, label, { note = '', cls = '' } = {}) => {
+  const field = (path, label, { note = '', cls = '', placeholder = '' } = {}) => {
     const value = path.split('.').reduce((o, p) => o[p], S.form);
     return html`<div class="cls-row ${cls}">
       <label for="f-${path}">${label}${note ? html`<small>${note}</small>` : ''}</label>
@@ -513,6 +575,7 @@ export async function mount(el, { ctx } = {}) {
         data-f="${path}"
         inputmode="decimal"
         autocomplete="off"
+        placeholder="${placeholder}"
         value="${value}"
         aria-invalid="${bad(S.invalid, path)}"
       />
@@ -542,8 +605,18 @@ export async function mount(el, { ctx } = {}) {
           : ''
       }`;
 
+  // "row 2" (or the item's own name for a fixed strip): what a screen reader says to tell the rows of a list apart
+  const rowName = (list, r) => (list === 'strips' && r.strip_id ? r.label : `row ${listOf(list).indexOf(r) + 1}`);
   const textCell = (list, r, k, ph) =>
-    html`<input class="cls-in cls-text" data-list="${list}" data-id="${r.id}" data-k="${k}" placeholder="${ph}" value="${r[k]}" />`;
+    html`<input
+      class="cls-in cls-text"
+      data-list="${list}"
+      data-id="${r.id}"
+      data-k="${k}"
+      placeholder="${ph}"
+      aria-label="${ph}, ${rowName(list, r)}"
+      value="${r[k]}"
+    />`;
   const numCell = (list, r, k, path) =>
     html`<input
       class="cls-in"
@@ -554,7 +627,7 @@ export async function mount(el, { ctx } = {}) {
       data-k="${k}"
       aria-invalid="${bad(S.invalid, `${list}.${listOf(list).indexOf(r)}.${k}`)}"
       value="${r[k]}"
-      aria-label="${path}"
+      aria-label="${path}, ${rowName(list, r)}"
     />`;
   const strike = (list, r) =>
     html`<button
@@ -563,10 +636,11 @@ export async function mount(el, { ctx } = {}) {
       data-act="strike"
       data-list="${list}"
       data-id="${r.id}"
-      aria-label="${r.deleted ? 'Restore row' : 'Strike out row'}"
+      aria-label="${r.deleted ? 'Restore' : 'Strike out'} ${rowName(list, r)}"
+      aria-pressed="${r.deleted ? 'true' : 'false'}"
       title="${r.deleted ? 'Restore' : 'Strike out'}"
     >
-      ${r.deleted ? '↺' : '✕'}
+      <span aria-hidden="true">${r.deleted ? '↺' : '✕'}</span>
     </button>`;
 
   const sectionMediq = () =>
@@ -588,26 +662,25 @@ export async function mount(el, { ctx } = {}) {
       <div class="actions"><button type="button" class="btn btn-sm" data-act="add" data-list="mediq">＋ Add Row</button></div>
       ${total('Extra MEDIQ Collected', 'mediqExtra')}`;
 
+  const carried = (label, value) => {
+    const id = `carried-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`;
+    return html`<div class="cls-row">
+      <label for="${id}">${label}</label><input id="${id}" class="cls-in is-carried" readonly value="${money(value)}" />
+    </div>`;
+  };
+
   const sectionShift = () =>
     html`<h2>3 · Shift</h2>
       ${field('overrides.shift_sale', "This Shift's Sales (delta)", { note: 'Leave empty to use the calculated figure. A typed 0 counts.' })}
       ${field('book.0', 'Book Bill 1')} ${field('book.1', 'Book Bill 2')}
       ${field('overrides.customers', 'Customers This Shift (delta)', { note: 'Leave empty to use the calculated count.' })}
+      <div class="cls-row"><span class="cls-meta">Calculated shift sale · customers</span><strong data-total="shiftInfo">–</strong></div>
       <div class="cls-total cls-total-net"><span>Net Sale (this shift)</span><strong data-total="netSale">–</strong></div>
-      <div class="cls-row">
-        <span class="cls-meta">Shift sale · customers (calculated)</span><span class="cls-meta" data-total="shiftInfo">–</span>
-      </div>
       ${
         S.carry && !S.opening
           ? html`<h3 class="sec-label">Carried from the previous closing</h3>
-              <div class="cls-row">
-                <label>Card balance</label><input class="cls-in is-carried" readonly value="${money(S.carry.cc)}" />
-              </div>
-              <div class="cls-row"><label>Credit</label><input class="cls-in is-carried" readonly value="${money(S.carry.credit)}" /></div>
-              <div class="cls-row">
-                <label>Deposits</label><input class="cls-in is-carried" readonly value="${money(S.carry.deposits)}" />
-              </div>
-              <div class="cls-row"><label>Cash</label><input class="cls-in is-carried" readonly value="${money(S.carry.cash)}" /></div>`
+              ${carried('Card balance', S.carry.cc)} ${carried('Credit', S.carry.credit)} ${carried('Deposits', S.carry.deposits)}
+              ${carried('Cash', S.carry.cash)}`
           : ''
       }`;
 
@@ -663,9 +736,10 @@ export async function mount(el, { ctx } = {}) {
         data-list="${list}"
         data-id="${r.id}"
         data-k="${k}"
-        aria-label="Toggle positive or negative"
+        aria-label="Reduction (negative) for ${label}, ${rowName(list, r)}"
+        aria-pressed="${/^[-−]/.test(String(r[k]).trim()) ? 'true' : 'false'}"
       >
-        ±
+        <span aria-hidden="true">±</span>
       </button>
       ${numCell(list, r, k, label)}
     </div>`;
@@ -695,10 +769,14 @@ export async function mount(el, { ctx } = {}) {
   const prevCard = () => {
     if (S.opening) return '';
     const def = SECTIONS[S.section];
+    if (S.prevError)
+      return html`<section class="card cls-prev">
+        <div class="cls-meta">Previous closing preview could not be loaded: ${S.prevError}</div>
+      </section>`;
     if (!S.prev) return html`<section class="card cls-prev"><div class="cls-meta">No previous closing on record yet.</div></section>`;
     const rows = snapshotRows(def.key, S.prev);
     return html`<section class="card cls-prev" aria-label="Previous closing">
-      <div class="cls-prev-head">📋 ${prevTitle(S.prev)}</div>
+      <div class="cls-prev-head" role="heading" aria-level="3"><span aria-hidden="true">📋</span> ${prevTitle(S.prev)}</div>
       <div class="cls-prev-rows">
         ${
           rows.length
@@ -712,14 +790,15 @@ export async function mount(el, { ctx } = {}) {
   function viewAll() {
     const t = localTotals(S.form, S.carry ?? {});
     const dlg = openDialog(
-      html`<h3>All sections</h3>
+      html`<h2>All sections</h2>
         <p class="cls-meta">Typed so far. Tap a section to go to it.</p>
         <ul class="cls-list cls-viewall">
           ${SECTIONS.map(
             (sec, i) =>
               html`<li>
                 <button type="button" class="cls-va-row" data-go="${i}" aria-current="${i === S.section ? 'step' : 'false'}">
-                  <span>${sec.icon} ${sec.label}</span><strong>${overviewValue(sec.key, t, S.form) || '—'}</strong>
+                  <span><span aria-hidden="true">${sec.icon}</span> ${sec.label}</span
+                  ><strong>${overviewValue(sec.key, t, S.form) || '—'}</strong>
                   <span class="cls-meta">${i === S.section ? 'you are here' : S.seen.has(i) ? '✓' : '›'}</span>
                 </button>
               </li>`,
@@ -737,18 +816,29 @@ export async function mount(el, { ctx } = {}) {
   }
 
   function draw() {
-    if (S.done) return render(el, successScreen());
+    if (S.done) {
+      render(el, successScreen());
+      return focusHeading(el.querySelector('.htitle'));
+    }
+    return keepFocus(el, paint);
+  }
+  function paint() {
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
     render(
       el,
-      html`<div class="cls">
-        <p class="cls-backrow"><button type="button" class="btn btn-sm" data-act="leave">‹ Back to days</button></p>
+      html`<div class="cls cls-swipe">
+        <p class="cls-backrow">
+          <button type="button" class="btn btn-sm" data-act="leave"><span aria-hidden="true">‹</span> Back to days</button>
+        </p>
         ${hero({
           label: 'Closing',
           title: `${slotLabel(S.kind, S.seq)} closing`,
           sub: `${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}`,
-          actions: html`<span id="cls-chip" class="cls-chip" role="status" tabindex="0"></span>`,
+          actions: html`<span class="cls-status" role="status" aria-live="polite"
+            ><button type="button" id="cls-chip" class="cls-chip"></button
+          ></span>`,
         })}
+        <div class="cls-anchor" aria-hidden="true"></div>
         <div class="cls-bar">
           <div class="cls-progress" aria-hidden="true"><span style="width: ${pct}%"></span></div>
           <nav class="cls-jump" aria-label="Sections">
@@ -767,6 +857,7 @@ export async function mount(el, { ctx } = {}) {
         </div>
         <div class="cls-grid">
           <section class="card">
+            <p id="cls-errors" class="cls-warn" role="alert"></p>
             <div class="cls-row">
               <label for="cls-staff">Responsible staff</label>
               <select id="cls-staff" class="cls-in">
@@ -778,51 +869,61 @@ export async function mount(el, { ctx } = {}) {
           </section>
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
+        ${prevCard()}
         <div class="cls-tools">
-          <button type="button" class="btn" data-act="draft">💾 Save as Draft</button>
-          <button type="button" class="btn" data-act="viewall">⊞ View all</button>
+          <button type="button" class="btn" data-act="draft"><span aria-hidden="true">💾</span> Save as Draft</button>
+          <button type="button" class="btn" data-act="viewall"><span aria-hidden="true">⊞</span> View all</button>
         </div>
         <p class="cls-meta">Back to days saves your draft first. Continue it later from the calendar or Saved records.</p>
         <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
-          <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>← Back</button>
+          <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>
+            <span aria-hidden="true">←</span> Back
+          </button>
           ${
             S.section === SECTIONS.length - 1
               ? html`<button type="button" class="btn btn-primary" data-act="submit" ${S.submitting ? 'disabled' : ''}>
                   Submit closing
                 </button>`
-              : html`<button type="button" class="btn btn-primary" data-act="next">Next →</button>`
+              : html`<button type="button" class="btn btn-primary" data-act="next">Next <span aria-hidden="true">→</span></button>`
           }
         </div>
-        ${prevCard()}
       </div>`,
     );
     paintChip();
     paintTotals();
+    paintMarks();
   }
 
+  // Bring the section cards (progress bar, jump chips, card) to the top of the screen,
+  // so the hero and the back link are scrolled past instead of the person landing on them.
+  const scrollToCards = () => {
+    const anchor = el.querySelector('.cls-anchor');
+    if (anchor?.scrollIntoView) anchor.scrollIntoView({ block: 'start' });
+    else window.scrollTo?.(0, 0);
+  };
   const go = (i, scroll = true) => {
+    const changed = clampSection(i) !== S.section;
     S.section = clampSection(i);
     S.seen.add(S.section);
     draw();
-    if (scroll) window.scrollTo?.(0, 0);
+    if (changed) focusHeading(el.querySelector('.cls-sec h2'));
+    if (scroll) scrollToCards();
   };
   const moveSection = (direction) => {
     const next = clampSection(S.section + direction);
     if (next !== S.section) go(next);
   };
 
-  // Match the old Closing app's swipe navigation without hijacking vertical
-  // scrolling, text selection, form controls, or the horizontally scrolling chips.
+  // Swipe left / right anywhere on the cards moves one section, like the old Closing app.
+  // An ordinary swipe is enough (40 px, clearly more sideways than up or down). It starts on any card,
+  // row, label or field, but not on the jump chips (they scroll sideways on their own).
   let swipeStart = null;
   el.addEventListener(
     'touchstart',
     (e) => {
-      if (e.touches.length !== 1 || !e.target.closest?.('.cls-sec')) {
-        swipeStart = null;
-        return;
-      }
-      if (e.target.closest('input, select, textarea, button, a, [contenteditable="true"], .cls-jump, .cls-nav')) {
+      const root = e.target.closest?.('.cls-swipe');
+      if (e.touches.length !== 1 || !root || e.target.closest('.cls-jump')) {
         swipeStart = null;
         return;
       }
@@ -840,7 +941,7 @@ export async function mount(el, { ctx } = {}) {
       if (!touch) return;
       const dx = touch.clientX - start.x;
       const dy = touch.clientY - start.y;
-      if (Math.abs(dx) < 55 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+      if (Math.abs(dx) < 40 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
       moveSection(dx < 0 ? 1 : -1);
     },
     { passive: true },
@@ -860,15 +961,49 @@ export async function mount(el, { ctx } = {}) {
       const idx = listOf(list).findIndex((r) => r.id === i.dataset.id);
       i.setAttribute('aria-invalid', bad(S.invalid, `${list}.${idx}.${i.dataset.k}`));
     });
+    // red borders alone do not tell everyone which fields are wrong: say it in words too
+    const box = el.querySelector('#cls-errors');
+    if (!box) return;
+    const names = [...el.querySelectorAll('[aria-invalid="true"]')]
+      .map((n) => n.getAttribute('aria-label') || el.querySelector(`label[for="${n.id}"]`)?.firstChild?.textContent?.trim())
+      .filter(Boolean);
+    const elsewhere = S.invalid.length - names.length;
+    box.textContent = S.invalid.length
+      ? `Fix the marked fields${names.length ? `: ${names.join('; ')}` : ''}${elsewhere > 0 ? ` (${elsewhere} in other sections)` : ''}.`
+      : '';
+  }
+
+  // Mirrors closing_calc: a Final, a new business day, or no previous closing uses the whole POS figure; otherwise the
+  // difference from the previous closing. Customers are the bill-number difference (never below 0), 0 with no previous closing.
+  // When the closing DOES have a previous one but its figures could not be read (S.prev is null), nothing is guessed:
+  // the server's own calculation is used once the draft is saved, and until then the figure is simply not shown.
+  function calculatedDeltas() {
+    const hasPrev = Boolean(S.carry?.from);
+    if (hasPrev && !S.prev) {
+      const p = S.preview;
+      return p && S.status === 'saved' && p.shift_sale !== undefined
+        ? { sale: Number(p.shift_sale), customers: Number(p.customers) }
+        : null;
+    }
+    const previous = S.prev?.inputs ?? {};
+    const sys = parseAmount(S.form.sys_cash);
+    const bill = parseAmount(S.form.last_bill_no);
+    const has = (v) => v !== null && !Number.isNaN(v);
+    const wholeFigure = S.mode === 'final' || !S.prev || S.prev.business_date !== S.date;
+    return {
+      sale: has(sys) ? (wholeFigure ? sys : sys - (Number(previous.sys_cash) || 0)) : 0,
+      customers: S.prev && has(bill) ? Math.max(0, Math.trunc(bill) - Math.trunc(Number(previous.last_bill_no) || 0)) : 0,
+    };
   }
 
   function paintTotals() {
     const t = localTotals(S.form, S.carry ?? {});
     const set = (k, text, neg = false) => {
-      const n = el.querySelector(`[data-total="${k}"]`);
-      if (!n) return;
-      n.textContent = text;
-      n.classList.toggle('cls-neg', neg);
+      // a figure can appear twice on one page (the Final section repeats Net Final Sale): fill every one
+      el.querySelectorAll(`[data-total="${k}"]`).forEach((n) => {
+        n.textContent = text;
+        n.classList.toggle('cls-neg', neg);
+      });
     };
     set('hs', money(rupees(t.hs), { decimals: true }));
     set('strips', money(rupees(t.strips), { decimals: true }));
@@ -876,6 +1011,21 @@ export async function mount(el, { ctx } = {}) {
     set('returns', money(rupees(t.returns), { decimals: true }));
     set('misc', money(rupees(t.misc), { decimals: true }));
     set('ccTotal', money(rupees(t.ccTotal), { decimals: true }));
+    set('currCC', money(rupees(t.ccCurr), { decimals: true }));
+    // The calculated deltas (this shift's sale and customers). The override boxes show them as their placeholder, so the
+    // figure is visible even while the box is empty ("empty = use the calculated figure").
+    const d = calculatedDeltas();
+    const shiftSaleOverride = parseAmount(S.form.overrides.shift_sale);
+    const customersOverride = parseAmount(S.form.overrides.customers);
+    const typed = (v) => v !== null && !Number.isNaN(v);
+    const shownShiftSale = typed(shiftSaleOverride) ? shiftSaleOverride : (d?.sale ?? null);
+    const shownCustomers = typed(customersOverride) ? customersOverride : (d?.customers ?? null);
+    const hint = (k, text) => {
+      const n = el.querySelector(`[data-f="overrides.${k}"]`);
+      if (n) n.setAttribute('placeholder', text);
+    };
+    hint('shift_sale', d ? money(d.sale, { decimals: true }) : '');
+    hint('customers', d ? String(d.customers) : '');
     set('till', money(rupees(t.till), { decimals: true }));
     set('vault', money(rupees(t.vault), { decimals: true }));
     set('debt', money(rupees(t.debt), { decimals: true }));
@@ -883,11 +1033,15 @@ export async function mount(el, { ctx } = {}) {
     const p = S.preview;
     if (p && S.status === 'saved') {
       set('netSale', money(p.net_sale, { decimals: true }), p.net_sale < 0);
-      set('shiftInfo', `${money(p.shift_sale, { decimals: true })} · ${p.customers}`);
     } else {
       set('netSale', S.status === 'saved' ? '–' : 'updates after saving');
-      set('shiftInfo', '–');
     }
+    set(
+      'shiftInfo',
+      shownShiftSale === null || shownCustomers === null
+        ? 'updates after saving'
+        : `${money(shownShiftSale, { decimals: true })} · ${shownCustomers}`,
+    );
     if (p && S.status === 'saved') {
       const fig = previewFigures(p, S.period, S.form, S.mode);
       Object.entries(fig).forEach(([k, v]) => set(k, v.text, v.neg));
@@ -951,7 +1105,8 @@ export async function mount(el, { ctx } = {}) {
     const b = e.target.closest('button, #cls-chip');
     if (!b) return;
     if (b.id === 'cls-chip') {
-      if (['failed', 'offline', 'dirty', 'invalid'].includes(S.status)) doSave();
+      if (S.status === 'conflict') onConflict();
+      else if (['failed', 'offline', 'dirty', 'invalid'].includes(S.status)) doSave();
       return;
     }
     if (b.dataset.jump !== undefined) return go(Number(b.dataset.jump), false);
@@ -978,6 +1133,7 @@ export async function mount(el, { ctx } = {}) {
     if (act === 'draft') {
       return doSave().then(() => {
         if (S.status === 'saved') toast('Draft saved ✓');
+        else if (S.status === 'invalid') toast('Fix the marked fields first.', 'error');
       });
     }
     if (act === 'signrow') {
@@ -994,30 +1150,32 @@ export async function mount(el, { ctx } = {}) {
     if (act === 'add-named') {
       const list = S.form.credit.named;
       const last = list.map((x) => x.account_id).lastIndexOf(b.dataset.acc);
-      list.splice(last + 1, 0, namedEntry(b.dataset.acc, b.dataset.label));
+      const entry = namedEntry(b.dataset.acc, b.dataset.label);
+      list.splice(last + 1, 0, entry);
       touched();
-      return draw();
+      draw();
+      return el.querySelector(`[data-list="credit.named"][data-id="${entry.id}"]`)?.focus();
     }
     if (act === 'audit-toggle') return changeAudit(b.dataset.to === 'on');
     if (act === 'audit-sync') return auditSync();
     if (act === 'audit-verify') return auditVerify();
     if (act === 'add') {
       const list = b.dataset.list;
-      listOf(list).push(
-        emptyRow(
-          list === 'mediq'
-            ? { bill_no: '', collected: '', pharmacy_bill: '' }
-            : list === 'strips'
-              ? { strip_id: null, label: '', price: '', qty: '' }
-              : list === 'credit.free'
-                ? { line_id: null, label: '', amount: '' }
-                : list === 'misc'
-                  ? { charge_id: null, label: '', amount: '' }
-                  : { label: '', amount: '' },
-        ),
+      const row = emptyRow(
+        list === 'mediq'
+          ? { bill_no: '', collected: '', pharmacy_bill: '' }
+          : list === 'strips'
+            ? { strip_id: null, label: '', price: '', qty: '' }
+            : list === 'credit.free'
+              ? { line_id: null, label: '', amount: '' }
+              : list === 'misc'
+                ? { charge_id: null, label: '', amount: '' }
+                : { label: '', amount: '' },
       );
+      listOf(list).push(row);
       draw();
-      return el.querySelector(`[data-list="${b.dataset.list}"]:last-of-type`)?.focus();
+      // focus the first box of the row just added (the old selector found the first row's last box instead)
+      return el.querySelector(`[data-list="${list}"][data-id="${row.id}"]`)?.focus();
     }
     if (act === 'strike') {
       const r = rowOf(b.dataset.list, b.dataset.id);
@@ -1031,6 +1189,7 @@ export async function mount(el, { ctx } = {}) {
   });
 
   draw();
+  window.requestAnimationFrame?.(scrollToCards);
   if (S.status === 'dirty') queueSave(500);
   else refreshPreview();
 }

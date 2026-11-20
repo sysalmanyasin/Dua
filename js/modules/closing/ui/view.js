@@ -48,7 +48,9 @@ export async function mount(el) {
       })}
       <div class="cls-grid">
         <section class="card">
-          <p class="cls-meta">🔒 Saved and locked${page.staff ? html` · responsible: ${page.staff}` : ''}.</p>
+          <p class="cls-meta">
+            <span aria-hidden="true">🔒</span> Saved and locked${page.staff ? html` · responsible: ${page.staff}` : ''}.
+          </p>
           <div class="actions">
             <button type="button" class="btn btn-primary" data-act="pdf">Download PDF</button>
             <button type="button" class="btn" data-act="open">Open to print</button>
@@ -60,7 +62,7 @@ export async function mount(el) {
           .map(
             ({ sec, rows }) =>
               html`<section class="card cls-prev">
-                <div class="cls-prev-head">${sec.icon} ${sec.title}</div>
+                <div class="cls-prev-head" role="heading" aria-level="2"><span aria-hidden="true">${sec.icon}</span> ${sec.title}</div>
                 ${rows.map(([l, v]) => html`<div class="cls-prev-row"><span>${l}</span><span>${v}</span></div>`)}
               </section>`,
           )}
@@ -72,8 +74,11 @@ export async function mount(el) {
     if (!b) return;
     try {
       const { name, blob } = make();
-      if (b.dataset.act === 'open') window.open(URL.createObjectURL(blob), '_blank');
-      else saveBlob(blob, name);
+      if (b.dataset.act === 'open') {
+        const url = URL.createObjectURL(blob);
+        if (!window.open(url, '_blank')) toast('Your browser blocked the new tab. Allow pop-ups, or use Download PDF.', 'error');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } else saveBlob(blob, name);
     } catch (err) {
       toast(`The PDF could not be made (${err.message}).`, 'error');
     }

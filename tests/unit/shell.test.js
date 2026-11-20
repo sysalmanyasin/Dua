@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startShell } from '../../js/core/shell.js';
 
-const loads = { home: 0, closing: 0, access: 0, broken: 0 };
+const loads = { home: 0, closing: 0, access: 0, broken: 0, ebill: 0 };
 const page = (name) => async () => {
   loads[name]++;
   return { mount: (el) => (el.textContent = `page:${name}`) };
@@ -24,6 +24,14 @@ const manifests = [
     nav: { order: 20 },
     permission: 'closing.enter_own',
     routes: [{ path: '/closing', load: page('closing') }],
+  },
+  {
+    id: 'ebill',
+    title: 'Emergency Billing',
+    icon: 'shield',
+    nav: { order: 70 },
+    permission: null,
+    routes: [{ path: '/ebill', title: 'Emergency POS', load: page('ebill') }],
   },
   {
     id: 'access',
@@ -72,24 +80,44 @@ beforeEach(async () => {
 });
 
 describe('app shell', () => {
-  it('someone with a single module lands inside it and has no Home link', async () => {
+  it('someone with a single module still lands on Home, with no Home link while there', async () => {
     const one = manifests
       .filter((m) => m.id === 'home' || m.id === 'closing')
       .map((m) => ({ ...m, routes: m.routes.map((r) => ({ ...r, title: m.title })) }));
     stop = startShell(root, junior, one);
     await tick();
-    expect(location.hash).toBe('#/closing');
+    expect(location.hash).toBe('#/home');
     expect(root.querySelector('.nav-home')).toBeNull();
+    expect(loads.home).toBe(1); // landing does not load Home twice
   });
   it('with several modules Home stays the landing page and the status bar shows only there', async () => {
     const titled = manifests.map((m) => ({ ...m, routes: m.routes.map((r) => ({ ...r, title: m.title })) }));
     stop = startShell(root, admin, titled);
     await tick();
-    expect(location.hash).toBe('');
+    expect(location.hash).toBe('#/home');
     expect(root.querySelector('#status-bar').hidden).toBe(false);
     location.hash = '#/closing';
     await tick();
     expect(root.querySelector('#status-bar').hidden).toBe(true);
+  });
+
+  it('hides the global sidebar on Emergency Billing and keeps a working way to reopen it', async () => {
+    stop = startShell(root, admin, manifests);
+    await tick();
+    expect(root.querySelector('.app-shell').classList.contains('ebill-mode')).toBe(false);
+    location.hash = '#/ebill';
+    await tick();
+    const app = root.querySelector('.app-shell');
+    const menu = root.querySelector('[data-action="menu"]');
+    expect(app.classList.contains('ebill-mode')).toBe(true);
+    expect(menu.getAttribute('aria-label')).toBe('Open navigation');
+    menu.click();
+    expect(app.classList.contains('nav-open')).toBe(true);
+    expect(menu.getAttribute('aria-expanded')).toBe('true');
+    location.hash = '#/home';
+    await tick();
+    expect(app.classList.contains('ebill-mode')).toBe(false);
+    expect(app.classList.contains('nav-open')).toBe(false);
   });
 
   it('a junior sees only permitted modules and the owner-only module is not routable', async () => {
@@ -164,6 +192,15 @@ describe('app shell', () => {
     expect(new Set(hosts).size).toBe(hosts.length); // never the same container twice
     expect(hosts.at(-1).isConnected).toBe(true);
     for (const old of hosts.slice(0, -1)) expect(old.isConnected).toBe(false);
+  });
+
+  it('with no Home module, lands on the first module even when none of its routes has a title', async () => {
+    const m = [
+      { id: 'a', title: 'A', icon: 'home', nav: { order: 0 }, permission: null, routes: [{ path: '/other', load: page('closing') }] },
+    ];
+    stop = startShell(root, junior, m);
+    await tick();
+    expect(location.hash).toBe('#/other');
   });
 
   it('user-supplied names are escaped in the shell', async () => {
