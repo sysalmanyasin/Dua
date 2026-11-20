@@ -6,7 +6,7 @@ import { shortDate } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import manifest from '../manifest.js';
-import { errorCard, loadingCard } from './parts.js';
+import { loadingCard } from './parts.js';
 import { installSignOutGuard } from './signoutGuard.js';
 import { setView } from '../domain/nav.js';
 
@@ -192,8 +192,6 @@ export async function mount(el, { ctx } = {}) {
   const groups = navigationGroups(perms);
   const openAssignments = assignments.filter((item) => item.status !== 'revoked');
   const pendingAssignments = openAssignments.filter((item) => item.round_state === 'counting' && item.status !== 'submitted');
-  const totalItems = pendingAssignments.reduce((sum, item) => sum + (Number(item.items) || 0), 0);
-  const totalCounted = pendingAssignments.reduce((sum, item) => sum + Math.min(Number(item.items) || 0, Number(item.counted) || 0), 0);
   const activeRounds = engagementDetails.reduce((sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length, 0);
   const reviewRounds = engagementDetails.reduce((sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length, 0);
 
