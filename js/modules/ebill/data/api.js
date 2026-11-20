@@ -60,7 +60,16 @@ export const getReceipt = () => one(db().rpc('ebill_get_receipt'));
 export const setReceipt = (value, reason) => one(db().rpc('ebill_set_receipt', { p_value: value, p_reason: reason }));
 /** Date-wise totals and every invoice row for a date range, for reports and exports (export right or manager). */
 export const report = ({ from, to, text, status, mode, max } = {}) =>
-  one(db().rpc('ebill_report', { p_from: from, p_to: to, p_text: text || null, p_status: status || null, p_mode: mode || null, p_max: max || 5000 }));
+  one(
+    db().rpc('ebill_report', {
+      p_from: from,
+      p_to: to,
+      p_text: text || null,
+      p_status: status || null,
+      p_mode: mode || null,
+      p_max: max || 5000,
+    }),
+  );
 export const correctInvoice = (id, changes, reason) =>
   one(db().rpc('ebill_correct_invoice', { p_invoice: id, p_changes: changes, p_reason: reason }));
 

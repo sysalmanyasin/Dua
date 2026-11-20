@@ -9,6 +9,7 @@ import { allRemaining, previewRefund, STATUS_WORDS } from '../domain/refund.js';
 import { normalizeReceiptSettings, receiptFromLocal, receiptFromServer, RECEIPT_TYPES } from '../domain/receipt.js';
 import { loadReceiptSettings } from '../data/receiptSettings.js';
 import { printCopies } from './receiptPrint.js';
+import { openReport } from './reportDialog.js';
 import * as api from '../data/api.js';
 import { openLocalDb } from '../data/localDb.js';
 import { createSync } from '../data/sync.js';
@@ -65,6 +66,7 @@ const fromLocal = (r) => ({
 export async function mount(el, { ctx }) {
   const perms = new Set(ctx.permissions || []);
   const manager = perms.has('ebill.manage');
+  const canExport = manager || perms.has('ebill.export');
   const store = await openLocalDb();
   let receiptCfg = normalizeReceiptSettings(null);
   loadReceiptSettings({ store, api })
@@ -74,6 +76,7 @@ export async function mount(el, { ctx }) {
   const today = day(new Date());
   const f = { from: today, to: today, text: '', status: '', mode: '', sync: '' };
   let offset = 0;
+  let closeReport = null;
   let view = { rows: [], total: 0, sumNet: 0, sumRefunded: 0, pending: 0, failed: 0, offlineOnly: false, error: '' };
   let timer = null;
   let msg = '';
@@ -117,6 +120,7 @@ export async function mount(el, { ctx }) {
           </select></label
         >
       </div>
+      ${canExport ? html`<div class="eb-hist-tools"><button type="button" class="btn btn-sm" data-act="report">Reports &amp; export…</button></div>` : ''}
       <div id="hs-msg"></div>
       <div id="hs-summary"></div>
       <div class="eb-table-wrap eb-hist-wrap"><div id="hs-table"></div></div>
@@ -731,6 +735,21 @@ export async function mount(el, { ctx }) {
   el.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-act],[data-page],tr[data-key]');
     if (!t) return;
+    if (t.dataset.act === 'report') {
+      if (closeReport) return;
+      closeReport = openReport({
+        host: q('#hs-dialog'),
+        api,
+        store,
+        sync,
+        filters: { from: f.from, to: f.to, text: f.text.trim(), status: f.status, mode: f.mode },
+        onClose: () => {
+          closeReport = null;
+          reload(false); // anything uploaded from the report window shows in the list
+        },
+      });
+      return;
+    }
     if (t.dataset.act === 'upload') {
       await sync.syncNow().catch(() => {});
       return reload(false);

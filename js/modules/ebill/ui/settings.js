@@ -5,6 +5,7 @@ import { money } from '../../../shared/format.js';
 import { ask } from './dialog.js';
 import * as api from '../data/api.js';
 import { deviceLabel, getDeviceId } from '../data/device.js';
+import { mountReceiptForm } from './receiptForm.js';
 
 const when = (iso) =>
   iso ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '–';
@@ -24,13 +25,14 @@ export async function mount(el, { ctx }) {
       <h1>Emergency Billing settings</h1>
       <div id="ebs-note"></div>
       <div id="ebs-body"><p class="muted">Loading…</p></div>
+      <div id="ebs-receipt"></div>
       <div id="ebs-dialog"></div>
     </div>`,
   );
   const body = el.querySelector('#ebs-body');
   const dlg = () => el.querySelector('#ebs-dialog');
   const say = (text, kind = 'info') =>
-    render(el.querySelector('#ebs-note'), text ? html`<p class="note note-${kind}" role="status">${text}</p>` : '');
+    render(el.querySelector('#ebs-note'), text ? html`<p class="note note-${kind}" role="status">${text}</p>` : html``);
 
   async function load() {
     try {
@@ -230,4 +232,5 @@ export async function mount(el, { ctx }) {
   });
 
   await load();
+  if (canManage) await mountReceiptForm(el.querySelector('#ebs-receipt'), { api, say });
 }

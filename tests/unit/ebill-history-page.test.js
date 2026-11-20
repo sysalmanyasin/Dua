@@ -38,6 +38,32 @@ vi.mock('../../js/modules/ebill/data/api.js', () => ({
   history: vi.fn(async () => ({ rows: [], total: 0, sum_net: 0, sum_refunded: 0 })),
   invoiceDetail: vi.fn(),
   getReceipt: vi.fn(async () => ({ shop_name: 'Test Pharmacy', copies: 1 })),
+  report: vi.fn(async () => ({
+    days: [
+      { date: '2026-11-16', count: 2, gross: 200, discounts: 10, net: 190, refunded: 40, net_after_refunds: 150, by_mode: { Cash: 150 } },
+    ],
+    totals: { count: 2, gross: 200, discounts: 10, net: 190, refunded: 40, net_after_refunds: 150 },
+    rows: [
+      {
+        invoice_no: 'EB-1',
+        business_date: '2026-11-16',
+        client_created_at: '2026-11-16T10:00:00Z',
+        staff_name: 'J',
+        customer: '',
+        payment_mode: 'Cash',
+        items: 1,
+        gross_total: '100',
+        discounts: '0',
+        net_total: '100',
+        refunded_amount: '0',
+        status: 'posted',
+        device_label: 'C1',
+        pin_check: 'server',
+      },
+    ],
+    total_invoices: 2,
+    truncated: false,
+  })),
   refundLines: vi.fn(async () => ({ ok: true, code: 'refunded', amount: 90, remaining_amount: 0 })),
   correctInvoice: vi.fn(async () => ({ ok: true, code: 'corrected' })),
 }));
@@ -421,6 +447,81 @@ describe('invoice detail', () => {
     expect(printed[0]).toContain('Summary Slip');
     expect(printed[0]).toContain('Receipt# EB-261116-00001');
     expect((printed[0].match(/Duplicate/g) || []).length).toBe(2); // a reprint: both copies say Duplicate
+  });
+  describe('reports and exports', () => {
+    const saved = [];
+    beforeEach(() => {
+      saved.length = 0;
+      URL.createObjectURL = vi.fn(() => 'blob:x');
+      URL.revokeObjectURL = vi.fn();
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+        saved.push(this.download);
+      });
+    });
+    const open = async (perms) => {
+      await boot(perms);
+      const b = el.querySelector('[data-act="report"]');
+      if (b) {
+        b.click();
+        await vi.waitFor(() => expect(fields().querySelector('.eb-report')).not.toBeNull());
+        await vi.waitFor(() => expect(fields().textContent).not.toContain('Making the report'));
+      }
+      return b;
+    };
+
+    it('only people with the export right or a manager see the button', async () => {
+      expect(await open(['ebill.use'])).toBeNull();
+      expect(await open(['ebill.use', 'ebill.export'])).not.toBeNull();
+      expect(await open(['ebill.use', 'ebill.manage'])).not.toBeNull();
+    });
+    it('shows the totals and the day-by-day table, and downloads all four files', async () => {
+      await open(['ebill.use', 'ebill.export']);
+      const { report } = await api();
+      expect(report).toHaveBeenCalledWith(
+        expect.objectContaining({ from: expect.stringMatching(/^\d{4}-\d\d-\d\d$/), to: expect.any(String) }),
+      );
+      expect(fields().textContent).toContain('150.00'); // net after refunds
+      expect(fields().querySelector('tr[data-day="2026-11-16"]')).not.toBeNull();
+      expect(fields().querySelector('.eb-report-warn')).toBeNull(); // nothing unsent, nothing to warn about
+      for (const k of ['csv-daily', 'csv-invoices', 'xlsx', 'pdf']) fields().querySelector(`[data-dl="${k}"]`).click();
+      expect(saved).toHaveLength(4);
+      expect(saved.map((n) => n.split('.').pop())).toEqual(['csv', 'csv', 'xlsx', 'pdf']);
+      expect(saved.every((n) => !n.includes('INCOMPLETE'))).toBe(true);
+    });
+    it('warns, in words, about invoices still on this device, offers upload, and marks the files INCOMPLETE', async () => {
+      const s = await openLocalDb();
+      const base = { user_id: 'u1', created_at: new Date().toISOString(), net_total: 50, payload: { lines: [] } };
+      await s.putInvoice({ ...base, invoice_id: 'p1', local_ref: 'LOCAL-1', status: 'pending' });
+      await s.putInvoice({ ...base, invoice_id: 'f1', local_ref: 'LOCAL-2', status: 'failed' });
+      s.close();
+      await open(['ebill.manage']);
+      const w = fields().querySelector('.eb-report-warn');
+      expect(w).not.toBeNull();
+      expect(w.textContent).toContain('2 invoices on this device have not reached the server');
+      expect(w.textContent).toContain('1 waiting, 1 failed');
+      expect(w.textContent).toContain('NOT included');
+      expect(w.querySelector('[data-rp="upload"]')).not.toBeNull();
+      fields().querySelector('[data-dl="pdf"]').click();
+      fields().querySelector('[data-dl="xlsx"]').click();
+      expect(saved.every((n) => n.includes('INCOMPLETE'))).toBe(true);
+    });
+    it('says when the list is cut short, and when the range is too long', async () => {
+      const { report } = await api();
+      report.mockResolvedValueOnce({
+        days: [],
+        totals: { count: 6000, gross: 0, discounts: 0, net: 0, refunded: 0, net_after_refunds: 0 },
+        rows: new Array(5000).fill(0).map((_, i) => ({ invoice_no: 'E' + i })),
+        total_invoices: 6000,
+        truncated: true,
+      });
+      await open(['ebill.manage']);
+      expect(fields().textContent).toContain('Only the first 5000 of 6000 invoices');
+      report.mockRejectedValueOnce(new Error('choose a date range of up to 400 days'));
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await tick();
+      el.querySelector('[data-act="report"]').click();
+      await vi.waitFor(() => expect(fields().textContent).toContain('up to 400 days'));
+    });
   });
   it('a correction sends only what changed, with the reason', async () => {
     const { correctInvoice } = await api();

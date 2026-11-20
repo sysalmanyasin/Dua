@@ -48,8 +48,6 @@ begin
   return v;
 end $$;
 
--- One query behind both the History list and the reports, so they can never disagree about status, refunds or who may see what.
-
 revoke all on function public.ebill_receipt_defaults() from public, anon, authenticated;
 revoke all on function public.ebill_set_receipt(jsonb, text) from public, anon, authenticated;
 grant execute on function public.ebill_set_receipt(jsonb, text) to authenticated;
