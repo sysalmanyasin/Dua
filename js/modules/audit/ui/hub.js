@@ -135,7 +135,14 @@ function assignmentCard(assignment) {
         ${round ? `Round ${round} · ` : ''}${statusLabel(assignment.round_state)} ·
         ${counted.toLocaleString()} of ${items.toLocaleString()} counted
       </p>
-      <div class="aud-progress" role="progressbar" aria-label="Counting progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
+      <div
+        class="aud-progress"
+        role="progressbar"
+        aria-label="Counting progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="${percent}"
+      >
         <span data-progress="${percent}"></span>
       </div>
       <p class="muted small">${remaining.toLocaleString()} remaining · ${percent}% complete</p>
