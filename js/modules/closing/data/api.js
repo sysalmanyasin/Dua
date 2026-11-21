@@ -54,7 +54,7 @@ export const patchDraft = ({ key, fields }) => one(db().rpc('closing_patch_draft
 
 // The simple fields of a draft, light: what a live refresh needs to see what another device typed.
 const SYNC_SELECT =
-  'id, status, draft_version, updated_at, sys_cash, last_bill_no, last_bill_amt, comp_sale, alfalah, keenu, ret_manual_1, ret_manual_2, ' +
+  'id, status, mode, draft_version, updated_at, sys_cash, last_bill_no, last_bill_amt, comp_sale, alfalah, keenu, ret_manual_1, ret_manual_2, ' +
   'ret_manual_3, ret_system, prev_mediq, book_bill_1, book_bill_2, ov_shift_sale, ov_customers, ov_curr_cc, ov_prev_cash, ' +
   'responsible_staff_id, extra_cash, final_sys_returns, credit_adj';
 export const loadSync = (id) => one(db().from('closings').select(SYNC_SELECT).eq('id', id).maybeSingle());
@@ -87,6 +87,16 @@ export const periodFor = (closingId) => one(db().rpc('closing_period', { p_closi
 export const reopen = ({ closingId, reason, key }) =>
   one(db().rpc('closing_reopen', { p_closing: closingId, p_reason: reason, p_key: key }));
 export const discardRevision = (closingId) => one(db().rpc('closing_discard_revision', { p_closing: closingId }));
+
+/**
+ * Owner only (admin with MFA; the database refuses anyone else): changes a closing between 'shift' and 'final' (migration 0218).
+ * A draft changes in place. A submitted closing is reopened as a new draft revision through the existing correction workflow and
+ * that revision gets the new mode; the original stays submitted until the revision is submitted. `key` is the request key of the
+ * reopen (needed for a submitted closing, ignored for a draft). Returns { closing_id, original_closing_id, revision, status,
+ * old_mode, new_mode, version, already }.
+ */
+export const changeMode = ({ closingId, mode, reason, key = null }) =>
+  one(db().rpc('closing_change_mode', { p_closing: closingId, p_new_mode: mode, p_reason: reason, p_key: key }));
 
 /** Credit accounts the owner configured: named accounts and the names of the staff-credit tiers. */
 export const listCreditAccounts = () =>
