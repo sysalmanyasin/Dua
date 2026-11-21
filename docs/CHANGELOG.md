@@ -20,7 +20,7 @@ Dates are 2026. Counts are as of the end of each step.
 ## 21 Nov — Emergency Billing: full-screen audit and fix
 - Bug fixed: in full screen the billing key handler swallowed Escape before any popup saw it, so Escape could not close Product Help (F5), held bills, Search receipt or the PIN question.
 - Full screen now stays until the cashier presses Exit full screen. If the browser ends it (Esc in Firefox/Safari, a long Esc press, a print window) the full layout stays, an open popup is closed, and real full screen returns on the next click or key press. Removed screens ignore full-screen events.
-- Tests: 8 full-screen tests (suite: 1,881 unit tests, all database tests pass) (replacing one that encoded the bug); checked in real Firefox.
+- Tests: 8 full-screen tests (suite: 1,891 unit tests, all database tests pass) (replacing one that encoded the bug); checked in real Firefox.
 
 ## 21 Nov — Emergency Billing: Phase 5 complete and Phase 6 testing
 - **Phase 5 (merged 20 Nov, PR #45):** partial-refund dialog (item and quantity, amount preview, retry-safe); receipts in the shop's own slip layout (Primary, Gift, Summary, Secondary; 58/80 mm; Duplicate on reprints and extra copies; offline bills carry a temporary-reference note) with live Print/Copies/Type controls, Search receipt, History reprint and offline printing; Settings > Receipt form with live preview, test slip and logo; reports and CSV/Excel/PDF exports with a pending/failed-invoice warning (files named `-INCOMPLETE`).
