@@ -190,7 +190,7 @@ export async function mount(el, { ctx } = {}) {
   };
 
   // The old app's chip row: every other closing page is one tap away, nothing else is shown.
-  const chip = (href, name) => html`<a class="cls-chip" href="${href}">${name}</a>`;
+  const chip = (href, name) => html`<a class="cls-navchip" href="${href}">${name}</a>`;
   const chips = () =>
     html`<nav class="cls-chips" aria-label="Closing pages">
       ${canBooks ? chip('#/closing/credit', 'Credit Ledger') : ''} ${canBooks ? chip('#/closing/misc', 'Misc Ledger') : ''}
