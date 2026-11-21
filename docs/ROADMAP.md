@@ -2,13 +2,14 @@
 
 **Status snapshot:** 19 November 2026. This file lists unfinished work only; it is not a list of all implemented features. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the concise snapshot and [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md) for module-by-module evidence and branch status.
 
-## P0 — Reconcile deployment and repository state
+## P0 — Deployment, migration and security confidence
 
-1. **Closing migration drift:** Manager progress reports live migration `0214_closing_staff_see_all`, but no matching migration file is present in the repository. Inspect the live registry and SQL definition, recover/document the exact source, add a forward-safe repository migration or reconciliation note as appropriate, and add a database test. Do not reapply or invent a migration.
-2. **Fresh main CI:** run/inspect a full GitHub Actions workflow on current `main`, including app, database, Deno Edge Function checks and workflow lint. The latest recorded local result is 1,562/1,562 unit tests plus the database suite; Deno and workflow lint were not run locally.
-3. **Real backup restore drill:** download an actual encrypted Drive backup and restore it into a separate empty Supabase project. The local 39/39 round-trip test and upload checksum do not prove the real restore path.
-4. **Separate production project:** staging and live currently share DuaPharmaPlus according to the runbook. Plan a controlled project split, secrets/Vault/cron recreation and data/config validation before broader launch.
-5. **Branch housekeeping:** done 21 Nov 2026 — `main` is the only branch.
+1. **Migration registry parity:** 89 repository migration files and 89 live registry rows exist, but 12 migrations are registered under timestamp versions instead of their four-digit file versions: `0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, and `1000`–`1003`. The live registry has corresponding timestamp-name rows. Do not edit applied migrations or blindly insert duplicate rows; design and test a safe reconciliation plan before the next migration batch. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
+2. **Security advisor review:** review the 219 authenticated-callable SECURITY DEFINER functions for explicit permission checks and least-privilege grants; decide whether to pin `search_path` on the two flagged trigger functions; enable leaked-password protection if compatible with the staff-login model. Do not blanket-revoke RPCs without mapping required clients.
+3. **Real backup restore drill:** restore an actual encrypted Drive backup into a separate empty Supabase project. The local 39/39 round-trip and upload checksum do not prove the real restore path.
+4. **Separate production project:** plan a controlled production/staging split, secrets/Vault/cron recreation and data/config validation before broader launch.
+5. **Performance hygiene:** prioritize 124 unindexed foreign keys and five RLS initplan warnings; review 28 unused indexes only after representative workload observation. The advisor also reports one duplicate permissive policy on `payment_methods`.
+6. **CI baseline:** current `main` commit `9669497` has a green CI run (#401: app, database and functions) and Pages deployment (#226). Continue checking the exact commit after every merge.
 
 ## P1 — Owner acceptance and production confidence
 
@@ -30,7 +31,7 @@
 - Open decisions: whether counter "Return" bills are wanted (refunds are a manager action in History today); Settings "Device settings" panel (last sync, pending/failed counts).
 
 ### Audit
-- C2 Barcode is paused until the owner says go. It requires vendored scanner libraries and Foundation request OD-6 (shared outbox/sign-out guard).
+- C2 Barcode is implemented and integrated on `main`; migrations 0411 are present in the live registry under a timestamp version. Remaining work is real-device scanner/offline acceptance and hardening, not initial implementation.
 - After C2, complete D hardening: offline end-to-end, accessibility, low-end-phone behaviour, data-use review and formal acceptance.
 - Optional later improvements: expiry-register CSV/print and expiry-by-month summary.
 

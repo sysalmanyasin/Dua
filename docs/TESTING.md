@@ -1,18 +1,18 @@
 # Testing and verification
 
-**Status snapshot:** 19 November 2026. This document separates automated test evidence from live deployment and real-device acceptance.
+**Status snapshot:** 21 November 2026. This document separates automated test evidence from live deployment and real-device acceptance.
 
 ## Latest recorded verification
 
-The 19 Nov 2026 Audit handover records the following local result on the merged main tree:
+Historical local baseline (19 Nov 2026):
 
 - `npm run verify`: lint, format, secret and vendor checks passed; **1,562 / 1,562 unit tests passed**.
 - `bash supabase/tests/run.sh`: full local PostgreSQL database suite passed.
 - Deno Edge Function type checks and workflow lint were **not run locally** in that session.
 
-This is dated repository evidence, not a test run performed by this documentation update. The GitHub commit-status endpoint returned no status entries for the inspected main HEAD, so a fresh green GitHub Actions run is not independently confirmed here. Before release, run the full workflow on current main and inspect each job.
+Fresh GitHub Actions verification is available for `main` commit `96694979e65242f5ee24eb86f215630686b552c8`: CI run #401 passed all three jobs (app, database, functions) and Pages deployment #226 succeeded. This is workflow evidence for that exact commit, not a substitute for device acceptance.
 
-As of 21 Nov 2026 on `main`: 1,891 unit tests in 121 files pass; database test files: 77. Do not add module-specific test counts from different dates/branches. They overlap and are not a current global total.
+As recorded for the 21 Nov 2026 `main` snapshot: 1,891 unit tests in 121 files; 77 database test files. The latest CI run on the same commit is green. Do not add module-specific test counts from different dates/branches.
 
 ## Test suites
 
@@ -47,21 +47,21 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow
 
 ## Live verification recorded (not independently re-run here)
 
-- Inventory migrations 0301–0308 and Edge Function v23 are recorded live; hourly sync has recorded successful runs. Real-phone PDF acceptance and sync fallback cleanup remain.
+- Inventory migrations 0301–0309 are present in the live registry (0309 timestamp-registered); `sync-inventory-from-dropbox` is active at Edge Function v24. Real-phone PDF acceptance and sync fallback cleanup remain.
 - Manager migrations 0101–0108 are recorded live and registered; Credit Inbox still needs a real Closing-data test.
-- Closing migrations 0201–0211 are recorded live in progress notes. A live-only 0214 migration is reported by Manager progress but has no matching repository migration file; resolve this drift before further database work.
+- Closing migrations 0201–0214 are in the repository and live registry. Later Closing migrations 0215–0217 and `closing_refresh_existing_drafts` are registered under timestamp versions; reconcile the registry mapping before future migration batches.
 - STR migrations 0500–0504 and scheduled archive/overdue jobs are recorded live.
 - Emergency Billing 0601/0602, 0610–0612, 0620–0622, 0630–0634 and 0640–0642 are recorded live (0633/0634/0640/0641 on 20 Nov 2026 and 0642 on 21 Nov 2026, each with owner approval; read-only safety checks passed).
-- Audit migrations 0401–0410 and Inventory 0308 are recorded live.
+- Audit migrations 0401–0411 and Inventory 0308 are in the live registry; 0409–0411 are timestamp-registered. Barcode is integrated; phone/scanner acceptance remains.
 - Candela Sales 0900 is recorded live.
-- Invoice Desk migrations 1000–1003 are recorded live in its progress file.
+- Invoice Desk migrations 1000–1003 are live under timestamp registry versions; exact source files remain in the repository.
 - Workspace migrations 1100, 1101, 1102 and 1110 are recorded live (1102 applied and verified 21 Nov 2026); details in its progress file.
 
 These statements come from module progress records. Before production changes, query the actual live migration registry and verify the deployed function bodies.
 
 ## Not yet proven / gaps
 
-- Fresh green GitHub Actions run on current main, including Deno and actionlint jobs.
+- Real-device acceptance for current UI across the pharmacy's Android/desktop devices (CI is green on the audited main commit).
 - Complete real-device acceptance for the current UI across the pharmacy's Android/desktop devices.
 - Real Gmail send from the deployed origin with the owner's Google account.
 - A restore drill from a real encrypted Drive backup into a separate empty Supabase project.

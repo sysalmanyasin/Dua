@@ -1,6 +1,8 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-21 (review and the `1110` search_path follow-up; handover: `workspace.next-session.md`)
+Updated: 2026-11-21 (live `1102` verification and project-wide audit; handover: `workspace.next-session.md`)
+
+> **Current status:** Notes are integrated and accepted by the owner after live testing (reported 21 Nov). Migrations `1100`, `1101`, `1102` and `1110` are in the live registry; `1102` was applied 21 Nov. The Sheets database is present, but no Sheets UI/domain/data/grid or “New workbook” flow exists yet. Remaining Workspace phases: Sheets UI (Phase 5), formulas, formatting/filter/CSV, offline queue, sync/conflict merge and attachments.
 
 ## Completed
 

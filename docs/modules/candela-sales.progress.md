@@ -1,8 +1,8 @@
 # Candela Sales — progress
 
-Last updated: 14 Nov 2026
-Branch: module/candela-sales (merged to `main` and closed 14 Nov 2026)
-Status: Built; owner phone try-out pending.
+Last updated: 21 Nov 2026
+Branch: `module/candela-sales` merged to `main`.
+Status: Integrated; migration `0900` is live and registered; four owner screens and staff-safe daily total pill are present. Owner phone acceptance and ongoing hourly history-capture monitoring remain.
 
 ## Done
 

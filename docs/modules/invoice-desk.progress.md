@@ -1,6 +1,8 @@
 # Invoice Desk — Progress
 
-Updated: 2026-11-19
+Updated: 2026-11-21
+
+> **Current status:** source and three routes are integrated on `main`; CI run #401 passed the full app/database/functions jobs on commit `9669497`. Migrations 1000–1003 are live but recorded in the registry under timestamp versions `20261117135131`–`20261117140223`. Remaining: explicit E2E save/product/history/RLS coverage, source-workbook print comparison/logo verification, Android/Windows browser and physical 80mm printer acceptance.
 
 ## Completed
 - [x] Owner-approved scope and isolated `feature/invoice-desk` branch.

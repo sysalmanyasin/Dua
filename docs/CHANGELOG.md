@@ -2,6 +2,14 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 21 Nov — Full module, CI and live Supabase audit
+- Audited main commit `96694979e65242f5ee24eb86f215630686b552c8`: 13 registered modules, 707 repository files, 121 front-end test files / 1,891 recorded unit tests, 77 database test files and 89 migration files.
+- Verified GitHub Actions CI run #401 (app, database, functions) and Pages deployment #226 succeeded on the same commit.
+- Queried live DuaPharmaPlus: ACTIVE_HEALTHY on PostgreSQL 17.11; 124 public tables all with RLS; 337 public routines; six active Edge Functions, Inventory sync v24.
+- Found 12 migrations whose repo four-digit versions are recorded in the live registry under timestamp versions. Corrected the stale claim that Closing 0214 was missing: it exists in both repository and live registry.
+- Updated the master register, project status, roadmap, testing, architecture/security/database/runbook references and module progress/handover documents. Added `docs/PROJECT_AUDIT_2026-11-21.md`.
+- Remaining work is acceptance, migration-registry reconciliation, security-advisor review, real backup restore, Workspace Sheets UI and operational hardening; see the audit and roadmap.
+
 ## 21 Nov — Workspace Sheets database applied live; documents brought up to date
 - Migration `1102_workspace_sheets` is applied to the live project and registered as version `1102`. Checked live: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal functions not callable by `anon` or `authenticated`, `1100`, `1101`, `1102` and `1110` all registered.
 - Workspace Notes accepted by the owner after live testing. The Sheets screens are **not built** yet (domain model, data layer, grid, "New workbook").

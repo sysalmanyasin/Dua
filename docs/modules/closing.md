@@ -1,4 +1,4 @@
-> **Current status (19 Nov 2026):** Closing's 14-section guided ledger, submit/reopen flow, Credit and Misc ledgers, Manager credit feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review and Settings are integrated on `main` and recorded built in [closing.progress.md](closing.progress.md). Migrations `0201`–`0211` are recorded live. Owner phone try-out #5 and formal acceptance remain. Manager progress also reports live migration `0214_closing_staff_see_all`, but no matching source migration exists in this repository; reconcile the live registry/source before creating or applying another Closing migration. Earlier session entries below are historical handoffs, not current build status.
+ > **Current status (21 Nov 2026):** Closing's 14-section ledger, submit/reopen, shared drafts/live sync, Credit and Misc ledgers, Manager credit feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review, Settings and Inventory Audit card are integrated on `main`. Live registry confirms 0201–0214 by repo version; `closing_refresh_existing_drafts` and 0216/0217 are timestamp-registered. Migration 0214 exists in the repository and live registry; older notes saying its source was missing are incorrect. Owner phone try-out #5, formal acceptance and the audit-gate decision remain. Earlier session entries below are historical.
 
 Status: **Built; owner acceptance pending** · Owner approval: yes (9 Nov 2026, "go")
 Branch history: `module/closing` · Migration range: `0200–0299` · Prefix: `closing_` · Permissions: `closing.*` · Route prefix: `/closing` · Nav order: 30
@@ -124,7 +124,7 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 **Read `docs/modules/closing.next-session.md` first: it is the work order (state, owner questions, review gaps, slice plan, payload and function reference, start prompt).**
 
 - Done: pure maths, tables and RLS (`0201`), draft / submit / correct and carry-forward (`0202`), hardening and the owner decisions CLS-6 to CLS-14 (`0203`), the period roll-up (`0204`), trigger grants (`0205`), the credit feed and ledger functions (`0206`). Screens: start page, guided ledger sections 1–14, submit and success screen, Credit Ledger, Misc Ledger. All of `0201`–`0206` are applied to the live project.
-- Not built: the Register Book (undefined), the Inventory Audit card (until it exists, an owner switches the audit requirement off with a reason). Books, history, review and settings are built but not yet tried on a phone.
+- Remaining: the Register Book still has no agreed definition. The Inventory Audit card is implemented (0211); the owner must test it and decide whether to re-enable the requirement. Books, history, review and settings still need owner phone acceptance.
 - Read `docs/modules/closing.progress.md` (Session C handoff) for the open owner questions and the try-out checklists.
 
 ## Familiar-to-the-old-app additions (branch `feature/closing-familiar-ux`)
@@ -137,7 +137,7 @@ Follow the old guided flow and phone conventions (text ≥ 0.8 rem, buttons ≥ 
 - **Start page:** month calendar with shift dots, the day's closings, Saved records (Continue / Open / PDF).
 - **Read-only saved closing** (`/closing/view`) and PDF / print after Submit, for staff too.
 - **Needs migration `0212_closing_own_book.sql`** (read-only RPCs `closing_book_own`, `closing_prev_page`). Without it the previous-closing card, Open and PDF show nothing or an error; everything else works.
-- **Needs migration `0216_closing_prev_page_draft.sql`** (replaces `closing_prev_page`). From 0214 until 0216 the previous-closing card said "You are not allowed to do that" on every draft, and the shift-sale / customer deltas had nothing to compare with. Apply it on the live project; it is read-only and safe to re-run.
+- **Historical note:** `0216_closing_prev_page_draft.sql` is already applied live and registered under timestamp version `20261118123221`. Do not reapply it. It fixed the previous-closing card and shift/customer comparisons.
 - **Reopening a draft** loads every child table the form reads (cash counts for Till and Draw Cash, credit lines, deposits as well as HS, strips, MEDIQ and misc). `tests/unit/closing-api-select.test.js` fails if one is left out of the query, because the next autosave would replace the saved rows with the blank form.
 
 ## Last Bill Amount and Closing-only view
