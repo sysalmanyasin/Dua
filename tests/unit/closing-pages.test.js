@@ -471,12 +471,49 @@ describe('Closing ledger', () => {
     expect(el.querySelector('[data-total="till"]').textContent).toBe('10,000.00');
     el.querySelector('[data-jump="10"]').click();
     expect(el.textContent).toContain('Ali Traders');
-    expect(el.querySelectorAll('select[data-list="credit.tier"]')).toHaveLength(1); // only slot 1 has configured names
-    expect(el.querySelectorAll('input[data-list="credit.tier"][data-k="label"]')).toHaveLength(2);
+    // three staff-credit rows, each with a Group and a Name choice; no free-text group any more
+    expect(el.querySelectorAll('select[data-list="credit.tier"][data-k="group"]')).toHaveLength(3);
+    expect(el.querySelectorAll('select[data-list="credit.tier"][data-k="person"]')).toHaveLength(3);
+    expect(el.querySelectorAll('input[data-list="credit.tier"][data-k="label"]')).toHaveLength(0);
+    const groups = [...el.querySelector('select[data-k="group"]').options].map((o) => o.value);
+    expect(groups).toEqual(['', 'Morning Shift', 'Evening Shift', 'Night Shift']);
+    const names = [...el.querySelector('select[data-k="person"]').options].map((o) => o.value);
+    expect(names).toEqual(['', 'J One']); // the active staff from the registry, the same under every group
     el.querySelector('[data-act="add"][data-list="credit.free"]').click();
     expect(el.querySelectorAll('input[data-list="credit.free"][data-k="label"]').length).toBe(1);
     el.querySelector('[data-jump="13"]').click();
     expect(el.querySelector('[data-act="submit"]')).not.toBeNull();
+  });
+  it('stores a staff-credit row as "Group — Name", and the same person can be picked in two rows', async () => {
+    openTarget();
+    await ledger();
+    el.querySelector('[data-jump="10"]').click();
+    const pick = (sel, v) => {
+      sel.value = v;
+      sel.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const rows = [...el.querySelectorAll('.cls-tier')];
+    pick(rows[0].querySelector('[data-k="group"]'), 'Morning Shift');
+    pick(rows[0].querySelector('[data-k="person"]'), 'J One');
+    pick(rows[1].querySelector('[data-k="group"]'), 'Night Shift');
+    pick(rows[1].querySelector('[data-k="person"]'), 'J One');
+    type(rows[0].querySelector('.cls-in:not(select)'), '500');
+    await vi.advanceTimersByTimeAsync(3000);
+    const sent = api.saveDraft.mock.calls.at(-1)?.[0]?.payload ?? api.patchDraft?.mock?.calls?.at(-1)?.[0];
+    const tier = sent?.credit?.tier;
+    expect(tier?.map((t) => t.label)).toEqual(['Morning Shift — J One', 'Night Shift — J One']);
+  });
+  it('shows each named account as one slim line until an entry is added', async () => {
+    openTarget();
+    await ledger();
+    el.querySelector('[data-jump="10"]').click();
+    const acct = el.querySelector('.cls-acct');
+    expect(acct.querySelector('.cls-acct-head').textContent).toContain('Ali Traders');
+    expect(acct.querySelector('input')).toBeNull(); // nothing typed: no blank boxes taking up the screen
+    acct.querySelector('[data-act="add-named"]').click();
+    expect(el.querySelector('.cls-acct input[data-k="desc"]')).not.toBeNull(); // the first tap opens its entry row
+    el.querySelector('.cls-acct [data-act="add-named"]').click();
+    expect(el.querySelectorAll('.cls-acct input[data-k="desc"]')).toHaveLength(2); // later taps add more
   });
   it('shows "N of 14" under a slim title bar, and asks for the responsible person only on the last section', async () => {
     openTarget();

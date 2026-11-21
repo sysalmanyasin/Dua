@@ -276,3 +276,17 @@ describe('whole-number rules', () => {
     expect(invalid).not.toContain('till.7');
   });
 });
+
+describe('staff-credit group and name', () => {
+  it('splits and joins "Group — Name", and keeps older free-text labels visible', async () => {
+    const { tierSplit, tierJoin, CREDIT_GROUPS } = await import('../../js/modules/closing/domain/form.js');
+    expect(CREDIT_GROUPS).toEqual(['Morning Shift', 'Evening Shift', 'Night Shift']);
+    expect(tierJoin('Night Shift', 'Ali Khan')).toBe('Night Shift — Ali Khan');
+    expect(tierJoin('', 'Ali Khan')).toBe('Ali Khan');
+    expect(tierJoin('Morning Shift', '')).toBe('Morning Shift');
+    expect(tierSplit('Night Shift — Ali Khan')).toEqual({ group: 'Night Shift', person: 'Ali Khan' });
+    expect(tierSplit('Evening Shift')).toEqual({ group: 'Evening Shift', person: '' });
+    expect(tierSplit('Old typed name')).toEqual({ group: '', person: 'Old typed name' });
+    expect(tierSplit(tierJoin('Night Shift', 'Ali Khan'))).toEqual({ group: 'Night Shift', person: 'Ali Khan' });
+  });
+});

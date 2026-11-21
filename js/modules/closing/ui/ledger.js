@@ -24,6 +24,8 @@ import {
   simpleDiff,
   simpleTexts,
   stripLineTotal,
+  namedShown,
+  tierJoin,
 } from '../domain/form.js';
 import { overviewValue, prevTitle, snapshotRows } from '../domain/snapshot.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
@@ -89,7 +91,7 @@ export async function mount(el, { ctx } = {}) {
     section: 0,
     period: null,
     auditRequired,
-    tierNames: [1, 2, 3].map((n) => accounts.filter((a) => a.kind === 'tier_name' && a.tier_no === n).map((a) => a.label)),
+    staff, // active staff on the payroll list: the Name choices under every staff-credit group
     submitting: false,
     done: null,
     seen: new Set([0]),
@@ -1075,7 +1077,7 @@ export async function mount(el, { ctx } = {}) {
         <div class="cls-bar">
           <p class="cls-step">
             <span><strong>${S.section + 1} of ${SECTIONS.length}</strong> · ${SECTIONS[S.section].label}</span>
-            <span class="cls-swipe-hint" aria-hidden="true">‹ swipe ›</span>
+            ${S.section === 0 ? html`<span class="cls-swipe-hint" aria-hidden="true">‹ swipe ›</span>` : ''}
           </p>
           <div class="cls-progress" aria-hidden="true"><span style="width: ${pct}%"></span></div>
           <nav class="cls-jump" aria-label="Sections">
@@ -1339,6 +1341,7 @@ export async function mount(el, { ctx } = {}) {
       const r = rowOf(i.dataset.list, i.dataset.id);
       if (!r) return;
       r[i.dataset.k] = i.value;
+      if (i.dataset.list === 'credit.tier' && (i.dataset.k === 'group' || i.dataset.k === 'person')) r.label = tierJoin(r.group, r.person);
       const x = el.querySelector(`[data-extra="${r.id}"]`);
       if (x) x.textContent = money(rupees(rowExtra(r)));
       const l = el.querySelector(`[data-line="${r.id}"]`);
@@ -1408,8 +1411,15 @@ export async function mount(el, { ctx } = {}) {
     }
     if (act === 'add-named') {
       const list = S.form.credit.named;
+      // an account with nothing typed shows only its name: the first tap opens its (empty) first row, later taps add more
+      const hidden = list.find((x) => x.account_id === b.dataset.acc && !namedShown(x));
+      if (hidden) {
+        hidden.shown = true;
+        draw();
+        return el.querySelector(`[data-list="credit.named"][data-id="${hidden.id}"]`)?.focus();
+      }
       const last = list.map((x) => x.account_id).lastIndexOf(b.dataset.acc);
-      const entry = namedEntry(b.dataset.acc, b.dataset.label);
+      const entry = { ...namedEntry(b.dataset.acc, b.dataset.label), shown: true };
       list.splice(last + 1, 0, entry);
       touched();
       draw();
