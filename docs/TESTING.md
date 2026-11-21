@@ -37,12 +37,12 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow
 
 ## Recorded module-specific evidence
 
-- Audit progress records DB tests through migrations 0401–0410 and unit/page tests for counting, compile, reports, final snapshot and expiry. Its 19 Nov handover records the full main test suite at 1,562 unit tests and the database suite passing.
+- Audit progress records DB tests through migrations 0401–0411 and unit/page tests for counting, compile, reports, final snapshot, expiry and barcode. Its 19 Nov handover records the full main test suite at 1,562 unit tests and the database suite passing.
 - Manager progress records a 2,434-check DB suite and 1,267 unit tests at its 17 Nov snapshot. These are historical module-session totals, not additive to the current main total.
 - Closing progress records successive DB and page tests through 0211; its individual session counts are historical snapshots.
 - Inventory progress records feed/delta, export, sync and screen tests; individual counts are from earlier snapshots.
 - Workspace (Phase 4, 19 Nov 2026): 176 unit tests in eight files (`tests/unit/workspace-*.test.js`: validation, permissions, revisions/documents/data layer, editor model, autosave, editor, pages) and database tests `1100_workspace_core_test.sql` (149 checks), `1101_workspace_notes_test.sql` (115 checks) and the generated `1101_workspace_note_cases_test.sql` (37 cases). The editor tests run the real vendored ProseMirror in jsdom; the page tests mock the data layer. After merging `main`, the full suite was 1,669 unit tests with one failure that also fails on clean `main` (`ebill-page.test.js`, cash-received entry) and 71 database test files passing.
-- Invoice Desk progress records initial domain and SQL amount-words tests, but explicitly says full repository verification, full DB suite and E2E/RLS coverage still need to be run with the integrated main tree.
+- Invoice Desk is integrated on main and CI #401 passed app/database/functions on the audited commit; dedicated E2E save/product/history/RLS coverage and physical print acceptance remain.
 - Shared fixtures include Sales totals, Closing calculations/periods, Manager credit and Workspace note validation. Browser and SQL rules should remain in parity where fixtures are shared.
 
 ## Live verification recorded (not independently re-run here)

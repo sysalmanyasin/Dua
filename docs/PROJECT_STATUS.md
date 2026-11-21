@@ -23,7 +23,7 @@ This is the concise operational snapshot. For per-module evidence, migration not
 |---|---|---|---|
 | Foundation / Access | Integrated; authentication, MFA gate, roles, per-person permissions and user access. | Foundation is recorded live and owner-accepted. | Production/staging separation, operational hardening and security-advisor follow-up. |
 | Tools | Integrated; notifications, backup workflow and operations status. | Daily encrypted Drive backup and monitoring are recorded live. | Real Drive-backup restore into a separate empty Supabase project; keep monitoring. |
-| Home | Integrated; Home 2.0 redesign in main. | Uses existing permission-aware summary RPCs; no new migration. | Real-device acceptance and fresh CI confirmation. |
+| Home | Integrated; Home 2.0 redesign in main. | Uses existing permission-aware summary RPCs; no new migration. | Real-device owner acceptance across staff permission levels. |
 | Sales | Integrated; entry, checklist, dashboard, reports, targets, fields and Gmail-send flow. | Sales migrations and imported history recorded live. | Owner phone acceptance and real Gmail send from deployed origin; dependent extras remain decision-based. |
 | Manager | Integrated; Staff Registry, Staff Credit, Salary, Generic, Incentive, Petty Detail, Expenses, Jazz Cash, Misc, Balance Tally, Inbox and reports. | Migrations 0101–0108 recorded applied/registered live. | Phone try-outs #2–#4; verify Credit Inbox using real Closing feed. Attendance is later. |
 | Closing | Integrated; 14-section ledger, shared drafts/live sync, ledgers/feed, Closing Book/PDF, history, review/reopen and settings. | Live registry contains 0201–0214 by repo number; 0215–0217 and the refresh migration are recorded under timestamp versions (see audit). | Owner try-out #5, acceptance and decision on audit gate; preserve migration registry parity. |
@@ -46,8 +46,8 @@ This is the concise operational snapshot. For per-module evidence, migration not
 | Area | Recorded evidence | Caveat |
 |---|---|---|
 | Unit tests | Repository records 1,891 unit tests across 121 files on the 21 Nov main snapshot. | Latest GitHub Actions CI run on commit `9669497` passed app, database and functions jobs; see `TESTING.md`. |
-| Database suite | Same handover records the full local database suite passing. | Re-run on current main before release; do not add older module-specific counts. |
-| Deno and workflow lint | Present in CI workflow. | Not run locally in the cited 19 Nov session. |
+| Database suite | CI #401 database job passed on audited main commit `9669497`; 77 database test files are present. | Re-run on current main before release; do not add older module-specific counts. |
+| Deno and workflow lint | CI #401 functions job and app workflow-lint steps passed on audited main. | Local run is optional; inspect the exact CI run after changes. |
 | GitHub Actions | CI run #401 on commit `9669497` completed successfully: app, database and functions jobs all green. | Pages deployment run #226 on the same commit also succeeded. |
 | GitHub Pages | Main is the deployment source. | Current real-device UI acceptance remains outstanding. |
 | Backup | Daily encrypted Drive workflow and monitoring recorded live. | A real Drive-to-separate-Supabase restore drill remains outstanding; local 39/39 restore test is not a substitute. |
