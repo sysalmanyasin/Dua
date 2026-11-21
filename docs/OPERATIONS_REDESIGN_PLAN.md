@@ -1,6 +1,6 @@
 # Operations Redesign — audit, gap analysis and implementation plan
 
-Status: **Stage 1 (audit and plan), 21 Nov 2026; owner decisions D1–D6 and D11-range recorded the same day (see §8 and `docs/DECISIONS.md` D-50 to D-54).** Nothing in this plan is built yet except the two hygiene fixes in §9.
+Status: **Stage 1 (audit and plan), 21 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-50 to D-54).** Nothing in this plan is built yet except the two hygiene fixes in §9.
 Source brief: "DUA — Complete Operations Redesign & Implementation". Where the brief leaves a policy open, this plan lists it in §8 as a **decision for the owner** and does not assume an answer.
 
 ## 1. Method and limits
