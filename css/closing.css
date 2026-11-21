@@ -151,15 +151,15 @@
   top: var(--cls-hdr); /* sits under the sticky app header instead of sliding beneath it */
   z-index: 4;
   background: var(--bg);
-  padding: var(--space-2) 0;
+  padding: var(--space-1) 0;
 }
 .cls .cls-step {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
-  margin: 0 0 var(--space-1);
-  font-size: 0.85rem;
+  margin: 0 0 4px;
+  font-size: 0.8rem;
 }
 .cls .cls-step strong {
   font-variant-numeric: tabular-nums;
@@ -184,8 +184,11 @@
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
-  padding: var(--space-2) 0;
-  scrollbar-width: thin;
+  padding: var(--space-1) 0;
+  scrollbar-width: none; /* the grey scrollbar under the pills took height and looked broken */
+}
+.cls .cls-jump::-webkit-scrollbar {
+  display: none;
 }
 .cls .cls-jump button {
   flex: 0 0 auto;
@@ -369,6 +372,17 @@
 .cls .cls-val {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+/* a calculated figure in a row is a boxed, right-aligned cell, like the boxes above it (it used to sit bare, left of the cell) */
+.cls .cls-row > strong.cls-val {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: var(--mono);
 }
 .cls .cls-banner {
   margin-top: 14px;
@@ -671,10 +685,37 @@
 }
 .cls .cls-acct {
   display: grid;
-  gap: var(--space-2);
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.cls .cls-acct-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+}
+/* staff credit: Group and Name side by side, then the ± and the amount */
+.cls .cls-tier {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.cls .cls-tier > .cls-signed {
+  grid-column: 1 / -1;
+}
+.cls .cls-tier select.cls-in {
+  text-align: left;
+  font-family: inherit; /* names, not figures: left aligned, not the monospace of the number boxes */
+  min-height: 44px;
+  padding: 0 6px;
+  font-size: 0.9rem;
+}
+.cls .sec-label {
+  color: var(--cls-teal-text); /* these were still the shell's blue */
 }
 .cls .cls-acct-head {
   font-weight: 700;
@@ -863,21 +904,29 @@
   min-height: 44px;
   padding: 0 6px;
 }
-/* previous-closing card: same ruled look */
+/* previous-closing card: reference material, so it must not look like another entry card: dashed edge, no fill, quieter type */
 .cls.cls-swipe .cls-prev {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
   padding: 0;
   overflow: hidden;
-  border-style: solid;
+  border: 2px dashed var(--border);
   border-radius: 12px;
+  background: transparent;
+  color: var(--text-muted);
 }
 .cls.cls-swipe .cls-prev-head {
-  padding: 10px 12px;
-  background: var(--surface-2);
+  padding: 8px 12px;
+  background: transparent;
+  font-size: 0.72rem;
 }
 .cls.cls-swipe .cls-prev-row {
-  padding: 9px 12px;
-  border-bottom: 1px solid var(--border);
+  padding: 7px 12px;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.85rem;
+}
+.cls.cls-swipe .cls-prev-row span:last-child {
+  font-weight: 600;
+  color: var(--text);
 }
 .cls.cls-swipe .cls-prev-row:last-child {
   border-bottom: 0;

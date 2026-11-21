@@ -15,7 +15,12 @@ const overrideText = (v) => (v === null || v === undefined ? '' : String(Number(
 export const emptyRow = (extra = {}) => ({ id: rowId(), deleted: false, ...extra });
 
 export const TIER_SLOTS = 3;
-const blankTier = () => ({ id: rowId(), line_id: null, label: '', amount: '' });
+/** A named account shows its entry row only once there is something in it (or the person opened it): the old app's compact look. */
+export const namedShown = (r) => Boolean(r.shown || r.line_id || r.deleted || String(r.desc ?? '').trim() || String(r.amount ?? '').trim());
+
+/** The three staff-credit groups (owner decision, 21 Nov 2026). The same active staff list is offered under each one. */
+export const CREDIT_GROUPS = ['Morning Shift', 'Evening Shift', 'Night Shift'];
+const blankTier = () => ({ id: rowId(), line_id: null, label: '', amount: '', group: '', person: '' });
 const namedLine = (a) => ({ id: rowId(), line_id: null, account_id: a.id, label: a.label, desc: '', amount: '', deleted: false });
 /** One more entry for a named account (the old app let an account have several, each with an optional description). */
 export const namedEntry = (accountId, label) => ({
@@ -29,6 +34,20 @@ export const namedEntry = (accountId, label) => ({
 });
 // A named line is saved with the label "Account — description" (no database change); on loading it is split again.
 const NAMED_SEP = ' — ';
+/** A saved staff-credit label ("Morning Shift — Ali") back into its two boxes. Older free-text labels still show, in the Name box. */
+export const tierSplit = (label) => {
+  const s = String(label ?? '').trim();
+  const i = s.indexOf(NAMED_SEP);
+  if (i >= 0) return { group: s.slice(0, i).trim(), person: s.slice(i + NAMED_SEP.length).trim() };
+  return CREDIT_GROUPS.includes(s) ? { group: s, person: '' } : { group: '', person: s };
+};
+/** The two boxes into the one label the database stores (the same "A — B" pattern the named accounts use). */
+export const tierJoin = (group, person) =>
+  [group, person]
+    .map((x) => String(x ?? '').trim())
+    .filter(Boolean)
+    .join(NAMED_SEP)
+    .slice(0, 120);
 export const namedLabel = (r) =>
   String(r.desc ?? '').trim() ? `${r.label.trim()}${NAMED_SEP}${String(r.desc).trim()}`.slice(0, 120) : r.label.trim();
 
@@ -163,7 +182,9 @@ export function formFromRow(row, catalogue = [], accounts = []) {
   ];
   f.credit.tier = Array.from({ length: TIER_SLOTS }, (_, i) => {
     const r = lines.find((x) => x.kind === 'tier' && x.tier_slot === i + 1);
-    return r ? line(r) : blankTier();
+    if (!r) return blankTier();
+    const l = line(r);
+    return { ...l, ...tierSplit(l.label) };
   });
   f.credit.free = lines
     .filter((r) => r.kind === 'free')
