@@ -88,13 +88,26 @@ The live permission catalog contained **70 keys** on 21 November 2026. Descripti
 | `workspace.create` | Create new Workspace notes and workbooks and share them |
 | `workspace.use` | Open Dua Workspace and work on notes and sheets shared with you |
 
-## 2. Current module availability
-- **Sales:** implemented; see the User Guide for available pages.
-- **Manager:** Staff Registry and Staff Credit are implemented. Migrations 0101–0103 are live. Owner phone acceptance and later slices (including payslips and petty cash) remain outstanding. See `docs/modules/manager.progress.md`.
-- **Closing:** partially implemented. The guided ledger is in progress; remaining sections, submit flow, ledgers and print are not complete. See `docs/modules/closing.progress.md`.
-- **Inventory:** live and complete. The Candela feed syncs every hour (migrations 0301–0307, Edge Function v23). Screens: Overview, Stock Ledger, Reorder, Excess Working, Health, Sync. Home shows a Stock row to people with `inventory.view`. Reports export to Excel, PDF and CSV. Do not reapply the migrations. The sync schedule is a pg_cron job (`inventory-hourly-sync`); see `docs/RUNBOOK.md`.
+## 2. Current module availability (21 November 2026)
 
-- **Workspace (Notes):** live. No role carries `workspace.use` or `workspace.create`: grant them per person in Users & Access. A person needs `workspace.use` to open Workspace and see what is shared with them, and `workspace.create` to start notes and share them. Your own admin account holds both (at the second factor) but, by design, sees a colleague's note only if it was shared with you. Remove someone's access to Workspace by denying `workspace.use`; they lose every note at once. Sheets are not built yet. Details: `docs/modules/workspace.md`.
+All 13 modules are integrated and registered in the application. Automated CI passed on main commit `9669497`; real-device and owner acceptance are still separate gates.
+
+- **Home:** Home 2.0 is integrated with permission-filtered business/stock summaries, daily progress, attention links and device-local favourites. Owner phone acceptance remains.
+- **Sales:** dashboard, daily entry/correction, monthly history, reports, checklist, targets/fields, deposit and Gmail-send flow are integrated. Owner phone acceptance and one real Gmail send from the deployed origin remain.
+- **Manager:** Staff Registry, Staff Credit, Salary, Generic, Incentive, Petty Cash, Expenses, Jazz Cash, Misc, Balance Tally, Credit Inbox and reports are integrated. Staff Credit, Salary and Generic use gridded numbered tables. Migrations 0101–0108 are live. Owner phone try-outs #2–#4 and a real Closing Credit Inbox check remain. Attendance is deferred.
+- **Users & Access:** owner-managed staff login creation, PIN reset, lock/unlock, enable/disable, roles and per-person Allow/Deny permissions are integrated. No self-sign-up. Keep owner/staff sign-in acceptance and access-security review on the checklist.
+- **Tools:** owner-only alerts, backup status, restore-drill status and Inventory feed health are integrated. A real restore from an encrypted Drive backup into a separate empty Supabase project is still required.
+- **Closing:** 14-section ledger, shared drafts/live sync, submit/reopen, Credit and Misc ledgers, Manager feed, Closing Book/PDF, histories, Review and Settings are integrated. Migrations 0201–0214 are repo-numbered in the live registry; 0215–0217 and the refresh migration are timestamp-registered. Owner phone try-out #5 and the Inventory Audit gate decision remain.
+- **Inventory:** six screens, Home stock summary, feed and Excel/PDF/CSV exports are integrated. Migrations through 0309 are live; 0309 is timestamp-registered; the sync Edge Function is v24. Real-phone PDF acceptance and sync monitoring/fallback cleanup remain.
+- **STR:** list, detail, report, Zero Dispatch, archive and overdue notification workflows are integrated; migrations 0500–0504 and scheduled jobs are live. Owner phone try-outs #1/#2, supplier/pack metadata follow-up and acceptance remain.
+- **Candela Sales:** owner history/customer-credit screens and the staff-safe daily-total pill are integrated; migration 0900 is live. Owner phone acceptance and hourly history-capture monitoring remain.
+- **Emergency Billing:** offline POS, sync, holds, history, corrections, full/partial refunds, receipt settings/printing, Search receipt, reports and exports are integrated. Automated Phase 6 testing is documented complete; migrations through 0642 are live. The owner must grant intended `ebill.*` permissions, complete receipt settings and test actual devices/printers.
+- **Audit:** Audit 2.0 command centre, counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports, expiry/racks and Barcode are integrated. Migrations 0401–0411 are live (0409–0411 timestamp-registered). PHONE 1/2/3, scanner/offline, print/CSV acceptance and security review remain.
+- **Invoice Desk:** three business-specific invoice templates, invoice creation/history/product suggestions and 80 mm browser print path are integrated. Migrations 1000–1003 are live under timestamp registry versions. E2E save/product/history/RLS tests, workbook/logo comparison and physical printer acceptance remain.
+- **Workspace Notes:** home/search/folders, rich-text editor, autosave, sharing, history/restore, archive/delete are integrated and accepted by the owner after live testing (reported 21 Nov).
+- **Workspace Sheets:** database foundation migration 1102 is live; Sheets UI/domain model/data layer/grid and New workbook flow are **not built**. Formulas, formatting/filter/CSV, offline sync/conflict merge and attachments are later phases.
+
+**Important:** 89 repository migration files and 89 live registry rows exist, but 12 rows use timestamp versions instead of their four-digit repository versions. Do not reapply these migrations or insert duplicate rows; follow the migration-registry reconciliation plan before future database batches. See `docs/PROJECT_AUDIT_2026-11-21.md`.
 
 ## 3. Sales settings
 - **Sales → Fields (Manage Fields):** add your own bank or client column, rename a field, tick whether it appears on the Add Entry page, move it up/down, or **switch it off** (kept in history, not usable for new days). Once a field has saved figures its **type (adds / deducts / info only) and section cannot change**; hide it and add a new field instead.
