@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 21 Nov — Operations Redesign, Stage 1 (audit and plan)
+- Added `docs/OPERATIONS_REDESIGN_PLAN.md`: audit of the current app, gap analysis against the redesign brief, architecture decisions, Task Master / notifications / AI design, eleven owner decisions, stage-by-stage acceptance. Nothing in the redesign is built yet.
+- Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Not yet applied live.
+- Added `tools/check-registry.mjs` (compares migration files with a read-only registry export) and `docs/ops/f7-registry-reconciliation.md` (guarded, reversible procedure for the 12 timestamp-versioned rows). Not yet executed.
+
 ## 21 Nov — Full module, CI and live Supabase audit
 - Audited main commit `96694979e65242f5ee24eb86f215630686b552c8`: 13 registered modules, 707 repository files, 121 front-end test files / 1,891 recorded unit tests, 77 database test files and 89 migration files.
 - Verified GitHub Actions CI run #401 (app, database, functions) and Pages deployment #226 succeeded on the same commit.
