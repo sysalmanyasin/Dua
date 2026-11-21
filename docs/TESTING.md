@@ -61,8 +61,7 @@ These statements come from module progress records. Before production changes, q
 
 ## Not yet proven / gaps
 
-- Real-device acceptance for current UI across the pharmacy's Android/desktop devices (CI is green on the audited main commit).
-- Complete real-device acceptance for the current UI across the pharmacy's Android/desktop devices.
+- Real-device acceptance for current UI across the pharmacy's Android/desktop devices; CI does not cover physical phones, printer drivers, Gmail delivery or owner workflow acceptance.
 - Real Gmail send from the deployed origin with the owner's Google account.
 - A restore drill from a real encrypted Drive backup into a separate empty Supabase project.
 - Load, long-running, offline and low-memory behaviour on actual pharmacy phones.
