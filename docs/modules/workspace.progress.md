@@ -26,7 +26,7 @@ Updated: 2026-11-19 (end of the session that built Phases 2–4; handover: `work
 
 ## Follow-ups noticed by the Supabase advisor (live project)
 
-- **Done in the repo, 21 Nov 2026 (`1110_workspace_guard_search_path.sql`, not yet applied to the live project).** The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) have no pinned `search_path` (same as the existing `set_updated_at` and `activity_log_immutable`). They only use schema-qualified names, so pinning is safe: add `alter function … set search_path = public;` for all four to the next Workspace migration (`1102`).
+- **Done, 21 Nov 2026 (`1110_workspace_guard_search_path.sql`, applied to the live project by hand and registered as version `1110`).** The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) have no pinned `search_path` (same as the existing `set_updated_at` and `activity_log_immutable`). They only use schema-qualified names, so pinning is safe: add `alter function … set search_path = public;` for all four to the next Workspace migration (`1102`).
 - `workspace_save_keys` has RLS on and no policy: intentional (service role only), like `mgmt_save_keys` and `sales_save_keys`.
 - The "signed-in users can execute SECURITY DEFINER function" warnings for the public Workspace functions are by design (they are the module's API; each checks the caller itself).
 
