@@ -14,16 +14,16 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Foundation, Access and Tools | Integrated; authentication/permissions and operational tooling recorded live |
 | Home and Sales | Integrated; real-device acceptance and real Gmail send verification remain |
 | Manager | Integrated; migrations 0101–0108 recorded live; owner phone acceptance and real Closing inbox check remain |
-| Closing | Main UI and ledger/book/review/settings flows built; owner acceptance and migration-registry reconciliation remain |
-| Inventory | Feed and six screens integrated/live; real-phone PDF check and sync cleanup remain |
-| STR and Candela Sales | Integrated/live; owner phone acceptance remains |
-| Audit | A1–C1 integrated/live; phone acceptance, C2 barcode (paused) and hardening remain |
-| Emergency Billing | Phases 1–5 built; migrations 0633/0634/0640/0641/0642 live; Phase 6 automated testing done, real-device/printer acceptance and granting `ebill.*` rights remain |
-| Invoice Desk | Integrated on main; migrations 1000–1003 recorded live; full test and physical-printer acceptance remain |
+| Closing | 14-section ledger, shared drafts/live sync, ledgers, Book/PDF, history, review and settings integrated; owner try-out #5 and audit-gate decision remain |
+| Inventory | Six screens and feed integrated; live migrations through 0309 and sync Edge Function v24; phone PDF check and sync cleanup remain |
+| STR and Candela Sales | Screens and live database workflows integrated; owner phone acceptance and sync monitoring remain |
+| Audit | A1–C2 integrated/live, including expiry and barcode; phone, print/CSV acceptance and hardening remain |
+| Emergency Billing | Phases 1–6 automated work integrated; live partial refunds, receipt settings, reports and exports; real-device/printer acceptance and granting `ebill.*` rights remain |
+| Invoice Desk | Three business templates, create/history/product screens integrated; migrations 1000–1003 live under timestamp registry versions; E2E and physical-printer acceptance remain |
 | Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` applied live (21 Nov 2026), Sheets UI not built, no offline sync or attachments yet; Notes accepted by the owner after live testing |
 | Unified Reports, assistant and Android | Future work |
 
-The full module-by-module evidence, branch audit (`main` is the only branch) and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md).
+The full module-by-module evidence, live migration-registry audit, deployment findings and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md) and [the 21 Nov code audit](docs/PROJECT_AUDIT_2026-11-21.md).
 
 **Important:** “integrated”, “live”, “tested” and “accepted” are different states. Live deployment statements are recorded in module progress files and have not all been freshly rechecked against Supabase during this documentation update. Old progress-file test counts are historical and must not be added together.
 

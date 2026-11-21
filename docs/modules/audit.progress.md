@@ -1,5 +1,7 @@
 # Audit module — progress
 
+> **Current status (21 Nov 2026):** Audit is integrated on `main`, including Audit 2.0 command centre, counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports, expiry/racks and Barcode. Live registry contains `0401`–`0411`; `0409`–`0411` are timestamp-registered. The older section below describing Barcode as paused or not merged is superseded by the 20 Nov merge and live 0411 entry. Remaining: real-phone PHONE 1/2/3, scanner/offline acceptance, print/CSV checks and hardening.
+
 ## Done (slice A1, database core)
 - `supabase/migrations/0401_audit_core.sql`: 14 new `audit.*` permissions (17 in total), 6 tables with RLS, guard triggers, and the RPCs `audit_engagement_create`, `audit_member_set`, `audit_round_create`, `audit_assign_auto`, `audit_assign_move`, `audit_assign_revoke` and `audit_round_lock`.
 - `supabase/tests/0401_audit_core_test.sql`: 16 blocks covering permissions, RLS visibility, idempotency, the state machine, the version conflict and the activity log.

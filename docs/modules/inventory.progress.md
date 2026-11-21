@@ -1,6 +1,8 @@
 # Inventory — progress
 
-Branch `module/inventory` (fully merged into `main`; the branch can be deleted). Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Migrations 0301–0307 and the Edge Function (v23) are applied and verified live** (0301–0304 on 12 Nov 2026, 0305 and function v20 on 14 Nov 2026, 0306 on 16 Nov 2026, 0307 and function v23 on 17 Nov 2026; owner instruction: "apply by yourself"; `0307` was applied by hand and registered). All six screens, the Home stock numbers and the Excel / PDF / CSV exports are on `main`. **Status: complete (17 Nov 2026)**; what is left is listed at the end of this file.
+> **Current status (21 Nov 2026):** Inventory is integrated on `main`; all six screens, Home stock summary and Excel/PDF/CSV exports are present. Live registry includes `0301`–`0309` (0309 `inventory_company_summary` is timestamp-registered); `sync-inventory-from-dropbox` is active at Edge Function v24. The older v23/0307 statement below is historical. Remaining: real-phone PDF acceptance, monitor sync health, confirm when Candela publishes the Dropbox file, and remove the legacy RPC fallback only after stable operation.
+
+Branch `module/inventory` was merged into `main`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`).
 
 ## Session I-A (12 Nov 2026)
 
@@ -190,7 +192,7 @@ Small items that remain:
 2. Check `inventory_sync_log` for failed rows a few days after 17 Nov, and that the slowest `inventory_apply_sync_body` call stays well under the 8-second limit.
 3. Find out when Candela writes the Dropbox file; it is still unknown.
 4. Consider an owner alert after repeated failed syncs (today the feed watchdog alerts after 3 hours without a success).
-5. Branch refs have since been reconciled: the current GitHub list contains nine non-main branches, all 0 commits ahead of main. Do not merge them again; owner may decide whether to delete/archive stale refs (see `docs/MODULE_PROGRESS_REGISTER.md`).
+5. Historical branch note (superseded 21 Nov 2026): the current GitHub list contains `main` plus the documentation audit branch and the already-merged PR #55 branch ref. No unmerged Inventory work was identified; see `docs/MODULE_PROGRESS_REGISTER.md`.
 
 ## Handoff
 See the brief, §10.

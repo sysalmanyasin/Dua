@@ -1,6 +1,6 @@
 # Database design and schema reference
 
-> **Schema snapshot warning (13 Nov 2026):** the table/view/function catalogue below was generated from an earlier Sales/Foundation schema snapshot. It is not a complete inventory of the current live database after Manager (0101–0103), Closing (020x), Inventory (0301–0307) and Foundation operations migrations. Use migration files, module progress records and `docs/PROJECT_STATUS.md` for the later additions. Do not use the old table totals in this document as current totals.
+> **Live schema snapshot (21 Nov 2026):** the legacy catalogue below is historical and not a full current schema inventory. A fresh read-only check of DuaPharmaPlus found 124 public base tables (all 124 have RLS enabled), 337 public routines, 279 SECURITY DEFINER routines and zero SECURITY DEFINER routines missing a configured `search_path`. Fourteen RLS tables have no policies and also have no `anon` or `authenticated` table grants (internal/service-role-only tables). See `docs/PROJECT_AUDIT_2026-11-21.md` for the audit boundary and advisor findings. Do not use the old table totals as current totals.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
 

@@ -1,6 +1,8 @@
 # Invoice Desk — Progress
 
-Updated: 2026-11-19
+Updated: 2026-11-21
+
+> **Current status:** source and three routes are integrated on `main`; CI run #401 passed the full app/database/functions jobs on commit `9669497`. Migrations 1000–1003 are live but recorded in the registry under timestamp versions `20261117135131`–`20261117140223`. Remaining: explicit E2E save/product/history/RLS coverage, source-workbook print comparison/logo verification, Android/Windows browser and physical 80mm printer acceptance.
 
 ## Completed
 - [x] Owner-approved scope and isolated `feature/invoice-desk` branch.
@@ -27,17 +29,16 @@ Updated: 2026-11-19
 - The progress record documents migrations 1000–1003 as applied live to DuaPharmaPlus. Verify the live registry before any further migration.
 
 ## In progress / not yet accepted
-- [ ] Run `npm ci && npm run verify` on this feature branch and fix every reported lint, format or test issue.
-- [ ] Run full `supabase/tests/run.sh` against a clean local Postgres database.
+
 - [ ] Add end-to-end coverage for invoice save, product save, history and RLS denial/authorization.
-- [ ] Compare rendered receipts side-by-side with the workbook at 80mm and adjust layout details.
-- [ ] Confirm the Safari Book Land embedded logo is included in the final renderer.
-- [ ] Android and Windows browser acceptance testing.
-- [ ] Physical Windows 80mm printer acceptance.
+- [ ] Compare rendered invoices side-by-side with all three source workbooks; verify the Safari Book Land embedded logo is included or explicitly record the approved omission.
+- [ ] Test Android and Windows browser rendering, page sizing and print dialogs.
+- [ ] Complete physical Windows 80 mm printer acceptance.
+- [ ] Confirm `invoice_desk.manage` is assigned only to the intended owner account through the permission workflow.
 
 ## Known limitations
-- The implementation is integrated on `main`, but this progress record does not contain evidence of a full verification run on the integrated main tree.
-- The Safari Book Land workbook contains an embedded image; current renderer is text-based and does not yet embed that logo.
+- Integrated-main verification is confirmed by CI run #401 (app, database and functions jobs) on commit `9669497`; this does not replace Invoice Desk-specific E2E or printer acceptance.
+- The Safari Book Land workbook contains an embedded image; logo inclusion still needs explicit side-by-side verification.
 - Physical printer output and browser-specific page sizing remain unverified.
 - The `invoice_desk.manage` permission exists, but it must be explicitly assigned to the intended owner account through the existing permission workflow. No staff role preset is granted access.
 - Existing Supabase advisor warnings include the intentionally policy-less idempotency tables (direct access is revoked) and the expected authenticated SECURITY DEFINER write RPCs (each checks `has_perm`). Pre-existing unrelated advisor findings were left untouched.

@@ -3,7 +3,7 @@
 Written 11 Nov 2026, after re-reading `main` (`e635e23`) and the old BT-Sale-Data2 inventory code (stock ledger, excess, reorder, health, bridge, search app, Android widgets, briefing function, Emergency Billing and STR consumers).
 Read `docs/SESSIONS.md`, `docs/MODULES.md` and `docs/modules/inventory.md` first. This file is the **work order**; the brief is the **specification**; `docs/modules/inventory-sync-design.md` (revision 2) is the **design for the feed and the reads** and is still *Proposed*.
 
-> **Superseded on 17 Nov 2026: Inventory is complete and live.** All four slices (I-A to I-D) were built, tested, applied and merged to `main`. This file is kept as the original work order and for the facts in §6, which are still useful. For current status and the few small items left, read `docs/modules/inventory.progress.md` ("Still to do"). The questions in §3 were answered by the owner; the Inventory decisions (INV-1 to INV-21) are recorded in `docs/modules/inventory.progress.md` and `docs/modules/inventory.md`.
+> **Superseded on 21 Nov 2026:** Inventory is integrated and live. All four slices are on `main`; live registry includes 0301–0309, with 0309 timestamp-registered, and the active sync Edge Function is v24 (not v23). This file remains a historical work order; follow `docs/modules/inventory.progress.md` for current work: real-phone PDF acceptance, sync monitoring and eventual legacy fallback removal.
 
 ---
 

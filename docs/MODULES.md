@@ -3,7 +3,7 @@
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 
-Last updated: 19 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file.
+Last updated: 21 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file.
 
 ---
 
@@ -41,7 +41,7 @@ A Claude session remembers nothing from another session. The repository is the o
   - `sysalmanyasin/Random` — Audit Hub (stock audits, barcode, expiry, Android app).
 - **No data import from the old apps.** We copy **rules, structure and layout** only. New modules start empty. Where a module needs a running balance (carried closing values, staff credit balance, petty cash balance), it provides an **opening-balance entry** screen/function instead. (The Sales history import done earlier is a finished one-off and is not repeated.)
 - **Inventory data** still comes from Candela → Dropbox → an Edge Function → Supabase tables. Candela stays the source of truth (D-07). The sync function moves into this project (Foundation task F3), and only the **latest** stock is kept (§8.4).
-- **Current implementation status:** the 12 registered IDs are `home`, `sales`, `manager`, `access`, `tools`, `closing`, `inventory`, `str`, `candela-sales`, `ebill`, `audit` and `invoice-desk`. Closing, Manager, STR, Audit and Invoice Desk have more implementation than the original early-November snapshot describes. Workspace has database/domain work but is not registered as a user-facing module. Use `docs/MODULE_PROGRESS_REGISTER.md` and `docs/PROJECT_STATUS.md`; do not rely on this contract for current progress.
+- **Current implementation status (21 Nov 2026):** the 13 registered IDs, in source order, are `home`, `sales`, `manager`, `access`, `tools`, `closing`, `inventory`, `str`, `candela-sales`, `ebill`, `audit`, `invoice-desk` and `workspace`. Workspace Notes is a registered user-facing module; Sheets has a live database foundation but no Sheets UI yet. Use `docs/MODULE_PROGRESS_REGISTER.md` and `docs/PROJECT_STATUS.md` for current progress; this contract is not a progress diary.
 
 ---
 
@@ -54,7 +54,7 @@ These are enforced by tests and CI. Breaking one fails the build.
 1. **The browser is never trusted** for price, permission, status, approval or totals. All access rules live in the database (RLS + functions). Hiding a menu item is cosmetic only.
 2. **Every table has RLS enabled.** `anon` has no grants. No blanket "admin sees everything" policies.
 3. **Critical writes are Postgres functions (RPC)** that run in one transaction and take an **idempotency key** (client-made UUID).
-4. **`security definer` functions** must set `search_path = public`, check `public.has_perm(...)` inside, have execute revoked from `public, anon, authenticated`, then granted to `authenticated` only (copy the pattern at the bottom of `0002_sales.sql`).
+4. **`security definer` functions** must set a safe fixed `search_path` and enforce the caller's permission/identity inside the function. Revoke execute from `PUBLIC` and `anon` by default. Grant `authenticated` only when the function is deliberately a browser-facing RPC and has an explicit caller/permission check; internal helpers must remain unavailable to client roles. Record every exception and keep the function allowlist/tests current. Do not blanket-revoke the existing 219 authenticated-callable RPCs without first mapping their callers and checking the function bodies.
 5. **Submitted/posted rows are immutable.** A correction is a new revision row with a mandatory reason; the original is kept. (D-12)
 6. **Every sensitive action is logged** with `public.log_activity(...)` into the append-only `activity_log`.
 7. **No secrets in Git** (service-role key, tokens, passwords, notification topics). Only the publishable key is public. `npm run check:secrets` enforces it.

@@ -1,6 +1,8 @@
 # Closing — progress
 
-> **Current status (19 Nov 2026):** This file's dated session table is historical evidence. The current implementation is built on `main`: 14-section ledger, submit/reopen, Credit and Misc ledgers, Manager feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review, Settings and Inventory Audit card (migrations through 0211 are recorded live). Owner phone try-out #5 and formal acceptance remain. Manager progress reports live-only migration `0214_closing_staff_see_all`, absent from this repository; verify/reconcile the live registry and recover its exact SQL before further Closing database changes. Do not follow older handoff instructions below to apply migrations already recorded live.
+> **Current status (21 Nov 2026):** Closing is integrated on `main`: 14-section ledger, submit/reopen, shared drafts/live sync, Credit and Misc ledgers, Manager feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review, Settings and Inventory Audit card. Live registry confirms `0201`–`0214` under repo versions; `closing_refresh_existing_drafts` and `0216`/`0217` are present under timestamp versions. The previous statement that `0214` was missing from the repository is incorrect and superseded. Remaining: owner phone try-out #5, formal acceptance and the owner's decision whether to re-enable the Inventory Audit gate. Preserve the timestamp migration mapping; see the master register.
+
+Historical session table follows.
 
 | Date | Slice | Done | Tested | Failed / not done | Next |
 |---|---|---|---|---|---|

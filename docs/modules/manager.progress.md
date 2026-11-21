@@ -1,5 +1,7 @@
 # Manager — progress
 
+> **Current status (21 Nov 2026):** Manager is integrated on `main`; migrations `0101`–`0108` are live and registered. The latest live project also contains Closing migration `0214_closing_staff_see_all` (present in repository and live registry). The old note below claiming `0214` is absent is superseded. Remaining: owner phone try-outs #2–#4 and a real-data Credit Inbox check against Closing's live feed; Attendance remains intentionally deferred.
+
 ## Manager Dashboard (17 Nov 2026)
 
 - Added `/manager` Overview with permission-aware monthly cards for Staff Credit, Salary, Generic, Incentive, Petty Cash, ledger balances and Credit Inbox.
@@ -134,7 +136,7 @@ The exact repository files `0105_mgmt_incentive.sql`, `0106_mgmt_petty.sql` and 
 6. The filing writes `source = 'closing_inbox'`, so the ledger and credit pages show the "Closing" chip.
 
 ### Findings not fixed here
-- Migration drift: live has `0214_closing_staff_see_all`, which is not in the repository; the repository has `0404_audit_split_order`, which is not live. Neither belongs to Manager. Both need the Closing and Audit owners.
+- Historical finding (superseded 21 Nov 2026): the current live registry and repository both contain `0214_closing_staff_see_all` and `0404_audit_split_order`. The remaining registry issue is that later migrations `0215`–`0217` and `0409`–`0411` are registered under timestamp versions.
 - Manager docs said 17 `mgmt_` tables; live has 18 (`mgmt_save_keys` included).
 - Ledger pages still offer only a date filter and grouping (no category filter).
 

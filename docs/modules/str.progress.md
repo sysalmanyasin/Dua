@@ -1,6 +1,8 @@
 # STR — progress
 
-Branch `module/str`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **Nothing is applied live.**
+> **Current status (21 Nov 2026):** STR is integrated on `main` with manifest, data layer, list/detail/report/zero-dispatch screens and per-person preferences. Migrations `0500`–`0504` and the archive/overdue jobs are confirmed in the live migration registry. The older S-A table below is historical; its initial “not applied” note is superseded by the later live-apply log. Remaining: owner phone try-outs #1/#2, acceptance, supplier/pack metadata integration and small Foundation wording/icon follow-ups.
+
+Branch `module/str` was merged into `main`.
 
 ## Session S-0 / S-A / S-B (14 Nov 2026)
 
@@ -13,7 +15,7 @@ Branch `module/str`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`). **N
 
 Totals after merging `main` at `72890ff` (Closing Session D): 538 unit tests (`npm run verify` green), full database suite green.
 
-## Ready to apply (owner says when; by hand, in this order, registered under the repo number: RUNBOOK §4)
+## Historical pre-deployment handoff (superseded — do not reapply)
 
 1. `0500_str_view_access`
 2. `0501_str_archive` (also runs one archive copy at the end)
