@@ -1,17 +1,25 @@
 /* Closing module: the guided ledger. Everything is scoped under .cls so it cannot touch other pages.
-   Look kept from the original Closing app (owner decision CLS-15): teal #0D8C78, navy #0E241F,
-   amber = carried-forward values, red = deficits only, Night / Morning / Evening shift dots. */
+   Look kept from the original Closing app (owner decision CLS-15): teal, navy, amber = carried-forward values,
+   red = shortages and errors only, Night / Morning / Evening shift marks.
+   Colour roles (audit of 21 Nov 2026):
+     teal   = the one action colour inside Closing (primary buttons, active step, progress, headings)
+     amber  = carried-forward values, drafts, cautions
+     red    = shortages (variance) and errors only; returns and reductions are NOT red
+     shifts = Night indigo, Morning sky, Evening fuchsia, Handover teal; each also has its own SHAPE, never colour alone */
 .cls {
-  --cls-teal: #0b7d6a; /* was #0d8c78 (4.2:1 with white text); 5.0:1 now */
-  --cls-teal-text: #0b7d6a;
+  --cls-teal: #0b7d6a; /* fills that carry white text: 5.05:1 */
+  --cls-teal-text: #0a6f5e; /* teal as text or an edge on a light surface: 5.4:1 even on surface-2 */
+  --cls-fill: #0b7d6a; /* progress fill */
   --cls-navy: #0e241f;
-  --cls-amber: #9a5208; /* was #b9660f (3.8:1 on the amber tint); 5.3:1 now */
+  --cls-navy-edge: transparent;
+  --cls-amber: #9a5208; /* 5.3:1 on the amber tint */
   --cls-amber-bg: #fdf3e3;
   --cls-red: #c0392b;
-  --cls-night: #6366f1;
-  --cls-morning: #9a5208;
-  --cls-evening: #ea580c;
+  --cls-night: #4f46e5;
+  --cls-morning: #0284c7;
+  --cls-evening: #a21caf;
   --cls-handover: #0b7d6a;
+  --cls-hdr: 70px; /* height of the sticky app header; ledger.js measures the real one */
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cls {
@@ -19,6 +27,13 @@
     --cls-amber-bg: #2a2110;
     --cls-red: #f97066;
     --cls-teal-text: #3dd6bf;
+    --cls-fill: #3dd6bf; /* 7.9:1 on the track; the light-mode teal was 2.8:1 */
+    --cls-navy: #1d4f7a; /* the near-black navy was 1.02:1 against the dark page */
+    --cls-navy-edge: #a0b2c9;
+    --cls-night: #818cf8;
+    --cls-morning: #38bdf8;
+    --cls-evening: #e879f9;
+    --cls-handover: #3dd6bf;
   }
 }
 :root[data-theme='dark'] .cls {
@@ -26,8 +41,30 @@
   --cls-amber-bg: #2a2110;
   --cls-red: #f97066;
   --cls-teal-text: #3dd6bf;
+  --cls-fill: #3dd6bf;
+  --cls-navy: #1d4f7a;
+  --cls-navy-edge: #a0b2c9;
+  --cls-night: #818cf8;
+  --cls-morning: #38bdf8;
+  --cls-evening: #e879f9;
+  --cls-handover: #3dd6bf;
 }
 
+/* Closing's own hero and buttons: teal, not the shell's blue, so every control in the module is one colour family */
+.cls .hero {
+  background: linear-gradient(135deg, #0e241f, #0b7d6a);
+}
+.cls .hlabel {
+  opacity: 0.92; /* was 0.75: 3.6:1 */
+}
+.cls .btn-primary {
+  background: var(--cls-teal);
+  border-color: var(--cls-teal);
+  color: #fff;
+}
+.cls .btn:hover:not(:disabled) {
+  border-color: var(--cls-teal-text);
+}
 /* shift dots */
 .cls .dot {
   display: inline-block;
@@ -37,17 +74,23 @@
   margin-right: 6px;
   background: var(--cls-teal);
 }
+/* each shift has a colour AND a shape: Night circle, Morning rounded square, Evening diamond, Handover triangle (Draft is a ring) */
 .cls .dot-night {
   background: var(--cls-night);
 }
 .cls .dot-morning {
   background: var(--cls-morning);
+  border-radius: 2px;
 }
 .cls .dot-evening {
   background: var(--cls-evening);
+  border-radius: 1px;
+  transform: rotate(45deg) scale(0.85);
 }
 .cls .dot-handover {
   background: var(--cls-handover);
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 /* start page */
@@ -99,15 +142,31 @@
 .cls .cls-badge-final {
   background: var(--cls-navy);
   color: #fff;
+  box-shadow: inset 0 0 0 1px var(--cls-navy-edge);
 }
 
 /* ledger: progress, jump-nav, save chip */
 .cls .cls-bar {
   position: sticky;
-  top: 0;
+  top: var(--cls-hdr); /* sits under the sticky app header instead of sliding beneath it */
   z-index: 4;
   background: var(--bg);
   padding: var(--space-2) 0;
+}
+.cls .cls-step {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-1);
+  font-size: 0.85rem;
+}
+.cls .cls-step strong {
+  font-variant-numeric: tabular-nums;
+}
+.cls .cls-step .cls-swipe-hint {
+  margin: 0;
+  text-align: right;
 }
 .cls .cls-progress {
   height: 6px;
@@ -118,7 +177,7 @@
 .cls .cls-progress > span {
   display: block;
   height: 100%;
-  background: var(--cls-teal);
+  background: var(--cls-fill);
   transition: width 0.2s;
 }
 .cls .cls-jump {
@@ -145,7 +204,8 @@
   color: #fff;
 }
 .cls .cls-jump button.is-later {
-  opacity: 0.55;
+  border-style: dashed; /* not-yet-built is marked by the edge, not by fading the text below 4.5:1 */
+  color: var(--text-muted);
 }
 .cls .cls-chip {
   font-size: 0.75rem;
@@ -176,9 +236,13 @@
   display: grid;
   gap: var(--space-3);
 }
+/* one heading style for every card title in Closing: small, uppercase, teal */
+.cls .card > h2:first-child,
 .cls .cls-sec h2 {
-  margin: 0;
-  font-size: 1.05rem;
+  margin: 0 0 var(--space-3);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--cls-teal-text);
 }
 .cls .cls-row {
@@ -219,10 +283,10 @@
   background: var(--cls-amber-bg);
   color: var(--cls-amber);
 }
-.cls .cls-return .cls-in,
+/* returns are a routine deduction, not a shortage: no red (it is kept for variance and errors) */
 .cls .cls-return label,
 .cls .cls-return .cls-lbl {
-  color: var(--cls-red);
+  font-weight: 700;
 }
 .cls .cls-total {
   display: flex;
@@ -232,6 +296,7 @@
   border-radius: var(--radius);
   background: var(--cls-navy);
   color: #fff;
+  box-shadow: inset 0 0 0 1px var(--cls-navy-edge);
 }
 .cls .cls-total strong {
   font-family: var(--mono);
@@ -249,7 +314,7 @@
 }
 .cls .cls-trow {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) repeat(var(--cols, 2), minmax(0, 1fr)) 36px;
+  grid-template-columns: minmax(0, 2fr) repeat(var(--cols, 2), minmax(0, 1fr)) 44px; /* the strike button is 44px wide */
   gap: var(--space-2);
   align-items: center;
 }
@@ -308,13 +373,13 @@
 .cls .cls-banner {
   margin-top: 14px;
   padding: 12px;
-  border: 2px solid var(--cls-teal, #0d8c78);
+  border: 2px solid var(--cls-teal);
   border-radius: 10px;
-  background: color-mix(in srgb, #0d8c78 8%, transparent);
+  background: color-mix(in srgb, var(--cls-teal) 8%, transparent);
 }
 .cls .cls-banner-title {
   font-weight: 700;
-  color: var(--cls-navy, #0e241f);
+  color: var(--text);
   margin-bottom: 4px;
 }
 .cls .cls-banner-row {
@@ -481,7 +546,9 @@
   cursor: pointer;
 }
 .cls .cls-cal-day:disabled {
-  opacity: 0.35;
+  background: var(--surface-2);
+  border-style: dashed;
+  color: var(--text-muted); /* readable (4.9:1) instead of faded to 2.1:1 */
   cursor: default;
 }
 .cls .cls-cal-day.is-today {
@@ -634,7 +701,7 @@
 .status-bar[hidden] {
   display: none;
 }
-.cls-chips {
+.cls .cls-chips {
   display: flex;
   gap: 8px;
   overflow-x: auto;
@@ -642,22 +709,26 @@
   margin-bottom: 4px;
   -webkit-overflow-scrolling: touch;
 }
-.cls-chip {
+/* the page links on the start page. These used to be .cls-chip too, so the save-chip rule (more specific) shrank them to ~22px tall */
+.cls .cls-navchip {
   flex: 0 0 auto;
-  padding: 9px 14px;
-  border: 1px solid var(--line, #d7dee4);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--surface, #fff);
-  color: inherit;
+  background: var(--surface);
+  color: var(--text);
   font-weight: 600;
   font-size: 0.9rem;
   text-decoration: none;
   white-space: nowrap;
 }
-.cls-chip:hover,
-.cls-chip:focus-visible {
-  border-color: var(--brand, #0f766e);
-  color: var(--brand, #0f766e);
+.cls .cls-navchip:hover,
+.cls .cls-navchip:focus-visible {
+  border-color: var(--cls-teal-text);
+  color: var(--cls-teal-text);
 }
 
 .cls-backrow {
@@ -699,7 +770,7 @@
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--cls-teal-text);
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
 }
@@ -735,9 +806,10 @@
 .cls.cls-swipe .cls-val {
   padding: 0 10px;
 }
-/* returns: red band, red labels, red-edged boxes */
+/* returns: neutral band with a solid left edge, bold labels */
 .cls.cls-swipe .cls-row.cls-return {
-  background: color-mix(in srgb, var(--cls-red) 10%, var(--surface));
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--text-muted);
 }
 .cls.cls-swipe .cls-row.cls-return label,
 .cls.cls-swipe .cls-row.cls-return .cls-lbl {
@@ -745,10 +817,11 @@
 }
 .cls.cls-swipe .cls-row.cls-return .cls-in {
   background: var(--surface);
-  border-color: var(--cls-red);
+  border-color: var(--text-muted);
 }
 /* totals are ruled rows too, not floating bars; the net lines keep the teal emphasis */
 .cls.cls-swipe .cls-sec .cls-total {
+  box-shadow: none; /* the navy edge is only for the standalone navy bars */
   border-radius: 0;
   border-top: 2px solid var(--border);
   background: var(--surface-2);
@@ -913,13 +986,86 @@
   font-weight: 700;
   line-height: 1;
 }
-/* when the ± is on (the amount is a reduction) it is filled, so it can be seen at a glance */
+/* when the ± is on (the amount is a reduction) it is filled, so it can be seen at a glance; a reduction is not a shortage, so not red */
 .cls .cls-signed > .btn[aria-pressed='true'] {
-  background: var(--cls-red);
-  border-color: var(--cls-red);
+  background: var(--text);
+  border-color: var(--text);
   color: var(--surface);
 }
 /* rows that are only a name and one amount: give the amount a little more of the line */
-.cls .cls-trow[style*='--cols: 1']:not(.cls-trow-signed) {
+.cls .cls-trow.cls-trow-1:not(.cls-trow-signed) {
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 44px;
+}
+
+/* ── ledger title bar (replaces the large hero inside the ledger: the cards start higher on a phone) ── */
+.cls .cls-titlebar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-2);
+}
+.cls .cls-titlebar .btn {
+  flex: 0 0 auto;
+}
+.cls .cls-tb-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cls .cls-tb-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.cls .cls-tb-sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+/* ── submit review: a shortage the cashier must act on is louder than a small one ── */
+.cls .cls-review-row.cls-var-bad {
+  border: 2px solid var(--cls-red);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.cls .cls-review-row.cls-var-warn {
+  border: 1px solid var(--cls-amber);
+}
+.cls .cls-warn-bad {
+  padding: var(--space-3);
+  border-left: 4px solid var(--cls-red);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--cls-red) 12%, var(--surface));
+  font-size: 0.95rem;
+}
+
+/* ── success screen: the end of a stressful task should feel finished ── */
+.cls .cls-done {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+.cls .cls-done-mark {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--cls-teal);
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+}
+.cls .cls-done-figure {
+  font-family: var(--mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cls .cls-done p {
+  margin: 0;
 }

@@ -80,6 +80,13 @@ export const MESSAGES = {
   corrections_pending: 'A correction is still waiting for a decision. Approve or reject it first.',
   conflicts_unresolved: 'A conflict is not settled yet. Choose which count to keep for each one.',
   final_not_found: 'This round has no final snapshot yet.',
+  barcode_invalid: 'That barcode is not valid. Use 4 to 48 letters, digits, dots or dashes, with no spaces.',
+  barcode_type_invalid: 'That barcode type is not valid.',
+  barcode_not_found: 'That barcode could not be found. Reload and try again.',
+  barcode_state: 'This barcode is in conflict or switched off. A person with barcode administration has to decide first.',
+  barcode_decision_invalid: 'Choose keep, give to the other product, or switch off.',
+  product_no_code: 'That product has no code in stock, so a barcode cannot be linked to it.',
+  same_product: 'That barcode already belongs to this product.',
   version_conflict: 'Someone else changed this. Reload and try again.',
 };
 

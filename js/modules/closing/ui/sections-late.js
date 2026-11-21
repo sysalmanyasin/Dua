@@ -54,7 +54,7 @@ export function lateSections(h) {
 
   const rowsTable = (list, cols, cells, extra = '') =>
     html`<div class="cls-table" style="--cols: ${cols}">
-      ${h.listOf(list).map((r) => html`<div class="cls-trow ${extra} ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
+      ${h.listOf(list).map((r) => html`<div class="cls-trow ${cols === 1 ? 'cls-trow-1' : ''} ${extra} ${r.deleted ? 'is-struck' : ''}" style="--cols: ${cols}">${cells(r)} ${strike(list, r)}</div>`)}
     </div>`;
 
   const auditRows = (items) =>

@@ -6,21 +6,34 @@ export default {
   blurb: 'Stock audits, counting teams and reports',
   hub: true, // its first page lists the other audit pages
   permission: null, // each page below says who may open it
+  // counts and scans waiting on the device block signing out (AUD-9, OD-6)
+  outbox: async () => {
+    await import('./data/outboxStore.js');
+    return import('./data/barcodeStore.js');
+  },
   routes: [
     {
       path: '/audit',
-      title: 'Audit',
-      desc: 'Your audits and the pages you may open',
+      title: 'Overview',
+      desc: 'Your role-aware Audit Command Centre',
       anyOf: [
         'audit.count',
         'audit.individual',
         'audit.view',
         'audit.manage',
+        'audit.assign',
+        'audit.compile',
+        'audit.suggest',
+        'audit.finalize',
+        'audit.reopen',
+        'audit.templates',
+        'audit.expiry_manage',
         'audit.review',
         'audit.report',
         'audit.expiry_log',
         'audit.barcode_scan',
         'audit.barcode_register',
+        'audit.barcode_admin',
       ],
       load: () => import('./ui/hub.js'),
     },
@@ -67,7 +80,7 @@ export default {
     {
       path: '/audit/compile',
       desc: 'Progress, compile, differences, corrections, conflicts and the next round',
-      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.view', 'audit.manage', 'audit.report'],
+      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.reopen', 'audit.view', 'audit.manage', 'audit.report'],
       load: () => import('./ui/compile.js'),
     },
     {
@@ -95,6 +108,13 @@ export default {
       desc: 'Racks and who checks which rack each month',
       anyOf: ['audit.expiry_manage', 'audit.manage'],
       load: () => import('./ui/racks.js'),
+    },
+    {
+      path: '/audit/barcode',
+      title: 'Barcodes',
+      desc: 'Find a product by barcode, register and verify barcodes, settle conflicts',
+      anyOf: ['audit.barcode_scan', 'audit.barcode_register', 'audit.barcode_admin'],
+      load: () => import('./ui/barcode.js'),
     },
     {
       path: '/audit/team',

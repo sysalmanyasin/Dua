@@ -115,7 +115,7 @@ do $t$ declare r jsonb; begin
   perform pg_temp.refused($q$select public.closing_submit('a0000000-0000-0000-0000-000000000001')$q$, 'audit_not_verified', 'the audit gate has its code');
   reset role;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b2');
-  perform pg_temp.refused($q$select public.closing_save_draft('a0000000-0000-0000-0000-000000000001', current_date - 5, 'night', 'shift', '{}', null, 1)$q$, 'not_allowed', 'another staff member cannot use that key');
+  perform pg_temp.refused($q$select public.closing_patch_draft('a0000000-0000-0000-0000-000000000001', '{"hs": []}')$q$, 'patch_simple_only', '0217: a patch takes simple fields only');
   reset role;
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
   perform pg_temp.refused(format($q$select public.closing_correct(%L, '  ', '{}', gen_random_uuid())$q$, (select v from memo where k = 'night')), 'reason_required', 'a blank reason has its code');

@@ -19,12 +19,13 @@ SQL editor → paste `supabase/migrations/0001_core.sql` → Run. (Later migrati
 |---|---|
 | `ALLOWED_ORIGIN` | exactly your site origin, e.g. `https://sysalmanyasin.github.io` (no trailing slash, no path) |
 | `IP_HASH_SECRET` | a long random string (generate one, keep it private) |
+| `PIN_PEPPER` | a long random string, **32 characters or more**. Required: without it staff cannot sign in and the owner cannot create logins. Keep it private and **never change it** once staff have PINs (every 4-digit PIN would stop working). |
 | `STAFF_EMAIL_DOMAIN` | optional; default `staff.dua.invalid` |
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided to functions automatically. Never copy the service-role key anywhere else.
 
 ## 5. Deploy functions
-`supabase functions deploy staff-login request-access claim-account admin-users --no-verify-jwt` (or paste each folder in the dashboard editor, with "Verify JWT" off for all four; they check access themselves).
+`supabase functions deploy staff-login admin-users --no-verify-jwt` (or paste each folder in the dashboard editor, with "Verify JWT" off for both; they check access themselves). After moving to 4-digit PINs, also delete the old `request-access` and `claim-account` functions.
 
 ## 6. Create the first owner
 1. Authentication → Users → **Add user** → your email + strong password (tick auto-confirm).
@@ -40,9 +41,9 @@ Repo → Settings → Pages → deploy from `main`. For a separate staging site 
 
 ## 9. First checks (acceptance for Phase 2)
 1. Owner signs in with email + password → is forced to set up the authenticator → then sees Home and Users & Access.
-2. Staff tab: "Request access" → request appears for the owner → Approve as Junior → code shown once.
-3. Staff: "I have a setup code" → set a 6-digit PIN → sign in → sees Home only (no Users & Access).
-4. Try 5 wrong PINs → locked 15 minutes. Disable the user → they cannot sign in, and an open session loses access immediately.
+2. Manager → Staff Registry → open a person → Login → choose a username, role and 4-digit PIN → Create login.
+3. Staff tab: sign in with that username and PIN → sees Home only (no Users & Access). A PIN like 1234 or 1990 is refused.
+4. Try 5 wrong PINs → locked 1 hour; the owner sees "locked" in Users & Access and taps Unlock. Disable the user → they cannot sign in, and an open session loses access immediately.
 5. Confirm the hidden address style `username@staff.dua.invalid` was accepted when the first staff was approved. If Supabase rejects it, set `STAFF_EMAIL_DOMAIN` to another domain you do not own mail on and redeploy.
 
 ## Private defaults (not in Git)

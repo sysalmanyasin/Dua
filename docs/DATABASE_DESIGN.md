@@ -15,7 +15,7 @@ PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). Th
 ## Tables (33; all with RLS, 31 policies)
 | Table | Columns | Purpose |
 |---|---|---|
-| `access_requests` | 8 | Pending/approved/rejected sign-up requests |
+| `access_requests` | 8 | Old sign-up requests (history only; self sign-up removed, D-49) |
 | `activity_log` | 9 | Append-only record of sensitive actions |
 | `checklist_answers` | 3 | Answers per item per day |
 | `checklist_competitor_defaults` | 5 | Competitor rows copied onto a new day (private values) |
@@ -42,7 +42,7 @@ PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). Th
 | `sales_targets` | 4 | Monthly sales targets |
 | `settings_history` | 7 | Every settings change (value, reason, who) |
 | `settings` | 6 | Business settings (till float, customer charge, module switches…) |
-| `setup_codes` | 9 | One-time PIN setup codes (hashed, expiring) |
+| `setup_codes` | 9 | Old one-time setup codes (history only; removed, D-49) |
 | `staff` | 8 | People (kept even if their login is removed) |
 | `str_headers` | 26 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |
 | `str_line_items` | 13 | Inventory feed (Candela → Dropbox → Edge Function); see docs/modules/inventory.md |

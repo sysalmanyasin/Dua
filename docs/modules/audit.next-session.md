@@ -1,6 +1,6 @@
 # Audit module: handover for the next session
 
-**State on 19 Nov 2026.** Slices A1–B2 and C1 are built and merged into `main` (with `0308`, `0408`, `0409` Final reports, `0410` Expiry). All migrations are applied live. Audit work is paused after C1 at the owner's request; the next slice is **C2 Barcode**, to start only when the owner says go. Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` first.
+**State on 20 Nov 2026.** Slices A1–C2 are on `main`. Migration `0411` is applied live (20 Nov 2026; 17 functions, RLS on the 3 new tables, registry `0411_audit_barcode`). Next: PHONE 1/2/3, then D Hardening. Read `docs/modules/audit.md` (design, AUD-1..13) and `docs/modules/audit.progress.md` first.
 
 ## What exists
 - **Database** `0401`–`0410` (Audit) and `0308` (Inventory interface), all applied live on project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`) and registered in `supabase_migrations.schema_migrations`. Live migrations are applied with the Supabase `apply_migration` tool (0409 was) or by hand with `execute_sql` plus a registry insert; the file in `supabase/migrations/` is the source.
@@ -15,7 +15,7 @@
 - **PHONE 1 / PHONE 2:** real-phone tests (counting offline and back online; two people, two rounds, end to end). Not done.
 - **B2 is built** and merged (see progress doc). Still to do on it: try Print / Save as PDF and the CSV on a real phone and desktop.
 - **C1 is built** and merged (see progress doc; optional later: CSV/print of the register, expiry-by-month summary). **C2 Barcode** is next: Center, register, verify, conflicts, scanner, scan outbox, hybrid counting. It needs the vendored scanner libraries and the Foundation requests (`audit.md` section 7).
-- **Foundation request OD-6** (outbox / sign-out guard) is still outstanding.
+- **Foundation request OD-6** is done in C2 (`js/shared/outbox.js`, `js/core/app.js`).
 - **Company picker** in the Individual Audit screen can now use `inventory_companies()` (currently a typed list).
 - **D Hardening and acceptance** follows C2 (offline end-to-end, accessibility, low-end phone, data-use review, MODULES.md §11).
 - Owner decision pending: none open for Audit. AUD-1..13 accepted.

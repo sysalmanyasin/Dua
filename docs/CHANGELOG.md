@@ -3,6 +3,12 @@
 Dates are 2026. Counts are as of the end of each step.
 
 
+## 21 Nov — Staff logins created from the Staff Registry (4-digit PIN)
+- Owner creates a login from a registry person (username, Junior/Senior, 4-digit PIN); linked to the existing staff row, so no duplicates. Weak PINs refused. Set PIN and Unlock in Users & Access; registry shows who has no login.
+- Lockout is now 5 wrong PINs for 1 hour. Older 6-digit PINs keep working until reset.
+- Removed self sign-up: `request-access`, `claim-account`, access requests screen, setup codes (tables kept as history).
+- Database: `0014_staff_logins_pin4` (one login per person; `access_locked_usernames()`). New server secret `PIN_PEPPER`.
+
 ## 21 Nov — Emergency Billing: Phase 5 complete and Phase 6 testing
 - **Phase 5 (merged 20 Nov, PR #45):** partial-refund dialog (item and quantity, amount preview, retry-safe); receipts in the shop's own slip layout (Primary, Gift, Summary, Secondary; 58/80 mm; Duplicate on reprints and extra copies; offline bills carry a temporary-reference note) with live Print/Copies/Type controls, Search receipt, History reprint and offline printing; Settings > Receipt form with live preview, test slip and logo; reports and CSV/Excel/PDF exports with a pending/failed-invoice warning (files named `-INCOMPLETE`).
 - **Database:** migrations `0633`, `0634`, `0640`, `0641` (20 Nov) and `0642` (receipt slip fields STN/NTN, POS number, slip title, footer to 400 characters) applied live by hand with the owner's approval and registered; read-only safety checks passed (no anon/public execute, helpers internal, RLS on).

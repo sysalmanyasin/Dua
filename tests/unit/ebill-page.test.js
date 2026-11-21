@@ -715,8 +715,7 @@ describe('receipts', () => {
     choose('#eb-copies', 2);
     choose('#eb-rtype', 'Gift Receipt');
     await saveOne();
-    await tick();
-    expect(window.print).toHaveBeenCalledTimes(1); // both copies go in one print job, one page each
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1)); // both copies go in one print job, one page each
     expect(printed[0]).toContain('Gift Slip');
     expect(printed[0]).toContain('Copy 1 of 2');
     expect(printed[0]).toContain('Copy 2 of 2');

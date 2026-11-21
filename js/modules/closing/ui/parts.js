@@ -22,7 +22,7 @@ export function toast(message, kind = 'ok') {
 
 export function openDialog(content, { label = 'Details' } = {}) {
   const dlg = document.createElement('dialog');
-  dlg.className = 'dlg';
+  dlg.className = 'dlg cls'; // dialogs are appended to <body>, outside the page's .cls wrapper: without this none of the Closing colours reach them
   dlg.setAttribute('aria-label', label);
   render(dlg, html`<div class="dlg-body">${content}</div>`);
   dlg.addEventListener('click', (e) => {

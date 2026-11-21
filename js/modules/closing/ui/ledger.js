@@ -3,30 +3,43 @@
 // saved a moment later and the save chip always says which of the two is current.
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
-import { longDate, money, parseAmount } from '../../../shared/format.js';
+import { longDate, money, parseAmount, shortDate } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { conflictVersion, friendlyError } from '../domain/errors.js';
 import {
   emptyForm,
   emptyRow,
   formFromRow,
+  getPath,
+  isSimplePath,
+  listPayload,
   localTotals,
+  mergeSimple,
   namedEntry,
+  patchFields,
   payloadFromForm,
   rowExtra,
   rupees,
+  sameText,
+  simpleDiff,
+  simpleTexts,
   stripLineTotal,
 } from '../domain/form.js';
 import { overviewValue, prevTitle, snapshotRows } from '../domain/snapshot.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { SECTIONS, clampSection, sectionIndex } from '../domain/sections.js';
-import { slotLabel } from '../domain/slots.js';
+import { kindLabel, slotLabel, suggestNext } from '../domain/slots.js';
 import { clearLocal, getOpen, loadLocal, saveLocal } from '../domain/store.js';
 import { errorCard, focusHeading, keepFocus, loadingCard, openDialog, toast } from './parts.js';
 import { saveBlob } from './book.js';
 import { lateSections, previewFigures } from './sections-late.js';
 
 const SAVE_DELAY = 2500;
+// a single box is saved sooner, so what one person types shows up on the other device within a second or two
+const SIMPLE_SAVE_DELAY = 800;
+const SYNC_POLL_MS = 3000; // the safety-net check; with the live connection up it runs every SYNC_SLOW_EVERY ticks
+const SYNC_SLOW_EVERY = 5;
+let mountSeq = 0; // only the newest ledger screen keeps listening
 const bad = (invalid, path) => (invalid.includes(path) ? 'true' : 'false');
 
 export async function mount(el, { ctx } = {}) {
@@ -42,6 +55,7 @@ export async function mount(el, { ctx } = {}) {
       </div>`,
     );
   }
+  const myMount = ++mountSeq;
   render(el, loadingCard());
 
   let strips;
@@ -88,6 +102,12 @@ export async function mount(el, { ctx } = {}) {
     saving: false,
     again: false,
     timer: null,
+    dirtySimple: new Set(), // single boxes typed here and not yet saved (closing_patch_draft)
+    listDirty: false, // a list section (rows, cash counts, credit) typed here and not yet saved (closing_save_draft)
+    listRev: 0,
+    epoch: 0, // counts our own saves, so a check that started before one is never applied after it
+    pendingPull: false,
+    redraw: false,
   };
 
   const adopt = (r) => {
@@ -126,10 +146,14 @@ export async function mount(el, { ctx } = {}) {
     // than the saved draft. Merge in any newly carried misc rows from the refreshed server row.
     if (local?.dirty && local.version === S.version && local.form && local.savedAt > savedDraftUpdatedAt) {
       const localForm = local.form;
+      const serverForm = S.form;
       const localMisc = Array.isArray(localForm.misc) ? localForm.misc : [];
       const haveCharges = new Set(localMisc.map((r) => r.charge_id).filter(Boolean));
       const newlyCarried = S.form.misc.filter((r) => r.charge_id && !haveCharges.has(r.charge_id));
       S.form = { ...localForm, misc: [...localMisc, ...newlyCarried] };
+      // only the boxes that differ from the saved draft are re-sent, so boxes another device changed meanwhile are not overwritten
+      S.dirtySimple = new Set(simpleDiff(S.form, serverForm));
+      S.listDirty = true;
       S.status = 'dirty';
       toast('Restored your unsent typing and refreshed carried charges.');
     }
@@ -253,7 +277,6 @@ export async function mount(el, { ctx } = {}) {
       S.again = true;
       return;
     }
-    if (S.conflict) return onConflict(); // nothing more is sent on an old version until the person chooses
     const { payload, invalid } = payloadFromForm(S.form, { isOpening: S.opening });
     S.invalid = invalid;
     paintMarks();
@@ -264,19 +287,38 @@ export async function mount(el, { ctx } = {}) {
     S.saving = true;
     S.status = 'saving';
     paintChip();
-    const sentForm = S.form;
     try {
-      const res = await api.saveDraft({
-        key: S.key,
-        date: S.date,
-        kind: S.kind,
-        mode: S.mode,
-        payload,
-        handoverSeq: S.seq,
-        expectedVersion: S.version,
-      });
-      S.version = res.version;
-      if (S.form === sentForm && !S.again) {
+      // 1. the single boxes, one by one: no version check, so two people typing in different boxes never collide
+      if (S.dirtySimple.size) {
+        const paths = [...S.dirtySimple];
+        const sent = Object.fromEntries(paths.map((path) => [path, getPath(S.form, path)]));
+        const fields = patchFields(payload, paths);
+        if (Object.keys(fields).length) await api.patchDraft({ key: S.key, fields });
+        for (const path of paths) if (sameText(getPath(S.form, path), sent[path])) S.dirtySimple.delete(path);
+        S.epoch += 1;
+      }
+      // 2. the list sections, whole, with the draft's version check (CLS-13)
+      if (S.listDirty) {
+        if (S.conflict) {
+          S.saving = false;
+          S.status = 'conflict';
+          return onConflict(); // nothing more is sent on an old version until the person chooses
+        }
+        const rev = S.listRev;
+        const res = await api.saveDraft({
+          key: S.key,
+          date: S.date,
+          kind: S.kind,
+          mode: S.mode,
+          payload: listPayload(payload),
+          handoverSeq: S.seq,
+          expectedVersion: S.version,
+        });
+        S.version = res.version;
+        if (S.listRev === rev) S.listDirty = false;
+        S.epoch += 1;
+      }
+      if (!S.dirtySimple.size && !S.listDirty && !S.again) {
         clearLocal(S.key);
         S.status = 'saved';
       } else {
@@ -301,6 +343,10 @@ export async function mount(el, { ctx } = {}) {
     if (S.again) {
       S.again = false;
       queueSave(0);
+    }
+    if (S.pendingPull) {
+      S.pendingPull = false;
+      schedulePull(0);
     }
   }
   const queueSave = (ms = SAVE_DELAY) => {
@@ -329,16 +375,23 @@ export async function mount(el, { ctx } = {}) {
       const mine = S.form;
       dlg.close();
       try {
-        adopt(await api.loadById(S.id));
+        const fresh = await api.loadById(S.id);
+        adopt(fresh);
+        S.epoch += 1;
         S.conflict = false;
         if (keepMine) {
-          // the server row gives the new version and the carried figures; the typing stays as typed
+          // the server row gives the new version and the carried figures; the typing stays as typed. Single boxes this device
+          // did not type are taken from the server, so another device's newer figures are not overwritten by older ones.
           const have = new Set((mine.misc ?? []).map((r) => r.charge_id).filter(Boolean));
-          S.form = { ...mine, misc: [...(mine.misc ?? []), ...S.form.misc.filter((r) => r.charge_id && !have.has(r.charge_id))] };
+          const base = mergeSimple(mine, simpleTexts(fresh), { keep: S.dirtySimple }).form;
+          S.form = { ...base, misc: [...(mine.misc ?? []), ...S.form.misc.filter((r) => r.charge_id && !have.has(r.charge_id))] };
+          S.listDirty = true;
           S.status = 'dirty';
           keepLocal();
           queueSave(0);
         } else {
+          S.dirtySimple.clear();
+          S.listDirty = false;
           clearLocal(S.key);
           S.status = 'saved';
         }
@@ -366,6 +419,159 @@ export async function mount(el, { ctx } = {}) {
     }
     paintTotals();
   }
+
+  // ── live sync (migration 0217) ──
+  // What another device types shows up here without a reload. A change heard live (or found by the safety-net check every few
+  // seconds) makes this screen read the draft again: single boxes are laid over the form unless they were typed here and not
+  // yet saved, or are the box the person is in; the list sections are replaced only when nothing in them was typed here.
+  let stopWatch = null;
+  let live = false;
+  let tick = 0;
+  let pollTimer = null;
+  let pullTimer = null;
+  let pulling = false;
+  const schedulePull = (ms = 150) => {
+    clearTimeout(pullTimer);
+    pullTimer = setTimeout(pull, ms);
+  };
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') schedulePull(0);
+  };
+  const onOnline = () => schedulePull(0);
+  function stopSync() {
+    stopWatch?.();
+    stopWatch = null;
+    clearInterval(pollTimer);
+    clearTimeout(pullTimer);
+    document.removeEventListener('visibilitychange', onVisible);
+    window.removeEventListener('online', onOnline);
+  }
+  function startSync() {
+    if (!S.id || S.opening) return; // the opening closing has one author at a time
+    try {
+      stopWatch = api.watchDraft(
+        S.id,
+        () => schedulePull(),
+        (status) => {
+          live = status === 'SUBSCRIBED';
+          if (live) schedulePull(0);
+        },
+      );
+    } catch {
+      live = false;
+    }
+    pollTimer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      tick += 1;
+      if (!live || tick % SYNC_SLOW_EVERY === 0) pull();
+    }, SYNC_POLL_MS);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onOnline);
+  }
+  const stillHere = () => myMount === mountSeq && location.hash.startsWith('#/closing/ledger') && !S.done;
+  // a redraw would drop the caret, so it waits until the person leaves the box they are typing in
+  function redrawSoon() {
+    const a = document.activeElement;
+    if (el.contains(a) && a.tagName === 'INPUT') {
+      S.redraw = true;
+      return;
+    }
+    draw();
+  }
+  function remoteSubmitted() {
+    if (S.submitting || S.done) return;
+    stopSync();
+    clearLocal(S.key);
+    toast('This closing was submitted on another device.');
+    location.hash = '#/closing';
+  }
+  function applySimple(row) {
+    const a = document.activeElement;
+    const skip = new Set();
+    if (el.contains(a) && a.dataset?.f) skip.add(a.dataset.f);
+    if (el.contains(a) && a.id === 'cls-staff') skip.add('responsible_staff_id');
+    const { form, changed } = mergeSimple(S.form, simpleTexts(row), { keep: S.dirtySimple, skip });
+    if (!changed.length) return;
+    S.form = form;
+    for (const path of changed) {
+      const box = el.querySelector(path === 'responsible_staff_id' ? '#cls-staff' : `[data-f="${path}"]`);
+      const text = getPath(form, path);
+      if (box && box.value !== text) box.value = text;
+    }
+    if (S.status !== 'saved') keepLocal();
+    paintTotals();
+    refreshPreview();
+  }
+  async function applyLists(epoch) {
+    const full = await api.loadById(S.id);
+    if (!full || full.status !== 'draft' || S.saving || S.listDirty || epoch !== S.epoch || full.draft_version <= S.version) return;
+    const fresh = formFromRow(full, strips, accounts);
+    S.form = {
+      ...S.form,
+      mediq: fresh.mediq,
+      hs: fresh.hs,
+      strips: fresh.strips,
+      till: fresh.till,
+      vault: fresh.vault,
+      misc: fresh.misc,
+      deposits: fresh.deposits,
+      credit: fresh.credit,
+      opening: fresh.opening,
+    };
+    S.version = full.draft_version;
+    S.carry = {
+      cc: full.prev_cc,
+      credit: full.prev_credit,
+      deposits: full.prev_deposits,
+      cash: full.prev_cash,
+      from: full.source_closing_id,
+    };
+    if (S.status !== 'saved') keepLocal();
+    redrawSoon();
+    refreshPreview();
+  }
+  async function pull() {
+    if (!stillHere()) return stopSync();
+    if (pulling || S.saving) {
+      S.pendingPull = true; // tried again when the save in flight (or the check in flight) is over
+      return;
+    }
+    pulling = true;
+    const epoch = S.epoch;
+    try {
+      const row = await api.loadSync(S.id);
+      if (!row || !stillHere()) return;
+      if (epoch !== S.epoch || S.saving) {
+        S.pendingPull = true; // one of our own saves landed meanwhile: what was read may be older than it
+        return;
+      }
+      if (row.status !== 'draft') return remoteSubmitted();
+      applySimple(row);
+      // a newer version means list sections changed elsewhere; if some were typed here, the next save asks which to keep (CLS-13)
+      if (row.draft_version > S.version && !S.listDirty) await applyLists(epoch);
+    } catch {
+      /* offline or a blip: the next check tries again */
+    } finally {
+      pulling = false;
+      if (S.pendingPull && !S.saving) {
+        S.pendingPull = false;
+        schedulePull(300);
+      }
+    }
+  }
+  el.addEventListener('focusout', (e) => {
+    // catch up with whatever was skipped while the person was in a box
+    if (e.target?.dataset?.f || e.target?.id === 'cls-staff') schedulePull(50);
+    if (S.redraw) {
+      setTimeout(() => {
+        const a = document.activeElement;
+        if (S.redraw && !(el.contains(a) && a.tagName === 'INPUT')) {
+          S.redraw = false;
+          draw();
+        }
+      }, 0);
+    }
+  });
 
   // ── owner control for the inventory-audit requirement (CLS-8) ──
   function changeAudit(on) {
@@ -461,12 +667,23 @@ export async function mount(el, { ctx } = {}) {
               </div>`
             : html`<p class="cls-meta">The figures are still being worked out. You can submit; the saved closing will have them.</p>`
         }
-        ${tone !== 'ok' ? html`<p class="cls-warn" role="alert"><span aria-hidden="true">⚠</span> This is a ${tone === 'bad' ? 'large ' : ''}shortage. Recount the till and check credit and deposits before submitting.</p>` : ''}
+        ${
+          tone === 'bad'
+            ? html`<p class="cls-warn cls-warn-bad" role="alert">
+                <span aria-hidden="true">⛔</span> <strong>Large shortage. Stop and recount the till</strong>, then check credit and
+                deposits. Submit only if the figure is confirmed.
+              </p>`
+            : tone === 'warn'
+              ? html`<p class="cls-warn" role="alert">
+                  <span aria-hidden="true">⚠</span> This is a shortage. Recount the till and check credit and deposits before submitting.
+                </p>`
+              : ''
+        }
         ${skipped.length ? html`<p class="cls-warn">Some sections were not opened: ${skipped.join(', ')}. You can still submit, but check them first.</p>` : ''}
         <p class="cls-meta">After submitting, the closing is locked and the next shift picks up its carried values.</p>
         <div class="actions">
-          <button type="button" class="btn" data-close>Not yet</button>
-          <button type="button" class="btn btn-primary" data-act="go">Submit</button>
+          <button type="button" class="btn" data-close>${tone === 'bad' ? 'Recount first' : 'Not yet'}</button>
+          <button type="button" class="btn btn-primary" data-act="go">${tone === 'bad' ? 'Submit anyway' : 'Submit'}</button>
         </div>`,
       { label: 'Submit closing' },
     );
@@ -523,6 +740,12 @@ export async function mount(el, { ctx } = {}) {
       toast(friendlyError(e).message, 'error');
     }
   }
+  // what the next person does, so the cashier can see the hand-over and stop
+  const nextUp = () => {
+    const n = suggestNext({ kind: S.kind, business_date: S.date });
+    if (!n) return '';
+    return html`<p class="cls-meta">Next up: ${kindLabel(n.kind)} closing${n.date !== S.date ? ` · ${shortDate(n.date)}` : ''}</p>`;
+  };
   const successScreen = () =>
     html`<div class="cls">
       ${hero({ label: 'Closing', title: S.done.already ? 'Already submitted' : 'Closing submitted ✓', sub: `${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}` })}
@@ -532,11 +755,14 @@ export async function mount(el, { ctx } = {}) {
         </p>
         ${
           S.done.preview
-            ? html`<p class="cls-meta">
-                Net sale ${money(S.done.preview.net_sale, { decimals: true })} · Net cash
-                ${money(S.done.preview.net_cash, { decimals: true })}
-              </p>`
-            : ''
+            ? html`<div class="cls-done">
+                <span class="cls-done-mark" aria-hidden="true">✓</span>
+                <span class="cls-meta">Net cash</span>
+                <span class="cls-done-figure">${money(S.done.preview.net_cash, { decimals: true })}</span>
+                <p class="cls-meta">Net sale ${money(S.done.preview.net_sale, { decimals: true })}</p>
+                ${nextUp()}
+              </div>`
+            : html`<div class="cls-done"><span class="cls-done-mark" aria-hidden="true">✓</span>${nextUp()}</div>`
         }
         <div class="actions">
           <button type="button" class="btn" data-act="pdf">Download PDF</button>
@@ -553,13 +779,20 @@ export async function mount(el, { ctx } = {}) {
     parts.slice(0, -1).forEach((p) => (o = o[p]));
     o[parts.at(-1)] = value;
   };
-  const touched = () => {
-    S.form = { ...S.form }; // a new object marks "typed since the last save"
-    S.status = S.conflict ? 'conflict' : 'dirty';
+  // `path` is the box typed in; a single box is saved on its own, anything else marks a list section as changed
+  const touched = ({ path = null } = {}) => {
+    const simple = path !== null && isSimplePath(path);
+    if (simple) S.dirtySimple.add(path);
+    else {
+      S.listDirty = true;
+      S.listRev += 1;
+    }
+    S.form = { ...S.form };
+    S.status = S.conflict && S.listDirty ? 'conflict' : 'dirty';
     keepLocal();
     paintChip();
     paintTotals();
-    queueSave();
+    queueSave(simple && !S.listDirty ? SIMPLE_SAVE_DELAY : SAVE_DELAY);
   };
   const listOf = (path) => path.split('.').reduce((o, p) => o[p], S.form);
   const rowOf = (list, id) => listOf(list).find((r) => r.id === id);
@@ -689,7 +922,7 @@ export async function mount(el, { ctx } = {}) {
       <div class="cls-table" style="--cols: 1">
         ${S.form.hs.map(
           (r) =>
-            html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
+            html`<div class="cls-trow cls-trow-1 ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
               ${textCell('hs', r, 'label', 'Name')} ${numCell('hs', r, 'amount', 'Amount')} ${strike('hs', r)}
             </div>`,
         )}
@@ -824,22 +1057,26 @@ export async function mount(el, { ctx } = {}) {
   }
   function paint() {
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
+    const last = S.section === SECTIONS.length - 1;
     render(
       el,
       html`<div class="cls cls-swipe">
-        <p class="cls-backrow">
-          <button type="button" class="btn btn-sm" data-act="leave"><span aria-hidden="true">‹</span> Back to days</button>
-        </p>
-        ${hero({
-          label: 'Closing',
-          title: `${slotLabel(S.kind, S.seq)} closing`,
-          sub: `${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}`,
-          actions: html`<span class="cls-status" role="status" aria-live="polite"
-            ><button type="button" id="cls-chip" class="cls-chip"></button
-          ></span>`,
-        })}
+        <div class="cls-titlebar">
+          <button type="button" class="btn btn-sm" data-act="leave" aria-label="Back to days">
+            <span aria-hidden="true">‹</span> Days
+          </button>
+          <div class="cls-tb-text">
+            <h1 class="cls-tb-title">${slotLabel(S.kind, S.seq)} closing</h1>
+            <p class="cls-tb-sub">${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}</p>
+          </div>
+          <span class="cls-status" role="status" aria-live="polite"><button type="button" id="cls-chip" class="cls-chip"></button></span>
+        </div>
         <div class="cls-anchor" aria-hidden="true"></div>
         <div class="cls-bar">
+          <p class="cls-step">
+            <span><strong>${S.section + 1} of ${SECTIONS.length}</strong> · ${SECTIONS[S.section].label}</span>
+            <span class="cls-swipe-hint" aria-hidden="true">‹ swipe ›</span>
+          </p>
           <div class="cls-progress" aria-hidden="true"><span style="width: ${pct}%"></span></div>
           <nav class="cls-jump" aria-label="Sections">
             ${SECTIONS.map(
@@ -856,17 +1093,22 @@ export async function mount(el, { ctx } = {}) {
           </nav>
         </div>
         <div class="cls-grid">
-          <section class="card">
-            <p id="cls-errors" class="cls-warn" role="alert"></p>
-            <div class="cls-row">
-              <label for="cls-staff">Responsible staff</label>
-              <select id="cls-staff" class="cls-in">
-                <option value="">Choose…</option>
-                ${staff.map((s) => html`<option value="${s.id}" ${s.id === S.form.responsible_staff_id ? 'selected' : ''}>${s.name}</option>`)}
-              </select>
-            </div>
-            ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
-          </section>
+          <p id="cls-errors" class="cls-warn" role="alert"></p>
+          ${
+            /* the responsible person is only needed at submit, so it sits with the Submit button instead of taking the top of all 14 screens */
+            last
+              ? html`<section class="card">
+                  <div class="cls-row">
+                    <label for="cls-staff">Responsible staff</label>
+                    <select id="cls-staff" class="cls-in">
+                      <option value="">Choose…</option>
+                      ${staff.map((s) => html`<option value="${s.id}" ${s.id === S.form.responsible_staff_id ? 'selected' : ''}>${s.name}</option>`)}
+                    </select>
+                  </div>
+                  ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
+                </section>`
+              : ''
+          }
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
         ${prevCard()}
@@ -875,7 +1117,6 @@ export async function mount(el, { ctx } = {}) {
           <button type="button" class="btn" data-act="viewall"><span aria-hidden="true">⊞</span> View all</button>
         </div>
         <p class="cls-meta">Back to days saves your draft first. Continue it later from the calendar or Saved records.</p>
-        <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>
             <span aria-hidden="true">←</span> Back
@@ -893,7 +1134,25 @@ export async function mount(el, { ctx } = {}) {
     paintChip();
     paintTotals();
     paintMarks();
+    paintOffsets();
   }
+
+  // The progress bar and section pills are sticky: they must stop below the (also sticky) app header, whatever its height is on this
+  // screen, and the pill of the current section must be inside the scrolling row.
+  function paintOffsets() {
+    const root = el.querySelector('.cls');
+    const header = document.querySelector('.app-header');
+    if (root && header) root.style.setProperty('--cls-hdr', `${header.offsetHeight}px`);
+    const row = el.querySelector('.cls-jump');
+    const now = row?.querySelector('[aria-current="step"]');
+    if (row && now) row.scrollLeft = Math.max(0, now.offsetLeft - (row.clientWidth - now.offsetWidth) / 2);
+  }
+  const onResize = () => {
+    // this page was left: stop listening
+    if (!el.isConnected || !el.querySelector('.cls-bar')) return window.removeEventListener('resize', onResize);
+    paintOffsets();
+  };
+  window.addEventListener('resize', onResize);
 
   // Bring the section cards (progress bar, jump chips, card) to the top of the screen,
   // so the hero and the back link are scrolled past instead of the person landing on them.
@@ -1088,7 +1347,7 @@ export async function mount(el, { ctx } = {}) {
     if (parseAmount(i.value) !== null && Number.isNaN(parseAmount(i.value)) && !i.classList.contains('cls-text'))
       i.setAttribute('aria-invalid', 'true');
     else if (!i.classList.contains('cls-text')) i.setAttribute('aria-invalid', 'false');
-    touched();
+    touched(i.dataset.f ? { path: i.dataset.f } : {});
   });
   // tapping a number box selects what is in it, so the first key replaces it (as in the old app)
   el.addEventListener('focusin', (e) => {
@@ -1099,7 +1358,7 @@ export async function mount(el, { ctx } = {}) {
   el.addEventListener('change', (e) => {
     if (e.target.id !== 'cls-staff') return;
     S.form.responsible_staff_id = e.target.value;
-    touched();
+    touched({ path: 'responsible_staff_id' });
   });
   el.addEventListener('click', (e) => {
     const b = e.target.closest('button, #cls-chip');
@@ -1118,7 +1377,7 @@ export async function mount(el, { ctx } = {}) {
     if (act === 'sign') {
       const cur = String(S.form.credit_adj).trim();
       S.form.credit_adj = cur.startsWith('-') || cur.startsWith('−') ? cur.slice(1) : `-${cur}`;
-      touched();
+      touched({ path: 'credit_adj' });
       return draw();
     }
     if (act === 'submit') return askSubmit();
@@ -1192,4 +1451,5 @@ export async function mount(el, { ctx } = {}) {
   window.requestAnimationFrame?.(scrollToCards);
   if (S.status === 'dirty') queueSave(500);
   else refreshPreview();
+  startSync();
 }

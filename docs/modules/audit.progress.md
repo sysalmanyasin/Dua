@@ -114,7 +114,43 @@
 - `audit.expiry_log` people can search products through `audit_expiry_products` without holding an Inventory key.
 - Not built: CSV / print of the register, and an expiry-by-month summary. Easy to add on top of `audit_expiry_search`.
 
+## Slice C2 (Barcode) — built 20 Nov 2026
+- `supabase/migrations/0411_audit_barcode.sql` (applied live 20 Nov 2026): tables `audit_barcodes`, `audit_barcode_log` (append-only), `audit_scan_events` (append-only, idempotent by `client_event_id`), all RLS with no direct grants. Functions: `audit_barcode_products/register/verify/change/disable/enable/conflict_resolve/list/overview/mirror/history`, `audit_scan_history`, `audit_scan_batch`, `audit_engagement_set_method`, and `audit_my_assignments` now returns `counting_method` (individual audits are always `hybrid`).
+- Rules: unverified -> verified; a second claim on a barcode never changes the link: it goes to `conflict` and only `audit.barcode_admin` can keep, reassign or disable, with a reason. A scan only FINDS an item and never adds a quantity (AUD-4). A counter only sees their own assignment (AUD-5). Scan events are safe to resend.
+- App: `/audit/barcode` (Find, Register, To verify, Conflicts, All barcodes, scan history; tabs follow permissions), scanner dialog (browser BarcodeDetector first, vendored ZXing wasm as fallback, typed entry always possible, camera stops on close, hidden page and after 45 s idle), hybrid counting in the counting screen (Scan button, scanned item moves to the top and its quantity box is focused, pick-one when two items share a code).
+- Foundation touched (OD-6, owner agreed): `js/shared/outbox.js` (new shared queue, unsent-work registry and sign-out guard), `js/core/app.js` (registers manifest outboxes, installs the guard), `index.html` CSP (`'wasm-unsafe-eval'` added; no `unsafe-eval`), `tools/check-vendor.mjs` and `vendor/` (ZXing 3.1.7 JS, wasm, licence, hashes).
+- Design notes: the `barcode` counting method is scan-first in the screen only (rows locked until scanned or "Count by hand"); the server does not enforce it, since the typed count is still the only count. A registrar may verify their own registration (as in the old app). Registering, verifying and admin actions need a connection; only scans are queued offline. The phone's barcode list refreshes by delta with a 5-minute overlap for late commits. The wasm file is not precached: it is fetched the first time on phones without native BarcodeDetector (a warm-up does this while online), so the very first scan on such a phone needs a connection once.
+- Tests: DB 0411 (87 checks), `audit-barcode-domain`, `-store`, `-pages` (34), `audit-scanner`, `shared-outbox`, `csp-wasm`. `npm run verify`: 1,674 tests pass.
+- Page tests found and fixed a double-click bug (working tabs and page shell both handled the same button).
+
 ## Next
-- PHONE 1 / PHONE 2 on real phones.
-- C2 Barcode (Center, register, verify, conflicts, scanner, scan outbox); needs the Foundation requests (OD-6, vendored scanner libraries).
-- D Hardening and acceptance.
+- PHONE 1 / 2 / 3 on real phones.
+- D Hardening and acceptance (offline end-to-end, accessibility, low-end phone, data-use review, MODULES.md §11). Optional: Expiry CSV/print and by-month summary; `inventory_companies()` for the Individual Audit picker.
+
+## Audit 2.0 — landing page and navigation redesign (in progress)
+- Owner-approved direction: role/permission-aware dashboard, six grouped navigation sections, complete landing-page UI/UX redesign.
+- Added `docs/modules/audit-2.0.md` as the implementation contract. The work is presentation-only and uses existing APIs; no database migrations or business-rule changes.
+- Replaced the directory-style `ui/hub.js` with a role-aware Command Centre:
+  - counters load only `audit_my_assignments()` and see their own work/progress;
+  - users with `audit.view` or `audit.manage` see RLS-filtered engagements and bounded detail reads for up to six recent open engagements;
+  - individual-audit, expiry, reporting, barcode (when its route exists) and team links are filtered against the existing manifest route permissions.
+- Grouped navigation is generated from manifest route permission metadata, rather than introducing a second permission map.
+- Updated the landing route label to Overview and added responsive, scoped styles under `.aud`. Progress bars use DOM style properties after render to comply with the Content Security Policy (no inline style attributes).
+- Added hub tests for counter privacy, personal progress, manager overview, and permission-filtered navigation.
+- Branch: `feature/audit-2.0`, created from current `main`. The older `module/audit-c2` branch is intentionally untouched because it is 90 commits behind main and contains separate barcode work.
+- Verification status: not yet run in a local checkout (the execution environment cannot resolve GitHub to clone the repository). A draft PR is required to trigger the repository's CI; final acceptance remains pending on CI and real-phone testing.
+
+- Opened draft PR [#47](https://github.com/sysalmanyasin/Dua/pull/47) against `main` so the change can be reviewed before merge. No merge has been performed. CI status is not yet available from the repository checks endpoint; do not treat this slice as accepted until CI and phone tests pass.
+
+- CI run 359 (`93a124e`) result: ESLint passed and Edge Function type-check passed. `prettier --check .` still flags `js/modules/audit/ui/hub.js`; because the app job stops there, Vitest and subsequent app checks were skipped. The database job independently fails while applying an existing migration because the test Postgres instance lacks the `supabase_realtime` publication; this redesign adds no migration. PR #47 has been returned to Draft until formatting is resolved and app tests can execute.
+
+- Latest CI run 361 (`a90fe92`): ESLint and Edge Function type-check pass; Prettier still flags the new hub file, so the Vitest and remaining app checks do not execute. The database job continues to fail on the pre-existing migration step that attempts to add `public.closings` to a missing `supabase_realtime` publication. PR #47 is Draft; no merge or deployment has occurred.
+
+
+## Audit 2.0 — release verification (2026-11-20)
+- CI run 373 (`92c86f4`) passed all jobs: ESLint, Prettier, Vitest (112 files / 1,738 tests), secret scan, vendor check, workflow lint, database migrations/security tests, and Edge Function type-check.
+- Fixed the bare-PostgreSQL CI harness by creating the `supabase_realtime` publication before applying migrations; this mirrors the publication provisioned by hosted Supabase and does not change application schema or hosted data.
+- Corrected the counter-only hub test to assert the new personal-work empty state.
+- Full-suite testing exposed an existing eBill receipt-settings race: printing could start before asynchronous receipt settings loaded. Printing now waits for the settings load; the auto-print test waits for that asynchronous operation. This preserves the shop name/tax/footer in printed receipts and avoids printing with incomplete defaults.
+- The temporary formatter workflow and temporary CI workflow edits were removed; `.github/workflows/ci.yml` matches `main` again. The formatted Audit hub is committed on the feature branch.
+- All automated CI checks are green. Real-device Android acceptance is still pending with the owner after deployment.

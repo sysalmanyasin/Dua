@@ -27,8 +27,8 @@ export async function mount(el, { ctx } = {}) {
   let recent;
   try {
     recent = await api.myRecent(100);
-    // Every saved (submitted) closing is visible to staff; drafts stay private to their author. If the shared list cannot
-    // be loaded, the person's own closings still show.
+    // Every saved (submitted) closing is visible to staff, and so is every regular draft (0217: drafts are shared with all closing
+    // users). If the shared list cannot be loaded, the closings in myRecent still show.
     const shared = await api.savedList(100).catch(() => []);
     const seen = new Set(recent.map((r) => r.closing_id));
     recent = [...recent, ...(shared ?? []).filter((r) => !seen.has(r.closing_id))].sort(
@@ -63,6 +63,7 @@ export async function mount(el, { ctx } = {}) {
 
   const badges = (r) =>
     html`${r.status === 'draft' ? html`<span class="cls-badge cls-badge-draft">${r.supersedes_id ? 'Correction' : r.is_opening ? 'Opening' : 'Draft'}</span>` : ''}
+    ${r.status === 'draft' && r.mine === false ? html`<span class="cls-meta">shared${r.staff ? ` · ${r.staff}` : ''}</span>` : ''}
     ${r.mode === 'final' ? html`<span class="cls-badge cls-badge-final">Final</span>` : ''}
     ${r.status === 'submitted' && r.is_opening ? html`<span class="cls-badge">Opening</span>` : ''}`;
 
@@ -189,7 +190,7 @@ export async function mount(el, { ctx } = {}) {
   };
 
   // The old app's chip row: every other closing page is one tap away, nothing else is shown.
-  const chip = (href, name) => html`<a class="cls-chip" href="${href}">${name}</a>`;
+  const chip = (href, name) => html`<a class="cls-navchip" href="${href}">${name}</a>`;
   const chips = () =>
     html`<nav class="cls-chips" aria-label="Closing pages">
       ${canBooks ? chip('#/closing/credit', 'Credit Ledger') : ''} ${canBooks ? chip('#/closing/misc', 'Misc Ledger') : ''}

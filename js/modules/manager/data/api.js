@@ -1,7 +1,7 @@
 // The only file in this module that talks to Supabase. Reads follow the person's permissions (row-level security, or an
 // owner-gated function where core tables are not readable); every write is a database function that checks, validates, logs
 // and accepts an idempotency key. Mutations return { data, error } so pages can show the database's plain message.
-import { db } from '../../../core/supabase.js';
+import { callAdminFunction, db } from '../../../core/supabase.js';
 
 const one = async (query) => {
   const { data, error } = await query;
@@ -13,6 +13,13 @@ const one = async (query) => {
 export const listStaff = () => one(db().rpc('mgmt_staff_list'));
 export const getStaff = (id) => one(db().rpc('mgmt_staff_get', { p_staff_id: id }));
 export const saveStaff = (payload) => db().rpc('mgmt_staff_save', payload);
+
+// ── Staff logins (owner only: users.manage) ──
+// Who already has a login. Rows are readable only with users.manage; the owner's own sign-in covers it.
+export const listLogins = () =>
+  one(db().from('profiles').select('user_id, staff_id, username, role_template, disabled_at').order('username'));
+export const createLogin = ({ staffId, username, role, pin }) =>
+  callAdminFunction('admin-users', { action: 'create_login', staff_id: staffId, username, role, pin });
 
 // ── Notes ──
 export const listNotes = (staffId) =>

@@ -6,6 +6,7 @@ import { loadManifests, setBrokenHandler } from './registry.js';
 import { showBlocked, showLogin, showMfa } from './screens.js';
 import { startShell } from './shell.js';
 import { html, render } from '../shared/html.js';
+import { installSignOutGuard, registerManifestOutboxes } from '../shared/outbox.js';
 
 const root = document.getElementById('app');
 let stopRouter = null;
@@ -25,6 +26,8 @@ async function route() {
     return showMfa(root, { onDone: route });
   }
   const manifests = await loadManifests();
+  await registerManifestOutboxes(manifests); // unsent work on this device blocks signing out (OD-6)
+  installSignOutGuard();
   stopRouter = startShell(root, ctx, manifests);
 }
 
