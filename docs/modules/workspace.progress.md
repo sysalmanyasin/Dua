@@ -31,9 +31,9 @@ Updated: 2026-11-21 (live `1102` verification and project-wide audit; handover: 
 
 ## Follow-ups noticed by the Supabase advisor (live project)
 
-- **Done, 21 Nov 2026 (`1110_workspace_guard_search_path.sql`, applied to the live project by hand and registered as version `1110`).** The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) have no pinned `search_path` (same as the existing `set_updated_at` and `activity_log_immutable`). They only use schema-qualified names, so pinning is safe: add `alter function … set search_path = public;` for all four to the next Workspace migration (`1102`).
+- **Done, 21 Nov 2026 (migration 1110).** The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) now have pinned `search_path`. Migration `1110_workspace_guard_search_path.sql` is a separate applied migration. Earlier wording that suggested adding these changes to `1102` is stale.
 - `workspace_save_keys` has RLS on and no policy: intentional (service role only), like `mgmt_save_keys` and `sales_save_keys`.
-- The "signed-in users can execute SECURITY DEFINER function" warnings for the public Workspace functions are by design (they are the module's API; each checks the caller itself).
+- Signed-in-callable SECURITY DEFINER warnings for public Workspace API functions are expected; each function checks the caller's Workspace role/permission.
 
 ## Review, 21 Nov 2026
 
@@ -45,11 +45,17 @@ Updated: 2026-11-21 (live `1102` verification and project-wide audit; handover: 
 
 ## Not yet done
 
-- [ ] Phase 5: workbooks and the spreadsheet grid (`1102`, which also pins `search_path` on the four trigger-guard functions).
-- [ ] Phase 1 prototype checks in a real browser (CSP with `wss:` for Realtime, grid performance on a phone) before Phases 5 and 9.
-- [ ] Router: a route with an id segment would allow shareable links (Foundation request, not made yet).
-- [ ] Block-level three-way merge and the Compare screen for note conflicts (`domain/conflicts.js`), Phase 9.
-- [ ] Register the service worker for Workspace and keep the note editable offline (M-2, M-3, M-6), Phase 8.
+- [ ] **Phase 5, increment 2 — Sheets UI:** implement the JavaScript workbook/sheet domain model and parity fixtures; add the data layer; build the grid and New workbook flow on the live 1102 database foundation.
+- [ ] **Phase 5 onward:** formula engine; formatting, sort/filter and CSV.
+- [ ] **Phase 8:** IndexedDB offline queue, retry/sync and sign-out cleanup (requires the Foundation sign-out hook).
+- [ ] **Phase 9:** conflict detection/merge and compare UI for Notes and Sheets.
+- [ ] **Phase 10:** attachments, after Storage/CSP/security design and owner approval.
+- [ ] **Phase 11:** integrated cross-device acceptance and release checks.
+- [ ] Check the Phase 1 browser prototypes in a real browser (CSP `wss:` for Realtime and grid performance on a phone) before enabling Realtime-dependent flows.
+- [ ] Add router deep-link route with an id segment (Foundation request; not required for current Notes acceptance).
+- [ ] Confirm the GitHub token shared in the 18 Nov session was revoked; treat it as exposed until confirmed.
+
+The Sheets database migration `1102` is already merged and applied live. The remaining Phase 5 work is browser-side domain/data/UI, not another database-core migration.
 
 ## Notes for the next session
 
