@@ -187,28 +187,6 @@ describe('billing screen', () => {
     expect(qty.selectionStart).toBe(0);
     expect(qty.selectionEnd).toBe(qty.value.length);
   });
-  it('keeps Escape from exiting POS full view and unlocks it only on the Exit button', async () => {
-    const lock = vi.fn(async () => {});
-    const unlock = vi.fn();
-    Object.defineProperty(navigator, 'keyboard', {
-      configurable: true,
-      value: { lock, unlock },
-    });
-    document.documentElement.requestFullscreen = vi.fn(async () => {});
-    const full = el.querySelector('#eb-full');
-    full.click();
-    await tick();
-    expect(lock).toHaveBeenCalledWith(['Escape', 'F11']);
-    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
-    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    document.dispatchEvent(escape);
-    expect(escape.defaultPrevented).toBe(true);
-    expect(document.documentElement.classList.contains('eb-full')).toBe(true);
-    full.click();
-    await tick();
-    expect(unlock).toHaveBeenCalled();
-    expect(document.documentElement.classList.contains('eb-full')).toBe(false);
-  });
   it('F11 is intercepted, toggles the active pack unit and focuses its quantity', () => {
     const sku = el.querySelector('#eb-sku');
     sku.value = 'P001';
@@ -777,5 +755,130 @@ describe('receipts', () => {
     expect(el.querySelector('#eb-dialog').textContent).toContain('No receipt found');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     expect(el.querySelector('#eb-dialog .eb-modal')).toBeNull();
+  });
+});
+
+describe('full screen', () => {
+  const root = document.documentElement;
+  let fsEl = null;
+  let lock;
+  let unlock;
+  const setFs = (node) => {
+    fsEl = node;
+    document.dispatchEvent(new Event('fullscreenchange'));
+  };
+  const esc = (type = 'keydown') => {
+    const e = new KeyboardEvent(type, { key: 'Escape', bubbles: true, cancelable: true });
+    document.dispatchEvent(e);
+    return e;
+  };
+  beforeEach(() => {
+    root.classList.remove('eb-full'); // the page is shared between tests
+    fsEl = null;
+    lock = vi.fn(async () => {});
+    unlock = vi.fn();
+    Object.defineProperty(navigator, 'keyboard', { configurable: true, value: { lock, unlock } });
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fsEl });
+    root.requestFullscreen = vi.fn(async () => setFs(root));
+    document.exitFullscreen = vi.fn(async () => setFs(null));
+  });
+  const enter = async () => {
+    el.querySelector('#eb-full').click();
+    await tick();
+    expect(root.classList.contains('eb-full')).toBe(true);
+    expect(fsEl).toBe(root);
+  };
+
+  it('goes full screen from the button and locks Escape so the browser does not take it', async () => {
+    await enter();
+    expect(lock).toHaveBeenCalledWith(['Escape', 'F11']);
+    expect(el.querySelector('#eb-full').textContent).toContain('Exit full screen');
+  });
+  it('Escape does not leave full screen', async () => {
+    await enter();
+    esc();
+    esc('keyup');
+    await tick();
+    expect(root.classList.contains('eb-full')).toBe(true);
+    expect(document.exitFullscreen).not.toHaveBeenCalled();
+    expect(fsEl).toBe(root);
+  });
+  it('Escape still closes the F5 Product Help popup, and the screen stays full', async () => {
+    await enter();
+    key(document, 'F5');
+    expect(el.querySelector('#eb-help .eb-ph')).not.toBeNull();
+    const e = esc(); // this was swallowed before: the popup never saw it in full screen
+    expect(e.defaultPrevented).toBe(true);
+    expect(el.querySelector('#eb-help .eb-ph')).toBeNull();
+    expect(root.classList.contains('eb-full')).toBe(true);
+    expect(fsEl).toBe(root);
+  });
+  it('Escape closes the other popups in full screen too (held bills, Search receipt, the PIN question)', async () => {
+    await enter();
+    el.querySelector('#eb-rsearch').click();
+    await tick();
+    expect(el.querySelector('#eb-dialog .eb-rsearch')).not.toBeNull();
+    esc();
+    expect(el.querySelector('#eb-dialog .eb-rsearch')).toBeNull();
+    const sku = el.querySelector('#eb-sku');
+    sku.value = 'A100';
+    key(sku, 'Enter');
+    type(el.querySelector('#eb-cash'), '100');
+    el.querySelector('#eb-save').click();
+    await tick();
+    expect(el.querySelector('#eb-dialog [data-f="pin"]')).not.toBeNull();
+    esc();
+    expect(el.querySelector('#eb-dialog [data-f="pin"]')).toBeNull();
+    expect(root.classList.contains('eb-full')).toBe(true);
+  });
+  it('when the browser ends full screen by itself, the full layout stays and full screen returns on the next click or key', async () => {
+    await enter();
+    root.requestFullscreen.mockClear();
+    setFs(null); // a long press of Esc, a print window, Firefox or Safari taking Esc
+    expect(root.classList.contains('eb-full')).toBe(true); // the menu stays hidden
+    expect(el.querySelector('#eb-full').textContent).toContain('Exit full screen');
+    esc(); // Esc is not an action the browser accepts for going full screen
+    key(document, 'Shift');
+    expect(root.requestFullscreen).not.toHaveBeenCalled();
+    el.querySelector('#eb-sku').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await tick();
+    expect(root.requestFullscreen).toHaveBeenCalledTimes(1);
+    expect(fsEl).toBe(root);
+    setFs(null);
+    key(document, 'a');
+    await tick();
+    expect(root.requestFullscreen).toHaveBeenCalledTimes(2); // a key press works too
+  });
+  it('a popup open when the browser ends full screen (Esc taken by the browser) is closed', async () => {
+    await enter();
+    key(document, 'F5');
+    expect(el.querySelector('#eb-help .eb-ph')).not.toBeNull();
+    setFs(null);
+    expect(el.querySelector('#eb-help .eb-ph')).toBeNull();
+    expect(root.classList.contains('eb-full')).toBe(true);
+  });
+  it('only the Exit full screen button turns it off, for good', async () => {
+    await enter();
+    setFs(null);
+    root.requestFullscreen.mockClear();
+    el.querySelector('#eb-full').click(); // exit: must not bounce back into full screen
+    await tick();
+    expect(root.classList.contains('eb-full')).toBe(false);
+    expect(unlock).toHaveBeenCalled();
+    expect(el.querySelector('#eb-full').textContent).toContain('Full screen');
+    expect(el.querySelector('#eb-full').textContent).not.toContain('Exit');
+    el.querySelector('#eb-sku').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    key(document, 'a');
+    await tick();
+    expect(root.requestFullscreen).not.toHaveBeenCalled();
+    expect(root.classList.contains('eb-full')).toBe(false);
+  });
+  it('the Exit button also leaves real full screen when it is on', async () => {
+    await enter();
+    el.querySelector('#eb-full').click();
+    await tick();
+    expect(document.exitFullscreen).toHaveBeenCalled();
+    expect(fsEl).toBeNull();
+    expect(root.classList.contains('eb-full')).toBe(false);
   });
 });

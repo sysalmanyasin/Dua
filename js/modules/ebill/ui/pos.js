@@ -813,22 +813,38 @@ export async function mount(el, { ctx }) {
       return Promise.resolve();
     }
   };
+  // Full screen stays on until the cashier presses Exit full screen (or leaves this page). `wantFull` is that choice. The browser can still end
+  // real full screen on its own (a long press of Esc, Firefox and Safari where Esc cannot be locked, a print window). When that happens the
+  // full layout stays, and real full screen is requested again on the next click or key press (browsers only allow it from a user action).
+  let wantFull = false;
+  const popupOpen = () => !!(closeHelp || closeHeld || closeSearch);
+  const closePopups = () => {
+    closeHelp?.();
+    closeHeld?.();
+    closeSearch?.();
+  };
+  /** Ask the browser for real full screen (needs a user action, so only ever called from a click or key press). */
+  const requestReal = async () => {
+    try {
+      // Request the lock and fullscreen in the same user gesture. Do not await
+      // the lock first: requestFullscreen needs the button's transient activation.
+      const lockRequest = lockFullscreenEscape();
+      const fullscreenRequest = root.requestFullscreen?.();
+      await Promise.allSettled([lockRequest, Promise.resolve(fullscreenRequest)]);
+      if (document.fullscreenElement) await lockFullscreenEscape();
+    } catch {
+      /* CSS full view remains available if the browser denies fullscreen. */
+    }
+  };
   /** Enter fullscreen from the button; the explicit Exit full screen button is the normal exit path. */
   async function toggleFull() {
     const on = !root.classList.contains('eb-full');
     if (on) {
+      wantFull = true;
       root.classList.add('eb-full');
-      try {
-        // Request the lock and fullscreen in the same user gesture. Do not await
-        // the lock first: requestFullscreen needs the button's transient activation.
-        const lockRequest = lockFullscreenEscape();
-        const fullscreenRequest = root.requestFullscreen?.();
-        await Promise.allSettled([lockRequest, Promise.resolve(fullscreenRequest)]);
-        if (document.fullscreenElement) await lockFullscreenEscape();
-      } catch {
-        /* CSS full view remains available if the browser denies fullscreen. */
-      }
+      await requestReal();
     } else {
+      wantFull = false; // the one way out
       try {
         if (document.fullscreenElement) await document.exitFullscreen();
       } catch {
@@ -845,8 +861,13 @@ export async function mount(el, { ctx }) {
     fit();
   }
   const onFullChange = () => {
+    if (!el.isConnected) return; // a screen that has been removed never reacts
     if (document.fullscreenElement) {
       lockFullscreenEscape().catch(() => {});
+    } else if (wantFull) {
+      // The browser ended full screen, the cashier did not. Keep the full layout (the menu stays hidden). If Esc did it, the key never reached
+      // the page, so a popup that was open is closed here instead, and full screen comes back on the next click or key press.
+      if (popupOpen()) closePopups();
     } else {
       try {
         navigator.keyboard?.unlock?.();
@@ -858,11 +879,22 @@ export async function mount(el, { ctx }) {
     setFullLabel();
     fit();
   };
+  const reenterFull = (e) => {
+    if (!wantFull || document.fullscreenElement || !el.isConnected) return;
+    if (e.type === 'keydown' && (e.key === 'Escape' || ['Shift', 'Control', 'Alt', 'Meta'].includes(e.key))) return; // not user actions the browser accepts
+    if (e.target?.closest?.('#eb-full')) return; // that button decides for itself
+    requestReal();
+  };
   window.addEventListener('resize', fit);
   document.addEventListener('fullscreenchange', onFullChange);
+  document.addEventListener('click', reenterFull, true);
+  document.addEventListener('keydown', reenterFull, true);
   stops.push(() => {
+    wantFull = false;
     window.removeEventListener('resize', fit);
     document.removeEventListener('fullscreenchange', onFullChange);
+    document.removeEventListener('click', reenterFull, true);
+    document.removeEventListener('keydown', reenterFull, true);
     root.classList.remove('eb-full'); // leaving this page always gives the menu back
     try {
       navigator.keyboard?.unlock?.();
@@ -1028,11 +1060,9 @@ export async function mount(el, { ctx }) {
   const onPosKeys = (e) => {
     if (!el.isConnected) return;
     if (e.key === 'Escape' && root.classList.contains('eb-full')) {
-      // Escape is never a POS command. Keyboard Lock (where supported) routes
-      // it here instead of allowing the browser's ordinary fullscreen exit.
+      // Escape never leaves full screen from here (only the Exit button does), and it is NOT swallowed: the popups (Product Help, held bills,
+      // Search receipt, the PIN question) close themselves on Escape through their own listeners, which must still see the key.
       e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
       return;
     }
     if (e.key === 'F11') {
