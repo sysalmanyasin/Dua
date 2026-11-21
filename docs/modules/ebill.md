@@ -93,6 +93,16 @@ Open question for the owner: the product copy's `price` is treated as the price 
 - **Reports and exports**: History > Reports & export (export right or manager). Daily totals on screen; CSV (daily, invoices), Excel (two sheets) and PDF. Invoices still on this device (waiting or failed) are not on the server: the window warns, offers Upload now, adds the warning to the PDF and Excel notes, and names the files `-INCOMPLETE`. A cut-short list (over 5,000 invoices) is also stated.
 - Database: 0633, 0634, 0640, 0641, 0642, all live.
 
+## Full screen (audited and fixed, 21 Nov 2026)
+
+Full screen is the cashier's choice: it stays on until they press **Exit full screen** (or leave the billing page). Rules in `ui/pos.js`:
+- **Escape never leaves full screen, and is never swallowed.** It reaches the popups, so Escape still closes Product Help (F5/F2), held bills, Search receipt and the PIN question. (Bug found: the POS key handler used to stop Escape before any popup saw it, so no popup could be closed with Escape in full screen.)
+- **Chromium** (Chrome, Edge): Keyboard Lock keeps a short press of Esc and F11 inside the page. Holding Esc about two seconds still lets the browser exit; that cannot be blocked.
+- **Firefox and Safari** cannot lock Esc. The browser ends real full screen, but the full layout stays (the menu remains hidden), an open popup is closed (the key never reached the page), and real full screen returns on the next click or key press. Browsers only allow entering full screen from a user action, so it cannot return on its own.
+- The same recovery applies when anything else ends full screen (a print window, a long Esc press).
+- Exit full screen turns it off for good: no later click brings it back.
+- A removed screen never reacts to full-screen events. Tests: `describe('full screen')` in `tests/unit/ebill-page.test.js`; checked in real Firefox.
+
 ## Phase 6 (automated testing done, 21 Nov 2026)
 
 Money fuzz (database test `0650`), preview-versus-database cross-check, large-data tests, real print-engine layout check at 58 and 80 mm, and screenshots at 1366 x 768. Results, known limits and the owner's real-device/printer checklist are in `docs/modules/ebill-phase6.md`.

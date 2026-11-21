@@ -26,6 +26,7 @@ Also fixed during Phase 6 and Phase 5 merge: the billing screen's "Enable cash r
 - Reports cover what is **on the server**. Invoices still on a device (waiting or failed) are not in them; the report window says so, offers Upload now, and names the files `-INCOMPLETE`. Invoices waiting on *other* devices cannot be seen from this one (the window says that too).
 - A report file lists at most 5,000 invoices; the totals always cover all of them, and the window says when the list is cut short. A range is at most 400 days.
 - Printing uses the browser's print window. A real thermal printer driver may still add its own margins or scale (see checklist).
+- Full screen: a long press of Esc, or Esc in Firefox/Safari, ends the browser's real full screen (this cannot be blocked). The full layout stays and real full screen returns on your next click or key press. Only the Exit full screen button turns it off. See `ebill.md` "Full screen".
 - Receipt choices on the billing screen (Print on/off, Copies, Receipt type) are not remembered. Each time the screen opens they start from the shop settings. The **shop settings themselves are saved on the server and shared by every device**; a device keeps a copy so it can still print offline.
 - The Supabase Preview check on GitHub reports "Remote migration versions not found in local migrations directory". It failed on `main` before Phase 5 as well, because migrations are applied by hand and recorded under their own numbers (RUNBOOK 4). It does not affect the live site.
 
@@ -38,6 +39,11 @@ Tick each on the actual hardware. "Counter PC" = the shop computer; "phone" = an
 - [ ] Press **Print a test slip** on the real thermal printer. Check: all lines readable, nothing cut off at the sides, the slip ends after the terms (no long blank paper), the paper cutter works.
 - [ ] If the printer adds big margins or shrinks the slip, set the printer driver's paper size to 80 mm (or 58 mm) roll and margins to none, then print again.
 - [ ] Open Settings on a second device: the same shop details appear.
+
+**A2. Full screen**
+- [ ] Press Full screen: the menu hides and the browser fills the screen. Press F5: Product Help opens. Press Escape: the popup closes and you are still in full screen (in Firefox the browser bar may flash; click anywhere and it returns).
+- [ ] Press Escape with nothing open, several times: nothing happens, you stay in full screen.
+- [ ] Only the Exit full screen button takes you out; after it, clicking and typing do not bring full screen back.
 
 **B. A normal sale (online)**
 - [ ] Sign in, scan or type a code, enter quantity, take cash, Save invoice, enter your PIN.
