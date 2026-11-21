@@ -22,7 +22,7 @@
 
 /* Shared table treatment. Module-specific colours (returns, warnings, totals) remain stronger. */
 table,
-[role="table"] {
+[role='table'] {
   border-collapse: separate;
   border-spacing: 0;
   background: var(--surface);
@@ -30,18 +30,18 @@ table,
 }
 table th,
 table td,
-[role="table"] [role="columnheader"],
-[role="table"] [role="cell"] {
+[role='table'] [role='columnheader'],
+[role='table'] [role='cell'] {
   border-right: 1px solid var(--dua-grid-line);
   border-bottom: 1px solid var(--dua-grid-line);
 }
 table tr > :first-child,
-[role="table"] [role="row"] > :first-child {
+[role='table'] [role='row'] > :first-child {
   border-left: 1px solid var(--dua-grid-line);
 }
 table thead th,
 table > tr:first-child th,
-[role="table"] [role="columnheader"] {
+[role='table'] [role='columnheader'] {
   background: var(--dua-grid-head);
   color: var(--text);
   font-weight: 700;
@@ -49,7 +49,7 @@ table > tr:first-child th,
 }
 table tbody tr:nth-child(even) > td,
 table tbody tr:nth-child(even) > th,
-[role="table"] [role="row"]:nth-child(even) [role="cell"] {
+[role='table'] [role='row']:nth-child(even) [role='cell'] {
   background: var(--dua-grid-zebra);
 }
 table tbody tr:hover > td,
@@ -61,10 +61,9 @@ table tbody tr:hover > th {
 .mg-grid-wrap table,
 .mg-grid-wrap .mg-grid,
 .cls table,
-.cls [role="table"] {
+.cls [role='table'] {
   border: 1px solid var(--dua-grid-line);
 }
-
 
 /* Closing renders ledger lines as CSS-grid rows rather than semantic tables. */
 .cls .cls-table {
@@ -80,13 +79,17 @@ table tbody tr:hover > th {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 45%, var(--text-muted));
   background: var(--surface);
 }
-.cls .cls-table > .cls-trow:last-child { border-bottom: 0; }
+.cls .cls-table > .cls-trow:last-child {
+  border-bottom: 0;
+}
 .cls .cls-table > .cls-trow > * {
   min-width: 0;
   padding: 10px 8px;
   border-right: 1px solid color-mix(in srgb, var(--border) 45%, var(--text-muted));
 }
-.cls .cls-table > .cls-trow > *:last-child { border-right: 0; }
+.cls .cls-table > .cls-trow > *:last-child {
+  border-right: 0;
+}
 .cls .cls-table > .cls-trow.is-head {
   background: color-mix(in srgb, var(--surface-2) 55%, var(--primary) 12%);
   color: var(--text);
@@ -108,7 +111,9 @@ table tbody tr:hover > th {
   border-radius: var(--radius);
   background: var(--surface);
 }
-.cls .cls-row + .cls-row { margin-top: 2px; }
+.cls .cls-row + .cls-row {
+  margin-top: 2px;
+}
 .cls .cls-snap {
   border: 1px solid var(--border);
   border-radius: var(--radius);
