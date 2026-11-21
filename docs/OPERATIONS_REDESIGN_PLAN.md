@@ -1,6 +1,6 @@
 # Operations Redesign — audit, gap analysis and implementation plan
 
-Status: **Stage 1 (audit and plan), 21 Nov 2026.** Nothing in this plan is built yet except the two hygiene fixes in §9.
+Status: **Stage 1 (audit and plan), 21 Nov 2026; owner decisions D1–D6 and D11-range recorded the same day (see §8 and `docs/DECISIONS.md` D-50 to D-54).** Nothing in this plan is built yet except the two hygiene fixes in §9.
 Source brief: "DUA — Complete Operations Redesign & Implementation". Where the brief leaves a policy open, this plan lists it in §8 as a **decision for the owner** and does not assume an answer.
 
 ## 1. Method and limits
@@ -25,19 +25,19 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
 
 | Brief item | State | What exists | What is needed |
 |---|---|---|---|
-| Role-aware Home (Owner / Manager / Staff) | Partial | One Home with permission-filtered blocks | A shared dashboard shell with role-specific sections; one aggregated, permission-checked read layer |
+| Role-aware Home (Owner / Staff; Manager is the Owner) | Partial | One Home with permission-filtered blocks | A shared dashboard shell with Owner and Staff sections; one aggregated, permission-checked read layer |
 | Business Snapshot: sales, transactions | Have | `cover_summary()`, sales views | Comparison and trend fields; confirm transaction count source |
 | Snapshot: stock alerts | Have | `inventory_cover_summary()` | Reuse as is |
 | Snapshot: closing status | Partial | Closing tables and status in the Closing module | A read RPC that reports today's closing state without opening Closing data |
-| Snapshot: cash position | Partial | Closing cash counts and deposits, Manager petty cash and ledgers | Decision on which module is the authority for "cash position" (§8) |
+| Snapshot: cash position | Partial | Manager ledgers (authority, D-53), Closing deposits, Sales "Cash to Deposit" | An Owner-only read RPC over the Manager ledgers; a rule that flags a day whose bank deposit does not match its cash sale |
 | Snapshot: pending tasks, critical alerts | Missing | Owner "Needs attention" covers notification failures only | Task Master (§5) and a business-rules table for alerts |
-| Snapshot / Team: staff attendance | **Missing** | Documented as "later, with the Android app"; needs its own permission and narrow RPC | Decision on source (§8), then table, RPCs, tests |
+| Snapshot / Team: staff attendance | Deferred (D-50) | Waits for the Android app | Nothing now. Attendance tiles and sections are not shown, and no figure is invented. Slots stay reserved in the layout |
 | Action Centre | Missing | Individual module warnings | A read-only aggregator that lists issues with a deep link to the owning module; an issue closes only when its source condition clears |
 | Critical alerts by configurable rules, not AI | Missing | `settings` table with versioned history | A rules table (rule, threshold, severity, enabled, owner) evaluated in the database; AI may explain but never edit severity |
 | Staff & Team Overview, completion rate | Missing | `staff`, `mgmt_staff_details` (owner only) | Task and attendance data; a defined completion-rate rule (§5.4) |
 | Business Intelligence (7/30/90 days) | Partial | Sales Dashboard charts, views | Period-parameterised read RPCs reusing existing sales and inventory views; detail stays in Reports |
 | Recent Activity (latest 10, configured categories) | Missing | `activity_log` (append-only, restricted read via `activity.view`) | A permission-checked feed RPC with category mapping; owner-configured categories stored in `settings`; never writes to the log |
-| Manager dashboard | Missing | No manager tier: Manager module is owner-only (`mgmt.*`) | A delegated tier built from permissions (§8) |
+| Manager dashboard | Not needed | Manager is the Owner (D-51) | None: the Owner dashboard is the management dashboard. Staff get a "To verify" list if the owner has named them as verifiers (D-52) |
 | Staff dashboard, personal payroll | Partial | Salary data exists in `mgmt_salary_*`, owner only | A per-person, read-only RPC returning only the caller's own payslip |
 | Task Master | **Missing** | Nothing (Audit has assignments; Workspace has notes; neither is a task system) | Whole module (§5) |
 | Notifications and reminders for staff | Missing | Owner-only table and sender | Per-recipient rows, delivery and acknowledgement history, reminder policies, in-app inbox (§6) |
@@ -64,7 +64,7 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
    | Notifications | extend `notify_owner` into a per-recipient service | Stage 4 |
    | AI tools | Edge Function with a tool registry | Stage 5 |
 5. **Every new write goes through a SECURITY DEFINER RPC** with `set search_path = public`, an explicit `has_perm` or ownership check, `revoke … from public, anon, authenticated` then a targeted `grant … to authenticated`, and a `log_activity` call. Each is covered by a database test that also tries the call as the wrong role.
-6. **Migrations:** one new range per workstream, assigned by the owner (proposal in §8). Apply by hand and register under the four-digit version, never with `apply_migration`; run `tools/check-registry.mjs` first.
+6. **Migrations:** one reserved range per workstream (D-54, `docs/MODULES.md` §5.1). Apply by hand and register under the four-digit version, never with `apply_migration`; run `tools/check-registry.mjs` first.
 7. **Hosting unchanged** (GitHub Pages + Supabase). The AI and push features need Edge Functions only; no new host.
 
 ## 5. Task Master (Stage 3)
@@ -78,10 +78,11 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
 - `task_proposals` — AI-recommended tasks waiting for approval; nothing becomes a task without an authorised approval.
 
 ### 5.2 Lifecycle (enforced in the database, not the browser)
-`created → assigned → accepted → in_progress → submitted → verification → completed`; a rejected submission returns to `in_progress` for correction and resubmission. One RPC per transition, each checking the caller's role on the task. Staff cannot change owner or deadline except by a change request. A person can never verify a submission they made (check on `submitted_by <> auth.uid()` inside the RPC, covered by a test). Every completed task requires verification.
+`created → assigned → accepted → in_progress → submitted → verification → completed`; a rejected submission returns to `in_progress` for correction and resubmission. One RPC per transition, each checking the caller's role on the task. Staff cannot change owner or deadline except by a change request. A person can never verify a submission they made, the Owner included (check on `submitted_by <> auth.uid()` inside the RPC, covered by a test). Every completed task requires verification.
 
 ### 5.3 Permissions
-New keys (proposal): `tasks.view_own`, `tasks.view_team`, `tasks.assign`, `tasks.verify`, `tasks.manage_defs`, `tasks.approve_proposals`, `tasks.review_requests`. **Who may verify is left to the owner's permission configuration; the plan ships no default verifier policy** (§8).
+New keys: `tasks.view_own`, `tasks.assign`, `tasks.verify`, `tasks.manage_defs`, `tasks.approve_proposals`, `tasks.review_requests`. Because Manager is the Owner (D-51), everything except `tasks.view_own` is Owner-only by default: only an admin at MFA level `aal2` holds them, and no role template carries them.
+**Verification (D-52):** the Owner, and Senior staff the owner has named. A SQL helper `task_can_verify()` returns true only when the caller is the Owner, or the caller's login is `senior` **and** has an explicit per-user `grant` of `tasks.verify`. The `senior` template never carries the key, so granting it to all seniors by mistake does not widen access, and a Junior is refused even if granted. The helper is called inside every verify and return RPC and tested for: Owner, named Senior, unnamed Senior, Junior, a disabled login, and a person verifying their own submission.
 
 ### 5.4 Completion rate (defined, so it is fair)
 Rate = tasks completed and verified on or before their deadline ÷ tasks whose deadline fell inside the period and which were assigned to that person for at least their full window. Excluded: tasks cancelled by management, tasks reassigned away before the deadline, tasks created already overdue, and days on approved leave once attendance exists. The period (7, 30 or 90 days) is always shown next to the figure.
@@ -93,7 +94,7 @@ The task creator chooses `none`, `text`, `photo` or `file` and the allowed type.
 - New `ntf_recipients` (notification, user, created, delivered, read, acknowledged) so history is per person. The existing owner `notifications` table and `notify_owner()` keep working unchanged; new code calls a new `notify_users(kind, payload, recipients)` that writes the same kind of row and never raises.
 - In-app inbox read through RLS (a person sees only their own rows); push through the existing `notify-ntfy` pattern.
 - **Privacy:** push payloads carry ids and generic wording only. Salary, amounts and names never appear in a push or lock-screen text. This extends the rule already stated in `0012`.
-- Reminder policy: owner-set defaults in `settings`; authorised managers may adjust reminders on tasks they manage. Overdue and approaching-deadline checks run on a schedule.
+- Reminder policy: owner-set defaults in `settings`; only the Owner adjusts reminders (Manager is the Owner, D-51). Overdue and approaching-deadline checks run on a schedule.
 - Announcements with required acknowledgement use the same recipient table.
 - Push to staff phones needs a per-user delivery channel; options are in §8.
 
@@ -107,22 +108,24 @@ The task creator chooses `none`, `text`, `photo` or `file` and the allowed type.
 - Task Master and every module keep working when the assistant is unavailable.
 - Needs from the owner: model provider and account, monthly spend limit (§8).
 
-## 8. Decisions needed from the owner
-These are the "do not assume" items. The plan can proceed without them up to the stage that needs each.
+## 8. Owner decisions
+Decided items are recorded in `docs/DECISIONS.md`. Open items are the "do not assume" list; the plan proceeds without them up to the stage that needs each.
 
-| # | Decision | Needed by | Note |
+| # | Decision | Status | Effect on the plan |
 |---|---|---|---|
-| D1 | Who may verify completed tasks (owner only, named managers, any person with `tasks.verify`, other) | Stage 3 | No default is built |
-| D2 | Attendance source: web check-in now, or wait for the Android app | Stage 2 | Affects Snapshot, Team Overview, completion rate |
-| D3 | Manager tier: confirm Manager is a permission-built delegate, not a new fixed role template | Stage 2 | Today `mgmt.*` is owner only |
-| D4 | Create a staging Supabase project before new tables | Stage 3 | Recommended; none exists |
-| D5 | Migration ranges: proposal `0700–0749` dashboard and alert read RPCs, `1200–1299` Task Master (`task_`), `1300–1399` per-user notifications (`ntf_`), existing `0800–0899` AI, `0750–0799` Unified Reports | Stage 2 | MODULES.md says the owner assigns ranges |
-| D6 | "Cash position": which module is authoritative (Closing deposits, Manager ledgers, or a stated combination) | Stage 2 | Avoid two cash figures |
-| D7 | What are "approved schedules" for auto-generated tasks: who approves, how they are entered | Stage 3 | No schedule concept exists |
-| D8 | Evidence storage: enable Supabase Storage, and the allowed types and size | Stage 3 | Needs a CSP change |
-| D9 | Staff push channel: per-user ntfy topics, web push, or in-app only at first | Stage 4 | ntfy is a public server; payload rules in §6 |
-| D10 | AI provider, account, spend limit and which tools to enable first | Stage 5 | |
-| D11 | Which activity categories show by default on Recent Activity | Stage 2 | Owner can change later |
+| D1 | Who may verify completed tasks | **Decided (D-52):** Owner and Senior staff the owner has named | Per-person `tasks.verify` grant on a Senior login; `task_can_verify()` in the database; no self-verification, the Owner included |
+| D2 | Attendance source | **Decided (D-50):** wait for the Android app | No attendance UI or figures now; completion rate has no leave exclusion yet |
+| D3 | Manager tier | **Decided (D-51):** Manager is the Owner | Two dashboards only: Owner and Staff. "Authorised manager" actions are Owner-only |
+| D4 | Staging Supabase project before new tables | **Open** | Recommended before Stage 3 migrations; Stage 2 adds read RPCs and the rules table only |
+| D5 | Migration ranges | **Decided and reserved (D-54)** | `0700–0749` ops, `0750–0799` reports, `0800–0899` AI, `1200–1299` tasks, `1300–1399` inbox; table in `docs/MODULES.md`, enforced by `tests/unit/migration-ranges.test.js` |
+| D6 | Cash position authority | **Decided (D-53):** Manager ledgers; deposits are made daily to match cash sale | Owner-only read RPC over the ledgers; deposit-vs-cash-sale mismatch is a rule-based Action Centre issue |
+| D7 | What "approved schedules" are for auto-generated tasks: who approves, how entered | Open (needed in Stage 3) | Given D-51 the proposal is Owner-only approval |
+| D8 | Evidence storage: enable Supabase Storage, allowed types and size | Open (Stage 3) | Needs a CSP change; until then only `none` and `text` evidence |
+| D9 | Staff push channel: per-user ntfy topics, web push, or in-app only first | Open (Stage 4) | ntfy is a public server; payload rules in §6 |
+| D10 | AI provider, account, spend limit, first tools | Open (Stage 5) | |
+| D11 | Default Recent Activity categories | Open (Stage 2) | Owner can change later |
+
+Small open point inside D6, to settle against live data at the start of Stage 2: which deposit figure is compared with the cash sale (Closing deposit rows or a Manager ledger entry).
 
 ## 9. Stage 1 changes made with this plan
 1. **`0015_core_trigger_search_path`** pins `search_path = public` on `public.set_updated_at()` and `public.activity_log_immutable()` (the two advisor warnings) and removes their unneeded PUBLIC execute right. Test `0015_core_trigger_search_path_test.sql` checks the pin, that browser roles cannot call them, that the audit log still refuses update and delete, and that triggers still fire for a signed-in role. **Applied live and registered as `0015` on 21 Nov 2026** (verified: both functions pinned, not executable by `anon`/`authenticated`/PUBLIC, triggers still attached).
@@ -136,10 +139,10 @@ Each stage ends only when its tests pass, the Owner, Manager and Staff cases are
 | Stage | Main work | Files affected (expected) | Acceptance |
 |---|---|---|---|
 | 1 Audit and plan | This document, `0015`, registry tool | docs, `supabase/migrations`, `tools` | §9 verified; registry plan approved |
-| 2 Dashboard and roles | Shell, snapshot providers, Action Centre read model, rules table, activity feed RPC, Manager and Staff variants, shared refresh and stale-data service | `js/modules/home/*`, `js/core/statusbar.js`, new `js/shared/refresh.js`, manifests of Sales, Closing, Inventory, Audit, new `0700s` migrations | No figure differs from its module; staff see only own data; stale banner appears offline; existing Home tests still pass |
-| 3 Task Master | Tables, RPCs, lifecycle, change requests, history, staff and manager screens | new `js/modules/tasks/*`, `1200s` migrations, `supabase/tests/12xx_*` | Lifecycle, self-verification block, rejected-then-resubmitted path, duplicate-submit safety, RLS per role |
-| 4 Notifications | Recipients, inbox, reminder policy, schedules, acknowledgements, staff push | `notify-ntfy`, new `1300s` migrations, a shared notifications UI | Per-person history; no sensitive text in push; owner alerts unchanged |
-| 5 AI assistant | Edge Function, tool registry, App Guide, confirmations | new function folder under `supabase/functions`, `js/modules/assistant/*`, `0800s` | Every tool denied for the wrong role; duplicate-action protection; app works with the function off |
+| 2 Dashboard and roles | Shell, snapshot providers, Action Centre read model, rules table, activity feed RPC, Owner and Staff variants, shared refresh and stale-data service | `js/modules/home/*`, `js/core/statusbar.js`, new `js/shared/refresh.js`, manifests of Sales, Closing, Inventory, Audit, new `0700–0749` migrations | No figure differs from its module; staff see only own data; stale banner appears offline; existing Home tests still pass |
+| 3 Task Master | Tables, RPCs, lifecycle, change requests, history, staff and manager screens | new `js/modules/tasks/*`, `1200–1299` migrations, `supabase/tests/12xx_*` | Lifecycle, self-verification block, rejected-then-resubmitted path, duplicate-submit safety, RLS per role |
+| 4 Notifications | Recipients, inbox, reminder policy, schedules, acknowledgements, staff push | `notify-ntfy`, new `1300–1399` migrations, a shared notifications UI | Per-person history; no sensitive text in push; owner alerts unchanged |
+| 5 AI assistant | Edge Function, tool registry, App Guide, confirmations | new function folder under `supabase/functions`, `js/modules/assistant/*`, `0800–0899` | Every tool denied for the wrong role; duplicate-action protection; app works with the function off |
 | 6 Unified Reports | Report registry over existing views | `js/modules/reports/*` (range `0750–0799`) | Report totals equal module totals on golden fixtures |
 | 7 Hardening and release | Playwright end-to-end, performance and accessibility on low-end Android, SECURITY DEFINER review (219 routines), FK indexes, deployment check | `tests/e2e`, CI | All suites green; owner phone acceptance recorded |
 
