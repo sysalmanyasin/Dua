@@ -3,7 +3,7 @@
 // saved a moment later and the save chip always says which of the two is current.
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
-import { longDate, money, parseAmount } from '../../../shared/format.js';
+import { longDate, money, parseAmount, shortDate } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { conflictVersion, friendlyError } from '../domain/errors.js';
 import {
@@ -28,7 +28,7 @@ import {
 import { overviewValue, prevTitle, snapshotRows } from '../domain/snapshot.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { SECTIONS, clampSection, sectionIndex } from '../domain/sections.js';
-import { slotLabel } from '../domain/slots.js';
+import { kindLabel, slotLabel, suggestNext } from '../domain/slots.js';
 import { clearLocal, getOpen, loadLocal, saveLocal } from '../domain/store.js';
 import { errorCard, focusHeading, keepFocus, loadingCard, openDialog, toast } from './parts.js';
 import { saveBlob } from './book.js';
@@ -667,12 +667,23 @@ export async function mount(el, { ctx } = {}) {
               </div>`
             : html`<p class="cls-meta">The figures are still being worked out. You can submit; the saved closing will have them.</p>`
         }
-        ${tone !== 'ok' ? html`<p class="cls-warn" role="alert"><span aria-hidden="true">⚠</span> This is a ${tone === 'bad' ? 'large ' : ''}shortage. Recount the till and check credit and deposits before submitting.</p>` : ''}
+        ${
+          tone === 'bad'
+            ? html`<p class="cls-warn cls-warn-bad" role="alert">
+                <span aria-hidden="true">⛔</span> <strong>Large shortage. Stop and recount the till</strong>, then check credit and
+                deposits. Submit only if the figure is confirmed.
+              </p>`
+            : tone === 'warn'
+              ? html`<p class="cls-warn" role="alert">
+                  <span aria-hidden="true">⚠</span> This is a shortage. Recount the till and check credit and deposits before submitting.
+                </p>`
+              : ''
+        }
         ${skipped.length ? html`<p class="cls-warn">Some sections were not opened: ${skipped.join(', ')}. You can still submit, but check them first.</p>` : ''}
         <p class="cls-meta">After submitting, the closing is locked and the next shift picks up its carried values.</p>
         <div class="actions">
-          <button type="button" class="btn" data-close>Not yet</button>
-          <button type="button" class="btn btn-primary" data-act="go">Submit</button>
+          <button type="button" class="btn" data-close>${tone === 'bad' ? 'Recount first' : 'Not yet'}</button>
+          <button type="button" class="btn btn-primary" data-act="go">${tone === 'bad' ? 'Submit anyway' : 'Submit'}</button>
         </div>`,
       { label: 'Submit closing' },
     );
@@ -729,6 +740,12 @@ export async function mount(el, { ctx } = {}) {
       toast(friendlyError(e).message, 'error');
     }
   }
+  // what the next person does, so the cashier can see the hand-over and stop
+  const nextUp = () => {
+    const n = suggestNext({ kind: S.kind, business_date: S.date });
+    if (!n) return '';
+    return html`<p class="cls-meta">Next up: ${kindLabel(n.kind)} closing${n.date !== S.date ? ` · ${shortDate(n.date)}` : ''}</p>`;
+  };
   const successScreen = () =>
     html`<div class="cls">
       ${hero({ label: 'Closing', title: S.done.already ? 'Already submitted' : 'Closing submitted ✓', sub: `${slotLabel(S.kind, S.seq)} · ${longDate(S.date)}` })}
@@ -738,11 +755,14 @@ export async function mount(el, { ctx } = {}) {
         </p>
         ${
           S.done.preview
-            ? html`<p class="cls-meta">
-                Net sale ${money(S.done.preview.net_sale, { decimals: true })} · Net cash
-                ${money(S.done.preview.net_cash, { decimals: true })}
-              </p>`
-            : ''
+            ? html`<div class="cls-done">
+                <span class="cls-done-mark" aria-hidden="true">✓</span>
+                <span class="cls-meta">Net cash</span>
+                <span class="cls-done-figure">${money(S.done.preview.net_cash, { decimals: true })}</span>
+                <p class="cls-meta">Net sale ${money(S.done.preview.net_sale, { decimals: true })}</p>
+                ${nextUp()}
+              </div>`
+            : html`<div class="cls-done"><span class="cls-done-mark" aria-hidden="true">✓</span>${nextUp()}</div>`
         }
         <div class="actions">
           <button type="button" class="btn" data-act="pdf">Download PDF</button>
@@ -902,7 +922,7 @@ export async function mount(el, { ctx } = {}) {
       <div class="cls-table" style="--cols: 1">
         ${S.form.hs.map(
           (r) =>
-            html`<div class="cls-trow ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
+            html`<div class="cls-trow cls-trow-1 ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
               ${textCell('hs', r, 'label', 'Name')} ${numCell('hs', r, 'amount', 'Amount')} ${strike('hs', r)}
             </div>`,
         )}
@@ -1037,22 +1057,26 @@ export async function mount(el, { ctx } = {}) {
   }
   function paint() {
     const pct = Math.round(((S.section + 1) / SECTIONS.length) * 100);
+    const last = S.section === SECTIONS.length - 1;
     render(
       el,
       html`<div class="cls cls-swipe">
-        <p class="cls-backrow">
-          <button type="button" class="btn btn-sm" data-act="leave"><span aria-hidden="true">‹</span> Back to days</button>
-        </p>
-        ${hero({
-          label: 'Closing',
-          title: `${slotLabel(S.kind, S.seq)} closing`,
-          sub: `${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}`,
-          actions: html`<span class="cls-status" role="status" aria-live="polite"
-            ><button type="button" id="cls-chip" class="cls-chip"></button
-          ></span>`,
-        })}
+        <div class="cls-titlebar">
+          <button type="button" class="btn btn-sm" data-act="leave" aria-label="Back to days">
+            <span aria-hidden="true">‹</span> Days
+          </button>
+          <div class="cls-tb-text">
+            <h1 class="cls-tb-title">${slotLabel(S.kind, S.seq)} closing</h1>
+            <p class="cls-tb-sub">${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}</p>
+          </div>
+          <span class="cls-status" role="status" aria-live="polite"><button type="button" id="cls-chip" class="cls-chip"></button></span>
+        </div>
         <div class="cls-anchor" aria-hidden="true"></div>
         <div class="cls-bar">
+          <p class="cls-step">
+            <span><strong>${S.section + 1} of ${SECTIONS.length}</strong> · ${SECTIONS[S.section].label}</span>
+            <span class="cls-swipe-hint" aria-hidden="true">‹ swipe ›</span>
+          </p>
           <div class="cls-progress" aria-hidden="true"><span style="width: ${pct}%"></span></div>
           <nav class="cls-jump" aria-label="Sections">
             ${SECTIONS.map(
@@ -1069,17 +1093,22 @@ export async function mount(el, { ctx } = {}) {
           </nav>
         </div>
         <div class="cls-grid">
-          <section class="card">
-            <p id="cls-errors" class="cls-warn" role="alert"></p>
-            <div class="cls-row">
-              <label for="cls-staff">Responsible staff</label>
-              <select id="cls-staff" class="cls-in">
-                <option value="">Choose…</option>
-                ${staff.map((s) => html`<option value="${s.id}" ${s.id === S.form.responsible_staff_id ? 'selected' : ''}>${s.name}</option>`)}
-              </select>
-            </div>
-            ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
-          </section>
+          <p id="cls-errors" class="cls-warn" role="alert"></p>
+          ${
+            /* the responsible person is only needed at submit, so it sits with the Submit button instead of taking the top of all 14 screens */
+            last
+              ? html`<section class="card">
+                  <div class="cls-row">
+                    <label for="cls-staff">Responsible staff</label>
+                    <select id="cls-staff" class="cls-in">
+                      <option value="">Choose…</option>
+                      ${staff.map((s) => html`<option value="${s.id}" ${s.id === S.form.responsible_staff_id ? 'selected' : ''}>${s.name}</option>`)}
+                    </select>
+                  </div>
+                  ${S.showWarn && !S.form.responsible_staff_id ? html`<p class="cls-warn" role="alert">Required before submitting.</p>` : ''}
+                </section>`
+              : ''
+          }
           <section class="card cls-sec">${sectionBody()}</section>
         </div>
         ${prevCard()}
@@ -1088,7 +1117,6 @@ export async function mount(el, { ctx } = {}) {
           <button type="button" class="btn" data-act="viewall"><span aria-hidden="true">⊞</span> View all</button>
         </div>
         <p class="cls-meta">Back to days saves your draft first. Continue it later from the calendar or Saved records.</p>
-        <p class="cls-swipe-hint" aria-hidden="true">Swipe left for next section · Swipe right for previous</p>
         <div class="cls-nav">
           <button type="button" class="btn" data-act="prev" ${S.section === 0 ? 'disabled' : ''}>
             <span aria-hidden="true">←</span> Back
@@ -1106,7 +1134,25 @@ export async function mount(el, { ctx } = {}) {
     paintChip();
     paintTotals();
     paintMarks();
+    paintOffsets();
   }
+
+  // The progress bar and section pills are sticky: they must stop below the (also sticky) app header, whatever its height is on this
+  // screen, and the pill of the current section must be inside the scrolling row.
+  function paintOffsets() {
+    const root = el.querySelector('.cls');
+    const header = document.querySelector('.app-header');
+    if (root && header) root.style.setProperty('--cls-hdr', `${header.offsetHeight}px`);
+    const row = el.querySelector('.cls-jump');
+    const now = row?.querySelector('[aria-current="step"]');
+    if (row && now) row.scrollLeft = Math.max(0, now.offsetLeft - (row.clientWidth - now.offsetWidth) / 2);
+  }
+  const onResize = () => {
+    // this page was left: stop listening
+    if (!el.isConnected || !el.querySelector('.cls-bar')) return window.removeEventListener('resize', onResize);
+    paintOffsets();
+  };
+  window.addEventListener('resize', onResize);
 
   // Bring the section cards (progress bar, jump chips, card) to the top of the screen,
   // so the hero and the back link are scrolled past instead of the person landing on them.

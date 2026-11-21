@@ -478,6 +478,20 @@ describe('Closing ledger', () => {
     el.querySelector('[data-jump="13"]').click();
     expect(el.querySelector('[data-act="submit"]')).not.toBeNull();
   });
+  it('shows "N of 14" under a slim title bar, and asks for the responsible person only on the last section', async () => {
+    openTarget();
+    await ledger();
+    expect(el.querySelector('.cls-step').textContent).toContain('1 of 14');
+    expect(el.querySelector('.cls-hero, .hero')).toBeNull(); // the big hero is for the start and success screens
+    expect(el.querySelector('h1.cls-tb-title').textContent).toContain('closing');
+    expect(el.querySelector('#cls-staff')).toBeNull();
+    el.querySelector('[data-jump="5"]').click();
+    expect(el.querySelector('.cls-step').textContent).toContain('6 of 14');
+    expect(el.querySelector('#cls-staff')).toBeNull();
+    el.querySelector('[data-jump="13"]').click();
+    expect(el.querySelector('.cls-step').textContent).toContain('14 of 14');
+    expect(el.querySelector('#cls-staff')).not.toBeNull();
+  });
   it('refuses to submit without a responsible person, then submits and shows the success screen', async () => {
     openTarget();
     await ledger();
@@ -492,15 +506,17 @@ describe('Closing ledger', () => {
     await vi.advanceTimersByTimeAsync(300);
     expect(api.submit).toHaveBeenCalledWith('k1');
     expect(el.textContent).toContain('Closing submitted');
+    expect(el.querySelector('.cls-done-mark')).not.toBeNull();
+    expect(el.textContent).toContain('Next up:');
   });
   it('sends you to the Inventory Audit instead of the review when the audit is required and not verified', async () => {
     api.readAudit.mockImplementationOnce(async () => null);
     openTarget();
     await ledger();
+    el.querySelector('[data-jump="13"]').click(); // the responsible-staff box is on the last section, beside Submit
     el.querySelector('#cls-staff').value = 'st1';
     el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
     await vi.advanceTimersByTimeAsync(3000);
-    el.querySelector('[data-jump="13"]').click();
     el.querySelector('[data-act="submit"]').click();
     expect(document.querySelector('dialog')).toBeNull();
     expect(el.querySelector('[data-jump="5"]').getAttribute('aria-current')).toBe('step');
@@ -509,13 +525,13 @@ describe('Closing ledger', () => {
   it('maps a refusal to plain words and stays on the ledger', async () => {
     openTarget();
     await ledger();
+    el.querySelector('[data-jump="13"]').click();
     el.querySelector('#cls-staff').value = 'st1';
     el.querySelector('#cls-staff').dispatchEvent(new Event('change', { bubbles: true }));
     await vi.advanceTimersByTimeAsync(3000);
     api.submit.mockImplementationOnce(async () => {
       throw Object.assign(new Error('x'), { hint: 'audit_not_verified' });
     });
-    el.querySelector('[data-jump="13"]').click();
     el.querySelector('[data-act="submit"]').click();
     document.querySelector('dialog [data-act="go"]').click();
     await vi.advanceTimersByTimeAsync(300);
@@ -550,12 +566,12 @@ describe('Closing ledger', () => {
     swipe(el.querySelector('.cls-sec'), 100, 100, 145, 130);
     expect(current()).toBe('0');
 
-    // starting on a field, a row label or the staff card works too
+    // starting on a field, a row label or the tool buttons works too
     swipe(el.querySelector('#f-sys_cash'), 180, 100, 100, 105);
     expect(current()).toBe('1');
     swipe(el.querySelector('.cls-sec h2'), 100, 100, 180, 105);
     expect(current()).toBe('0');
-    swipe(el.querySelector('#cls-staff'), 180, 100, 100, 105);
+    swipe(el.querySelector('.cls-tools'), 180, 100, 100, 105);
     expect(current()).toBe('1');
     swipe(el.querySelector('.cls-prev'), 100, 100, 180, 105);
     expect(current()).toBe('0');
