@@ -14,16 +14,6 @@ export async function staffSignIn(username, pin) {
   return error ? { ok: false, message: 'Sign-in failed.' } : { ok: true };
 }
 
-export async function requestAccess(fullName, username) {
-  const r = await callFunction('request-access', { full_name: fullName, username: String(username).trim().toLowerCase() });
-  return { ok: r.ok, message: r.body.message ?? (r.ok ? 'Request sent.' : 'Could not send the request.') };
-}
-
-export async function claimAccount(username, code, pin) {
-  const r = await callFunction('claim-account', { username: String(username).trim().toLowerCase(), code, pin });
-  return { ok: r.ok, message: r.body.message ?? (r.ok ? 'PIN set. You can sign in now.' : 'Could not set the PIN.') };
-}
-
 // ── MFA (admins) ──
 export async function mfaState() {
   const { data: aal } = await db().auth.mfa.getAuthenticatorAssuranceLevel();

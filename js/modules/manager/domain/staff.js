@@ -51,3 +51,32 @@ export function staffPayload(f, key) {
     p_key: key,
   };
 }
+
+// ── Staff login (owner only). The server repeats these rules and also refuses weak PINs (0000, 1234, years...). ──
+const USERNAME_RE = /^[a-z][a-z0-9._-]{2,23}$/;
+export const LOGIN_ROLES = ['junior', 'senior'];
+
+// A starting point only: the first name in lower case. The owner can change it.
+export function suggestUsername(fullName) {
+  const words = String(fullName ?? '')
+    .toLowerCase()
+    .split(/\s+/)
+    .map((w) => w.replace(/[^a-z0-9]/g, ''))
+    .filter(Boolean);
+  let name = words[0] ?? '';
+  if (name.length < 3 && words.length > 1) name = words.slice(0, 2).join('.');
+  name = name.replace(/^[^a-z]+/, '').slice(0, 24); // a username starts with a letter
+  return name.length >= 3 ? name : '';
+}
+
+export function validateLoginForm(l) {
+  const e = {};
+  const username = String(l.username ?? '')
+    .trim()
+    .toLowerCase();
+  if (!USERNAME_RE.test(username)) e.username = '3 to 24 letters or digits (. _ - allowed); start with a letter.';
+  if (!LOGIN_ROLES.includes(l.role)) e.role = 'Choose Junior or Senior.';
+  if (!/^\d{4}$/.test(String(l.pin ?? ''))) e.pin = 'The PIN must be exactly 4 digits.';
+  else if (l.pin !== l.pin2) e.pin2 = 'The two PINs do not match.';
+  return e;
+}

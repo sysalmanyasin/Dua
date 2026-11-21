@@ -3,6 +3,12 @@
 Dates are 2026. Counts are as of the end of each step.
 
 
+## 21 Nov — Staff logins created from the Staff Registry (4-digit PIN)
+- Owner creates a login from a registry person (username, Junior/Senior, 4-digit PIN); linked to the existing staff row, so no duplicates. Weak PINs refused. Set PIN and Unlock in Users & Access; registry shows who has no login.
+- Lockout is now 5 wrong PINs for 1 hour. Older 6-digit PINs keep working until reset.
+- Removed self sign-up: `request-access`, `claim-account`, access requests screen, setup codes (tables kept as history).
+- Database: `0014_staff_logins_pin4` (one login per person; `access_locked_usernames()`). New server secret `PIN_PEPPER`.
+
 ## 19 Nov — Workspace Phase 4: Notes editor, sharing and history
 - Workspace Notes are now a registered module (`/workspace`, `/workspace/note`): home with search (titles and note text), Mine / Shared / Archived / Trash tabs and personal folders; rich-text editor (headings, bold, italic, underline, bulleted/numbered/checklists, links, undo/redo); autosave with same-operation-id retry; conflict banner (keep mine / use latest / copy mine); sharing dialog (owner/editor/viewer, transfer ownership, hide history from viewers); history with preview and owner-only restore; archive and delete.
 - Vendored ProseMirror bundle (`vendor/workspace/`, nine MIT packages pinned at least 14 days old, reproducible esbuild recipe, licences, SHA-256 in `tools/check-vendor.mjs`). The editor schema is proved equal to the note validators by running the shared cases through the real library.

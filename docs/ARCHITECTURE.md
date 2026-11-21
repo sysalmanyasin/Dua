@@ -9,8 +9,8 @@ Phone / shop PC (browser)
       ▼
 Supabase project "DuaPharmaPlus"
   Postgres: tables + views + functions, row-level security on everything
-  Auth:     owner (email + password + MFA), staff (hidden email + 6-digit PIN)
-  Edge Functions: staff-login · request-access · claim-account · admin-users · inventory sync · owner notifications / backup reporting
+  Auth:     owner (email + password + MFA), staff (hidden email + 4-digit PIN)
+  Edge Functions: staff-login · admin-users · inventory sync · owner notifications / backup reporting
       ▲
 GitHub: repository → Actions (lint, tests, database tests, function type-checks) → Pages (the site)
 Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
