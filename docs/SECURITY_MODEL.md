@@ -11,7 +11,7 @@
 No public sign-up exists. A disabled person loses access immediately (database check) and cannot refresh a session.
 
 ## Authorisation
-Roles are **templates**; real access is a set of named permissions with per-person *Allow* / *Deny* (deny wins). `has_perm(key)` is used inside every row-level-security policy and every function, so hiding a menu is only a convenience. The list of 29 permissions is in `docs/ADMIN_GUIDE.md`.
+Roles are **templates**; real access is a set of named permissions with per-person *Allow* / *Deny* (deny wins). `has_perm(key)` is used inside every row-level-security policy and every function, so hiding a menu is only a convenience. The live catalog contained 70 permission keys on 21 Nov 2026; see the full catalog in `docs/ADMIN_GUIDE.md`.
 
 What a **basic staff member** can reach, by design: their own sign-in, the Last Day total (one function that returns only the latest *closed* day), and whatever the owner explicitly grants. They cannot read sales history, targets, credit, salaries or other people's data; the tests prove each of those is refused.
 
