@@ -125,42 +125,71 @@ export async function mount(el, { ctx }) {
     if (!state.people) return render(el, html`${head}${loadingCard()}`);
     render(
       el,
-      html`${head}
-      ${
-        state.people.length
-          ? state.people.map(
-              (p) =>
-                html`<section class="card mg-credit">
-                  <button
-                    type="button"
-                    class="mg-head"
-                    data-act="toggle"
-                    data-id="${p.staff_id}"
-                    aria-expanded="${state.openId === p.staff_id}"
-                  >
-                    <span class="mg-name"
-                      ><strong>${p.full_name}</strong
-                      ><small class="muted">${p.staff_code || ''}${p.active ? '' : ' · inactive'}</small></span
-                    >
-                    <span class="mg-net"><small class="muted">Net</small><strong>${m(p.net)}</strong></span>
-                  </button>
-                  <p class="small muted mg-sum">
-                    Previous ${m(p.prev_balance)} · Entries ${m(p.entries_total)} · Salary −${m(p.salary_deduction)} · Less generic
-                    −${m(p.generic_deduction)}
-                  </p>
-                  ${state.openId === p.staff_id ? personBody(p) : ''}
-                </section>`,
-            )
-          : html`<div class="card"><p class="muted">Nobody has credit this month.</p></div>`
-      }
-      ${
-        state.people.length
-          ? html`<div class="card total-card">
-              <div><span class="label">TOTAL NET CREDIT</span><strong>${m(sumNet(state.people))}</strong></div>
-            </div>`
-          : ''
-      }`,
+      html`${head} ${state.people.length ? creditTable() : html`<div class="card"><p class="muted">Nobody has credit this month.</p></div>`}`,
     );
+  }
+
+  // One numbered row per person; tap a name to open their entries and the forms under the row.
+  function creditTable() {
+    const sum = (key) => state.people.reduce((t, p) => t + Number(p[key] || 0), 0);
+    return html`<div class="mg-grid-wrap">
+      <table class="mg-grid">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="name">Name</th>
+            <th class="num">Previous</th>
+            <th class="num">Entries</th>
+            <th class="num">Salary deducted</th>
+            <th class="num">Less generic</th>
+            <th class="num">Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.people.map(
+            (p, i) =>
+              html`<tr data-row="${p.staff_id}">
+                  <td class="idx">${i + 1}</td>
+                  <td class="name">
+                    <button
+                      type="button"
+                      class="mg-rowbtn"
+                      data-act="toggle"
+                      data-id="${p.staff_id}"
+                      aria-expanded="${state.openId === p.staff_id}"
+                    >
+                      <span class="chip">${p.staff_code || '—'}</span
+                      ><strong>${p.full_name}</strong>${p.active ? '' : html` <small class="muted">inactive</small>`}
+                    </button>
+                  </td>
+                  <td class="num">${m(p.prev_balance)}</td>
+                  <td class="num">${m(p.entries_total)}</td>
+                  <td class="num">${m(p.salary_deduction)}</td>
+                  <td class="num">${m(p.generic_deduction)}</td>
+                  <td class="num"><strong>${m(p.net)}</strong></td>
+                </tr>
+                ${
+                  state.openId === p.staff_id
+                    ? html`<tr class="mg-open">
+                        <td class="mg-detail" colspan="7">${personBody(p)}</td>
+                      </tr>`
+                    : ''
+                }`,
+          )}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td class="name">TOTALS</td>
+            <td class="num">${m(sum('prev_balance'))}</td>
+            <td class="num">${m(sum('entries_total'))}</td>
+            <td class="num">${m(sum('salary_deduction'))}</td>
+            <td class="num">${m(sum('generic_deduction'))}</td>
+            <td class="num"><strong>${m(sumNet(state.people))}</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
   }
 
   const person = (id) => state.people.find((p) => p.staff_id === id);

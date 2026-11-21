@@ -167,3 +167,119 @@
   gap: var(--space-2);
   min-height: 44px;
 }
+
+/* ── Sheet tables (Staff Credit, Salary, Generic Sheet): numbered rows, full gridlines, totals row, like the old app ── */
+.mg-grid-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-4);
+}
+.mg-grid {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9rem;
+}
+.mg-grid th,
+.mg-grid td {
+  border: 1px solid var(--border);
+  padding: 6px 8px;
+  vertical-align: middle;
+  text-align: left;
+}
+.mg-grid thead th {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.mg-grid .num {
+  text-align: right;
+  white-space: nowrap;
+}
+.mg-grid .idx {
+  width: 36px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.mg-grid .name {
+  min-width: 150px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: inset -1px 0 var(--border);
+}
+.mg-grid thead .name {
+  background: var(--surface-2);
+  z-index: 2;
+}
+.mg-grid .name .chip {
+  margin-right: var(--space-1);
+}
+.mg-grid tbody tr:hover td {
+  background: var(--surface-2);
+}
+.mg-grid tbody tr:hover td.name {
+  background: var(--surface-2);
+}
+.mg-grid td > input {
+  width: 100%;
+  min-width: 76px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: right;
+}
+.mg-grid td > input:disabled {
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+.mg-grid td > input.mg-days {
+  min-width: 52px;
+  text-align: center;
+}
+.mg-grid tfoot td {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+.mg-grid tfoot td.name {
+  background: var(--surface-2);
+}
+.mg-grid tr.mg-note td {
+  background: var(--surface-2);
+  font-size: 0.82rem;
+}
+.mg-grid .mg-cell-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.mg-grid td.mg-detail {
+  background: var(--surface);
+  padding: var(--space-3);
+}
+.mg-grid .mg-rowbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}

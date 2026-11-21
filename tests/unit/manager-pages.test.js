@@ -269,8 +269,20 @@ describe('Staff Credit page', () => {
     await openCredit();
     expect(api.creditMonth).toHaveBeenCalledWith('2026-11-01');
     expect(el.textContent).toContain('November 2026');
-    expect(el.textContent).toContain('Previous 5,000');
-    expect(el.querySelector('.total-card').textContent).toContain('5,250.50');
+    const cells = (row) => [...row.querySelectorAll('td')].map((c) => c.textContent.trim());
+    expect([...el.querySelectorAll('.mg-grid thead th')].map((h) => h.textContent.trim())).toEqual([
+      '#',
+      'Name',
+      'Previous',
+      'Entries',
+      'Salary deducted',
+      'Less generic',
+      'Net',
+    ]);
+    const rows = [...el.querySelectorAll('.mg-grid tbody tr[data-row]')];
+    expect(rows.map((r) => cells(r)[0])).toEqual(['1', '2']); // numbered rows
+    expect(cells(rows[0])[2]).toBe('5,000'); // previous balance
+    expect(cells(el.querySelector('.mg-grid tfoot tr')).at(-1)).toBe('5,250.50'); // totals row
     expect(el.querySelector('[data-act="next"]').disabled).toBe(true);
     el.querySelector('[data-act="prev"]').click();
     await tick();
