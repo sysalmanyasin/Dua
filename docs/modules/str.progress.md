@@ -15,7 +15,7 @@ Branch `module/str` was merged into `main`.
 
 Totals after merging `main` at `72890ff` (Closing Session D): 538 unit tests (`npm run verify` green), full database suite green.
 
-## Ready to apply (owner says when; by hand, in this order, registered under the repo number: RUNBOOK §4)
+## Historical pre-deployment handoff (superseded — do not reapply)
 
 1. `0500_str_view_access`
 2. `0501_str_archive` (also runs one archive copy at the end)
