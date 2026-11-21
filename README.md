@@ -7,7 +7,7 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 **Full module register:** [docs/MODULE_PROGRESS_REGISTER.md](docs/MODULE_PROGRESS_REGISTER.md)  
 **Repository:** https://github.com/sysalmanyasin/Dua
 
-## Current project status (19 Nov 2026)
+## Current project status (21 Nov 2026)
 
 | Area | Status |
 |---|---|
@@ -20,10 +20,10 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Audit | A1–C1 integrated/live; phone acceptance, C2 barcode (paused) and hardening remain |
 | Emergency Billing | Phases 1–5 built; migrations 0633/0634/0640/0641/0642 live; Phase 6 automated testing done, real-device/printer acceptance and granting `ebill.*` rights remain |
 | Invoice Desk | Integrated on main; migrations 1000–1003 recorded live; full test and physical-printer acceptance remain |
-| Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101 recorded live; Sheets, offline sync and attachments not built; real-phone acceptance outstanding |
+| Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` is on main but not applied live, no Sheets UI, offline sync or attachments yet; real-phone acceptance outstanding |
 | Unified Reports, assistant and Android | Future work |
 
-The full module-by-module evidence, branch comparison and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md).
+The full module-by-module evidence, branch audit (`main` is the only branch) and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md).
 
 **Important:** “integrated”, “live”, “tested” and “accepted” are different states. Live deployment statements are recorded in module progress files and have not all been freshly rechecked against Supabase during this documentation update. Old progress-file test counts are historical and must not be added together.
 

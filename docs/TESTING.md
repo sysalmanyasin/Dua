@@ -12,7 +12,7 @@ The 19 Nov 2026 Audit handover records the following local result on the merged 
 
 This is dated repository evidence, not a test run performed by this documentation update. The GitHub commit-status endpoint returned no status entries for the inspected main HEAD, so a fresh green GitHub Actions run is not independently confirmed here. Before release, run the full workflow on current main and inspect each job.
 
-Do not add module-specific test counts from different dates/branches. They overlap and are not a current global total.
+As of 21 Nov 2026 on `main`: 1,891 unit tests in 121 files pass; database test files: 77. Do not add module-specific test counts from different dates/branches. They overlap and are not a current global total.
 
 ## Test suites
 

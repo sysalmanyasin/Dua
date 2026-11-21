@@ -4,7 +4,7 @@ Written 11 Nov 2026 from `main` (`e635e23`) and `module/closing` (`3592512`). Ma
 Three Claude sessions run at the same time. Sessions have no memory (MODULES.md §0.3): this file and the three work orders are what keep them from colliding.
 
 
-> **Current branch update, 19 Nov 2026.** The 11 Nov plan in §1 and the 18 Nov branch list below are historical. GitHub currently reports `main` plus nine non-main branches; every non-main branch is 0 commits ahead of `main` and behind it. None contains unique commits to merge. Treat them as stale refs, not active work branches. Start all new work from current `main`; do not merge these stale pointers. The owner may decide whether to delete/archive them. See `docs/MODULE_PROGRESS_REGISTER.md` for the exact branch-by-branch comparison and current module state. Module work orders remain useful as specifications, but progress files and the register are the current handoff sources.
+> **Current branch update, 21 Nov 2026.** `main` is the only branch; every other branch was merged or already contained in `main` and deleted. The 11 Nov plan in §1 and the branch names below are historical. Start all new work from current `main`. See `docs/MODULE_PROGRESS_REGISTER.md` for the audit.
 
 ## 1. The three sessions (11 Nov 2026, historical)
 

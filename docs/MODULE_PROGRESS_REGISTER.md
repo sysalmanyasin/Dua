@@ -41,28 +41,21 @@ The source registry currently contains these 12 IDs, in order: `home`, `sales`, 
 
 | Workstream | Current state | Next work |
 |---|---|---|
-| **Workspace Sheets, offline sync, attachments** | Designed in `docs/modules/workspace.design.md`; no code or migrations yet (`1102`–`1104` reserved in range 1100–1199). | Start with Phase 5 after the owner has accepted Notes on real devices. |
+| **Workspace Sheets, offline sync, attachments** | Sheets database (`1102_workspace_sheets.sql`, 203-check test) is on `main` (merged 21 Nov 2026) but **not applied** to the live project; no browser code yet. Offline sync and attachments are designed only (`1103`–`1104` reserved in range 1100–1199). | Apply `1102` when the owner approves; then the domain model and grid (Phase 5, next increments). |
 | **Unified Reports** | Planned, not a registered module. | Define data contracts and scope after source modules are stable. |
 | **Assistant / AI** | Planned, not a registered module. | Only after deterministic permission-safe data interfaces exist. |
 | **Android widgets / Android shell** | Later phase, not part of current web-app module registry. | Plan separately after web app acceptance. |
 
-## Branch audit (19 November 2026)
+## Branch audit (21 November 2026)
 
-GitHub reported 10 branches including `main` when compared with the pre-documentation code baseline `a1737f1` on 19 Nov 2026. Each non-main branch was **0 commits ahead of main**; each was behind main. The behind counts in the table are measured against that baseline and will increase as documentation commits land; the important invariant is that ahead=0. These are stale pointers, not unmerged work. Do not merge them again.
+All branches were reviewed on 21 Nov 2026 and cleaned up. Result: **`main` is the only branch.**
 
-| Branch | Ahead | Behind | Assessment |
-|---|---:|---:|---|
-| `feature/backup-emergency-pos` | 0 | 16 | Stale; Phase 1–4 code is already on main; Phase 5 work must continue from current main. |
-| `fix/closing-a11y-and-bug-audit` | 0 | 20 | Stale pointer; no unique commits. |
-| `fix/closing-carry-preview-live-deltas` | 0 | 30 | Stale pointer; no unique commits. |
-| `fix/closing-refresh-on-draft-open` | 0 | 24 | Stale pointer; no unique commits. |
-| `fix/closing-reopen-cash-and-deltas` | 0 | 22 | Stale pointer; no unique commits. |
-| `fix/closing-signed-rows` | 0 | 13 | Stale pointer; no unique commits. |
-| `module/audit-a5` | 0 | 75 | Stale pointer; Audit A5/B1 work is on main. |
-| `module/audit-b2` | 0 | 15 | Stale pointer; Audit B2/C1 work is on main. |
-| `module/workspace` | 0 | — | Merged to main at `468873a` (19 Nov 2026); delete or reset the ref before new Workspace work, which must branch from current `main`. |
+- 18 branches were 0 commits ahead of `main` (fully merged): deleted.
+- 8 more branches (`feature/audit-2.0`, `feature/audit-2.1-dashboard-refinement`, `feature/emergency-pos-candela-workflow`, `feature/manager-tables`, `feature/registry-logins`, `fix/diff-report-monthly-history`, `fix/pos-fullscreen-keyboard-lock`, `review/workspace`) looked ahead by commit count, but a trial merge into `main` changed nothing (their work was already on `main` via squash, cherry-pick or "Sync with main" merges): not merged, deleted.
+- `module/workspace-sheets` held genuine new work (migration `1102`, its test and doc updates): merged to `main` (one documentation conflict resolved), then deleted.
+- After the merge: 1,891 unit tests in 121 files pass; lint, Prettier, secret and vendor checks pass.
 
-**Action:** retain or delete stale branch refs only after the owner decides; this documentation update does not delete branches. New work must branch from current `main`.
+New work must branch from current `main`. Earlier audits (19 Nov 2026) are superseded by this one.
 
 ## Verification evidence and limits
 

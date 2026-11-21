@@ -55,9 +55,9 @@ This is the concise operational snapshot. For per-module evidence, migration not
 | Migration registry | Most module progress files record repo-numbered live migrations. | Closing 0214 live/repository drift is explicitly unresolved. Verify registry and source parity before future applies. |
 | Security | RLS, permission-checked RPCs, MFA gate, append-only logs and secret/vendor checks are implemented. | Separate production project, Playwright, Sentry, accessibility/low-end-device checks and remaining advisor findings remain. |
 
-## Branch integration status (19 November 2026)
+## Branch integration status (21 November 2026)
 
-GitHub reports 10 branches including `main`. All nine non-main branches are 0 commits ahead of `main` and behind it; none contains unique commits to merge. They are stale refs, not active development bases. See [the full comparison table](MODULE_PROGRESS_REGISTER.md#branch-audit-19-november-2026). This update does not delete branches; owner approval is required for cleanup.
+`main` is the only branch. All other branches were merged or confirmed already contained in `main` and deleted on 21 Nov 2026 (details: [the branch audit](MODULE_PROGRESS_REGISTER.md#branch-audit-21-november-2026)). The Workspace Sheets database migration `1102` is on `main` but not yet applied to the live project.
 
 ## Immediate priorities
 

@@ -2,6 +2,10 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 21 Nov — Branch cleanup and Workspace Sheets database merged
+- Reviewed every branch against `main`. 18 were already fully merged and 8 more contributed nothing on trial merge (work already in `main`); all deleted. `module/workspace-sheets` held new work and was merged: migration `1102_workspace_sheets` (sheets, cells, styles, operation log, snapshots, apply/restore) with its 203-check database test. **Not yet applied to the live project.**
+- `main` is now the only branch. Verified after merge: 1,891 unit tests (121 files), lint, Prettier, secret and vendor checks pass.
+- Documentation updated: branch audit, project status, roadmap, sessions, testing, Workspace handover.
 
 ## 21 Nov — Workspace review and search_path follow-up
 - Reviewed Workspace (Notes) against the live project: tables, security, permissions and tests match the docs.

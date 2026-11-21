@@ -8,7 +8,7 @@
 2. **Fresh main CI:** run/inspect a full GitHub Actions workflow on current `main`, including app, database, Deno Edge Function checks and workflow lint. The latest recorded local result is 1,562/1,562 unit tests plus the database suite; Deno and workflow lint were not run locally.
 3. **Real backup restore drill:** download an actual encrypted Drive backup and restore it into a separate empty Supabase project. The local 39/39 round-trip test and upload checksum do not prove the real restore path.
 4. **Separate production project:** staging and live currently share DuaPharmaPlus according to the runbook. Plan a controlled project split, secrets/Vault/cron recreation and data/config validation before broader launch.
-5. **Branch housekeeping:** nine non-main refs are 0 commits ahead of main and behind it. Owner may delete or archive them after checking they are no longer needed; do not merge stale refs.
+5. **Branch housekeeping:** done 21 Nov 2026 — `main` is the only branch.
 
 ## P1 — Owner acceptance and production confidence
 
@@ -37,7 +37,7 @@
 ### Workspace (Notes & Sheets)
 - **Done (Phases 2–4, merged 19 Nov 2026):** database core and Notes backend (`1100`, `1101`), Notes editor, sharing, history/restore, home with search and folders; registered at `/workspace`.
 - **Now:** owner acceptance of Notes on real phones with two accounts (`workspace.use` + `workspace.create`, and `workspace.use` only). Run the Phase 1 browser prototypes (CSP `wss:`, grid performance on a phone).
-- **Next (Phase 5):** workbooks and the spreadsheet grid (`1102`: sheets, cells with stable row/column ids, styles, operation log, snapshots).
+- **Next (Phase 5):** workbooks and the spreadsheet grid. `1102` (sheets, cells with stable row/column ids, styles, operation log, snapshots) is on `main` but not applied live; next are the JS domain model with a parity fixture, then the grid.
 - **Then:** formula engine (6), formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
 
 ### Closing / Manager / STR
@@ -57,7 +57,6 @@
 
 ## Decisions still requiring the owner
 
-- Whether to delete/archive the nine stale branch refs.
 - Whether/when to split staging and production Supabase projects.
 - Whether the Closing Inventory Audit gate should be re-enabled.
 - Emergency Billing: grant the `ebill.*` rights and complete the real-device and printer checklist (`docs/modules/ebill-phase6.md`).
