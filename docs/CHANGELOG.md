@@ -2,6 +2,12 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 21 Nov — Workspace Sheets database applied live; documents brought up to date
+- Migration `1102_workspace_sheets` is applied to the live project and registered as version `1102`. Checked live: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal functions not callable by `anon` or `authenticated`, `1100`, `1101`, `1102` and `1110` all registered.
+- Workspace Notes accepted by the owner after live testing. The Sheets screens are **not built** yet (domain model, data layer, grid, "New workbook").
+- Supabase advisor (live): 14 tables with row level security and no policy (service-role-only by design), 2 unpinned `search_path` functions outside Workspace (`set_updated_at`, `activity_log_immutable`), signed-in-callable SECURITY DEFINER functions (by design, each checks the caller), leaked-password protection off.
+- Documentation updated: README, PROJECT_STATUS, MODULE_PROGRESS_REGISTER, ROADMAP, DATABASE_DESIGN, CHANGELOG and the Workspace brief, progress and handover.
+
 ## 21 Nov — Branch cleanup and Workspace Sheets database merged
 - Reviewed every branch against `main`. 18 were already fully merged and 8 more contributed nothing on trial merge (work already in `main`); all deleted. `module/workspace-sheets` held new work and was merged: migration `1102_workspace_sheets` (sheets, cells, styles, operation log, snapshots, apply/restore) with its 203-check database test. **Not yet applied to the live project.**
 - `main` is now the only branch. Verified after merge: 1,891 unit tests (121 files), lint, Prettier, secret and vendor checks pass.

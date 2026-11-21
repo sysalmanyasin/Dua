@@ -66,7 +66,7 @@ Functions: `workspace_note_open`, `workspace_note_save` (needs the version the e
 
 Browser code built in Phase 3 (no screens yet): `domain/validation.js` (note format, mirrors the database rules; `tests/fixtures/workspace-note-cases.json` holds the shared cases and `tools/workspace-note-cases.mjs` turns them into `supabase/tests/1101_workspace_note_cases_test.sql`, so browser and database are checked against the same list), `domain/permissions.js`, `domain/revisions.js`, `domain/documents.js`, and the data layer `data/api.js`, `documents.js`, `sharing.js`, `notes.js`, `revisions.js`.
 
-Built locally in `1102_workspace_sheets.sql` (Phase 5, increment 1; **not yet applied to the shared project**): tables `workspace_sheets` (order arrays, sizes, soft delete), `workspace_cells` (stable row and column ids; empty marker rows), `workspace_sheet_styles`, `workspace_operations` (append-only log) and `workspace_sheet_revisions` (immutable restore points, readable only through `workspace_snapshot_list`); functions `workspace_workbook_open`, `workspace_load_sheet`, `workspace_pull`, `workspace_apply_ops` (with internal `workspace_apply_one`), `workspace_snapshot_create`, `workspace_snapshot_list`, `workspace_sheet_restore`, and internal validators and snapshot builders. Also pins `search_path` on the four trigger guards from 1100 and 1101. Operation payloads: `workspace.design.md` §4a.
+Built locally in `1102_workspace_sheets.sql` (Phase 5, increment 1; **applied to the shared project and registered as `1102` on 21 Nov 2026**): tables `workspace_sheets` (order arrays, sizes, soft delete), `workspace_cells` (stable row and column ids; empty marker rows), `workspace_sheet_styles`, `workspace_operations` (append-only log) and `workspace_sheet_revisions` (immutable restore points, readable only through `workspace_snapshot_list`); functions `workspace_workbook_open`, `workspace_load_sheet`, `workspace_pull`, `workspace_apply_ops` (with internal `workspace_apply_one`), `workspace_snapshot_create`, `workspace_snapshot_list`, `workspace_sheet_restore`, and internal validators and snapshot builders. Also pins `search_path` on the four trigger guards from 1100 and 1101. Operation payloads: `workspace.design.md` §4a.
 
 Planned (design: `workspace.design.md`): `1103` sheet conflict screens support, Realtime publication; `1104` attachments and Storage policies.
 
@@ -122,7 +122,7 @@ Requests to Foundation (approved by the owner acting as Foundation, 18 Nov 2026;
 | 2 | Database core: `1100_workspace_core.sql` | Done; applied to the shared project 18 Nov 2026 |
 | 3 | Notes backend (`1101`), domain and data layers | Built and tested; see progress file for the live status |
 | 4 | Notes editor, sharing and history screens, home page, module registered | Done and merged to main 19 Nov 2026; needs a real-phone check by the owner |
-| 5 | Workbooks and grid (`1102`) | Increment 1 (database `1102`, no screens) built and tested locally on branch `module/workspace-sheets`; not applied to the shared project, not merged. Grid and data layer not started |
+| 5 | Workbooks and grid (`1102`) | Increment 1 (database `1102`, no screens) built, merged to `main` and applied live (21 Nov 2026). **Sheets UI not built:** domain model, data layer, grid and the "New workbook" button are still to do |
 | 6 | Formula engine | Planned |
 | 7 | Formatting, sort, filter, CSV | Planned |
 | 8 | IndexedDB and offline queue | Planned |

@@ -55,7 +55,7 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow
 - Audit migrations 0401–0410 and Inventory 0308 are recorded live.
 - Candela Sales 0900 is recorded live.
 - Invoice Desk migrations 1000–1003 are recorded live in its progress file.
-- Workspace migrations 1100 and 1101 are recorded live in its progress file.
+- Workspace migrations 1100, 1101, 1102 and 1110 are recorded live (1102 applied and verified 21 Nov 2026); details in its progress file.
 
 These statements come from module progress records. Before production changes, query the actual live migration registry and verify the deployed function bodies.
 
@@ -68,7 +68,7 @@ These statements come from module progress records. Before production changes, q
 - Load, long-running, offline and low-memory behaviour on actual pharmacy phones.
 - Invoice Desk full save/product/history/RLS E2E tests and physical printer output.
 - Emergency Billing real-device and real-printer acceptance (owner checklist in `docs/modules/ebill-phase6.md` section 3) and live granting of `ebill.*` rights.
-- Workspace Notes real-phone and two-account acceptance (jsdom only so far: layout, touch selection, on-screen keyboard, bottom-sheet dialogs and the Content-Security-Policy are unverified in a real browser).
+- Workspace Notes real-phone and two-account acceptance: accepted by the owner after live testing (21 Nov 2026, reported in chat). Automated tests remain jsdom only.
 - Playwright browser end-to-end automation and Sentry production monitoring.
 
 A passing jsdom or local PostgreSQL test proves only its test scope. It does not prove real-device usability, Google integration, production restore, or every live permission path.
