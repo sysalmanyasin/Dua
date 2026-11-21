@@ -315,7 +315,7 @@ select pg_temp.ok(not public.workspace_note_valid($j${"v":1,"doc":{"type":"doc",
 select pg_temp.ok((select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.proname like 'workspace\_%' and has_function_privilege('anon', p.oid, 'execute')) = 0, 'anon can execute no Workspace function');
 select pg_temp.ok((select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and p.proname like 'workspace\_%' and p.proname not like '%\_guard'
+  where n.nspname = 'public' and p.proname like 'workspace\_%'
     and not exists (select 1 from unnest(coalesce(p.proconfig, array[]::text[])) c where c like 'search_path=%')) = 0, 'every Workspace function pins its search_path');
 select pg_temp.ok((select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.proname in ('workspace_staff_eligible', 'workspace_idem_get', 'workspace_idem_put', 'workspace_note_valid', 'workspace_note_node_ok')

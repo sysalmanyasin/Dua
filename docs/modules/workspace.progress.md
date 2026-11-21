@@ -22,11 +22,11 @@ Updated: 2026-11-19 (end of the session that built Phases 2–4; handover: `work
 
 ## Known problems that are NOT from Workspace
 
-- `tests/unit/ebill-page.test.js` (cash received entry) fails on clean `main`, and `css/ebill.css` fails `prettier --check` on `main`; both belong to the Emergency Billing work. The earlier failures in cover, shell and service-worker tests were fixed on `main` by another session (see the Audit handover's main-branch verification note).
+- **Resolved by 21 Nov 2026:** on current `main` the full unit suite (1,873 tests), `prettier --check`, lint, the secret scan and the vendor check all pass. The two Emergency Billing problems below were fixed by that module's later work. Earlier note: `tests/unit/ebill-page.test.js` (cash received entry) failed on clean `main`, and `css/ebill.css` failed `prettier --check`. The earlier failures in cover, shell and service-worker tests were fixed on `main` by another session (see the Audit handover's main-branch verification note).
 
 ## Follow-ups noticed by the Supabase advisor (live project)
 
-- The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) have no pinned `search_path` (same as the existing `set_updated_at` and `activity_log_immutable`). They only use schema-qualified names, so pinning is safe: add `alter function … set search_path = public;` for all four to the next Workspace migration (`1102`).
+- **Done in the repo, 21 Nov 2026 (`1110_workspace_guard_search_path.sql`, not yet applied to the live project).** The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) have no pinned `search_path` (same as the existing `set_updated_at` and `activity_log_immutable`). They only use schema-qualified names, so pinning is safe: add `alter function … set search_path = public;` for all four to the next Workspace migration (`1102`).
 - `workspace_save_keys` has RLS on and no policy: intentional (service role only), like `mgmt_save_keys` and `sales_save_keys`.
 - The "signed-in users can execute SECURITY DEFINER function" warnings for the public Workspace functions are by design (they are the module's API; each checks the caller itself).
 

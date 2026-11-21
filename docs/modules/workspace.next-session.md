@@ -35,7 +35,7 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 
 **Phase 5 — workbooks and grid** (full design in `workspace.design.md` §3, §4, §7, §9). Suggested increments, each its own reviewable change:
 
-1. **Database only:** `1102_workspace_sheets.sql` — sheets, cells (stable row/column ids), styles, operations, snapshots, `workspace_apply_ops`, `workspace_pull`, `workspace_load_sheet`, snapshot and restore functions; also pin `search_path` on the four trigger-guard functions. Test file with the full permission matrix and a parity fixture of operation sequences. No UI.
+1. **Database only:** `1102_workspace_sheets.sql` — sheets, cells (stable row/column ids), styles, operations, snapshots, `workspace_apply_ops`, `workspace_pull`, `workspace_load_sheet`, snapshot and restore functions; (the four trigger guards are already pinned by `1110`). Test file with the full permission matrix and a parity fixture of operation sequences. No UI.
 2. Domain model for spreadsheets (`domain/spreadsheet.js`: stable-id structure, operation generation) with a JS reference model that runs the **same** operation sequences as the SQL.
 3. Data layer, then a read-only grid, then editing, then structure operations, then formats.
 4. Enable "New workbook" on the home page and add the route `/workspace/sheet` (remember routes carry no ids: use the session-storage pattern in `domain/documents.js`, or ask Foundation for the router change).
@@ -47,7 +47,7 @@ Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (
 - **Branch from current `main`** (`git fetch` first). The old `module/workspace` ref was merged; recreate it.
 - **Local checks:** `npm ci`, then `npm run lint`, `npx prettier --check .`, `npx vitest run`, `npm run check:secrets`, `npm run check:vendor` (`npm run verify` runs these but stops at the first failure). Database tests need PostgreSQL 16: `apt-get install postgresql`, start it, set `PGHOST=localhost PGUSER=postgres PGPASSWORD=…`, then `bash supabase/tests/run.sh` (applies every migration to a clean database, then every `*_test.sql`; takes about two minutes).
 - **Applying a migration to the live project (owner has authorised hand-applying; confirm the owner still wants it each time):** (1) read the live registry first (`supabase_migrations.schema_migrations`) and check the new number is free; (2) send the whole file as **one** `execute_sql` batch (atomic) — never `apply_migration`, which registers a timestamp version (D-35); (3) end the batch with `insert into supabase_migrations.schema_migrations (version, name, statements) values ('<number>', '<name>', array['applied by hand from supabase/migrations/<file>'])`; (4) verify: compare an `md5(string_agg(proname || md5(prosrc), ',' order by proname))` over the new functions between live and the local test database (it must match exactly, comments inside function bodies included), count RLS tables, policies, grants, `anon` access; (5) run the Supabase security advisor and note anything new in `workspace.progress.md`. Invoice Desk is registered live under timestamp versions; that is known and not to be "fixed" by you.
-- **Migrations are fix-forward:** never edit an applied file; add a new one in 1100–1199 (`1102` sheets, `1103` sync, `1104` attachments are reserved).
+- **Migrations are fix-forward:** never edit an applied file; add a new one in 1100–1199 (`1102` sheets, `1103` sync, `1104` attachments are reserved; `1110` pins the guard functions' search_path).
 - **No secrets in the repo.** A GitHub token was pasted into the chat on 18 Nov 2026 and used for pushes; it was not stored, but the owner should revoke it. Push with a one-time URL and do not leave it in git config.
 - **Commit style:** small commits per phase; update `workspace.progress.md` and the shared status files when a phase lands (PROJECT_STATUS, MODULE_PROGRESS_REGISTER, ROADMAP, CHANGELOG, TESTING, README); the owner asked for documents to be kept current every time.
 
@@ -67,6 +67,8 @@ Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (
 12. **Hand-typed SQL drifts.** When you must paste a migration into a tool call, include comments inside function bodies too, or the hash check will differ (it did once, harmlessly).
 
 ## 7. Known problems that are not from Workspace
+
+**Update 21 Nov 2026:** the two problems below no longer apply; the full suite, `prettier --check`, lint and the other checks pass on current `main`. The `ai` nav-order note still stands.
 
 - `tests/unit/ebill-page.test.js` ("can disable cash received entry without blocking PIN-authorized saving") fails on clean `main` (Emergency Billing work), so `npm test` is red until its owner fixes it.
 - `css/ebill.css` fails `prettier --check` on `main` itself, so `format:check` is red until it is formatted (`npx prettier --write css/ebill.css`). Left alone because another session is working in that module.
