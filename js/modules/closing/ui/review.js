@@ -14,6 +14,8 @@ const M = (v) => money(v, { decimals: true });
 
 export async function mount(el, { ctx } = {}) {
   const canCorrect = (ctx?.permissions ?? []).includes('closing.correct');
+  // Only the Owner (admin with MFA) sees the type button. This is a courtesy: closing_change_mode and a trigger on closings refuse everyone else.
+  const isOwner = ctx?.role === 'admin' && ctx?.mfa_ok === true;
   let pages = [];
 
   const reopenDialog = (p) => {
@@ -58,6 +60,54 @@ export async function mount(el, { ctx } = {}) {
     });
   };
 
+  // Shift <-> Final for a submitted closing: the existing reopen (a new draft revision, original kept) plus the new type on the revision.
+  const modeDialog = (p) => {
+    const next = p.mode === 'final' ? 'shift' : 'final';
+    const nextLabel = next === 'final' ? 'Final' : 'Shift';
+    const dlg = openDialog(
+      html`<h2>Change ${pageTitle(p)} to ${nextLabel}</h2>
+        <p class="muted">
+          A new draft is made with every figure of this closing and the type ${nextLabel}. You can correct figures there and submit it. The
+          original stays as it is, and as a ${p.mode === 'final' ? 'Final' : 'Shift'} closing, until the new one is submitted.
+        </p>
+        <div class="field">
+          <label for="mc-reason">Why is the type being changed?</label><textarea id="mc-reason" rows="3" maxlength="300"></textarea>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button type="button" class="btn btn-primary" id="mc-go">Change to ${nextLabel}</button>
+        </div>`,
+      { label: 'Change closing type' },
+    );
+    dlg.querySelector('#mc-go').addEventListener('click', async (ev) => {
+      const go = ev.currentTarget;
+      if (go.disabled) return;
+      const reason = dlg.querySelector('#mc-reason').value.trim();
+      if (reason.length < 3) {
+        dlg.querySelector('#mc-reason').focus();
+        return toast('Please write a reason (at least 3 letters).', 'error');
+      }
+      const key = newKey();
+      go.disabled = true; // a second tap must not reopen the same closing twice
+      try {
+        await api.changeMode({ closingId: p.closing_id, mode: next, reason, key });
+      } catch (e) {
+        go.disabled = false;
+        return toast(friendlyError(e).message, 'error');
+      }
+      dlg.close();
+      setOpen({
+        key,
+        date: p.business_date,
+        kind: p.kind,
+        mode: next,
+        handoverSeq: p.kind === 'handover' ? p.seq : undefined,
+        opening: false,
+      });
+      location.hash = '#/closing/ledger';
+    });
+  };
+
   const draw = () => {
     const groups = groupByDate(pages);
     render(
@@ -81,7 +131,7 @@ export async function mount(el, { ctx } = {}) {
                           html`<article class="cls-snap" data-closing="${p.closing_id}">
                             <header>
                               <strong>${pageTitle(p)}</strong>
-                              <span class="cls-meta">${p.staff ?? ''}</span>
+                              <span class="cls-meta">${p.mode === 'final' ? 'Final' : 'Shift'} · ${p.staff ?? ''}</span>
                             </header>
                             <dl class="cls-kv">
                               <div>
@@ -110,6 +160,19 @@ export async function mount(el, { ctx } = {}) {
                                     >
                                       Reopen to correct
                                     </button>
+                                    ${
+                                      isOwner && !p.is_opening
+                                        ? html`<button
+                                            type="button"
+                                            class="btn btn-sm"
+                                            data-act="mode"
+                                            data-id="${p.closing_id}"
+                                            aria-label="Change ${pageTitle(p)} to ${p.mode === 'final' ? 'Shift' : 'Final'}"
+                                          >
+                                            Change to ${p.mode === 'final' ? 'Shift' : 'Final'}
+                                          </button>`
+                                        : ''
+                                    }
                                   </div>`
                                 : ''
                             }
@@ -126,6 +189,12 @@ export async function mount(el, { ctx } = {}) {
       b.addEventListener('click', () => {
         const p = pages.find((x) => x.closing_id === b.dataset.id);
         if (p) reopenDialog(p);
+      }),
+    );
+    el.querySelectorAll('[data-act="mode"]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const p = pages.find((x) => x.closing_id === b.dataset.id);
+        if (p) modeDialog(p);
       }),
     );
   };

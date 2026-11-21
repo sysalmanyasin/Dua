@@ -1,6 +1,7 @@
 # F7 — Migration registry reconciliation (12 timestamp-versioned rows)
 
-Status: **prepared, not executed.** It changes the live registry, so it needs the owner's approval and a fresh read-only check first.
+Status: **executed on 21 Nov 2026 (owner-approved).** 13 rows were renamed (the 12 below plus `20261121182327 0218_closing_mode_change`, which appeared after the audit). Registry backed up first to `supabase_migrations.schema_migrations_backup_20261121` (91 rows). Result: 91 rows, 0 timestamp versions, names unchanged, `0015` registered by hand. Keep the backup until the next migration applies cleanly, then drop it; the older `schema_migrations_backup_20261112` is overdue for dropping.
+The text below is the procedure as prepared; the table lists the 12 rows found by the 21 Nov audit.
 This file holds SQL that is **not** a migration. It must never go into `supabase/migrations/`.
 Background: the 21 Nov 2026 audit (`docs/PROJECT_AUDIT_2026-11-21.md`) and the earlier D-35 reconciliation (`docs/ops/f6-registry-reconciliation.md`).
 

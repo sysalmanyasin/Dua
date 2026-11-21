@@ -4,8 +4,15 @@ Dates are 2026. Counts are as of the end of each step.
 
 ## 21 Nov — Operations Redesign, Stage 1 (audit and plan)
 - Added `docs/OPERATIONS_REDESIGN_PLAN.md`: audit of the current app, gap analysis against the redesign brief, architecture decisions, Task Master / notifications / AI design, eleven owner decisions, stage-by-stage acceptance. Nothing in the redesign is built yet.
-- Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Not yet applied live.
-- Added `tools/check-registry.mjs` (compares migration files with a read-only registry export) and `docs/ops/f7-registry-reconciliation.md` (guarded, reversible procedure for the 12 timestamp-versioned rows). Not yet executed.
+- Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Applied live and registered as `0015`.
+- Added `tools/check-registry.mjs` (compares migration files with a read-only registry export) and `docs/ops/f7-registry-reconciliation.md` (guarded, reversible procedure for the 12 timestamp-versioned rows). Executed live: 13 rows renamed (incl. `0218`), 0 timestamp versions remain.
+
+## 21 Nov — Closing: Owner-only Shift ↔ Final change (PR #60, applied live)
+- Migration `0218_closing_mode_change.sql`: `closing_change_mode`, `closing_is_admin_owner`, trigger `closings_mode_guard`. Only an admin at MFA level 2 may change a closing's type; the database refuses every other route, including the ordinary draft save.
+- Draft: changes in place, figures and rows kept. Submitted: reopened through the existing `closing_reopen` as a new revision carrying the new type; original kept until the revision is submitted; resubmitted with the ordinary `closing_submit`. CLS-6 and CLS-7 hold. Audit: `closing.mode_changed` in the activity log.
+- Screens: Review "Change to Final/Shift", ledger "Type" button (Owner only); other devices follow the change.
+- Applied to live DuaPharmaPlus the same day (registry version `20261121182327`); no closing data changed. Owner try-out pending.
+- Tests: new `0218_closing_mode_change_test.sql` (all database tests pass), `closing-mode-change.test.js` (18 tests).
 
 ## 21 Nov — Full module, CI and live Supabase audit
 - Audited main commit `96694979e65242f5ee24eb86f215630686b552c8`: 13 registered modules, 707 repository files, 121 front-end test files / 1,891 recorded unit tests, 77 database test files and 89 migration files.

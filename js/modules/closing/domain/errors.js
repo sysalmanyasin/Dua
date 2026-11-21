@@ -24,6 +24,8 @@ export const MESSAGES = {
   date_out_of_range: 'That date is not allowed. Pick today or an earlier day.',
   invalid_slot_kind: 'That slot is not valid.',
   invalid_mode: 'That closing type is not valid for this closing.',
+  mode_change_owner_only: 'Only the Owner, signed in with the second step, can change a closing between Shift and Final.',
+  mode_unchanged: 'This closing already has that type.',
   patch_simple_only: 'That change cannot be saved on its own. Reload and try again.',
   invalid_payload: 'Something in the form could not be read. Reload and try again.',
   invalid_amount: 'One of the amounts is not a valid number.',
