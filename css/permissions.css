@@ -1,0 +1,240 @@
+/* Grouped permission list (js/shared/permissionPanel.js). Phone: one stacked row per permission with the checkbox on the right.
+   Wide screens: a real table with the columns Permission | Role default | Access. Colours come from the theme tokens. */
+.pg {
+  --pg-top: 70px; /* just under the sticky app header */
+}
+.pg-bar {
+  position: sticky;
+  top: var(--pg-top);
+  z-index: 5;
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0 var(--space-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+@media (max-height: 640px) {
+  .pg-bar {
+    position: static;
+  }
+}
+.pg-bar .field {
+  margin-bottom: 0;
+}
+.pg-search {
+  min-height: 40px;
+}
+.pg-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pg-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.pg-chip {
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.pg-chip[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+  font-weight: 600;
+}
+.pg-chip-n {
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+.pg-reset {
+  margin-left: auto;
+  min-height: 34px;
+}
+.pg-status {
+  flex-basis: 100%;
+  min-height: 1.2em;
+}
+.pg-empty {
+  padding: var(--space-4) 0;
+}
+
+/* groups */
+.pg-group {
+  border-bottom: 1px solid var(--border);
+}
+.pg-ghead {
+  display: flex;
+}
+.pg-toggle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pg-caret {
+  width: 1em;
+  color: var(--text-muted);
+}
+.pg-gname {
+  font-weight: 700;
+}
+.pg-count {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.pg-custom-n {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--blue-50);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.pg-gactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+.pg-gactions .btn {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  font-size: 0.85rem;
+}
+
+/* rows */
+.pg-rows {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+}
+.pg-row {
+  border-top: 1px solid var(--border);
+}
+.pg-row-grant {
+  background: color-mix(in srgb, var(--ok) 8%, transparent);
+}
+.pg-row-deny {
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+.pg-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 56px;
+  padding: var(--space-2) var(--space-1);
+  cursor: pointer;
+}
+.pg-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.pg-name {
+  font-weight: 600;
+}
+.pg-desc {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+.pg-role {
+  display: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.pg .pg-item input[type='checkbox'] {
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.pg-tag {
+  margin-left: var(--space-1);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pg-tag-grant {
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  color: var(--ok);
+}
+.pg-tag-deny {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+.pg-colhead {
+  display: none;
+}
+
+/* wide screens: a table */
+@media (min-width: 760px) {
+  .pg-colhead,
+  .pg-item {
+    grid-template-columns: minmax(0, 1fr) 130px 70px;
+  }
+  .pg-colhead {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-1);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .pg-colhead span:last-child,
+  .pg .pg-item input[type='checkbox'] {
+    justify-self: center;
+  }
+  .pg-role {
+    display: block;
+  }
+  .pg-row:hover {
+    background: var(--surface-2);
+  }
+}
+.pg-item:has(input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+/* the role choice shown at the top of the sticky bar on Users & Access */
+.pg-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pg-top select {
+  width: auto;
+  min-height: 40px;
+  margin-left: auto;
+}

@@ -7,7 +7,7 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 - **Set PIN:** Users & Access → *Set PIN*. The old PIN stops working immediately.
 - **Unlock:** five wrong PINs lock a login for 1 hour. It shows *locked* here; tap **Unlock** to let them try again at once.
 - **Disable / Enable:** a disabled person cannot sign in and an open session loses access at once.
-- **Permissions:** open *Permissions* on a person. Each permission is *Role default*, *Allow* or *Deny*. Deny always wins. The role preset only gives a starting set: closing entry, audit counting, inventory search, last-day sale, STR create.
+- **Permissions:** open *Permissions* on a person. Permissions are grouped by module (Audit, Closing, Manager…); tap a group to open it. A ticked box means the person can do it. A *Custom* tag marks a box that differs from the role preset, and *Reset to role* removes those personal settings. Each tick is saved on its own. Search finds a permission by name, and the *Allowed* and *Custom* buttons narrow the list. *Allow all* and *Allow none* on a group need a second tap. Under the hood a tick is a personal *Allow* or *Deny* and deny always wins. The role preset only gives a starting set: closing entry, audit counting, inventory search, last-day sale, STR create.
 - **Owner account:** needs MFA; it is created in Supabase (Authentication → Users) and made owner once with `bootstrap_first_admin`. It cannot be changed from the app.
 - Every change is written to the activity log with who, when, old value and new value.
 

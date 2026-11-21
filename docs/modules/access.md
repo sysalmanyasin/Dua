@@ -17,8 +17,9 @@
 - `js/modules/access/domain/permissions.js`: pure effective-access calculation.
 - `js/modules/access/data/api.js`: profile, permission catalog and override reads; RPC/Edge Function actions.
 - `js/modules/access/ui/page.js`: Users & Access page.
+- `js/shared/permissionPanel.js` + `permissionGroups.js` + `css/permissions.css`: the grouped checkbox list (also used by Audit team access). A checkbox shows the final result; the stored value is the smallest change (nothing when it matches the role preset, else a personal Allow or Deny). One logged `set_user_permission` call per change; the list updates in place and a failed save puts the row back.
 - `supabase/functions/staff-login/` and `admin-users/`: staff authentication and owner-managed account operations.
-- `tests/unit/access-domain.test.js`: domain permission tests.
+- `tests/unit/access-domain.test.js`: domain permission tests. `tests/unit/permission-groups.test.js`, `permission-panel.test.js`: grouping, checkbox rules and the panel in a DOM.
 
 ## Security boundaries
 

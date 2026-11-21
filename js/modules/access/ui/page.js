@@ -1,10 +1,11 @@
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
+import { mountPermissionPanel } from '../../../shared/permissionPanel.js';
 import * as api from '../data/api.js';
-import { effectiveAccess } from '../domain/permissions.js';
 
 export async function mount(el, { ctx }) {
   const state = { editing: null, notice: null, error: null, pinFor: null };
+  let panel = null;
 
   async function draw() {
     const [people, catalog, locked] = await Promise.all([
@@ -92,29 +93,30 @@ export async function mount(el, { ctx }) {
           editing
             ? html`<section class="card">
                 <h2>Permissions: ${editing.staff?.full_name ?? editing.username}</h2>
-                <label class="field"
-                  ><span>Role preset</span
-                  ><select data-act="role" data-id="${editing.user_id}">
-                    ${['junior', 'senior'].map((r) => html`<option value="${r}" ${editing.role_template === r ? 'selected' : ''}>${r}</option>`)}
-                  </select></label
-                >
-                ${catalog.permissions.map((perm) => {
-                  const e = effectiveAccess(editing.role_template, catalog.rolePerms, overrides, perm.key);
-                  return html`<div class="row">
-                    <div><strong>${perm.key}</strong><br /><span class="muted small">${perm.description}</span></div>
-                    <select data-act="perm" data-id="${editing.user_id}" data-key="${perm.key}" aria-label="${perm.key}">
-                      <option value="" ${e.override === null ? 'selected' : ''}>
-                        Role default (${e.fromRole ? 'allowed' : 'not allowed'})
-                      </option>
-                      <option value="grant" ${e.override === 'grant' ? 'selected' : ''}>Allow</option>
-                      <option value="deny" ${e.override === 'deny' ? 'selected' : ''}>Deny</option>
-                    </select>
-                  </div>`;
-                })}
+                <div data-pg-mount></div>
               </section>`
             : ''
         }`,
     );
+    panel?.destroy();
+    panel = null;
+    const mountEl = el.querySelector('[data-pg-mount]');
+    if (editing && mountEl) {
+      panel = mountPermissionPanel(mountEl, {
+        permissions: catalog.permissions,
+        role: editing.role_template,
+        rolePerms: catalog.rolePerms,
+        overrides,
+        // One logged change per tick. The list updates at once and the page is not reloaded.
+        save: async (key, effect) => check(await api.setPermission(editing.user_id, key, effect)),
+        bar: html`<div class="pg-top">
+          <span class="muted small">Role preset</span>
+          <select data-act="role" data-id="${editing.user_id}" aria-label="Role preset">
+            ${['junior', 'senior'].map((r) => html`<option value="${r}" ${editing.role_template === r ? 'selected' : ''}>${r}</option>`)}
+          </select>
+        </div>`,
+      });
+    }
   }
 
   async function run(fn) {
@@ -165,9 +167,8 @@ export async function mount(el, { ctx }) {
   el.onchange = (e) => {
     const s = e.target.closest('select[data-act]');
     if (!s) return;
-    const { act, id, key } = s.dataset;
+    const { act, id } = s.dataset;
     if (act === 'role') return run(async () => check(await api.setRole(id, s.value)));
-    if (act === 'perm') return run(async () => check(await api.setPermission(id, key, s.value || null)));
   };
   const check = (r) => {
     if (r.error) throw r.error;

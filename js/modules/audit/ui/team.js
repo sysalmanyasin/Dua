@@ -1,9 +1,10 @@
 // Team access: the owner gives a person the Deputy Auditor or Sub-Auditor set of audit permissions, or switches single keys.
 // Every change is one core set_user_permission call, so each grant is logged with who, what, old and new.
 import { html, render } from '../../../shared/html.js';
+import { mountPermissionPanel } from '../../../shared/permissionPanel.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
-import { AUDIT_KEYS, BUNDLES, bundleStatus, keyAccess, planApply, planClear } from '../domain/bundles.js';
+import { AUDIT_KEYS, BUNDLES, bundleStatus, planApply, planClear } from '../domain/bundles.js';
 import { friendlyError } from '../domain/errors.js';
 import { errorCard, loadingCard, toast } from './parts.js';
 
@@ -43,6 +44,38 @@ export async function mount(el) {
         }
       </div>`,
     );
+    mountKeys();
+  }
+
+  // The single keys use the shared grouped list. A tick is saved on its own and the page is not redrawn, so nothing jumps.
+  function mountKeys() {
+    const p = data.people.find((x) => x.user_id === state.open);
+    const box = p && el.querySelector(`[data-keys="${p.user_id}"]`);
+    if (!box) return;
+    mountPermissionPanel(box, {
+      permissions: AUDIT_KEYS.map((k) => ({ key: k.key, label: k.label, description: k.help })),
+      role: p.role_template,
+      rolePerms: data.rolePerms,
+      overrides: mine(p.user_id),
+      disabled: !!p.disabled_at,
+      formatError: (e) => friendlyError(e).message,
+      save: (key, effect) => api.setPermission(p.user_id, key, effect),
+      onChange: (list) => {
+        data.overrides = [...data.overrides.filter((o) => o.user_id !== p.user_id), ...list.map((o) => ({ ...o, user_id: p.user_id }))];
+        const c = el.querySelector(`[data-chips="${p.user_id}"]`);
+        if (c) render(c, html`${chips(p)}`);
+      },
+    });
+  }
+
+  function chips(p) {
+    const ov = mine(p.user_id);
+    return ['deputy', 'sub', 'lead'].map(
+      (id) =>
+        html`<span class="aud-chip aud-chip-${bundleStatus(id, p.role_template, data.rolePerms, ov)}"
+          >${BUNDLES[id].label.split(' (')[0]}: ${STATUS_WORD[bundleStatus(id, p.role_template, data.rolePerms, ov)]}</span
+        >`,
+    );
   }
 
   function person(p) {
@@ -56,14 +89,7 @@ export async function mount(el) {
           <span class="muted small">${p.username} · ${p.role_template}${p.disabled_at ? ' · disabled' : ''}</span>
         </div>
       </div>
-      <p class="small">
-        ${['deputy', 'sub', 'lead'].map(
-          (id) =>
-            html`<span class="aud-chip aud-chip-${bundleStatus(id, p.role_template, data.rolePerms, ov)}"
-              >${BUNDLES[id].label.split(' (')[0]}: ${STATUS_WORD[bundleStatus(id, p.role_template, data.rolePerms, ov)]}</span
-            >`,
-        )}
-      </p>
+      <p class="small" data-chips="${p.user_id}">${chips(p)}</p>
       <div class="aud-actions">
         <button
           type="button"
@@ -100,25 +126,7 @@ export async function mount(el) {
           ${state.open === p.user_id ? 'Hide single keys' : 'Single keys'}
         </button>
       </div>
-      ${
-        state.open === p.user_id
-          ? html`<div class="aud-keys">
-              ${AUDIT_KEYS.map((k) => {
-                const a = keyAccess(p.role_template, data.rolePerms, ov, k.key);
-                return html`<div class="row">
-                  <div><strong>${k.label}</strong> <code class="small">${k.key}</code><br /><span class="muted small">${k.help}</span></div>
-                  <select data-act="key" data-user="${p.user_id}" data-key="${k.key}" aria-label="${k.label}" ${off ? 'disabled' : ''}>
-                    <option value="" ${a.override === null ? 'selected' : ''}>
-                      Role default (${a.fromRole ? 'allowed' : 'not allowed'})
-                    </option>
-                    <option value="grant" ${a.override === 'grant' ? 'selected' : ''}>Allow</option>
-                    <option value="deny" ${a.override === 'deny' ? 'selected' : ''}>Deny</option>
-                  </select>
-                </div>`;
-              })}
-            </div>`
-          : ''
-      }
+      ${state.open === p.user_id ? html`<div class="aud-keys" data-keys="${p.user_id}"></div>` : ''}
     </section>`;
   }
 
@@ -165,12 +173,6 @@ export async function mount(el) {
       return runPlan(user, planApply(bundle, p.role_template, data.rolePerms, mine(user)), `${BUNDLES[bundle].label} applied.`);
     }
   };
-  el.onchange = (e) => {
-    const s = e.target.closest('select[data-act="key"]');
-    if (!s || state.busy) return;
-    runPlan(s.dataset.user, [{ key: s.dataset.key, effect: s.value || null }], 'Saved.');
-  };
-
   render(el, loadingCard());
   try {
     await load();
