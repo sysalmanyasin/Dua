@@ -35,4 +35,5 @@ export async function requestIpHash(req: Request): Promise<string> {
   return ipHash(clientIp(req), Deno.env.get('IP_HASH_SECRET') ?? 'unset');
 }
 export const staffDomain = (): string => Deno.env.get('STAFF_EMAIL_DOMAIN') ?? 'staff.dua.invalid';
+export const pinPepper = (): string => Deno.env.get('PIN_PEPPER') ?? '';
 export const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));

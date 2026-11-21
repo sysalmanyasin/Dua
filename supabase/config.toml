@@ -9,12 +9,8 @@ enable_refresh_token_rotation = true
 enroll_enabled = true
 verify_enabled = true
 
-# Public entry points authenticate themselves (lockout / one-time code), so JWT verification is off.
+# Public entry points authenticate themselves (PIN lockout), so JWT verification is off.
 [functions.staff-login]
-verify_jwt = false
-[functions.request-access]
-verify_jwt = false
-[functions.claim-account]
 verify_jwt = false
 # admin-users checks the caller's JWT and users.manage itself.
 [functions.admin-users]

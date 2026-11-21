@@ -1,9 +1,9 @@
 // Staff Registry: the list of everyone, and the staff card (Details · Credit · Payslip · Notes).
-import { html, render } from '../../../shared/html.js';
+import { html, raw, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import { money, shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
-import { BLOOD_GROUPS, staffPayload, validateStaffForm } from '../domain/staff.js';
+import { BLOOD_GROUPS, LOGIN_ROLES, staffPayload, suggestUsername, validateLoginForm, validateStaffForm } from '../domain/staff.js';
 import { monthStart } from '../domain/credit.js';
 import { askReason, errorCard, loadingCard, newKey, openDialog, toast } from './parts.js';
 
@@ -22,7 +22,8 @@ const blankForm = (canPrivate) => ({
 export async function mount(el, { ctx }) {
   const perms = new Set(ctx.permissions);
   const canEdit = perms.has('mgmt.staff_edit');
-  const state = { list: null, error: false, showInactive: false };
+  const canLogins = perms.has('users.manage'); // owner only: who has a login, and creating one
+  const state = { list: null, logins: null, error: false, showInactive: false };
 
   async function load() {
     try {
@@ -31,7 +32,19 @@ export async function mount(el, { ctx }) {
     } catch {
       state.error = true;
     }
+    await loadLogins();
     paint();
+  }
+
+  // The login list is a convenience for the owner: if it cannot load, the registry still works.
+  async function loadLogins() {
+    if (!canLogins) return;
+    try {
+      const rows = await api.listLogins();
+      state.logins = new Map(rows.map((r) => [r.staff_id, r]));
+    } catch {
+      state.logins = null;
+    }
   }
 
   function paint() {
@@ -39,12 +52,14 @@ export async function mount(el, { ctx }) {
     if (!state.list) return render(el, loadingCard());
     const shown = state.list.filter((p) => p.active || state.showInactive);
     const inactive = state.list.length - state.list.filter((p) => p.active).length;
+    const needsLogin = (p) => state.logins && p.active && !state.logins.has(p.staff_id);
+    const noLogin = state.list.filter(needsLogin).length;
     render(
       el,
       html`${hero({
         label: 'Manager',
         title: 'Staff Registry',
-        sub: `${state.list.length - inactive} on the payroll list${inactive ? ` · ${inactive} inactive` : ''}`,
+        sub: `${state.list.length - inactive} on the payroll list${inactive ? ` · ${inactive} inactive` : ''}${noLogin ? ` · ${noLogin} without a login` : ''}`,
         actions: canEdit ? html`<button class="btn btn-primary" data-act="add">+ Add person</button>` : '',
       })}
       ${
@@ -64,6 +79,7 @@ export async function mount(el, { ctx }) {
                     ><strong>${p.full_name}</strong><small class="muted">${p.designation || 'No designation yet'}</small></span
                   >
                   ${p.active ? '' : html`<span class="chip chip-warn">Inactive</span>`}
+                  ${needsLogin(p) ? html`<span class="chip chip-warn">No login</span>` : ''}
                 </button>`,
             )
           : html`<div class="card"><p class="muted">No one to show.</p></div>`
@@ -101,6 +117,7 @@ export async function mount(el, { ctx }) {
       busy: false,
       notes: null,
       credit: null,
+      login: null, // owner only: the existing login, or the create-login form
     };
     if (id) {
       try {
@@ -123,6 +140,16 @@ export async function mount(el, { ctx }) {
         toast('Could not open this person. Try again.', 'error');
         return;
       }
+    }
+    if (id && canLogins) {
+      const existing = state.logins?.get(id) ?? null;
+      card.login = {
+        existing,
+        loaded: state.logins !== null,
+        f: { username: suggestUsername(card.f.full_name), role: 'junior', pin: '', pin2: '' },
+        errors: {},
+        busy: false,
+      };
     }
     const today = todayPkt();
     const dlg = openDialog(html`<div id="card"></div>`, { label: 'Staff card' });
@@ -181,7 +208,54 @@ ${card.f.private[key] ?? ''}</textarea>`
                 </div>`
             : ''
         }
-        ${canEdit ? html`<div class="actions"><button type="button" class="btn btn-primary" data-do="save" ${card.busy ? 'disabled' : ''}>${card.f.staff_id ? 'Save changes' : 'Add person'}</button></div>` : ''}`;
+        ${canEdit ? html`<div class="actions"><button type="button" class="btn btn-primary" data-do="save" ${card.busy ? 'disabled' : ''}>${card.f.staff_id ? 'Save changes' : 'Add person'}</button></div>` : ''}
+        ${loginView()}`;
+
+    const loginView = () => {
+      const l = card.login;
+      if (!l) return '';
+      if (!l.loaded)
+        return html`<h3 class="sec-label">Login</h3>
+          <p class="muted">Could not check this person’s login. Close and open the card to try again.</p>`;
+      if (l.existing) {
+        return html`<h3 class="sec-label">Login</h3>
+          <p><code>${l.existing.username}</code> · ${l.existing.role_template}${l.existing.disabled_at ? ' · disabled' : ''}</p>
+          <p class="muted small">
+            Set a new PIN, unlock or disable this login in <a class="link" href="#/access">Users &amp; Access</a>.
+          </p>`;
+      }
+      if (!card.f.active) {
+        return html`<h3 class="sec-label">Login</h3>
+          <p class="muted">Not on the payroll list, so no login can be created.</p>`;
+      }
+      const lf = (label, key, attrs = '') =>
+        html`<label class="field ${l.errors[key] ? 'bad' : ''}"
+          ><span>${label}</span
+          ><input
+            data-login="${key}"
+            value="${l.f[key]}"
+            ${raw(attrs)}
+          />${l.errors[key] ? html`<small class="err">${l.errors[key]}</small>` : ''}</label
+        >`;
+      return html`<h3 class="sec-label">Login</h3>
+        <p class="muted small">
+          No login yet. Choose a username and a 4-digit PIN and tell them to the person. The PIN cannot be shown again.
+        </p>
+        <div class="fields">
+          ${lf('Username', 'username', 'maxlength="24" autocapitalize="none" spellcheck="false" autocomplete="off"')}
+          <label class="field ${l.errors.role ? 'bad' : ''}"
+            ><span>Role</span
+            ><select data-login="role">
+              ${LOGIN_ROLES.map((r) => html`<option value="${r}" ${l.f.role === r ? 'selected' : ''}>${r === 'junior' ? 'Junior' : 'Senior'}</option>`)}
+            </select></label
+          >
+          ${lf('4-digit PIN', 'pin', 'type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"')}
+          ${lf('Repeat PIN', 'pin2', 'type="password" inputmode="numeric" maxlength="4" autocomplete="new-password"')}
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" data-do="create-login" ${l.busy ? 'disabled' : ''}>Create login</button>
+        </div>`;
+    };
 
     const creditView = () => {
       if (!card.credit) return html`<p class="muted">Loading…</p>`;
@@ -279,6 +353,7 @@ ${card.f.private[key] ?? ''}</textarea>`
       card.key = null; // an edited form is a new save, so it needs a new idempotency key
       if (t.dataset.f) card.f[t.dataset.f] = t.type === 'checkbox' ? t.checked : t.value;
       if (t.dataset.p && card.f.private) card.f.private[t.dataset.p] = t.value;
+      if (t.dataset.login && card.login) card.login.f[t.dataset.login] = t.value;
     });
     dlg.addEventListener('click', async (e) => {
       const tabBtn = e.target.closest('[data-tab]');
@@ -304,6 +379,29 @@ ${card.f.private[key] ?? ''}</textarea>`
         toast(card.f.staff_id ? 'Saved' : 'Person added');
         dlg.close();
         load();
+      }
+      if (act.dataset.do === 'create-login') {
+        const l = card.login;
+        l.errors = validateLoginForm(l.f);
+        if (Object.keys(l.errors).length) return paintCard();
+        l.busy = true;
+        paintCard();
+        const r = await api.createLogin({ staffId: id, username: l.f.username.trim().toLowerCase(), role: l.f.role, pin: l.f.pin });
+        l.busy = false;
+        if (!r.ok) {
+          l.f.pin = '';
+          l.f.pin2 = '';
+          toast(r.body?.message || 'Could not create the login. Try again.', 'error');
+          return paintCard();
+        }
+        toast(`Login created: ${r.body.username}`);
+        await loadLogins();
+        l.existing = state.logins?.get(id) ?? { username: r.body.username, role_template: l.f.role, disabled_at: null };
+        l.loaded = true;
+        l.f.pin = '';
+        l.f.pin2 = '';
+        paintCard();
+        paint(); // the registry behind the card drops its "No login" chip
       }
       if (act.dataset.do === 'note-add') {
         const body = dlg.querySelector('#note-body').value.trim();

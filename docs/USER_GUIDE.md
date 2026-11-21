@@ -5,12 +5,12 @@ For the owner, managers and staff of Fazal Din's Pharma Plus. Open the app at **
 ## 1. Signing in
 | Who | How |
 |---|---|
-| **Staff** | *Staff* tab → your **username** and **6-digit PIN**. |
+| **Staff** | *Staff* tab → your **username** and **4-digit PIN**. The owner creates your login and tells you both. |
 | **Owner / Manager** | *Owner / Manager* tab → email + password. The first time, scan the QR code with an authenticator app (Google or Microsoft Authenticator); after that, type the 6-digit code each time. |
 
-**New staff member:** *Request access* → enter your name and the username you want. Nothing works until the owner approves you. The owner gives you a **one-time setup code** (valid 24 hours, works once). Tap *I have a setup code*, enter the username, the code, and choose a 6-digit PIN (not 111111 or 123456).
-**Forgot your PIN:** ask the owner to *Reset PIN*; you get a new setup code and choose a new PIN.
-**Locked out:** five wrong PINs lock the account for 15 minutes. The owner can help sooner.
+**New staff member:** there is no sign-up. Ask the owner to create your login; you get a username and a 4-digit PIN.
+**Forgot your PIN:** ask the owner to set a new PIN for you.
+**Locked out:** five wrong PINs lock the account for 1 hour. The owner can unlock you sooner.
 
 ## 2. Finding your way around
 - **Dark bar at the very top:** the latest closed day's sale (if you may see it) and the Pakistan time.

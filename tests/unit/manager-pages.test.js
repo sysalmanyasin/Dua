@@ -8,6 +8,8 @@ const api = {
   listNotes: vi.fn(),
   addNote: vi.fn(),
   removeNote: vi.fn(),
+  listLogins: vi.fn(),
+  createLogin: vi.fn(),
   creditMonth: vi.fn(),
   creditAdd: vi.fn(),
   creditReverse: vi.fn(),

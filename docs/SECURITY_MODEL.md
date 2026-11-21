@@ -4,8 +4,8 @@
 | Who | Sign-in | Notes |
 |---|---|---|
 | Owner / manager | email + password + **authenticator code (MFA)** | Without MFA the database grants **no** permission (`has_perm` requires aal2). Created only in the Supabase dashboard, then made owner once. |
-| Staff | **username + 6-digit PIN** | Supabase needs an e-mail, so a hidden address `username@staff.dua.invalid` is used. Repeated/sequence PINs are refused. Login runs through the `staff-login` function: 5 wrong PINs lock the account 15 minutes (30 per address). |
-| New people | request → owner approves → **one-time setup code** | Codes: 10 characters, hashed with a salt, 5 tries, 24 h, single use. Requests are rate-limited (5 per address per hour, 30 pending) and answer the same whether or not a username exists. |
+| Staff | **username + 4-digit PIN** | Supabase needs an e-mail, so a hidden address `username@staff.dua.invalid` is used. The stored password is derived from the PIN, username and the server secret `PIN_PEPPER` (Auth needs 6+ characters). Repeats, runs, pairs and years are refused. Login runs through the `staff-login` function: 5 wrong PINs lock the account 1 hour (30 per address per hour); the owner can unlock. Older 6-digit PINs still work until reset. |
+| New people | owner creates the login from the Staff Registry | No self sign-up. Only `users.manage` (owner, with MFA) can create a login, set a PIN, unlock or disable. The PIN is chosen by the owner, never shown back and never written to the activity log. |
 No public sign-up exists. A disabled person loses access immediately (database check) and cannot refresh a session.
 
 ## Authorisation
@@ -44,7 +44,7 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 | Error monitoring (Sentry) | Not yet. |
 | End-to-end browser tests (Playwright) | Not yet; checked in a simulated browser and by the owner by hand. |
 | Real-device and real-Google verification of the newest pages | Owner try-out pending. |
-| 6-digit PIN | Weaker than a password; mitigated by lockout, rate limits and instant disable. |
+| 4-digit PIN | Only 10,000 combinations, weaker than a password. Mitigated by the weak-PIN list, a 1-hour lockout (about 40 days on average to guess one PIN at 5 tries an hour), rate limits and instant disable. Lockout can be abused to lock someone out for an hour; the owner can unlock. `PIN_PEPPER` leaking would remove the extra protection on stored PINs, so keep it private. |
 | Public repository | Business rules are visible to anyone; no secrets or real figures are in it. |
 | Free-plan limits | Storage, egress and a pause after a week of inactivity; the app reads small summaries to stay within them. |
 | Staff sign-in shares Supabase's per-address limit | Fine for one shop; a flood of bad attempts could briefly block logins. |

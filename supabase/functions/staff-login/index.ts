@@ -1,8 +1,10 @@
 // POST {username, pin} -> {access_token, refresh_token, expires_in}
-// Lockout: 5 failures per username or 30 per IP in 15 minutes. Generic errors only.
+// Lockout: 5 wrong PINs lock the username for 1 hour (30 per IP per hour). The owner can unlock early. Generic errors only.
+// PINs are 4 digits; a 6-digit PIN set before that change still works until the owner resets it.
 import { anonClient, serviceClient } from '../_shared/clients.ts';
-import { json, preflight, readJson, requestIpHash, sleep, staffDomain } from '../_shared/http.ts';
-import { LOCK_WINDOW_MIN, isLocked, normalizeUsername, staffEmail, validPin, validUsername } from '../_shared/validate.ts';
+import { authPasswordFor } from '../_shared/codes.ts';
+import { json, pinPepper, preflight, readJson, requestIpHash, sleep, staffDomain } from '../_shared/http.ts';
+import { LOCK_WINDOW_MIN, isLocked, normalizeUsername, staffEmail, validLoginPin, validUsername } from '../_shared/validate.ts';
 
 const BAD = { error: 'invalid', message: 'Invalid username or PIN.' };
 
@@ -14,7 +16,7 @@ Deno.serve(async (req) => {
   const body = await readJson(req);
   const username = normalizeUsername(body?.username);
   const pin = body?.pin;
-  if (!validUsername(username) || !validPin(pin)) return json(req, 400, BAD);
+  if (!validUsername(username) || !validLoginPin(pin)) return json(req, 400, BAD);
 
   const db = serviceClient();
   const iph = await requestIpHash(req);
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
     db.from('login_attempts').select('id', { count: 'exact', head: true }).eq('ip_hash', iph).eq('success', false).gte('at', since),
   ]);
   if (isLocked(u.count ?? 0, i.count ?? 0)) {
-    return json(req, 429, { error: 'locked', message: `Too many attempts. Try again in ${LOCK_WINDOW_MIN} minutes or ask the owner.` });
+    return json(req, 429, { error: 'locked', message: 'Too many attempts. Try again in about an hour or ask the owner to unlock you.' });
   }
 
   const { data: profile } = await db.from('profiles').select('user_id, role_template, disabled_at, expires_at').eq('username', username).maybeSingle();
@@ -33,7 +35,13 @@ Deno.serve(async (req) => {
 
   let session: { access_token: string; refresh_token: string; expires_in: number } | null = null;
   if (usable) {
-    const { data, error } = await anonClient().auth.signInWithPassword({ email: staffEmail(username, staffDomain()), password: pin });
+    let password: string;
+    try {
+      password = await authPasswordFor(pinPepper(), username, pin);
+    } catch {
+      return json(req, 500, { error: 'server', message: 'Sign-in is not set up correctly. Tell the owner.' }); // PIN_PEPPER missing
+    }
+    const { data, error } = await anonClient().auth.signInWithPassword({ email: staffEmail(username, staffDomain()), password });
     if (!error && data.session) {
       session = { access_token: data.session.access_token, refresh_token: data.session.refresh_token, expires_in: data.session.expires_in };
     }

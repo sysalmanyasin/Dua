@@ -3,8 +3,9 @@
 For the owner. Everything here is done inside the app unless it says "Supabase" or "Google".
 
 ## 1. People and permissions (Users & Access)
-- **Access requests:** a new person asks for access; nothing happens until you approve. **Approve as Junior** or **As Senior** (the two are identical today; they are only starting templates). The one-time **setup code** appears **once**: give it in person. It works once and expires in 24 hours.
-- **Reset PIN:** the old PIN stops working immediately and you get a new setup code.
+- **Create a login:** Manager → Staff Registry → open the person → **Login**. Choose a username, **Junior** or **Senior** (starting templates), and a 4-digit PIN, then tell the person both. The PIN is permanent, cannot be shown again, and is refused if weak (0000, 1234, 1212, a year like 1990). The person must be on the payroll list and can have one login only. The registry shows **No login** next to anyone without one.
+- **Set PIN:** Users & Access → *Set PIN*. The old PIN stops working immediately.
+- **Unlock:** five wrong PINs lock a login for 1 hour. It shows *locked* here; tap **Unlock** to let them try again at once.
 - **Disable / Enable:** a disabled person cannot sign in and an open session loses access at once.
 - **Permissions:** open *Permissions* on a person. Each permission is *Role default*, *Allow* or *Deny*. Deny always wins. The role preset only gives a starting set: closing entry, audit counting, inventory search, last-day sale, STR create.
 - **Owner account:** needs MFA; it is created in Supabase (Authentication → Users) and made owner once with `bootstrap_first_admin`. It cannot be changed from the app.

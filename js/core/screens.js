@@ -1,7 +1,7 @@
-// Signed-out screens: login (staff / admin), request access, set PIN, MFA.
+// Signed-out screens: login (staff / admin) and MFA. Staff logins are created by the owner; there is no self sign-up.
 import { html, raw, render } from '../shared/html.js';
 import { icon } from '../shared/icons.js';
-import { adminSignIn, claimAccount, mfaEnroll, mfaState, mfaVerify, requestAccess, signOut, staffSignIn } from './auth.js';
+import { adminSignIn, mfaEnroll, mfaState, mfaVerify, signOut, staffSignIn } from './auth.js';
 
 const frame = (inner) =>
   html`<main class="auth">
@@ -26,13 +26,10 @@ export function showLogin(root, { onDone, tab = 'staff', message = '', kind = 'e
   </div>`;
   const staffForm = html`<form data-form="staff" autocomplete="on">
       ${field('Username', 'username', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24"')}
-      ${field('6-digit PIN', 'pin', 'type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="current-password"')}
+      ${field('PIN', 'pin', 'type="password" inputmode="numeric" pattern="([0-9]{4}|[0-9]{6})" maxlength="6" autocomplete="current-password"')}
       <button class="btn btn-primary" type="submit">Sign in</button>
     </form>
-    <p class="links">
-      <button type="button" class="link" data-go="claim">I have a setup code</button> ·
-      <button type="button" class="link" data-go="request">Request access</button>
-    </p>`;
+    <p class="muted small">No login yet? Ask the owner to create one for you.</p>`;
   const adminForm = html`<form data-form="admin" autocomplete="on">
     ${field('Email', 'email', 'type="email" autocomplete="username"')}
     ${field('Password', 'password', 'type="password" autocomplete="current-password"')}
@@ -46,12 +43,7 @@ export function showLogin(root, { onDone, tab = 'staff', message = '', kind = 'e
     ),
   );
   bind(root, {
-    go: (to) =>
-      to === 'request'
-        ? showRequest(root, { onDone })
-        : to === 'claim'
-          ? showClaim(root, { onDone })
-          : showLogin(root, { onDone, tab: to }),
+    go: (to) => showLogin(root, { onDone, tab: to }),
     staff: async (f) => submit(root, await staffSignIn(f.username, f.pin), onDone),
     admin: async (f) => submit(root, await adminSignIn(f.email, f.password), onDone),
   });
@@ -60,58 +52,6 @@ export function showLogin(root, { onDone, tab = 'staff', message = '', kind = 'e
 async function submit(root, result, onDone) {
   if (result.ok) return onDone();
   setStatus(root, result.message, 'error');
-}
-
-export function showRequest(root, { onDone }) {
-  render(
-    root,
-    frame(
-      html`<h2>Request access</h2>
-        <p class="muted">The owner must approve you before you can sign in.</p>
-        <form data-form="request">
-          ${field('Your full name', 'full_name', 'autocomplete="name" maxlength="80"')}
-          ${field('Username you want', 'username', 'autocapitalize="none" spellcheck="false" maxlength="24"')}
-          <button class="btn btn-primary" type="submit">Send request</button>
-        </form>
-        <p id="status" class="note" role="status"></p>
-        <p class="links"><button type="button" class="link" data-go="staff">Back</button></p>`,
-    ),
-  );
-  bind(root, {
-    go: () => showLogin(root, { onDone }),
-    request: async (f) => {
-      const r = await requestAccess(f.full_name, f.username);
-      setStatus(root, r.message, r.ok ? 'ok' : 'error');
-    },
-  });
-}
-
-export function showClaim(root, { onDone }) {
-  render(
-    root,
-    frame(
-      html`<h2>Set your PIN</h2>
-        <p class="muted">Enter the one-time code the owner gave you, then choose a 6-digit PIN.</p>
-        <form data-form="claim">
-          ${field('Username', 'username', 'autocapitalize="none" spellcheck="false" maxlength="24"')}
-          ${field('Setup code', 'code', 'autocapitalize="characters" autocomplete="one-time-code" maxlength="11"')}
-          ${field('New 6-digit PIN', 'pin', 'type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password"')}
-          ${field('Repeat PIN', 'pin2', 'type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="new-password"')}
-          <button class="btn btn-primary" type="submit">Save PIN</button>
-        </form>
-        <p id="status" class="note" role="status"></p>
-        <p class="links"><button type="button" class="link" data-go="staff">Back</button></p>`,
-    ),
-  );
-  bind(root, {
-    go: () => showLogin(root, { onDone }),
-    claim: async (f) => {
-      if (f.pin !== f.pin2) return setStatus(root, 'The two PINs do not match.', 'error');
-      const r = await claimAccount(f.username, f.code, f.pin);
-      if (r.ok) showLogin(root, { onDone, message: r.message, kind: 'ok' });
-      else setStatus(root, r.message, 'error');
-    },
-  });
 }
 
 // Admins must pass MFA (the database refuses everything until aal2).

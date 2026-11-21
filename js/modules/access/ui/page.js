@@ -4,48 +4,31 @@ import * as api from '../data/api.js';
 import { effectiveAccess } from '../domain/permissions.js';
 
 export async function mount(el, { ctx }) {
-  const state = { editing: null, notice: null, error: null };
+  const state = { editing: null, notice: null, error: null, pinFor: null };
 
   async function draw() {
-    const [pending, people, catalog] = await Promise.all([api.listPending(), api.listPeople(), api.listPermissionCatalog()]);
+    const [people, catalog, locked] = await Promise.all([
+      api.listPeople(),
+      api.listPermissionCatalog(),
+      api.lockedUsernames().catch(() => []), // a convenience: the page still works without it
+    ]);
+    const isLocked = (p) => locked.includes(p.username);
+    const pinTarget = state.pinFor ? people.find((p) => p.user_id === state.pinFor) : null;
     const editing = state.editing ? people.find((p) => p.user_id === state.editing) : null;
     const overrides = editing ? await api.listUserPermissions(editing.user_id) : [];
 
     render(
       el,
-      html`${hero({ label: 'Admin', title: 'Users & Access', sub: 'Approve requests, reset PINs and set what each person may do.' })}
+      html`${hero({ label: 'Admin', title: 'Users & Access', sub: 'Set PINs, unlock and disable logins, and set what each person may do. Create a login from the Staff Registry.' })}
         ${state.error ? html`<p class="note note-error" role="alert">${state.error}</p>` : ''}
         ${
           state.notice
             ? html`<div class="card note-box" role="status">
-                <strong>${state.notice.title}</strong>
-                <p>Username <code>${state.notice.username}</code></p>
-                <p class="code">${state.notice.code}</p>
-                <p class="muted small">
-                  Give this one-time code to the staff member in person. It works once, expires in 24 hours, and cannot be shown again.
-                </p>
+                <strong>${state.notice}</strong>
                 <button class="btn" data-act="dismiss">Done</button>
               </div>`
             : ''
         }
-        <section class="card">
-          <h2>Access requests</h2>
-          ${
-            pending.length === 0
-              ? html`<p class="muted">No pending requests.</p>`
-              : pending.map(
-                  (r) =>
-                    html`<div class="row">
-                      <div><strong>${r.full_name}</strong><br /><span class="muted small">${r.username}</span></div>
-                      <div class="actions">
-                        <button class="btn btn-primary" data-act="approve" data-id="${r.id}" data-role="junior">Approve as Junior</button>
-                        <button class="btn" data-act="approve" data-id="${r.id}" data-role="senior">As Senior</button>
-                        <button class="btn btn-ghost" data-act="reject" data-id="${r.id}">Reject</button>
-                      </div>
-                    </div>`,
-                )
-          }
-        </section>
         <section class="card">
           <h2>People</h2>
           ${people.map(
@@ -53,7 +36,7 @@ export async function mount(el, { ctx }) {
               html`<div class="row">
                 <div>
                   <strong>${p.staff?.full_name ?? p.username}</strong> <br /><span class="muted small"
-                    >${p.username} · ${p.role_template}${p.disabled_at ? ' · disabled' : ''}</span
+                    >${p.username} · ${p.role_template}${p.disabled_at ? ' · disabled' : ''}${isLocked(p) ? ' · locked' : ''}</span
                   >
                 </div>
                 <div class="actions">
@@ -61,7 +44,8 @@ export async function mount(el, { ctx }) {
                     p.role_template === 'admin'
                       ? html`<span class="muted small">Owner account</span>`
                       : html` <button class="btn" data-act="perms" data-id="${p.user_id}">Permissions</button>
-                          <button class="btn" data-act="reset" data-id="${p.user_id}">Reset PIN</button>
+                          <button class="btn" data-act="setpin" data-id="${p.user_id}">Set PIN</button>
+                          ${isLocked(p) ? html`<button class="btn btn-primary" data-act="unlock" data-id="${p.user_id}">Unlock</button>` : ''}
                           <button class="btn btn-ghost" data-act="${p.disabled_at ? 'enable' : 'disable'}" data-id="${p.user_id}">
                             ${p.disabled_at ? 'Enable' : 'Disable'}
                           </button>`
@@ -70,6 +54,40 @@ export async function mount(el, { ctx }) {
               </div>`,
           )}
         </section>
+        ${
+          pinTarget
+            ? html`<section class="card">
+                <h2>Set PIN: ${pinTarget.staff?.full_name ?? pinTarget.username}</h2>
+                <form data-form="setpin" data-id="${pinTarget.user_id}">
+                  <label class="field"
+                    ><span>New 4-digit PIN</span
+                    ><input
+                      name="pin"
+                      type="password"
+                      inputmode="numeric"
+                      pattern="[0-9]{4}"
+                      maxlength="4"
+                      autocomplete="new-password"
+                      required
+                  /></label>
+                  <label class="field"
+                    ><span>Repeat PIN</span
+                    ><input
+                      name="pin2"
+                      type="password"
+                      inputmode="numeric"
+                      pattern="[0-9]{4}"
+                      maxlength="4"
+                      autocomplete="new-password"
+                      required
+                  /></label>
+                  <p class="muted small">The old PIN stops working now. Tell the new PIN to the person; it cannot be shown again.</p>
+                  <button class="btn btn-primary" type="submit">Save PIN</button>
+                  <button class="btn btn-ghost" type="button" data-act="cancelpin">Cancel</button>
+                </form>
+              </section>`
+            : ''
+        }
         ${
           editing
             ? html`<section class="card">
@@ -103,27 +121,46 @@ export async function mount(el, { ctx }) {
     state.error = null;
     try {
       await fn();
-    } catch {
+    } catch (e) {
       state.notice = null;
-      state.error = 'That did not work. Please try again.';
+      state.error = e?.userMessage ?? 'That did not work. Please try again.';
     }
     await draw();
   }
-  const issued = (title, r) => {
-    if (!r.ok) throw new Error(r.body.message ?? r.body.error);
-    state.notice = { title, username: r.body.username, code: r.body.code };
+  // Server answers carry a plain message (for example "choose a PIN that is not a year"): show it as it is.
+  const must = (r) => {
+    if (r.ok) return r;
+    throw Object.assign(new Error(r.body?.error ?? 'failed'), { userMessage: r.body?.message });
   };
 
   el.onclick = (e) => {
     const b = e.target.closest('[data-act]');
     if (!b || b.tagName === 'SELECT') return;
-    const { act, id, role } = b.dataset;
+    const { act, id } = b.dataset;
     if (act === 'dismiss') return run(async () => (state.notice = null));
     if (act === 'perms') return run(async () => (state.editing = state.editing === id ? null : id));
-    if (act === 'approve') return run(async () => issued('Approved', await api.approve(id, role)));
-    if (act === 'reject') return run(() => api.reject(id));
-    if (act === 'reset') return run(async () => issued('PIN reset', await api.resetPin(id)));
-    if (act === 'disable' || act === 'enable') return run(() => api.setDisabled(id, act === 'disable'));
+    if (act === 'setpin') return run(async () => (state.pinFor = state.pinFor === id ? null : id));
+    if (act === 'cancelpin') return run(async () => (state.pinFor = null));
+    if (act === 'unlock')
+      return run(async () => {
+        must(await api.unlock(id));
+        state.notice = 'Unlocked. They can try their PIN again now.';
+      });
+    if (act === 'disable' || act === 'enable') return run(async () => must(await api.setDisabled(id, act === 'disable')));
+  };
+  el.onsubmit = (e) => {
+    const form = e.target.closest('form[data-form="setpin"]');
+    if (!form) return;
+    e.preventDefault();
+    const { pin, pin2 } = Object.fromEntries(new FormData(form));
+    const id = form.dataset.id;
+    return run(async () => {
+      if (!/^\d{4}$/.test(pin)) throw Object.assign(new Error('pin'), { userMessage: 'The PIN must be exactly 4 digits.' });
+      if (pin !== pin2) throw Object.assign(new Error('pin'), { userMessage: 'The two PINs do not match.' });
+      must(await api.setPin(id, pin));
+      state.pinFor = null;
+      state.notice = 'New PIN saved. The old one no longer works.';
+    });
   };
   el.onchange = (e) => {
     const s = e.target.closest('select[data-act]');
