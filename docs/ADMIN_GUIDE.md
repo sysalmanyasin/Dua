@@ -12,13 +12,32 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 - Every change is written to the activity log with who, when, old value and new value.
 
 ### Permission keys
+
+The live permission catalog contained **70 keys** on 21 November 2026. Descriptions below are copied from the live `public.permissions` catalog; the database remains authoritative.
+
 | Key | Meaning |
 |---|---|
 | `activity.view` | View activity log |
+| `audit.assign` | Assign, move and revoke audit assignments |
+| `audit.barcode_admin` | Resolve barcode conflicts, disable or reassign a barcode |
+| `audit.barcode_register` | Register and verify barcodes, report conflicts |
+| `audit.barcode_scan` | Scan barcodes while counting |
+| `audit.compile` | Compile audit rounds and generate the next round |
 | `audit.count` | Count assigned audit items |
+| `audit.expiry_log` | Log near-expiry stock |
+| `audit.expiry_manage` | Manage racks, rack assignment and locked expiry entries |
+| `audit.finalize` | Create the audit Final Snapshot |
+| `audit.individual` | Start own Individual Audits |
 | `audit.manage` | Create and assign audits |
+| `audit.reopen` | Reopen a submitted audit assignment |
+| `audit.report` | Export audit reports |
 | `audit.review` | Review audit variances |
+| `audit.suggest` | Propose a corrected audit count with a reason |
+| `audit.templates` | Create and edit audit templates |
+| `audit.view` | See audit engagements, rounds, progress and compiled results |
 | `backup.run` | Run backups |
+| `candela.today_total` | See today's Candela sales total only (one number) |
+| `candela.view` | See Candela sales history, payment breakdowns and customer credit summaries (owner) |
 | `checklist.fill` | Fill in, edit and send the daily check list |
 | `checklist.manage` | Change checklist items, defaults and dropdown lists |
 | `checklist.view` | View daily check lists |
@@ -28,11 +47,32 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 | `closing.settings` | Change closing settings |
 | `closing.view_all` | View all closings |
 | `credit.view` | See credit balances |
+| `ebill.discount_override` | Give Emergency Billing discounts above the staff limit |
+| `ebill.export` | Export Emergency Billing reports (CSV, Excel, PDF) |
+| `ebill.history_all` | See every Emergency Billing invoice |
+| `ebill.manage` | Emergency Billing manager: devices, staff discount limits, refunds and corrections |
+| `ebill.set_pin` | Set Emergency Billing finalize PINs (owner) |
+| `ebill.use` | Use Emergency Billing: create and save invoices and see your own history |
 | `inventory.search` | Search inventory |
 | `inventory.sync` | Trigger an inventory sync by hand and see sync errors |
+| `inventory.view` | See inventory sales figures and run the inventory reports |
 | `inventory.view_cost` | See cost prices |
+| `invoice_desk.manage` | Manage Invoice Desk invoices and product suggestions |
+| `mgmt.close_month` | Close a monthly manager sheet |
+| `mgmt.credit_manage` | Add staff credit entries, reversals and deductions |
+| `mgmt.inbox_file` | See the Credit Inbox and file lines into ledgers |
+| `mgmt.incentive` | See and edit the incentive calculator |
+| `mgmt.ledgers` | See and edit the expense, Jazz Cash and misc ledgers |
+| `mgmt.notes` | Read, add and remove private staff notes |
+| `mgmt.openings` | Set opening balances |
 | `mgmt.petty_cash` | Petty cash |
+| `mgmt.rates` | Change the generic, incentive and commission rates |
 | `mgmt.salary` | See and edit salaries |
+| `mgmt.salary_view` | See salary, generic and payslip sheets (read only) |
+| `mgmt.staff_edit` | Add and edit staff details |
+| `mgmt.staff_private` | See and edit private staff details (father name, address, blood group) |
+| `mgmt.staff_view` | See the staff registry: names, codes, designations, phone |
+| `notifications.view` | See and acknowledge owner alerts (owner only; admins hold every permission, nobody else is granted it) |
 | `reports.view` | View reports |
 | `sales.edit` | Correct daily sales |
 | `sales.enter` | Enter daily sales |
@@ -41,10 +81,12 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 | `settings.manage` | Change settings |
 | `str.approve` | Approve stock transfer requests |
 | `str.create` | Create stock transfer requests |
+| `str.view` | See stock transfer requests, their reports and the zero-dispatch list |
 | `targets.manage` | Manage sales targets |
+| `tools.view` | Open the owner Tools tab: notifications, backups, feed status (owner only; admins hold every permission, nobody else is granted it) |
 | `users.manage` | Manage users, roles and permissions |
-| `workspace.create` | Create Workspace notes, share them and receive ownership |
-| `workspace.use` | Open Workspace and work on notes shared with you |
+| `workspace.create` | Create new Workspace notes and workbooks and share them |
+| `workspace.use` | Open Dua Workspace and work on notes and sheets shared with you |
 
 ## 2. Current module availability
 - **Sales:** implemented; see the User Guide for available pages.
