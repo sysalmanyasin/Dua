@@ -93,6 +93,12 @@ Open question for the owner: the product copy's `price` is treated as the price 
 - **Reports and exports**: History > Reports & export (export right or manager). Daily totals on screen; CSV (daily, invoices), Excel (two sheets) and PDF. Invoices still on this device (waiting or failed) are not on the server: the window warns, offers Upload now, adds the warning to the PDF and Excel notes, and names the files `-INCOMPLETE`. A cut-short list (over 5,000 invoices) is also stated.
 - Database: 0633, 0634, 0640, 0641, 0642, all live.
 
-## Status (20 Nov 2026)
+## Phase 6 (automated testing done, 21 Nov 2026)
 
-Phases 1 to 5 are built and live. Phase 6 (stabilise, real-device and printer checks) is next. See `docs/modules/ebill-handover.md` for the exact state and remaining steps.
+Money fuzz (database test `0650`), preview-versus-database cross-check, large-data tests, real print-engine layout check at 58 and 80 mm, and screenshots at 1366 x 768. Results, known limits and the owner's real-device/printer checklist are in `docs/modules/ebill-phase6.md`.
+
+Settings: the shop's receipt settings live on the server (`settings` key `ebill.receipt`, read with `ebill_get_receipt`, changed with `ebill_set_receipt` by managers with a reason) and are the same on every device; each device keeps a copy for offline printing. The unit letter on the slip is **L = loose unit, P = pack** (owner confirmed 21 Nov 2026).
+
+## Status (21 Nov 2026)
+
+Phases 1 to 5 are built and live; Phase 6 automated testing is done. What remains is the owner's: grant the `ebill.*` rights (none are granted live yet), fill in Settings > Receipt, and run the real-device and real-printer checklist. See `docs/modules/ebill-handover.md` for the exact state.

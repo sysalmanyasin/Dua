@@ -1420,6 +1420,10 @@ html.eb-full .status-bar {
   margin: 2mm;
 }
 @media print {
+  html:has(body.eb-printing),
+  body.eb-printing {
+    background: #fff !important;
+  }
   body.eb-printing > *:not(#eb-print-root) {
     display: none !important;
   }

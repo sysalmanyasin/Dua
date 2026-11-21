@@ -18,7 +18,7 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Inventory | Feed and six screens integrated/live; real-phone PDF check and sync cleanup remain |
 | STR and Candela Sales | Integrated/live; owner phone acceptance remains |
 | Audit | A1–C1 integrated/live; phone acceptance, C2 barcode (paused) and hardening remain |
-| Emergency Billing | Phases 1–4 integrated/live; Phase 5 UI and migrations 0633/0634/0640/0641 remain |
+| Emergency Billing | Phases 1–5 built; migrations 0633/0634/0640/0641/0642 live; Phase 6 automated testing done, real-device/printer acceptance and granting `ebill.*` rights remain |
 | Invoice Desk | Integrated on main; migrations 1000–1003 recorded live; full test and physical-printer acceptance remain |
 | Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101 recorded live; Sheets, offline sync and attachments not built; real-phone acceptance outstanding |
 | Unified Reports, assistant and Android | Future work |

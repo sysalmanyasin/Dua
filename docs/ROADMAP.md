@@ -25,11 +25,9 @@
 ## P2 — Finish active module scope
 
 ### Emergency Billing
-- Obtain owner approval before applying migrations `0633`, `0634`, `0640`, `0641` to DuaPharmaPlus; they are documented as present in the repository but not live.
-- Build partial-refund-by-line/quantity UI and history status/amount presentation.
-- Build receipt settings, 58/80mm receipt printing, copies/types, receipt search and history reprint.
-- Build date-wise reports and CSV/Excel/PDF exports, including pending/failed offline invoice warnings.
-- Complete Phase 6 end-to-end and real-device tests (restart persistence, interrupted sync, duplicates, deactivation, large catalogue, receipts, migration safety and RLS).
+- **Done (21 Nov 2026):** Phase 5 (partial refunds by item and quantity, receipt settings and printing in the shop's own slip layout, Search receipt, reports and CSV/Excel/PDF exports with pending/failed warnings) and migrations `0633`, `0634`, `0640`, `0641`, `0642`, all applied live with the owner's approval. Phase 6 automated testing (money fuzz, preview-vs-database cross-check, large data, real print-engine layout, screenshots).
+- **Owner actions:** grant the `ebill.*` rights (none are granted yet), fill in Settings > Receipt, and run the real-device and real-printer checklist in `docs/modules/ebill-phase6.md` section 3.
+- Open decisions: whether counter "Return" bills are wanted (refunds are a manager action in History today); Settings "Device settings" panel (last sync, pending/failed counts).
 
 ### Audit
 - C2 Barcode is paused until the owner says go. It requires vendored scanner libraries and Foundation request OD-6 (shared outbox/sign-out guard).
@@ -62,7 +60,7 @@
 - Whether to delete/archive the nine stale branch refs.
 - Whether/when to split staging and production Supabase projects.
 - Whether the Closing Inventory Audit gate should be re-enabled.
-- Whether to approve Emergency Billing migrations 0633/0634/0640/0641 live.
+- Emergency Billing: grant the `ebill.*` rights and complete the real-device and printer checklist (`docs/modules/ebill-phase6.md`).
 - Audit C2 Barcode start date and Foundation OD-6 ownership.
 - Senior vs Junior permission differences.
 - Whether to port Bar Race, briefing email and other Sales extras.
