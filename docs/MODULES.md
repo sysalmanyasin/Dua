@@ -54,7 +54,7 @@ These are enforced by tests and CI. Breaking one fails the build.
 1. **The browser is never trusted** for price, permission, status, approval or totals. All access rules live in the database (RLS + functions). Hiding a menu item is cosmetic only.
 2. **Every table has RLS enabled.** `anon` has no grants. No blanket "admin sees everything" policies.
 3. **Critical writes are Postgres functions (RPC)** that run in one transaction and take an **idempotency key** (client-made UUID).
-4. **`security definer` functions** must set `search_path = public`, check `public.has_perm(...)` inside, have execute revoked from `public, anon, authenticated`, then granted to `authenticated` only (copy the pattern at the bottom of `0002_sales.sql`).
+4. **`security definer` functions** must set a safe fixed `search_path` and enforce the caller's permission/identity inside the function. Revoke execute from `PUBLIC` and `anon` by default. Grant `authenticated` only when the function is deliberately a browser-facing RPC and has an explicit caller/permission check; internal helpers must remain unavailable to client roles. Record every exception and keep the function allowlist/tests current. Do not blanket-revoke the existing 219 authenticated-callable RPCs without first mapping their callers and checking the function bodies.
 5. **Submitted/posted rows are immutable.** A correction is a new revision row with a mandatory reason; the original is kept. (D-12)
 6. **Every sensitive action is logged** with `public.log_activity(...)` into the append-only `activity_log`.
 7. **No secrets in Git** (service-role key, tokens, passwords, notification topics). Only the publishable key is public. `npm run check:secrets` enforces it.
