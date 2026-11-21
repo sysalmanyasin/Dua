@@ -31,12 +31,16 @@ Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions 
 
 Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet link), `sw.js` (file list regenerated with `node tools/sw-precache.mjs`).
 
+## 3a. Phase 5 increment 1 is built but not merged or applied
+
+Branch `module/workspace-sheets` (pushed) holds `1102_workspace_sheets.sql` and its test (203 checks) plus doc updates. It has **not** been applied to the shared Supabase project and **not** merged to `main`; the owner has not yet said to. If the branch no longer exists, recreate it from the migration in the last commit of this file's history. Payload formats and rules for the browser side are in `workspace.design.md` §4a. When you apply it, follow §5 below and update the shared status documents (PROJECT_STATUS, MODULE_PROGRESS_REGISTER, ROADMAP, CHANGELOG, TESTING, DATABASE_DESIGN) in the same change; they currently describe Notes only.
+
 ## 4. What to do next
 
 **Phase 5 — workbooks and grid** (full design in `workspace.design.md` §3, §4, §7, §9). Suggested increments, each its own reviewable change:
 
-1. **Database only:** `1102_workspace_sheets.sql` — sheets, cells (stable row/column ids), styles, operations, snapshots, `workspace_apply_ops`, `workspace_pull`, `workspace_load_sheet`, snapshot and restore functions; also pin `search_path` on the four trigger-guard functions. Test file with the full permission matrix and a parity fixture of operation sequences. No UI.
-2. Domain model for spreadsheets (`domain/spreadsheet.js`: stable-id structure, operation generation) with a JS reference model that runs the **same** operation sequences as the SQL.
+1. ~~**Database only:** `1102_workspace_sheets.sql`~~ — **built** (see 3a). Still to add: a parity fixture of operation sequences shared by the SQL tests and the JS reference model; and the operations not yet implemented (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`), which are answered `rejected` today.
+2. **Next:** domain model for spreadsheets (`domain/spreadsheet.js`: stable-id structure, operation generation, client-chosen ids ≥ 1000) with a JS reference model that runs the **same** operation sequences as the SQL and gives the same answers.
 3. Data layer, then a read-only grid, then editing, then structure operations, then formats.
 4. Enable "New workbook" on the home page and add the route `/workspace/sheet` (remember routes carry no ids: use the session-storage pattern in `domain/documents.js`, or ask Foundation for the router change).
 

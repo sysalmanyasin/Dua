@@ -14,6 +14,9 @@ Updated: 2026-11-19 (end of the session that built Phases 2–4; handover: `work
 - [x] **Merged to `main`** at `468873a` on 19 Nov 2026 (after merging newer `main`; the conflicts were documentation only). Full suite on the merged result: 1,669 unit tests with one failure that also fails on clean `main` (`ebill-page.test.js`), lint, secret scan and vendor check clean, all 71 database test files pass locally on PostgreSQL 16. `prettier --check` fails only on `css/ebill.css`, which also fails on `main`.
 - [x] Documents updated on 19 Nov: PROJECT_STATUS, MODULE_PROGRESS_REGISTER, ROADMAP, CHANGELOG, TESTING, SESSIONS, README (root and docs), DECISIONS (D-41–D-47), DATABASE_DESIGN, SECURITY_MODEL, ADMIN_GUIDE, USER_GUIDE, ARCHITECTURE, MODULES (route rule, registry row), the brief, and the new `workspace.design.md` and `workspace.next-session.md`.
 
+- [x] **Phase 5, increment 1 (database only), 19 Nov 2026, branch `module/workspace-sheets` (from `main` at `7563cfd`):** `supabase/migrations/1102_workspace_sheets.sql` and `supabase/tests/1102_workspace_sheets_test.sql` (203 checks: permissions for every role, all implemented operation types, validation of every field, atomic rejection, conflicts including a partly applied batch, structure rules and limits, styles, sizes, pulling changes, restore points and a restore that returns the exact earlier state, the automatic restore point every 200 operations, the 50,000-cell limit, append-only logs, isolation between documents, privilege hygiene). The whole database suite passes locally on PostgreSQL 16 (74 test files, 86 migrations). **Not applied to the shared project and not merged:** waiting for the owner.
+- [ ] For the owner: say whether to apply `1102` to the shared project now (procedure in `workspace.next-session.md` §5) and merge the branch.
+
 ## Needs the owner (cannot be done from here)
 
 - [ ] Revoke the GitHub token that was shared in chat on 18 Nov 2026.
