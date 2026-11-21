@@ -1,0 +1,66 @@
+/* Foundation-approved visual pass: make card boundaries and data grids easy to scan.
+   Uses existing theme tokens so light/dark mode, status colours and module accents remain intact. */
+:root {
+  --dua-card-edge: color-mix(in srgb, var(--border) 78%, var(--text-muted));
+  --dua-grid-line: color-mix(in srgb, var(--border) 88%, var(--text));
+  --dua-grid-head: color-mix(in srgb, var(--surface-2) 72%, var(--primary) 28%);
+  --dua-grid-zebra: color-mix(in srgb, var(--surface-2) 58%, var(--surface));
+  --dua-grid-hover: color-mix(in srgb, var(--blue-100, #dbeafe) 45%, var(--surface));
+}
+
+/* Every reusable card has a clear, calm edge; avoid heavy shadows or saturated panels. */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--dua-card-edge);
+  box-shadow: 0 1px 2px rgb(11 31 58 / 6%);
+}
+.card > .card,
+.card .card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+/* Shared table treatment. Module-specific colours (returns, warnings, totals) remain stronger. */
+table,
+[role="table"] {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  color: var(--text);
+}
+table th,
+table td,
+[role="table"] [role="columnheader"],
+[role="table"] [role="cell"] {
+  border-right: 1px solid var(--dua-grid-line);
+  border-bottom: 1px solid var(--dua-grid-line);
+}
+table tr > :first-child,
+[role="table"] [role="row"] > :first-child {
+  border-left: 1px solid var(--dua-grid-line);
+}
+table thead th,
+table > tr:first-child th,
+[role="table"] [role="columnheader"] {
+  background: var(--dua-grid-head);
+  color: var(--text);
+  font-weight: 700;
+  border-top: 1px solid var(--dua-grid-line);
+}
+table tbody tr:nth-child(even) > td,
+table tbody tr:nth-child(even) > th,
+[role="table"] [role="row"]:nth-child(even) [role="cell"] {
+  background: var(--dua-grid-zebra);
+}
+table tbody tr:hover > td,
+table tbody tr:hover > th {
+  background: var(--dua-grid-hover);
+}
+
+/* Keep dense register grids visually distinct without changing their sizing or behaviour. */
+.mg-grid-wrap table,
+.mg-grid-wrap .mg-grid,
+.cls table,
+.cls [role="table"] {
+  border: 1px solid var(--dua-grid-line);
+}
