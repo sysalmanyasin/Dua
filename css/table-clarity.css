@@ -64,3 +64,54 @@ table tbody tr:hover > th {
 .cls [role="table"] {
   border: 1px solid var(--dua-grid-line);
 }
+
+
+/* Closing renders ledger lines as CSS-grid rows rather than semantic tables. */
+.cls .cls-table {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 55%, var(--text-muted));
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cls .cls-table > .cls-trow {
+  gap: 0;
+  min-width: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 45%, var(--text-muted));
+  background: var(--surface);
+}
+.cls .cls-table > .cls-trow:last-child { border-bottom: 0; }
+.cls .cls-table > .cls-trow > * {
+  min-width: 0;
+  padding: 10px 8px;
+  border-right: 1px solid color-mix(in srgb, var(--border) 45%, var(--text-muted));
+}
+.cls .cls-table > .cls-trow > *:last-child { border-right: 0; }
+.cls .cls-table > .cls-trow.is-head {
+  background: color-mix(in srgb, var(--surface-2) 55%, var(--primary) 12%);
+  color: var(--text);
+  border-bottom: 2px solid color-mix(in srgb, var(--border) 35%, var(--text-muted));
+}
+.cls .cls-table > .cls-trow:not(.is-head):nth-child(even) {
+  background: color-mix(in srgb, var(--surface-2) 68%, var(--surface));
+}
+.cls .cls-table > .cls-trow:not(.is-head):hover {
+  background: color-mix(in srgb, var(--blue-100) 55%, var(--surface));
+}
+.cls .cls-table .cls-in {
+  margin: 5px;
+  width: calc(100% - 10px);
+}
+.cls .cls-row {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.cls .cls-row + .cls-row { margin-top: 2px; }
+.cls .cls-snap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--surface);
+}
