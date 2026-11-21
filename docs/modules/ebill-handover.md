@@ -17,7 +17,10 @@ A desktop-first pharmacy POS used when the normal POS (Candela) is down. Emergen
 | Partial refunds (by item and quantity): dialog in History detail, per-line refunded/remaining, Part refunded status | built, tested, **live** (0633, 0634) |
 | Receipt settings form (with live preview, test print, logo), receipt printing (Primary, Gift, Summary, Secondary), live Print/Copies/Type controls, Search receipt, Print receipt in History detail | built, tested, **live** (0640, 0642) |
 | Reports and CSV / Excel / PDF export, with a warning about pending or failed invoices | built, tested, **live** (0641) |
-| Phase 6 (stabilise, wider testing) | **started**: see section 5 |
+| Phase 6 (stabilise, wider testing) | automated testing **done** (`ebill-phase6.md`); owner acceptance on real devices and printer pending |
+
+### Tests added in Phase 6
+`supabase/tests/0650_ebill_money_fuzz_test.sql` (refund money integrity), `tests/unit/ebill-large-data.test.js` (30,000 products, 300-line bill, 5,000-invoice report), a half-paisa regression in `tests/unit/ebill-refund.test.js`. Run both suites before every push (`npm run verify`, `bash supabase/tests/run.sh`). PostgreSQL can be installed in a sandbox with `apt-get install postgresql` and run as a local superuser to execute `run.sh`.
 
 ### Live database (project `sdsynzsflubdxnelgthh`, DuaPharmaPlus) vs repo
 Applied and registered live: 0601, 0602, 0610, 0611, 0612, 0620, 0621, 0622, 0630, 0631, 0632, **0633, 0634, 0640, 0641 (applied 20 Nov 2026 with the owner's approval) and 0642 (20 Nov 2026, owner approved)**. The repo and the live database now match. Each was applied by hand with `execute_sql` and registered in `supabase_migrations.schema_migrations` (RUNBOOK §4) with a short note in `statements`. Read-only checks after applying: all registered, no `anon`/`public` execute on any `ebill_` function, internal helpers not callable by clients, RLS on every `ebill_` table. 0 invoices live at the time.
@@ -29,10 +32,15 @@ Applied and registered live: 0601, 0602, 0610, 0611, 0612, 0620, 0621, 0622, 063
 supabase/migrations/06xx_ebill_*.sql      schema and functions (all writes go through security-definer functions; clients only SELECT through RLS)
 supabase/tests/06xx_ebill_*_test.sql      database tests (run: bash supabase/tests/run.sh, needs local Postgres, see section 6)
 js/modules/ebill/manifest.js              routes + permissions
-js/modules/ebill/domain/                  pure logic: calc.js (money), cart.js, productFilter.js (3 filters), invoice.js (payload + refusal words), offline.js (rules)
+js/modules/ebill/domain/                  pure logic: calc.js (money), cart.js, productFilter.js (3 filters), invoice.js (payload + refusal words), offline.js (rules),
+                                          refund.js (partial-refund preview, exact fractions), receipt.js (what a slip says, 4 types, settings defaults),
+                                          reportFile.js (CSV / Excel / PDF tables and files)
 js/modules/ebill/data/                    api.js (the ONLY file that talks to Supabase), localDb.js (IndexedDB), sync.js (the ONE sync), held.js,
-                                          offlineKit.js + localPin.js (offline PIN proof), device.js, products.js (reads Inventory's local copy), offline.js (service worker)
-js/modules/ebill/ui/                      pos.js (billing screen), productHelp.js, heldBills.js, history.js, settings.js, dialog.js (small question dialog)
+                                          offlineKit.js + localPin.js (offline PIN proof), device.js, products.js (reads Inventory's local copy), offline.js (service worker),
+                                          receiptSettings.js (shop receipt settings, cached on the device)
+js/modules/ebill/ui/                      pos.js (billing screen), productHelp.js, heldBills.js, history.js (refund dialog, reprint, reports button), settings.js,
+                                          receiptForm.js (Settings > Receipt with preview), receiptPrint.js (draw + print), receiptSearch.js (Search receipt),
+                                          reportDialog.js (report window + downloads), dialog.js (small question dialog)
 js/core/offlineContext.js                 the narrow offline start (touches js/core/auth.js and app.js minimally)
 sw.js + tools/sw-precache.mjs             service worker and its generated file list (`npm run build:sw`)
 css/ebill.css                             all styling for the module
@@ -52,13 +60,17 @@ Permissions: `ebill.use` (bill), `ebill.history_all`, `ebill.manage` (manager: d
 - **Screen fit**: `.eb-desk` takes `100dvh - --eb-top` (measured in JS), the grid scrolls inside; "Full screen" hides `.hdr`, tabs and status bar via `html.eb-full` and calls `requestFullscreen`. F5/F2 open Product Help and F5 never reloads the page.
 
 ## 5. Work still to do
-Done 20 Nov 2026: partial refund dialog, receipts and settings form, Search receipt, reports and exports (see section 2). Remaining:
-1. **Owner to fill in Settings > Receipt** (shop name, address and licence, STN/NTN, POS number, terms, paper width) and print a test slip on the real printer. Unit letters on the slip are L (loose unit) and P (pack): confirm with the owner. "Duplicate" prints on reprints, copies after the first, and the Secondary type.
-2. Settings page "Device settings": show last successful sync (device `lastSyncAt`) and this device's pending/failed counts.
-3. Decide with the owner whether counter "Return" bills are wanted (refunds are a manager action in History).
-4. **Phase 6**: end-to-end tests (restart persistence, interrupted sync, duplicates, deactivation, large catalogues, migration safety, RLS), real-device checks (Android Chrome, a desktop, the real thermal printer at 58 and 80 mm) and a visual check at 1366x768. The receipt print stylesheet uses named `@page` sizes (`58mm auto`, `80mm auto`); confirm on the real printer driver.
-5. Known cosmetic point: at a small window height (about 600 px visible) the totals panel scrolls internally; Full screen fixes it.
-6. Reports reuse Inventory's CSV/Excel writers and Closing's PDF writer (pure helpers, as `ebill` already imports Inventory's product helpers). If these are promoted to `js/shared`, update `domain/reportFile.js`.
+Done 20–21 Nov 2026: partial refunds, receipts and settings form, Search receipt, reports and exports, and Phase 6 automated testing (results in `docs/modules/ebill-phase6.md`, with the owner's real-device checklist). Remaining:
+1. **Owner: grant the `ebill.*` rights.** On the live project no role and no user has any (checked read-only 21 Nov 2026: the permission gate refuses everyone, correctly). Nothing in the code needs changing. Do not grant them without the owner's go-ahead.
+2. **Owner: fill in Settings > Receipt** (shop name, address and licence, STN/NTN, POS number, terms, paper width) and print a test slip on the real printer. The live setting still holds plain defaults.
+3. **Owner: run the real-device and real-printer checklist** (`ebill-phase6.md` section 3: Android Chrome, desktop, the thermal printer at 58 and 80 mm, offline and restart cases, reports). Layout was verified in the real Firefox print engine to PDF; a printer driver can still add margins.
+4. Settings page "Device settings": show last successful sync (device `lastSyncAt`) and this device's pending/failed counts (not built).
+5. Decide with the owner whether counter "Return" bills are wanted (refunds are a manager action in History today).
+6. Known cosmetic point: at a small window height (about 600 px visible) the totals panel scrolls internally; Full screen fixes it.
+7. Reports reuse Inventory's CSV/Excel writers and Closing's PDF writer (pure helpers, as `ebill` already imports Inventory's product helpers). If these are promoted to `js/shared`, update `domain/reportFile.js`.
+8. Receipt choices on the billing screen are not remembered between openings (by design; they start from the shop settings). The shop settings themselves are shared by all devices.
+
+Decisions recorded: unit letter on the slip L = loose unit, P = pack; "Duplicate" prints on reprints, copies after the first, and the Secondary type; no FBR logo, QR code or FBR invoice number.
 
 ## 6. How to work (environment and gotchas)
 - Repository: `https://github.com/sysalmanyasin/Dua`; GitHub Pages deployment is from `main`. Continue from current `main`; do not use the stale `feature/backup-emergency-pos` pointer. Never paste, store or reuse a GitHub token from an old session; if a credential was exposed, revoke it and use the approved GitHub connection.

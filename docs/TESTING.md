@@ -51,7 +51,7 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow
 - Manager migrations 0101–0108 are recorded live and registered; Credit Inbox still needs a real Closing-data test.
 - Closing migrations 0201–0211 are recorded live in progress notes. A live-only 0214 migration is reported by Manager progress but has no matching repository migration file; resolve this drift before further database work.
 - STR migrations 0500–0504 and scheduled archive/overdue jobs are recorded live.
-- Emergency Billing 0601/0602, 0610–0612, 0620–0622 and 0630–0632 are recorded live. Migrations 0633/0634/0640/0641 are documented as not applied live.
+- Emergency Billing 0601/0602, 0610–0612, 0620–0622, 0630–0634 and 0640–0642 are recorded live (0633/0634/0640/0641 on 20 Nov 2026 and 0642 on 21 Nov 2026, each with owner approval; read-only safety checks passed).
 - Audit migrations 0401–0410 and Inventory 0308 are recorded live.
 - Candela Sales 0900 is recorded live.
 - Invoice Desk migrations 1000–1003 are recorded live in its progress file.
@@ -67,7 +67,7 @@ These statements come from module progress records. Before production changes, q
 - A restore drill from a real encrypted Drive backup into a separate empty Supabase project.
 - Load, long-running, offline and low-memory behaviour on actual pharmacy phones.
 - Invoice Desk full save/product/history/RLS E2E tests and physical printer output.
-- Emergency Billing Phase 5 screens and real-device print/export acceptance.
+- Emergency Billing real-device and real-printer acceptance (owner checklist in `docs/modules/ebill-phase6.md` section 3) and live granting of `ebill.*` rights.
 - Workspace Notes real-phone and two-account acceptance (jsdom only so far: layout, touch selection, on-screen keyboard, bottom-sheet dialogs and the Content-Security-Policy are unverified in a real browser).
 - Playwright browser end-to-end automation and Sentry production monitoring.
 

@@ -3,13 +3,20 @@
 Dates are 2026. Counts are as of the end of each step.
 
 
+## 21 Nov — Emergency Billing: Phase 5 complete and Phase 6 testing
+- **Phase 5 (merged 20 Nov, PR #45):** partial-refund dialog (item and quantity, amount preview, retry-safe); receipts in the shop's own slip layout (Primary, Gift, Summary, Secondary; 58/80 mm; Duplicate on reprints and extra copies; offline bills carry a temporary-reference note) with live Print/Copies/Type controls, Search receipt, History reprint and offline printing; Settings > Receipt form with live preview, test slip and logo; reports and CSV/Excel/PDF exports with a pending/failed-invoice warning (files named `-INCOMPLETE`).
+- **Database:** migrations `0633`, `0634`, `0640`, `0641` (20 Nov) and `0642` (receipt slip fields STN/NTN, POS number, slip title, footer to 400 characters) applied live by hand with the owner's approval and registered; read-only safety checks passed (no anon/public execute, helpers internal, RLS on).
+- **Phase 6 (this entry):** new database test `0650` (300 random invoices, 1,054 random partial refunds add up to net to the paisa); preview-vs-database cross-check of 1,963 refunds found and fixed a 0.01 rounding difference (exact fractions now); large-data tests (30,000 products, 300-line bill, 5,000-invoice report); real Firefox print-engine check of the slips at 58 and 80 mm (found and fixed a pale background behind the slip); screenshot fixes (report totals, print controls spacing). Fixed the billing cash box not clearing when cash entry is switched off, and `css/ebill.css` Prettier.
+- Tests: 1,724 unit tests in 112 files; 73 database test files (3,118 checks) pass.
+- Remaining (owner): grant `ebill.*` rights (none granted live), fill in Settings > Receipt, real-device and real-printer checklist: `docs/modules/ebill-phase6.md`.
+
 ## 19 Nov — Workspace Phase 4: Notes editor, sharing and history
 - Workspace Notes are now a registered module (`/workspace`, `/workspace/note`): home with search (titles and note text), Mine / Shared / Archived / Trash tabs and personal folders; rich-text editor (headings, bold, italic, underline, bulleted/numbered/checklists, links, undo/redo); autosave with same-operation-id retry; conflict banner (keep mine / use latest / copy mine); sharing dialog (owner/editor/viewer, transfer ownership, hide history from viewers); history with preview and owner-only restore; archive and delete.
 - Vendored ProseMirror bundle (`vendor/workspace/`, nine MIT packages pinned at least 14 days old, reproducible esbuild recipe, licences, SHA-256 in `tools/check-vendor.mjs`). The editor schema is proved equal to the note validators by running the shared cases through the real library.
 - `sw.js` file list regenerated (adds Workspace files and two stylesheets `main` had missed).
 - Database: no new migration. Live registry: `1100` and `1101` applied by hand on 18 Nov 2026; function bodies verified identical to the tested copy.
-- Tests: 176 Workspace unit tests; full suite after merging `main` 1,669 unit tests (one pre-existing failure in `ebill-page.test.js`), 71 database test files pass.
-- Known: the router carries no ids, so the open note id lives in session storage (no deep links); `css/ebill.css` fails Prettier on `main` itself.
+- Tests: 176 Workspace unit tests; full suite after merging `main` 1,669 unit tests (one pre-existing failure in `ebill-page.test.js`, fixed 21 Nov), 71 database test files pass.
+- Known: the router carries no ids, so the open note id lives in session storage (no deep links); `css/ebill.css` failed Prettier on `main` itself (fixed 21 Nov).
 - Handover for the next session: `docs/modules/workspace.next-session.md`; remaining design: `docs/modules/workspace.design.md`.
 
 ## 19 Nov — Documentation reconciliation

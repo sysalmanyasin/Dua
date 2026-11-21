@@ -3,6 +3,30 @@
 // (so discounts, tax and adjustment come back in proportion); the refund that takes the last item returns exactly what is left.
 const r2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+// Exact arithmetic for the share calculation. Floating point can land a hair under a half-paisa and round the wrong way (the server,
+// which uses exact decimals, would then differ from the preview by 0.01), so the sums are done as whole-number fractions.
+const gcd = (a, b) => (b === 0n ? (a < 0n ? -a : a) : gcd(b, a % b));
+/** A fraction { n, d } (BigInt) from a plain decimal number. */
+function frac(x) {
+  const t = Number(x).toFixed(8).replace(/0+$/, '').replace(/\.$/, ''); // up to 8 decimals is far beyond any quantity or price here
+  const [i, f = ''] = t.split('.');
+  return { n: BigInt(i + f), d: 10n ** BigInt(f.length) };
+}
+const add = (a, b) => norm({ n: a.n * b.d + b.n * a.d, d: a.d * b.d });
+const mul = (a, b) => norm({ n: a.n * b.n, d: a.d * b.d });
+const div = (a, b) => norm({ n: a.n * b.d, d: a.d * b.n });
+function norm(a) {
+  const g = gcd(a.n, a.d) || 1n;
+  return a.d < 0n ? { n: -a.n / g, d: -a.d / g } : { n: a.n / g, d: a.d / g };
+}
+/** Round a fraction to 2 decimals, halves away from zero (as the database does), as a number. */
+const round2Frac = (a) => {
+  const neg = a.n < 0n;
+  const n = neg ? -a.n : a.n;
+  const cents = (2n * n * 100n + a.d) / (2n * a.d);
+  return Number(neg ? -cents : cents) / 100;
+};
+
 /**
  * @param {{ lines: { line_no: number, qty: number|string, line_total: number|string, refunded: number|string, remaining: number|string }[],
  *           net_total: number|string, refunded_amount: number|string }} inv
@@ -12,22 +36,22 @@ const r2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 export function previewRefund(inv, want) {
   const net = Number(inv.net_total);
   const before = Number(inv.refunded_amount) || 0;
-  let totalLt = 0;
-  let beforeVal = 0;
-  let addVal = 0;
+  let totalLt = frac(0);
+  let beforeVal = frac(0);
+  let addVal = frac(0);
   let leftAfter = 0;
   const chosen = [];
   for (const l of inv.lines) {
     const qty = Number(l.qty);
-    const lt = Number(l.line_total);
+    const lt = frac(l.line_total);
     const rem = Number(l.remaining);
-    totalLt += lt;
-    if (qty > 0) beforeVal += (Number(l.refunded) / qty) * lt;
+    totalLt = add(totalLt, lt);
+    if (qty > 0) beforeVal = add(beforeVal, mul(div(frac(l.refunded), frac(qty)), lt));
     const v = Number(want[l.line_no] ?? 0);
     if (v < 0 || Number.isNaN(v)) return bad('Quantities must be numbers of zero or more.');
     if (v > rem) return bad(`Only ${rem} of “${l.name ?? 'this item'}” can still be refunded.`);
     if (v > 0) {
-      addVal += (v / qty) * lt;
+      addVal = add(addVal, mul(div(frac(v), frac(qty)), lt));
       chosen.push({ line_no: l.line_no, qty: v });
     }
     leftAfter += rem - v;
@@ -35,7 +59,7 @@ export function previewRefund(inv, want) {
   if (!chosen.length) return { ok: false, message: 'Choose what to refund.', amount: 0, leftAfter, finalRefund: false, chosen };
   let cumAfter;
   if (leftAfter === 0) cumAfter = net;
-  else if (totalLt > 0) cumAfter = r2((net * (beforeVal + addVal)) / totalLt);
+  else if (totalLt.n > 0n) cumAfter = round2Frac(div(mul(frac(net), add(beforeVal, addVal)), totalLt));
   else cumAfter = before;
   return { ok: true, amount: Math.max(r2(cumAfter - before), 0), leftAfter, finalRefund: leftAfter === 0, chosen };
 

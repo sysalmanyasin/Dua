@@ -291,7 +291,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `inventory` | Feed (F3), stock ledger, excess, reorder, health (BT-Sale-Data2 `js/inventory`, `inventory-search`) | `inventory_` | `inventory.` | `/inventory` | 40 | 0300–0399 (+ feed in 0001–0099) | core | Building |
 | `audit` | Engagements, rounds, assignments, counting, barcode, expiry, reports (Random repo) | `audit_` | `audit.` | `/audit` | 50 | 0400–0499 | core, inventory interface | Building |
 | `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Building |
-| `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Building |
+| `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Built (Phases 1–5); acceptance pending |
 | `reports` | Cross-module reports, Herald, cover signals | `reports_` | `reports.` | `/reports` | 80 | 0700–0799 | other modules' interfaces | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
 | `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |

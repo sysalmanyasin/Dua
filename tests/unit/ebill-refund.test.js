@@ -56,4 +56,17 @@ describe('previewRefund', () => {
     });
     expect(previewRefund(x, { 2: 1 }).amount).toBe(45); // 50/350 of 315
   });
+  it('rounds an exact half-paisa the way the database does (up), not the way floating point drifts', () => {
+    // 2.13 x (10 / 3) / 20 = 0.355 exactly. Plain floating point gives 0.35; the database gives 0.36.
+    const x = {
+      net_total: 2.13,
+      refunded_amount: 0,
+      lines: [
+        { line_no: 1, name: 'A', qty: 3, line_total: 10, refunded: 0, remaining: 3 },
+        { line_no: 2, name: 'B', qty: 1, line_total: 10, refunded: 0, remaining: 1 },
+      ],
+    };
+    expect(previewRefund(x, { 1: 1 }).amount).toBe(0.36);
+    expect(previewRefund({ ...x, net_total: 2.19 }, { 1: 1 }).amount).toBe(0.37);
+  });
 });
