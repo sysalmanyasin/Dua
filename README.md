@@ -20,7 +20,7 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Audit | A1–C1 integrated/live; phone acceptance, C2 barcode (paused) and hardening remain |
 | Emergency Billing | Phases 1–5 built; migrations 0633/0634/0640/0641/0642 live; Phase 6 automated testing done, real-device/printer acceptance and granting `ebill.*` rights remain |
 | Invoice Desk | Integrated on main; migrations 1000–1003 recorded live; full test and physical-printer acceptance remain |
-| Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` is on main but not applied live, no Sheets UI, offline sync or attachments yet; real-phone acceptance outstanding |
+| Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` applied live (21 Nov 2026), Sheets UI not built, no offline sync or attachments yet; Notes accepted by the owner after live testing |
 | Unified Reports, assistant and Android | Future work |
 
 The full module-by-module evidence, branch audit (`main` is the only branch) and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md).

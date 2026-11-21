@@ -57,14 +57,14 @@ This is the concise operational snapshot. For per-module evidence, migration not
 
 ## Branch integration status (21 November 2026)
 
-`main` is the only branch. All other branches were merged or confirmed already contained in `main` and deleted on 21 Nov 2026 (details: [the branch audit](MODULE_PROGRESS_REGISTER.md#branch-audit-21-november-2026)). The Workspace Sheets database migration `1102` is on `main` but not yet applied to the live project.
+`main` is the only branch. All other branches were merged or confirmed already contained in `main` and deleted on 21 Nov 2026 (details: [the branch audit](MODULE_PROGRESS_REGISTER.md#branch-audit-21-november-2026)). The Workspace Sheets database migration `1102` is on `main` and applied to the live project (21 Nov 2026); the Sheets screens are not built yet.
 
 ## Immediate priorities
 
 1. Reconcile Closing migration 0214 and the live Supabase registry with repository migrations before further database changes.
 2. Run and inspect a fresh full GitHub Actions run on current `main`.
 3. Complete real-device/owner acceptance across existing modules, plus Gmail send verification.
-4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; accept Workspace Notes on real phones, then start Workspace Phase 5 (Sheets).
+4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; Workspace Notes accepted by the owner (21 Nov 2026); build Workspace Phase 5 (Sheets UI).
 5. Perform the real encrypted Drive restore drill and plan a separate production Supabase project.
 6. Expand into Reports, assistant and Android only after the above acceptance gates.
 

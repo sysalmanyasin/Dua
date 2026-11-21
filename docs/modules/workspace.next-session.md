@@ -31,9 +31,9 @@ Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions 
 
 Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet link), `sw.js` (file list regenerated with `node tools/sw-precache.mjs`).
 
-## 3a. Phase 5 increment 1 is merged to `main` but not applied
+## 3a. Phase 5 increment 1 is merged to `main` and applied live
 
-`supabase/migrations/1102_workspace_sheets.sql` and its test (203 checks) are merged to `main` (branch `module/workspace-sheets` merged and deleted on 21 Nov 2026). The migration has **not** been applied to the shared Supabase project; the owner has not yet said to. The four trigger guards are already pinned by `1110`. Payload formats and rules for the browser side are in `workspace.design.md` §4a. When you apply it, follow §5 below and update the shared status documents (PROJECT_STATUS, MODULE_PROGRESS_REGISTER, ROADMAP, CHANGELOG, TESTING, DATABASE_DESIGN) in the same change; they currently describe Notes only.
+`supabase/migrations/1102_workspace_sheets.sql` and its test (203 checks) are merged to `main` (branch `module/workspace-sheets` merged and deleted on 21 Nov 2026). The migration is applied live and registered as version `1102` (21 Nov 2026; verified against the live project: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal ones not callable by `anon` or `authenticated`). The four trigger guards are pinned by `1110`. **The Sheets UI is not built** (confirmed by the owner 21 Nov 2026): the next work is increment 2 below. Payload formats and rules for the browser side are in `workspace.design.md` §4a. The shared status documents were brought up to date on 21 Nov 2026; keep them current with every increment.
 
 ## 4. What to do next
 

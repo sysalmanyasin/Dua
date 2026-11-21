@@ -41,7 +41,7 @@ The source registry currently contains these 12 IDs, in order: `home`, `sales`, 
 
 | Workstream | Current state | Next work |
 |---|---|---|
-| **Workspace Sheets, offline sync, attachments** | Sheets database (`1102_workspace_sheets.sql`, 203-check test) is on `main` (merged 21 Nov 2026) but **not applied** to the live project; no browser code yet. Offline sync and attachments are designed only (`1103`–`1104` reserved in range 1100–1199). | Apply `1102` when the owner approves; then the domain model and grid (Phase 5, next increments). |
+| **Workspace Sheets, offline sync, attachments** | Sheets database (`1102_workspace_sheets.sql`, 203-check test) is on `main` (merged 21 Nov 2026) and **applied live** (registered `1102`, verified 21 Nov 2026); no browser code yet (Sheets UI not built). Offline sync and attachments are designed only (`1103`–`1104` reserved in range 1100–1199). | Domain model, data layer and grid (Phase 5, next increments); enable "New workbook". |
 | **Unified Reports** | Planned, not a registered module. | Define data contracts and scope after source modules are stable. |
 | **Assistant / AI** | Planned, not a registered module. | Only after deterministic permission-safe data interfaces exist. |
 | **Android widgets / Android shell** | Later phase, not part of current web-app module registry. | Plan separately after web app acceptance. |
@@ -70,7 +70,7 @@ New work must branch from current `main`. Earlier audits (19 Nov 2026) are super
 1. Reconcile this register with the live Supabase migration registry, especially Closing `0214`, and preserve exact repo-numbered migration history.
 2. Run/inspect a fresh full GitHub Actions run on current `main`.
 3. Complete owner phone acceptance for Sales, Manager, Closing, Inventory, STR, Candela Sales, Audit and Invoice Desk.
-4. Emergency Billing real-device/printer acceptance and `ebill.*` grants; accept Workspace Notes on real phones, then Workspace Phase 5 (Sheets).
+4. Emergency Billing real-device/printer acceptance and `ebill.*` grants; Workspace Notes accepted by the owner (21 Nov 2026); Workspace Phase 5 (Sheets UI).
 5. Perform the real encrypted Drive restore drill and separate production-project plan.
 6. Only then expand into Reports, assistant and Android work.
 
