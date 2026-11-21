@@ -24,6 +24,7 @@ export async function callFunction(name, payload) {
       body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => ({}));
+    if (!res.ok && !body?.message) body.message = adminFailureMessage(res.status) ?? undefined;
     return { ok: res.ok, status: res.status, body };
   } catch {
     return { ok: false, status: 0, body: { message: 'No connection. Check your internet and try again.' } };
@@ -31,6 +32,14 @@ export async function callFunction(name, payload) {
 }
 
 // Same, for admin actions: sends the signed-in user's token.
+// The server answers 401/403 with a bare code and no sentence. Without this the screens fall back to a generic
+// "Could not ... Try again", which hides that the owner's sign-in has ended (a retry can never work).
+export function adminFailureMessage(status) {
+  if (status === 401 || status === 403)
+    return 'Your owner sign-in has ended or is not fully verified. Sign out, sign in again with your code, then try again.';
+  return null;
+}
+
 export async function callAdminFunction(name, payload) {
   const { data } = await db().auth.getSession();
   const cfg = getConfig();
@@ -45,6 +54,7 @@ export async function callAdminFunction(name, payload) {
       body: JSON.stringify(payload),
     });
     const body = await res.json().catch(() => ({}));
+    if (!res.ok && !body?.message) body.message = adminFailureMessage(res.status) ?? undefined;
     return { ok: res.ok, status: res.status, body };
   } catch {
     return { ok: false, status: 0, body: { message: 'No connection.' } };
