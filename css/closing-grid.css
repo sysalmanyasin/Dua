@@ -1,44 +1,42 @@
-/* Closing: clear gridlines, filled cells, boxed blocks.
-   Loaded LAST so it beats the pale rules in closing.css and table-clarity.css.
-   Everything is scoped to .cls and uses its own line colours, because the shared --border (#d9e2ee)
-   is almost the same as the white page and made the grid invisible. */
+/* Closing: middle ground between the old Closing app (calm, one teal accent, grey input wells, tinted group bands)
+   and a visible grid. Lines are light-to-medium and drawn once; inputs are rounded wells inside plain rows.
+   Loaded last so it beats the pale rules in closing.css and table-clarity.css. Scoped to .cls. */
 .cls {
-  --g-line: #7f93ab; /* cell borders: clearly visible on white */
-  --g-line-strong: #4a5f78; /* section outline, header underline, total rules */
-  --g-label-bg: #e8eff7; /* label cells */
-  --g-head-bg: #d5e3ef; /* header rows / section title band */
-  --g-zebra: #f3f7fb; /* alternate table rows */
-  --g-input-bg: #fff; /* cells you type in */
-  --g-calc-bg: #e3e9f1; /* cells the app fills in (read-only) */
-  --g-hover: #e6f3ef;
-  --g-radius: 8px;
+  --g-line: #c3c9c7; /* row lines */
+  --g-edge: #98a3a2; /* card outline, header rule */
+  --g-band: #eef1ef; /* section title band, table header */
+  --g-group: #e3f1ee; /* pale teal group bands (Returns, Named accounts ...) */
+  --g-well: #f3f4f2; /* input wells */
+  --g-well-edge: #a9b2b1;
+  --g-calc: #e8ebe8; /* values the app fills in */
+  --g-return: #fbebe7;
+  --g-return-edge: #d4958a;
+  --g-radius: 12px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .cls {
-    --g-line: #6c86a6;
-    --g-line-strong: #a0b2c9;
-    --g-label-bg: #172b46;
-    --g-head-bg: #1f3a5c;
-    --g-zebra: #132640;
-    --g-input-bg: #0b182b;
-    --g-calc-bg: #1c3250;
-    --g-hover: #17394a;
+    --g-line: #38506d;
+    --g-edge: #6c86a6;
+    --g-band: #172b46;
+    --g-group: #12343a;
+    --g-well: #0b182b;
+    --g-well-edge: #5d7899;
+    --g-calc: #1c3250;
+    --g-return: #3a1e1e;
+    --g-return-edge: #a8574f;
   }
 }
 :root[data-theme='dark'] .cls {
-  --g-line: #6c86a6;
-  --g-line-strong: #a0b2c9;
-  --g-label-bg: #172b46;
-  --g-head-bg: #1f3a5c;
-  --g-zebra: #132640;
-  --g-input-bg: #0b182b;
-  --g-calc-bg: #1c3250;
-  --g-hover: #17394a;
+  --g-line: #38506d;
+  --g-edge: #6c86a6;
+  --g-band: #172b46;
+  --g-group: #12343a;
+  --g-well: #0b182b;
+  --g-well-edge: #5d7899;
+  --g-calc: #1c3250;
+  --g-return: #3a1e1e;
+  --g-return-edge: #a8574f;
 }
-
-/* Approach: the GRID is the structure. Section card = one outer frame. Every row is full width with
-   hairlines between cells. Inputs fill their cell edge to edge (no box inside a box), so each line is
-   drawn exactly once. */
 .cls.cls-swipe .cls-sec *,
 .cls.cls-swipe .cls-row,
 .cls.cls-swipe .cls-trow,
@@ -46,24 +44,25 @@
   box-sizing: border-box;
 }
 
-/* ── 1. Section card and bands ── */
+/* ── cards and bands ── */
 .cls.cls-swipe .cls-grid > .card {
-  border: 2px solid var(--g-line-strong);
+  border: 1.5px solid var(--g-edge);
   border-radius: var(--g-radius);
   background: var(--surface);
-  box-shadow: 0 2px 6px rgb(11 31 58 / 12%);
+  box-shadow: 0 1px 4px rgb(11 31 58 / 8%);
+  overflow: hidden;
 }
 .cls.cls-swipe .cls-sec > h2 {
-  padding: 12px 14px;
-  background: var(--g-head-bg);
-  border-bottom: 2px solid var(--g-line-strong);
+  padding: 13px 14px;
+  background: var(--g-band);
+  border-bottom: 1.5px solid var(--g-edge);
 }
 .cls.cls-swipe .cls-sec > h3.sec-label {
   margin: 0;
   padding: 9px 14px;
-  background: var(--g-head-bg);
-  border-top: 2px solid var(--g-line-strong);
-  border-bottom: 1px solid var(--g-line-strong);
+  background: var(--g-group);
+  border-top: 1px solid var(--g-line);
+  border-bottom: 1px solid var(--g-line);
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -71,32 +70,31 @@
 .cls.cls-swipe .cls-sec > p.cls-meta {
   margin: 0;
   padding: 9px 14px;
-  background: var(--g-label-bg);
   border-bottom: 1px solid var(--g-line);
 }
 .cls.cls-swipe .cls-sec > .actions {
   margin: 0;
   padding: 10px 12px;
-  background: var(--g-label-bg);
   border-top: 1px solid var(--g-line);
-  border-bottom: 1px solid var(--g-line-strong);
+  border-bottom: 1px solid var(--g-line);
 }
 .cls.cls-swipe .btn-sm {
-  border: 1.5px solid var(--g-line-strong);
+  border: 1.5px dashed var(--cls-teal-text);
   background: var(--surface);
+  color: var(--cls-teal-text);
   font-weight: 700;
 }
 
-/* ── 2. Label | value rows ── */
+/* ── label | value rows: plain label, input well ── */
 .cls.cls-swipe .cls-row {
-  gap: 0;
-  padding: 0;
+  gap: 10px;
+  padding: 7px 12px;
   margin: 0;
-  align-items: stretch;
+  align-items: center;
   border: 0;
   border-bottom: 1px solid var(--g-line);
   border-radius: 0;
-  background: var(--g-input-bg);
+  background: var(--surface);
 }
 .cls.cls-swipe .cls-row + .cls-row {
   margin-top: 0;
@@ -107,306 +105,252 @@
 .cls.cls-swipe .cls-row > label,
 .cls.cls-swipe .cls-row > .cls-lbl,
 .cls.cls-swipe .cls-row > .cls-meta {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 10px 12px;
-  background: var(--g-label-bg);
-  border-right: 1px solid var(--g-line-strong);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--text);
-}
-.cls.cls-swipe .cls-row > label small {
-  font-weight: 400;
 }
 
-/* ── 3. Cells: inputs fill the cell, no inner box ── */
-.cls.cls-swipe .cls-row > .cls-in,
-.cls.cls-swipe .cls-trow .cls-in,
-.cls.cls-swipe .cls-tier .cls-in,
-.cls.cls-swipe .cls-signed > .cls-in {
+/* ── input wells (everywhere in Closing) ── */
+.cls.cls-swipe .cls-in {
+  min-height: 46px;
   margin: 0;
   width: 100%;
-  min-height: 50px;
-  border: 0;
-  border-radius: 0;
+  background: var(--g-well);
+  border: 1.5px solid var(--g-well-edge);
+  border-radius: 8px;
   box-shadow: none;
-  background: transparent;
   color: var(--text);
 }
-.cls.cls-swipe .cls-row > .cls-in {
-  background: var(--g-input-bg);
-}
-.cls.cls-swipe .cls-row > .cls-in:focus,
-.cls.cls-swipe .cls-trow .cls-in:focus,
-.cls.cls-swipe .cls-tier .cls-in:focus,
-.cls.cls-swipe .cls-signed > .cls-in:focus {
-  background: var(--g-input-bg);
-  outline: 3px solid var(--cls-teal-text);
-  outline-offset: -3px;
+.cls.cls-swipe .cls-in:focus {
+  background: var(--surface);
+  border-color: var(--cls-teal-text);
+  outline: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cls-teal) 28%, transparent);
 }
 .cls.cls-swipe .cls-in::placeholder {
   color: var(--text-muted);
-  opacity: 0.85;
+  opacity: 0.8;
 }
-/* app-filled and carried-forward values: shaded cells, bold */
-.cls.cls-swipe .cls-row > .cls-in[readonly],
+.cls.cls-swipe .cls-in[readonly],
 .cls.cls-swipe .cls-row > strong {
-  background: var(--g-calc-bg);
+  background: var(--g-calc);
+  border-color: var(--g-line);
   font-weight: 700;
 }
 .cls.cls-swipe .cls-row > strong {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin: 0;
-  min-height: 50px;
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 0;
+  min-height: 46px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--g-line);
+  border-radius: 8px;
   text-align: right;
   font-family: var(--mono);
 }
-.cls.cls-swipe .cls-row > .cls-in.is-carried {
+.cls.cls-swipe .cls-in.is-carried {
   background: var(--cls-amber-bg);
+  border-color: var(--cls-amber);
   color: var(--cls-amber);
 }
 .cls.cls-swipe .cls-in[aria-invalid='true'] {
-  box-shadow: inset 0 0 0 3px var(--cls-red);
+  border-color: var(--cls-red);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cls-red) 30%, transparent);
 }
 
-/* returns: tinted row with a solid left edge */
+/* returns: pale red band like the old app */
 .cls.cls-swipe .cls-row.cls-return {
-  box-shadow: inset 5px 0 0 var(--g-line-strong);
+  background: var(--g-return);
+  box-shadow: none;
 }
 .cls.cls-swipe .cls-row.cls-return > label {
-  padding-left: 17px;
+  font-weight: 700;
+}
+.cls.cls-swipe .cls-row.cls-return .cls-in {
+  background: var(--surface);
+  border-color: var(--g-return-edge);
 }
 
-/* ── 4. Totals ── */
+/* ── totals ── */
 .cls.cls-swipe .cls-sec .cls-total {
-  border-top: 2px solid var(--g-line-strong);
-  background: var(--g-head-bg);
+  border-top: 1.5px solid var(--g-edge);
+  background: var(--g-band);
 }
 .cls.cls-swipe .cls-sec .cls-total strong {
-  background: var(--g-input-bg);
-  border: 1.5px solid var(--g-line-strong);
+  background: var(--surface);
+  border: 1.5px solid var(--g-well-edge);
 }
 .cls.cls-swipe .cls-sec .cls-total-net {
   background: var(--cls-teal);
+  border-top-color: var(--cls-teal);
 }
 .cls.cls-swipe .cls-sec .cls-total-net strong {
   background: transparent;
-  border-color: rgb(255 255 255 / 0.8);
+  border-color: rgb(255 255 255 / 0.7);
 }
 
-/* ── 5. Multi-column tables ── */
-.cls.cls-swipe .cls-sec > .cls-table {
+/* ── tables: ruled rows, wells in each cell, no vertical rules ── */
+.cls.cls-swipe .cls-table {
   margin: 0;
+  gap: 0;
   border: 0;
   border-radius: 0;
   overflow: visible;
+  background: var(--surface);
 }
 .cls.cls-swipe .cls-table > .cls-trow {
-  gap: 0;
-  padding: 0;
-  align-items: stretch;
+  gap: 6px;
+  padding: 7px 10px;
+  align-items: center;
+  border: 0;
   border-bottom: 1px solid var(--g-line);
-  background: var(--g-input-bg);
+  background: var(--surface);
 }
 .cls.cls-swipe .cls-table > .cls-trow:last-child {
   border-bottom: 0;
 }
-.cls.cls-swipe .cls-table > .cls-trow:not(.is-head):nth-child(even) {
-  background: var(--g-zebra);
+.cls.cls-swipe .cls-table > .cls-trow:not(.is-head):nth-child(even),
+.cls.cls-swipe .cls-table > .cls-trow:not(.is-head):hover {
+  background: var(--surface);
 }
 .cls.cls-swipe .cls-table > .cls-trow > * {
-  display: flex;
-  align-items: center;
   min-width: 0;
+}
+.cls.cls-swipe .cls-table > .cls-trow > :not(.cls-in, .cls-meta, .cls-signed) {
   padding: 0;
-  border-right: 1px solid var(--g-line);
+  border: 0;
 }
-.cls.cls-swipe .cls-table > .cls-trow > *:last-child {
-  border-right: 0;
+.cls.cls-swipe .cls-table > .cls-trow .cls-in {
+  min-height: 46px;
 }
-/* header: small, wraps inside its own cell, never spills into the next one */
 .cls.cls-swipe .cls-table > .cls-trow.is-head {
-  background: var(--g-head-bg);
-  border-bottom: 2px solid var(--g-line-strong);
-  font-size: 0.66rem;
+  padding: 9px 10px;
+  background: var(--g-band);
+  border-bottom: 1.5px solid var(--g-edge);
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0;
   line-height: 1.2;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--text);
 }
 .cls.cls-swipe .cls-table > .cls-trow.is-head > * {
-  padding: 8px 6px;
-  border-right: 1px solid var(--g-line-strong);
-  overflow-wrap: anywhere;
+  overflow: hidden;
 }
-.cls.cls-swipe .cls-table > .cls-trow.is-head > *:last-child {
-  border-right: 0;
+/* MEDIQ: 3 figure columns; narrower bill-number column */
+.cls.cls-swipe .cls-table[style*='--cols: 3'] > .cls-trow {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.9fr) 44px;
 }
-/* calculated cell (Extra) */
+/* calculated cell (Extra) is a shaded well */
 .cls.cls-swipe .cls-table > .cls-trow > .cls-meta {
+  display: flex;
+  align-items: center;
   justify-content: flex-end;
+  min-height: 46px;
   padding: 0 8px;
-  background: var(--g-calc-bg);
+  background: var(--g-calc);
+  border: 1.5px solid var(--g-line);
+  border-radius: 8px;
   font-family: var(--mono);
   font-weight: 700;
   color: var(--text);
 }
-/* the X cell */
+.cls.cls-swipe .cls-table > .cls-trow.is-head > .cls-meta {
+  display: block;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+}
+/* strike-out X: plain, no box */
 .cls.cls-swipe .cls-table > .cls-trow > .icon-btn,
 .cls.cls-swipe .cls-table > .cls-trow > button {
-  justify-content: center;
   width: 100%;
-  min-height: 50px;
+  min-height: 46px;
   padding: 0;
-  margin: 0;
   border: 0;
-  border-radius: 0;
-  background: var(--g-label-bg);
+  background: transparent;
 }
 
-/* signed rows: description line, then ± | amount | X */
+/* signed rows (credit): description, then ± | amount | X */
 .cls.cls-swipe .cls-table > .cls-trow.cls-trow-signed {
-  row-gap: 0;
-}
-.cls.cls-swipe .cls-table > .cls-trow.cls-trow-signed > :first-child {
-  grid-column: 1 / -1;
-  border-right: 0;
-  border-bottom: 1px solid var(--g-line);
+  row-gap: 6px;
 }
 .cls.cls-swipe .cls-signed {
-  gap: 0;
+  gap: 6px;
   align-items: stretch;
 }
 .cls.cls-swipe .cls-signed > .btn {
-  min-height: 50px;
-  min-width: 52px;
-  margin: 0;
-  border: 0;
-  border-right: 1px solid var(--g-line-strong);
-  border-radius: 0;
-  background: var(--g-label-bg);
+  min-height: 46px;
+  min-width: 50px;
+  border: 1.5px solid var(--g-well-edge);
+  border-radius: 8px;
+  background: var(--g-well);
+  color: var(--text);
 }
 
-/* ── 6. Credit: each named account is one block; rows sit directly inside it ── */
+/* ── credit: named accounts as small cards, staff credit as ruled rows ── */
 .cls.cls-swipe .cls-acct {
-  margin: 10px;
+  margin: 10px 12px;
   padding: 0;
   gap: 0;
-  border: 2px solid var(--g-line-strong);
-  border-radius: var(--g-radius);
+  border: 1.5px solid var(--g-edge);
+  border-radius: 10px;
   background: var(--surface);
   overflow: hidden;
 }
 .cls.cls-swipe .cls-acct-line {
   padding: 6px 10px;
-  background: var(--g-head-bg);
-  border-bottom: 2px solid var(--g-line-strong);
+  background: var(--g-band);
+  border-bottom: 1px solid var(--g-line);
 }
-.cls.cls-swipe .cls-acct > .cls-table,
 .cls.cls-swipe .cls-acct .cls-table {
   margin: 0;
-  border: 0;
-  border-radius: 0;
 }
-.cls.cls-swipe .cls-acct .cls-trow:last-child {
-  border-bottom: 0;
-}
-
-/* staff credit: Group | Name, then ± | amount */
 .cls.cls-swipe .cls-tier {
-  gap: 0;
-  padding: 0;
-  border-bottom: 2px solid var(--g-line-strong);
-  background: var(--g-input-bg);
-}
-.cls.cls-swipe .cls-tier:nth-child(even) {
-  background: var(--g-zebra);
+  gap: 6px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--g-line);
 }
 .cls.cls-swipe .cls-tier > * {
   min-width: 0;
-  padding: 0;
 }
 .cls.cls-swipe .cls-tier > select.cls-in {
-  padding: 0 8px;
+  padding: 0 28px 0 10px;
   font-size: 0.9rem;
 }
-.cls.cls-swipe .cls-tier > select.cls-in:first-child {
-  border-right: 1px solid var(--g-line);
-}
-.cls.cls-swipe .cls-tier > .cls-signed {
-  border-top: 1px solid var(--g-line);
-}
 
-/* ── 7. Lists and history cards ── */
+/* ── lists and history cards ── */
 .cls .cls-list {
-  border: 1.5px solid var(--g-line-strong);
-  border-radius: 6px;
+  border: 1px solid var(--g-line);
+  border-radius: 8px;
   overflow: hidden;
-  background: var(--surface);
 }
 .cls .cls-list li {
   border-bottom: 1px solid var(--g-line);
-}
-.cls .cls-list li:nth-child(even) {
-  background: var(--g-zebra);
 }
 .cls .cls-list li:last-child {
   border-bottom: 0;
 }
 .cls .cls-snap {
-  border: 1.5px solid var(--g-line-strong);
-  border-radius: 8px;
+  border: 1.5px solid var(--g-edge);
+  border-radius: 10px;
   padding: var(--space-3);
   margin-bottom: var(--space-3);
-  background: var(--surface);
 }
 
 @media print {
   .cls {
-    --g-line: #555;
-    --g-line-strong: #000;
+    --g-line: #666;
+    --g-edge: #000;
   }
 }
 
-/* ── polish: breathing room inside cells, header words stay whole ── */
-.cls.cls-swipe .cls-row > .cls-in,
-.cls.cls-swipe .cls-trow .cls-in,
-.cls.cls-swipe .cls-signed > .cls-in {
-  padding: 0 10px;
+/* leftovers: no stray divider in signed rows; more width for names in Misc / HS / aux rows */
+.cls.cls-swipe .cls-table > .cls-trow > .cls-signed {
+  padding: 0;
+  border: 0;
 }
-.cls.cls-swipe .cls-table > .cls-trow.is-head > * {
-  overflow-wrap: normal;
-  hyphens: none;
-  word-break: normal;
-}
-/* MEDIQ (3 number columns): less width for the bill number, more for the figures */
-.cls.cls-swipe .cls-table[style*='--cols: 3'] > .cls-trow {
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.9fr) 46px;
-}
-.cls.cls-swipe .cls-table[style*='--cols: 3'] > .cls-trow.is-head {
-  font-size: 0.6rem;
-}
-.cls.cls-swipe .cls-tier > select.cls-in {
-  padding: 0 28px 0 10px;
-}
-.cls.cls-swipe .cls-table > .cls-trow.is-head,
-.cls.cls-swipe .cls-table[style*='--cols: 3'] > .cls-trow.is-head {
-  font-size: 0.72rem;
-  text-transform: none;
-}
-.cls.cls-swipe .cls-table > .cls-trow.is-head > * {
-  overflow: hidden;
-}
-.cls.cls-swipe .cls-table[style*='--cols: 3'] > .cls-trow.is-head {
-  font-size: 0.64rem;
-}
-.cls.cls-swipe .cls-table[style*='--cols: 3'] > .cls-trow.is-head > * {
-  padding: 8px 4px;
+.cls.cls-swipe .cls-trow.cls-trow-1:not(.cls-trow-signed) {
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr) 44px;
 }
