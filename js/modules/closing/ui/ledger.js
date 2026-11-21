@@ -937,7 +937,7 @@ export async function mount(el, { ctx } = {}) {
     let lastGroup = null;
     return html`<h2>5 · Strips</h2>
       <p class="cls-meta">Item names and prices are fixed by the owner. Enter only the quantity sold.</p>
-      <div class="cls-table" style="--cols: 3">
+      <div class="cls-table cls-table-strips" style="--cols: 3">
         <div class="cls-trow is-head"><span>Item</span><span>Price</span><span>Qty</span><span>Total</span><span></span></div>
         ${S.form.strips.map((r) => {
           const fixed = Boolean(r.strip_id);
