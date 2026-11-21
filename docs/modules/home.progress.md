@@ -36,11 +36,9 @@ Favourites are stored on the current device, not synchronized between devices. R
 
 ## Verification
 
-- Added unit coverage for Home navigation helpers, search, daily progress, staff-only summary presentation, favourites and alert-link permissions.
-- No schema or business-logic changes.
-- Full `npm run verify`, database suite, browser/device acceptance and final CI result remain to be confirmed after this implementation.
+- Home-specific unit coverage exercises navigation helpers, search, daily progress, staff-only summary presentation, favourites and alert-link permissions.
+- No Home schema or business-logic migration was added.
+- Repository-wide CI run #401 passed app, database and functions jobs on main commit 96694979; Pages deployment #226 succeeded on the same commit.
+- Real-device owner acceptance remains outstanding, especially checking layout and permission-filtered shortcuts with different staff permission sets.
 
-
-## Main verification update (19 Nov 2026)
-
-The Audit handover records the merged main tree passing `npm run verify` with 1,562/1,562 unit tests and the full local database suite. This is a repository-wide result, not a Home-only test count. Deno and workflow lint were not run locally; inspect a fresh GitHub Actions run. Real-device acceptance of Home 2.0 remains outstanding.
+The older 19 Nov paragraph was a historical pre-release note and is superseded by the 21 Nov CI result above.
