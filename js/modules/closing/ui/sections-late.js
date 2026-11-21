@@ -5,6 +5,7 @@ import { qtyText, whenKarachi } from '../domain/audit.js';
 import { html } from '../../../shared/html.js';
 import { money } from '../../../shared/format.js';
 import { DENOMINATIONS } from '../domain/compute.js';
+import { CREDIT_GROUPS, namedShown } from '../domain/form.js';
 
 const DENOM_LABELS = [
   'Rs. 5,000 notes',
@@ -137,7 +138,9 @@ export function lateSections(h) {
     html`<h2>8 · Credit Card Summary (D)</h2>
       ${amber('Carried CC from Previous', S.carry?.cc)}
       ${field('overrides.curr_cc', 'Card Sales This Shift (D)', { note: 'Leave empty to use Bank Alfalah + Keenu − Computer Card Sale. A typed 0 counts.' })}
-      <div class="cls-row"><span class="cls-meta">Calculated card sales this shift</span><strong data-total="currCC">–</strong></div>
+      <div class="cls-row">
+        <span class="cls-lbl">Calculated card sales this shift</span><strong class="cls-val" data-total="currCC">–</strong>
+      </div>
       ${total('Total CC', 'ccTotal')}`;
 
   const till = () =>
@@ -188,51 +191,56 @@ export function lateSections(h) {
       ${
         S.form.credit.named.length
           ? html`<h3 class="sec-label">Named accounts</h3>
-              <p class="cls-meta">An account can have several entries. Use ± for a payment received (a reduction).</p>
-              ${namedAccounts().map(
-                (acc) =>
-                  html`<div class="cls-acct">
-                    <div class="cls-acct-head">${acc.label}</div>
-                    <div class="cls-table" style="--cols: 1">
-                      ${acc.rows.map(
-                        (r) =>
-                          html`<div class="cls-trow cls-trow-signed ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
-                            ${textCell('credit.named', r, 'desc', 'Description (optional)')}
-                            ${h.signed('credit.named', r, 'amount', acc.label)} ${strike('credit.named', r)}
-                          </div>`,
-                      )}
-                    </div>
-                    <div class="actions">
-                      <button type="button" class="btn btn-sm" data-act="add-named" data-acc="${acc.id}" data-label="${acc.label}">
-                        ＋ Add entry
-                      </button>
-                    </div>
-                  </div>`,
-              )}`
+              ${namedAccounts().map((acc) => {
+                const shown = acc.rows.filter(namedShown);
+                return html`<div class="cls-acct">
+                  <div class="cls-acct-line">
+                    <span class="cls-acct-head">${acc.label}</span>
+                    <button type="button" class="btn btn-sm" data-act="add-named" data-acc="${acc.id}" data-label="${acc.label}">
+                      ＋ Add entry
+                    </button>
+                  </div>
+                  ${
+                    shown.length
+                      ? html`<div class="cls-table" style="--cols: 1">
+                          ${shown.map(
+                            (r) =>
+                              html`<div class="cls-trow cls-trow-signed ${r.deleted ? 'is-struck' : ''}" style="--cols: 1">
+                                ${textCell('credit.named', r, 'desc', 'Description (optional)')}
+                                ${h.signed('credit.named', r, 'amount', acc.label)} ${strike('credit.named', r)}
+                              </div>`,
+                          )}
+                        </div>`
+                      : ''
+                  }
+                </div>`;
+              })}
+              <p class="cls-meta">An account can have several entries. Use ± for a payment received (a reduction).</p>`
           : ''
       }
-      <h3 class="sec-label">Tier / Staff Credit</h3>
-      <div class="cls-table" style="--cols: 1">
-        ${S.form.credit.tier.map(
-          (r, slot) =>
-            html`<div class="cls-trow cls-trow-signed" style="--cols: 1">
-              ${
-                S.tierNames[slot].length
-                  ? html`<select
-                      class="cls-in cls-text"
-                      data-list="credit.tier"
-                      data-id="${r.id}"
-                      data-k="label"
-                      aria-label="Group, tier ${slot + 1}"
-                    >
-                      <option value="">— Group —</option>
-                      ${S.tierNames[slot].map((t) => html`<option value="${t}" ${t === r.label ? 'selected' : ''}>${t}</option>`)}
-                    </select>`
-                  : textCell('credit.tier', r, 'label', 'Group')
-              }
-              ${h.signed('credit.tier', r, 'amount', 'Amount')}<span></span>
-            </div>`,
-        )}
+      <h3 class="sec-label">Staff Credit</h3>
+      <p class="cls-meta">
+        Pick the shift group and the person. The same staff list is offered under every group, and the same person can appear again.
+      </p>
+      <div class="cls-table">
+        ${S.form.credit.tier.map((r, slot) => {
+          const withCurrent = (list, v) => (v && !list.includes(v) ? [...list, v] : list); // an older saved value stays visible
+          const people = withCurrent(
+            S.staff.map((x) => x.name),
+            r.person,
+          );
+          return html`<div class="cls-tier">
+            <select class="cls-in cls-text" data-list="credit.tier" data-id="${r.id}" data-k="group" aria-label="Group, row ${slot + 1}">
+              <option value="">— Group —</option>
+              ${withCurrent(CREDIT_GROUPS, r.group).map((g) => html`<option value="${g}" ${g === r.group ? 'selected' : ''}>${g}</option>`)}
+            </select>
+            <select class="cls-in cls-text" data-list="credit.tier" data-id="${r.id}" data-k="person" aria-label="Name, row ${slot + 1}">
+              <option value="">— Name —</option>
+              ${people.map((n) => html`<option value="${n}" ${n === r.person ? 'selected' : ''}>${n}</option>`)}
+            </select>
+            ${h.signed('credit.tier', r, 'amount', `Amount, row ${slot + 1}`)}
+          </div>`;
+        })}
       </div>
       <h3 class="sec-label">Aux / Other Credit</h3>
       ${rowsTable('credit.free', 1, (r) => html`${textCell('credit.free', r, 'label', 'Name')} ${h.signed('credit.free', r, 'amount', 'Amount')}`, 'cls-trow-signed')}

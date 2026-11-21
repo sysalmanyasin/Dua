@@ -43,6 +43,75 @@ export async function mount(el, { ctx }) {
     paint();
   }
 
+  // One numbered row per person, with a totals row at the bottom.
+  function genericTable(total) {
+    const sum = (fn) => state.rows.reduce((t, p) => t + fn(p), 0);
+    return html`<div class="mg-grid-wrap">
+      <table class="mg-grid">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="name">Name</th>
+            <th>Designation</th>
+            <th class="num">Generic sale</th>
+            <th class="num">Incentive (${percent(state.rate)})</th>
+            <th class="num">Extra</th>
+            <th class="num">Final</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.rows.map((p, i) => {
+            const e = cur(p);
+            const c = calc(p);
+            return html`<tr>
+              <td class="idx">${i + 1}</td>
+              <td class="name">
+                <span class="chip">${p.staff_code || '—'}</span
+                ><strong>${p.full_name}</strong>${p.active ? '' : html` <small class="muted">inactive</small>`}
+              </td>
+              <td>${p.designation || ''}</td>
+              <td>
+                <input
+                  data-g="sale"
+                  data-id="${p.staff_id}"
+                  value="${e.sale}"
+                  inputmode="decimal"
+                  placeholder="0"
+                  aria-label="Generic sale, ${p.full_name}"
+                  ${canEdit ? '' : 'disabled'}
+                />
+              </td>
+              <td class="num" data-inc="${p.staff_id}">${m(c.incentive)}</td>
+              <td>
+                <input
+                  data-g="extra"
+                  data-id="${p.staff_id}"
+                  value="${e.extra}"
+                  inputmode="decimal"
+                  placeholder="0"
+                  aria-label="Extra, ${p.full_name}"
+                  ${canEdit ? '' : 'disabled'}
+                />
+              </td>
+              <td class="num"><strong data-final="${p.staff_id}">${m(c.final)}</strong></td>
+            </tr>`;
+          })}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td class="name">TOTALS</td>
+            <td></td>
+            <td class="num" data-tot="sale">${m(sum((p) => typedNumber(parseAmount, cur(p).sale)))}</td>
+            <td class="num" data-tot="inc">${m(sum((p) => calc(p).incentive))}</td>
+            <td class="num" data-tot="extra">${m(sum((p) => typedNumber(parseAmount, cur(p).extra)))}</td>
+            <td class="num" data-total>${m(total)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }
+
   function paint() {
     if (state.error) return render(el, errorCard('the generic sheet'));
     const head = hero({
@@ -66,53 +135,7 @@ export async function mount(el, { ctx }) {
             ${closed() ? 'This month is closed. Changes are saved as revisions and need a reason.' : 'A month keeps the rate it started with, even if the rate changes later.'}
           </p>
         </div>
-        ${
-          state.rows.length
-            ? state.rows.map((p) => {
-                const e = cur(p);
-                const c = calc(p);
-                return html`<section class="card mg-credit">
-                  <div class="mg-head-static">
-                    <span class="mg-name"
-                      ><strong>${p.full_name}</strong
-                      ><small class="muted">${p.staff_code || ''}${p.active ? '' : ' · inactive'}</small></span
-                    >
-                    <span class="mg-net"><small class="muted">Final</small><strong data-final="${p.staff_id}">${m(c.final)}</strong></span>
-                  </div>
-                  <div class="fields">
-                    <label class="field"
-                      ><span>Generic sale</span
-                      ><input
-                        data-g="sale"
-                        data-id="${p.staff_id}"
-                        value="${e.sale}"
-                        inputmode="decimal"
-                        placeholder="0"
-                        ${canEdit ? '' : 'disabled'}
-                    /></label>
-                    <label class="field"
-                      ><span>Extra</span
-                      ><input
-                        data-g="extra"
-                        data-id="${p.staff_id}"
-                        value="${e.extra}"
-                        inputmode="decimal"
-                        placeholder="0"
-                        ${canEdit ? '' : 'disabled'}
-                    /></label>
-                  </div>
-                  <p class="small muted">Incentive at ${percent(state.rate)}: <span data-inc="${p.staff_id}">${m(c.incentive)}</span></p>
-                </section>`;
-              })
-            : html`<div class="card"><p class="muted">Nobody to show.</p></div>`
-        }
-        ${
-          state.rows.length
-            ? html`<div class="card total-card">
-                <div><span class="label">TOTAL FINAL</span><strong data-total>${m(total)}</strong></div>
-              </div>`
-            : ''
-        }
+        ${state.rows.length ? genericTable(total) : html`<div class="card"><p class="muted">Nobody to show.</p></div>`}
         <div class="actions">
           ${canEdit ? html`<button type="button" class="btn btn-primary" data-act="save">${closed() ? 'Save a revision' : 'Save sheet'}</button>` : ''}
           ${canClose && hasSheet() && !closed() ? html`<button type="button" class="btn btn-ghost" data-act="close">Close month</button>` : ''}
@@ -129,7 +152,11 @@ export async function mount(el, { ctx }) {
     const c = calc(p);
     el.querySelector(`[data-final="${p.staff_id}"]`).textContent = m(c.final);
     el.querySelector(`[data-inc="${p.staff_id}"]`).textContent = m(c.incentive);
-    el.querySelector('[data-total]').textContent = m(state.rows.reduce((s, r) => s + calc(r).final, 0));
+    const sum = (fn) => state.rows.reduce((t, r) => t + fn(r), 0);
+    el.querySelector('[data-total]').textContent = m(sum((r) => calc(r).final));
+    el.querySelector('[data-tot="sale"]').textContent = m(sum((r) => typedNumber(parseAmount, cur(r).sale)));
+    el.querySelector('[data-tot="inc"]').textContent = m(sum((r) => calc(r).incentive));
+    el.querySelector('[data-tot="extra"]').textContent = m(sum((r) => typedNumber(parseAmount, cur(r).extra)));
   });
 
   async function save() {

@@ -3,6 +3,14 @@
 Dates are 2026. Counts are as of the end of each step.
 
 
+## 21 Nov — Workspace review and search_path follow-up
+- Reviewed Workspace (Notes) against the live project: tables, security, permissions and tests match the docs.
+- New migration `1110_workspace_guard_search_path` pins `search_path` on the four trigger-guard functions (Supabase advisor warning). No behaviour change; new database test and two tightened checks. Applied to the live project by hand and registered as `1110`.
+
+## 21 Nov — Manager sheets as tables
+- Staff Credit, Salary and Generic Sheet are now numbered tables with gridlines, a header row and a TOTALS row, like the old app. Salary and Generic keep the same typing, saving and live totals; Staff Credit opens a person's entries and forms under their row.
+- On a phone the table scrolls sideways and the Name column stays in view. Incentive is unchanged.
+
 ## 21 Nov — Staff logins created from the Staff Registry (4-digit PIN)
 - Owner creates a login from a registry person (username, Junior/Senior, 4-digit PIN); linked to the existing staff row, so no duplicates. Weak PINs refused. Set PIN and Unlock in Users & Access; registry shows who has no login.
 - Lockout is now 5 wrong PINs for 1 hour. Older 6-digit PINs keep working until reset.

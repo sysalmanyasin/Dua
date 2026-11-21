@@ -318,9 +318,10 @@ describe('credit rows on a phone', () => {
     openTarget();
     await ledger();
     jump(10);
-    const rows = [...el.querySelectorAll('.cls-trow-signed')];
-    expect(rows.length).toBeGreaterThanOrEqual(3); // the tier rows and the aux row
-    rows.forEach((r) => expect(r.firstElementChild.matches('input, select')).toBe(true));
+    const tiers = [...el.querySelectorAll('.cls-tier')];
+    expect(tiers).toHaveLength(3); // the three staff-credit rows: Group, Name, then the ± amount
+    tiers.forEach((r) => expect(r.querySelectorAll('select')).toHaveLength(2));
+    [...el.querySelectorAll('.cls-trow-signed')].forEach((r) => expect(r.firstElementChild.matches('input, select')).toBe(true));
     const css = readFileSync('css/closing.css', 'utf8');
     expect(css).toContain('.cls .cls-trow.cls-trow-signed');
     expect(css).toMatch(/grid-column:\s*1 \/ -1/);
