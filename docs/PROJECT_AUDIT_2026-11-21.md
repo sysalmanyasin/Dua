@@ -51,6 +51,7 @@ Read-only inspection on 21 Nov 2026 found:
 | Public base tables | 124 |
 | Public base tables with RLS enabled | 124 |
 | Public routines | 337 |
+| Registered permission keys | 70 |
 | SECURITY DEFINER routines | 279 |
 | SECURITY DEFINER routines without configured search_path | 0 |
 | RLS tables with no policies | 14 |
