@@ -2,6 +2,12 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 21 Nov — Closing: Owner-only Shift ↔ Final change (branch, not applied live)
+- Migration `0218_closing_mode_change.sql`: `closing_change_mode`, `closing_is_admin_owner`, trigger `closings_mode_guard`. Only an admin at MFA level 2 may change a closing's type; the database refuses every other route, including the ordinary draft save.
+- Draft: changes in place, figures and rows kept. Submitted: reopened through the existing `closing_reopen` as a new revision carrying the new type; original kept until the revision is submitted; resubmitted with the ordinary `closing_submit`. CLS-6 and CLS-7 hold. Audit: `closing.mode_changed` in the activity log.
+- Screens: Review "Change to Final/Shift", ledger "Type" button (Owner only); other devices follow the change.
+- Tests: new `0218_closing_mode_change_test.sql` (all database tests pass), `closing-mode-change.test.js` (18 tests).
+
 ## 21 Nov — Full module, CI and live Supabase audit
 - Audited main commit `96694979e65242f5ee24eb86f215630686b552c8`: 13 registered modules, 707 repository files, 121 front-end test files / 1,891 recorded unit tests, 77 database test files and 89 migration files.
 - Verified GitHub Actions CI run #401 (app, database, functions) and Pages deployment #226 succeeded on the same commit.

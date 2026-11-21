@@ -112,6 +112,9 @@ export async function mount(el, { ctx } = {}) {
     redraw: false,
   };
 
+  // Only the Owner (admin with MFA) is shown the type button. A courtesy: closing_change_mode and a trigger on closings refuse everyone else.
+  const isOwner = ctx?.role === 'admin' && ctx?.mfa_ok === true;
+
   const adopt = (r) => {
     S.id = r.id;
     S.version = r.draft_version;
@@ -407,6 +410,57 @@ export async function mount(el, { ctx } = {}) {
     dlg.querySelector('[data-act="keep"]').addEventListener('click', () => resume(true));
   }
 
+  // The Owner changes this draft (or reopened revision) between Shift and Final. What was typed is saved first; the figures and rows stay,
+  // only the carried-in figures follow the new type. The database refuses anyone but the Owner.
+  function askMode() {
+    const next = S.mode === 'final' ? 'shift' : 'final';
+    const nextLabel = next === 'final' ? 'Final' : 'Shift';
+    const dlg = openDialog(
+      html`<h2>Change this closing to ${nextLabel}</h2>
+        <p class="muted">
+          Everything entered stays. The cash and deposits carried in follow the new type (a Final starts them at 0) and the figures are
+          worked out again.
+        </p>
+        <div class="field">
+          <label for="mc-reason">Why is the type being changed?</label><textarea id="mc-reason" rows="3" maxlength="300"></textarea>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn" data-close>Cancel</button>
+          <button type="button" class="btn btn-primary" id="mc-go">Change to ${nextLabel}</button>
+        </div>`,
+      { label: 'Change closing type' },
+    );
+    dlg.querySelector('#mc-go').addEventListener('click', async (ev) => {
+      const go = ev.currentTarget;
+      if (go.disabled) return;
+      const reason = dlg.querySelector('#mc-reason').value.trim();
+      if (reason.length < 3) {
+        dlg.querySelector('#mc-reason').focus();
+        return toast('Please write a reason (at least 3 letters).', 'error');
+      }
+      go.disabled = true;
+      try {
+        if (S.status !== 'saved') await doSave();
+        if (S.status !== 'saved') throw Object.assign(new Error('unsaved'), { hint: null });
+        await api.changeMode({ closingId: S.id, mode: next, reason });
+        const fresh = await api.loadById(S.id);
+        adopt(fresh);
+        S.epoch += 1;
+        S.period = null;
+        dlg.close();
+        draw();
+        refreshPreview();
+        toast(`Changed to ${nextLabel}.`);
+      } catch (e) {
+        go.disabled = false;
+        toast(
+          S.status === 'saved' ? friendlyError(e).message : 'Your latest typing could not be saved yet, so the type was not changed.',
+          'error',
+        );
+      }
+    });
+  }
+
   let previewSeq = 0;
   async function refreshPreview() {
     const mine = ++previewSeq;
@@ -548,6 +602,14 @@ export async function mount(el, { ctx } = {}) {
         return;
       }
       if (row.status !== 'draft') return remoteSubmitted();
+      if (row.mode && row.mode !== S.mode) {
+        // the Owner changed the type on another device: follow it, so the next save and the figures use the new type
+        S.mode = row.mode;
+        S.period = null;
+        toast(`The Owner changed this closing to ${row.mode === 'final' ? 'Final' : 'Shift'}.`);
+        redrawSoon();
+        refreshPreview();
+      }
       applySimple(row);
       // a newer version means list sections changed elsewhere; if some were typed here, the next save asks which to keep (CLS-13)
       if (row.draft_version > S.version && !S.listDirty) await applyLists(epoch);
@@ -1072,6 +1134,18 @@ export async function mount(el, { ctx } = {}) {
             <p class="cls-tb-sub">${longDate(S.date)} · ${S.opening ? 'Opening' : S.mode === 'final' ? 'Final' : 'Shift'}</p>
           </div>
           <span class="cls-status" role="status" aria-live="polite"><button type="button" id="cls-chip" class="cls-chip"></button></span>
+          ${
+            isOwner && !S.opening
+              ? html`<button
+                  type="button"
+                  class="btn btn-sm"
+                  data-act="mode"
+                  aria-label="Change closing type, now ${S.mode === 'final' ? 'Final' : 'Shift'}"
+                >
+                  Type: ${S.mode === 'final' ? 'Final' : 'Shift'}
+                </button>`
+              : ''
+          }
         </div>
         <div class="cls-anchor" aria-hidden="true"></div>
         <div class="cls-bar">
@@ -1383,6 +1457,7 @@ export async function mount(el, { ctx } = {}) {
       touched({ path: 'credit_adj' });
       return draw();
     }
+    if (act === 'mode') return askMode();
     if (act === 'submit') return askSubmit();
     if (act === 'viewall') return viewAll();
     if (act === 'pdf' || act === 'pdf-open') return sheetPdf(act === 'pdf-open');
