@@ -1,0 +1,379 @@
+/* Closing: clear gridlines, filled cells, boxed blocks.
+   Loaded LAST so it beats the pale rules in closing.css and table-clarity.css.
+   Everything is scoped to .cls and uses its own line colours, because the shared --border (#d9e2ee)
+   is almost the same as the white page and made the grid invisible. */
+.cls {
+  --g-line: #7f93ab; /* cell borders: clearly visible on white */
+  --g-line-strong: #4a5f78; /* section outline, header underline, total rules */
+  --g-label-bg: #e8eff7; /* label cells */
+  --g-head-bg: #d5e3ef; /* header rows / section title band */
+  --g-zebra: #f3f7fb; /* alternate table rows */
+  --g-input-bg: #fff; /* cells you type in */
+  --g-calc-bg: #e3e9f1; /* cells the app fills in (read-only) */
+  --g-hover: #e6f3ef;
+  --g-radius: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .cls {
+    --g-line: #6c86a6;
+    --g-line-strong: #a0b2c9;
+    --g-label-bg: #172b46;
+    --g-head-bg: #1f3a5c;
+    --g-zebra: #132640;
+    --g-input-bg: #0b182b;
+    --g-calc-bg: #1c3250;
+    --g-hover: #17394a;
+  }
+}
+:root[data-theme='dark'] .cls {
+  --g-line: #6c86a6;
+  --g-line-strong: #a0b2c9;
+  --g-label-bg: #172b46;
+  --g-head-bg: #1f3a5c;
+  --g-zebra: #132640;
+  --g-input-bg: #0b182b;
+  --g-calc-bg: #1c3250;
+  --g-hover: #17394a;
+}
+
+/* ── 1. Section card = one bordered block ── */
+.cls.cls-swipe .cls-grid > .card {
+  border: 2px solid var(--g-line-strong);
+  border-radius: var(--g-radius);
+  background: var(--surface);
+  box-shadow: 0 2px 6px rgb(11 31 58 / 12%);
+}
+.cls.cls-swipe .cls-sec > h2 {
+  padding: 12px 14px;
+  background: var(--g-head-bg);
+  color: var(--cls-teal-text);
+  border-bottom: 2px solid var(--g-line-strong);
+  font-size: 0.85rem;
+}
+/* sub-headings (Returns / Refunds, Staff Credit ...) are full-width bands, not floating text */
+.cls.cls-swipe .cls-sec > h3.sec-label {
+  margin: 0;
+  padding: 8px 14px;
+  background: var(--g-head-bg);
+  border-top: 2px solid var(--g-line-strong);
+  border-bottom: 1px solid var(--g-line-strong);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cls.cls-swipe .cls-sec > p.cls-meta {
+  margin: 0;
+  padding: 8px 14px;
+  background: var(--g-label-bg);
+  border-bottom: 1px solid var(--g-line);
+}
+
+/* ── 2. Label | value rows: two real cells with a divider ── */
+.cls.cls-swipe .cls-row {
+  gap: 0;
+  padding: 0;
+  align-items: stretch;
+  border-bottom: 1px solid var(--g-line);
+  background: var(--g-input-bg);
+}
+.cls.cls-swipe .cls-row:last-child {
+  border-bottom: 0;
+}
+.cls.cls-swipe .cls-row > label,
+.cls.cls-swipe .cls-row > .cls-lbl,
+.cls.cls-swipe .cls-row > .cls-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 12px;
+  background: var(--g-label-bg);
+  border-right: 1px solid var(--g-line);
+  font-weight: 600;
+  color: var(--text);
+}
+.cls.cls-swipe .cls-row > label small {
+  font-weight: 400;
+}
+.cls.cls-swipe .cls-row > .cls-in,
+.cls.cls-swipe .cls-row > strong {
+  margin: 6px;
+  width: auto;
+}
+.cls.cls-swipe .cls-row:nth-of-type(even) > label {
+  background: color-mix(in srgb, var(--g-label-bg) 80%, var(--g-head-bg));
+}
+
+/* ── 3. Input boxes: obvious, white, solid border ── */
+.cls.cls-swipe .cls-in {
+  background: var(--g-input-bg);
+  border: 1.5px solid var(--g-line-strong);
+  border-radius: 6px;
+  box-shadow: inset 0 1px 2px rgb(11 31 58 / 10%);
+}
+.cls.cls-swipe .cls-in:hover {
+  border-color: var(--cls-teal-text);
+}
+.cls.cls-swipe .cls-in:focus {
+  background: var(--g-input-bg);
+  border-color: var(--cls-teal-text);
+  outline: 3px solid color-mix(in srgb, var(--cls-teal) 35%, transparent);
+  outline-offset: 0;
+}
+.cls.cls-swipe .cls-in::placeholder {
+  color: var(--text-muted);
+  opacity: 0.9;
+}
+/* values the app works out or carries forward: shaded, dashed, so they read as "not typed by you" */
+.cls.cls-swipe .cls-in[readonly],
+.cls.cls-swipe .cls-row > strong.cls-val {
+  background: var(--g-calc-bg);
+  border: 1.5px dashed var(--g-line-strong);
+  box-shadow: none;
+  color: var(--text);
+  font-weight: 700;
+}
+.cls.cls-swipe .cls-in.is-carried {
+  background: var(--cls-amber-bg);
+  border: 1.5px solid var(--cls-amber);
+  color: var(--cls-amber);
+}
+.cls.cls-swipe .cls-in[aria-invalid='true'] {
+  border-color: var(--cls-red);
+  border-width: 2px;
+}
+.cls.cls-swipe .cls-row > strong:not(.cls-val) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+  min-height: 44px;
+  border: 1.5px dashed var(--g-line-strong);
+  border-radius: 6px;
+  background: var(--g-calc-bg);
+  font-family: var(--mono);
+}
+
+/* returns: stronger tint, solid edge */
+.cls.cls-swipe .cls-row.cls-return {
+  background: var(--g-label-bg);
+  box-shadow: inset 5px 0 0 var(--g-line-strong);
+}
+.cls.cls-swipe .cls-row.cls-return > label {
+  background: transparent;
+  padding-left: 16px;
+}
+.cls.cls-swipe .cls-row.cls-return .cls-in {
+  border-color: var(--g-line-strong);
+  background: var(--g-input-bg);
+}
+
+/* ── 4. Totals: ruled bars with a boxed figure ── */
+.cls.cls-swipe .cls-sec .cls-total {
+  border-top: 2px solid var(--g-line-strong);
+  background: var(--g-head-bg);
+}
+.cls.cls-swipe .cls-sec .cls-total strong {
+  background: var(--g-input-bg);
+  border: 1.5px solid var(--g-line-strong);
+}
+.cls.cls-swipe .cls-sec .cls-total-net {
+  background: var(--cls-teal);
+  border-top-color: var(--g-line-strong);
+}
+.cls.cls-swipe .cls-sec .cls-total-net strong {
+  background: transparent;
+  border-color: rgb(255 255 255 / 0.8);
+}
+
+/* ── 5. Multi-column tables (MEDIQ, HS, Strips, Misc, deposits, aux credit) ── */
+.cls.cls-swipe .cls-sec > .cls-table,
+.cls.cls-swipe .cls-acct > .cls-table {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--g-line-strong);
+  border-bottom: 1px solid var(--g-line-strong);
+  overflow: visible;
+}
+.cls.cls-swipe .cls-acct > .cls-table {
+  margin: 0 10px 10px;
+  border: 1.5px solid var(--g-line-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cls.cls-swipe .cls-table > .cls-trow {
+  gap: 0;
+  padding: 0;
+  align-items: stretch;
+  border-bottom: 1px solid var(--g-line);
+  background: var(--g-input-bg);
+}
+.cls.cls-swipe .cls-table > .cls-trow:last-child {
+  border-bottom: 0;
+}
+.cls.cls-swipe .cls-table > .cls-trow:not(.is-head):nth-child(even) {
+  background: var(--g-zebra);
+}
+.cls.cls-swipe .cls-table > .cls-trow:not(.is-head):hover {
+  background: var(--g-hover);
+}
+.cls.cls-swipe .cls-table > .cls-trow > * {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 6px;
+  border-right: 1px solid var(--g-line);
+}
+.cls.cls-swipe .cls-table > .cls-trow > *:last-child {
+  border-right: 0;
+}
+.cls.cls-swipe .cls-table > .cls-trow.is-head {
+  background: var(--g-head-bg);
+  border-bottom: 2px solid var(--g-line-strong);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cls.cls-swipe .cls-table > .cls-trow.is-head > * {
+  padding: 9px 8px;
+  border-right: 1px solid var(--g-line-strong);
+}
+.cls.cls-swipe .cls-table .cls-in {
+  margin: 0;
+  width: 100%;
+}
+/* read-only calculated cell (e.g. Extra) */
+.cls.cls-swipe .cls-table > .cls-trow > .cls-meta {
+  justify-content: flex-end;
+  background: var(--g-calc-bg);
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--text);
+}
+/* the strike-out (X) cell */
+.cls.cls-swipe .cls-table > .cls-trow > .btn,
+.cls.cls-swipe .cls-table > .cls-trow > button {
+  justify-content: center;
+  background: var(--g-label-bg);
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+}
+
+/* signed rows (credit): description on top, then ± | amount | X; draw the inner line */
+.cls.cls-swipe .cls-table > .cls-trow.cls-trow-signed {
+  row-gap: 0;
+}
+.cls.cls-swipe .cls-table > .cls-trow.cls-trow-signed > :first-child {
+  border-right: 0;
+  border-bottom: 1px solid var(--g-line);
+}
+.cls.cls-swipe .cls-signed {
+  gap: 6px;
+}
+.cls.cls-swipe .cls-signed > .btn {
+  border: 1.5px solid var(--g-line-strong);
+  background: var(--g-label-bg);
+}
+
+/* ── 6. Credit: each named account is its own bordered block ── */
+.cls.cls-swipe .cls-acct {
+  margin: 10px;
+  padding: 0;
+  gap: 0;
+  border: 2px solid var(--g-line-strong);
+  border-radius: var(--g-radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.cls.cls-swipe .cls-acct-line {
+  padding: 4px 10px;
+  background: var(--g-head-bg);
+  border-bottom: 2px solid var(--g-line-strong);
+}
+.cls.cls-swipe .cls-acct .cls-table {
+  margin-top: 10px;
+}
+.cls.cls-swipe .cls-acct .btn-sm,
+.cls.cls-swipe .actions .btn-sm {
+  border: 1.5px solid var(--g-line-strong);
+  background: var(--surface);
+  font-weight: 700;
+}
+.cls.cls-swipe .actions {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--g-line);
+  background: var(--g-label-bg);
+}
+
+/* staff credit: Group | Name | Amount as a three-cell row */
+.cls.cls-swipe .cls-tier {
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--g-line);
+  background: var(--g-input-bg);
+}
+.cls.cls-swipe .cls-tier:nth-child(even) {
+  background: var(--g-zebra);
+}
+.cls.cls-swipe .cls-tier > * {
+  padding: 6px;
+}
+.cls.cls-swipe .cls-tier > :nth-child(-n + 2) {
+  border-bottom: 1px solid var(--g-line);
+}
+.cls.cls-swipe .cls-tier > :nth-child(1) {
+  border-right: 1px solid var(--g-line);
+}
+.cls.cls-swipe .cls-tier .cls-in {
+  margin: 0;
+}
+
+/* ── 7. Lists and review (Misc ledger, audit, credit/misc history) ── */
+.cls .cls-list {
+  border: 1.5px solid var(--g-line-strong);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.cls .cls-list li {
+  border-bottom: 1px solid var(--g-line);
+}
+.cls .cls-list li:nth-child(even) {
+  background: var(--g-zebra);
+}
+.cls .cls-list li:last-child {
+  border-bottom: 0;
+}
+.cls .cls-kv > div {
+  border-bottom: 1px solid var(--g-line);
+}
+.cls .cls-snap {
+  border: 1.5px solid var(--g-line-strong);
+  border-radius: 8px;
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  background: var(--surface);
+}
+
+/* ── 8. Step chips and progress: easier to see where you are ── */
+.cls .cls-jump button,
+.cls .cls-jump a {
+  border: 1.5px solid var(--g-line-strong);
+}
+
+/* ── 9. Phones: keep the grid, tighten the cells ── */
+@media (max-width: 480px) {
+  .cls.cls-swipe .cls-row {
+    grid-template-columns: minmax(0, 1fr) minmax(110px, 46%);
+  }
+  .cls.cls-swipe .cls-row > label {
+    padding: 8px 10px;
+  }
+}
+@media print {
+  .cls {
+    --g-line: #555;
+    --g-line-strong: #000;
+  }
+}
