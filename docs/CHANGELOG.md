@@ -5,7 +5,7 @@ Dates are 2026. Counts are as of the end of each step.
 
 ## 21 Nov — Workspace review and search_path follow-up
 - Reviewed Workspace (Notes) against the live project: tables, security, permissions and tests match the docs.
-- New migration `1110_workspace_guard_search_path` pins `search_path` on the four trigger-guard functions (Supabase advisor warning). No behaviour change; new database test and two tightened checks. Not yet applied to the live project.
+- New migration `1110_workspace_guard_search_path` pins `search_path` on the four trigger-guard functions (Supabase advisor warning). No behaviour change; new database test and two tightened checks. Applied to the live project by hand and registered as `1110`.
 
 ## 21 Nov — Manager sheets as tables
 - Staff Credit, Salary and Generic Sheet are now numbered tables with gridlines, a header row and a TOTALS row, like the old app. Salary and Generic keep the same typing, saving and live totals; Staff Credit opens a person's entries and forms under their row.

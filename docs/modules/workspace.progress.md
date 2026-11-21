@@ -1,6 +1,6 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-19 (end of the session that built Phases 2–4; handover: `workspace.next-session.md`)
+Updated: 2026-11-21 (review and the `1110` search_path follow-up; handover: `workspace.next-session.md`)
 
 ## Completed
 
@@ -29,6 +29,14 @@ Updated: 2026-11-19 (end of the session that built Phases 2–4; handover: `work
 - **Done, 21 Nov 2026 (`1110_workspace_guard_search_path.sql`, applied to the live project by hand and registered as version `1110`).** The four trigger-guard functions (`workspace_documents_guard`, `_members_guard`, `_folders_guard`, `_note_revisions_guard`) have no pinned `search_path` (same as the existing `set_updated_at` and `activity_log_immutable`). They only use schema-qualified names, so pinning is safe: add `alter function … set search_path = public;` for all four to the next Workspace migration (`1102`).
 - `workspace_save_keys` has RLS on and no policy: intentional (service role only), like `mgmt_save_keys` and `sales_save_keys`.
 - The "signed-in users can execute SECURITY DEFINER function" warnings for the public Workspace functions are by design (they are the module's API; each checks the caller itself).
+
+## Review, 21 Nov 2026
+
+- Live project checked: migrations `1100` and `1101` are registered; 7 Workspace tables, all with row level security; 6 policies; 36 functions; 2 documents, none in the trash, none shared; permissions `workspace.use` and `workspace.create` exist, and one person holds `workspace.use`. This matches the docs.
+- Advisor: the only Workspace-specific warning that is not by design was the four unpinned trigger guards (fixed in `1110`, see above). `workspace_save_keys` (RLS on, no policy) and the signed-in-callable SECURITY DEFINER warnings are intentional.
+- Tests: all Workspace unit tests pass inside the full suite (1,873); all 76 database test files pass on PostgreSQL 16 (3,233 checks), including the new `1110` test. The two earlier "every Workspace function pins its search_path" checks no longer exempt the guards.
+- `1110` applied live on 21 Nov 2026 (one batch with its registry row). Checked afterwards: no Workspace function lacks a pinned `search_path`, the guards are still attached and not callable from the browser. Function bodies match the tested copy except for comments inside four functions (`workspace_create_document`, `workspace_folder_remove`, `workspace_member_remove`, `workspace_note_node_ok`): identical once comments and whitespace are stripped. That difference predates `1110` and is harmless (comments lost when `1100`/`1101` were pasted by hand).
+- Still not verified by anyone: the editor in a real browser on a phone and a desktop (all tests run in jsdom).
 
 ## Not yet done
 
