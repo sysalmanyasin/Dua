@@ -59,6 +59,7 @@ This register describes what is present in the source tree, what the live databa
 
 - Project status: `ACTIVE_HEALTHY`; PostgreSQL 17.11.
 - 124 public base tables; all 124 have RLS enabled.
+- 70 permission keys in the live `public.permissions` catalog; the owner guide now lists all 70 with the live descriptions.
 - 337 public routines; 279 SECURITY DEFINER routines; zero SECURITY DEFINER routines missing a configured `search_path`.
 - Six Edge Functions active: `staff-login` v33, `claim-account` v33, `admin-users` v33, `notify-ntfy` v12, `sync-inventory-from-dropbox` v24, `request-access` v33.
 - 89 migration registry rows, same count as 89 repo migration files, but 12 repo migrations are registered under timestamp versions. The exact list is in [PROJECT_AUDIT_2026-11-21.md](PROJECT_AUDIT_2026-11-21.md).
