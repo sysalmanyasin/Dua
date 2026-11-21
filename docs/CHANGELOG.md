@@ -8,6 +8,7 @@ Dates are 2026. Counts are as of the end of each step.
 - Queried live DuaPharmaPlus: ACTIVE_HEALTHY on PostgreSQL 17.11; 124 public tables all with RLS; 337 public routines; six active Edge Functions, Inventory sync v24.
 - Found 12 migrations whose repo four-digit versions are recorded in the live registry under timestamp versions. Corrected the stale claim that Closing 0214 was missing: it exists in both repository and live registry.
 - Updated the master register, project status, roadmap, testing, architecture/security/database/runbook references and module progress/handover documents. Added `docs/PROJECT_AUDIT_2026-11-21.md`.
+- Added missing Access and Tools module briefs; refreshed the owner guide with all 70 live permission keys and the current state of all 13 modules.
 - Remaining work is acceptance, migration-registry reconciliation, security-advisor review, real backup restore, Workspace Sheets UI and operational hardening; see the audit and roadmap.
 
 ## 21 Nov — Workspace Sheets database applied live; documents brought up to date
