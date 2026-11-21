@@ -60,76 +60,147 @@ export async function mount(el, { ctx }) {
     paint();
   }
 
-  function personCard(p) {
+  // One numbered row per person (plus a note row for the advance details and any warnings).
+  function personRow(p, i) {
     const e = cur(p);
     const f = salaryFlags(p);
     const open = state.openId === p.staff_id;
-    return html`<section class="card mg-credit">
-      <div class="mg-head-static">
-        <span class="mg-name"
-          ><strong>${p.full_name}</strong
-          ><small class="muted"
-            >${p.staff_code || ''}${p.active ? '' : ' · inactive'}${p.designation ? ` · ${p.designation}` : ''}</small
-          ></span
-        >
-        <span class="mg-net"><small class="muted">Net</small><strong data-net="${p.staff_id}">${m(netOf(p))}</strong></span>
-      </div>
-      <div class="fields">
-        <label class="field"
-          ><span>HO salary${p.ho_carried && !state.edits[p.staff_id] ? ' (carried)' : ''}</span>
-          <input data-s="ho" data-id="${p.staff_id}" value="${e.ho}" inputmode="decimal" placeholder="0" ${canEdit ? '' : 'disabled'}
-        /></label>
-        <label class="field"
-          ><span>Days</span>
-          <input data-s="days" data-id="${p.staff_id}" value="${e.days}" inputmode="numeric" ${canEdit ? '' : 'disabled'}
-        /></label>
+    const span = 9 + state.cols.length;
+    const notes = [
+      f.advanceChanged ? `Staff Credit changed since closing: advance would now be ${m(p.advance_live)}` : '',
+      f.genericChanged ? `Generic changed since closing: it would now be ${m(p.generic_live)}` : '',
+      f.creditDiffers ? `Staff Credit deducts ${m(p.credit_deduction)} as salary; the advance is ${m(p.advance)}` : '',
+    ].filter(Boolean);
+    return html`<tr data-row="${p.staff_id}">
+        <td class="idx">${i + 1}</td>
+        <td class="name">
+          <span class="chip">${p.staff_code || '—'}</span
+          ><strong>${p.full_name}</strong>${p.active ? '' : html` <small class="muted">inactive</small>`}
+        </td>
+        <td>${p.designation || ''}</td>
+        <td>
+          <input
+            class="mg-days"
+            data-s="days"
+            data-id="${p.staff_id}"
+            value="${e.days}"
+            inputmode="numeric"
+            aria-label="Days, ${p.full_name}"
+            ${canEdit ? '' : 'disabled'}
+          />
+        </td>
+        <td>
+          <input
+            data-s="ho"
+            data-id="${p.staff_id}"
+            value="${e.ho}"
+            inputmode="decimal"
+            placeholder="0"
+            aria-label="HO salary, ${p.full_name}"
+            ${canEdit ? '' : 'disabled'}
+          />
+          ${p.ho_carried && !state.edits[p.staff_id] ? html`<span class="mg-cell-sub">(carried)</span>` : ''}
+        </td>
+        <td class="num">
+          <button
+            type="button"
+            class="link"
+            data-act="detail"
+            data-id="${p.staff_id}"
+            aria-expanded="${open}"
+            title="${open ? 'Hide' : 'Show'} the credit entries"
+          >
+            ${m(p.advance)}
+          </button>
+        </td>
+        <td class="num">${m(p.generic)}</td>
         ${state.cols.map(
           (c) =>
-            html`<label class="field"
-              ><span>${c.name} (${c.sign > 0 ? '+' : '−'})</span>
+            html`<td>
               <input
                 data-x="${c.column_id}"
                 data-id="${p.staff_id}"
                 value="${e.x[c.column_id] ?? ''}"
                 inputmode="decimal"
                 placeholder="0"
+                aria-label="${c.name}, ${p.full_name}"
                 ${canEdit ? '' : 'disabled'}
-            /></label>`,
+              />
+            </td>`,
         )}
-      </div>
-      <table class="table">
-        <tbody>
-          <tr>
-            <td>
-              Advance (from Staff Credit)
-              <button type="button" class="link" data-act="detail" data-id="${p.staff_id}">${open ? 'hide' : 'details'}</button>
-            </td>
-            <td class="num">− ${m(p.advance)}</td>
-          </tr>
-          <tr>
-            <td>Generic incentive (from Generic sheet)</td>
-            <td class="num">+ ${m(p.generic)}</td>
-          </tr>
-        </tbody>
-      </table>
+        <td class="num"><strong data-net="${p.staff_id}">${m(netOf(p))}</strong></td>
+        <td><button type="button" class="btn btn-ghost btn-sm" data-act="payslip" data-id="${p.staff_id}">Payslip</button></td>
+      </tr>
       ${
-        open
-          ? html`<div class="small muted">
-              ${
-                p.entries.length
-                  ? p.entries.map((x) => html`<div>${shortDate(x.entry_date)} · ${x.description || '—'} · ${m(x.amount)}</div>`)
-                  : 'No credit entries this month.'
-              }
-            </div>`
+        open || notes.length
+          ? html`<tr class="mg-note">
+              <td></td>
+              <td colspan="${span - 1}">
+                ${open ? (p.entries.length ? p.entries.map((x) => html`<div>${shortDate(x.entry_date)} · ${x.description || '—'} · ${m(x.amount)}</div>`) : html`<div class="muted">No credit entries this month.</div>`) : ''}
+                ${notes.map((n) => html`<div><span class="chip chip-warn">${n}</span></div>`)}
+              </td>
+            </tr>`
           : ''
-      }
-      ${f.advanceChanged ? html`<p><span class="chip chip-warn">Staff Credit changed since closing: advance would now be ${m(p.advance_live)}</span></p>` : ''}
-      ${f.genericChanged ? html`<p><span class="chip chip-warn">Generic changed since closing: it would now be ${m(p.generic_live)}</span></p>` : ''}
-      ${f.creditDiffers ? html`<p><span class="chip chip-warn">Staff Credit deducts ${m(p.credit_deduction)} as salary; the advance is ${m(p.advance)}</span></p>` : ''}
-      <div class="actions">
-        <button type="button" class="btn btn-ghost btn-sm" data-act="payslip" data-id="${p.staff_id}">Payslip</button>
-      </div>
-    </section>`;
+      }`;
+  }
+
+  function salaryTable() {
+    const sum = (fn) => state.rows.reduce((t, p) => t + fn(p), 0);
+    return html`<div class="mg-grid-wrap">
+      <table class="mg-grid">
+        <thead>
+          <tr>
+            <th class="idx">#</th>
+            <th class="name">Name</th>
+            <th>Designation</th>
+            <th>Days</th>
+            <th class="num">HO salary</th>
+            <th class="num">Advance (−)</th>
+            <th class="num">Generic (+)</th>
+            ${state.cols.map((c) => html`<th class="num">${c.name} (${c.sign > 0 ? '+' : '−'})</th>`)}
+            <th class="num">Net salary</th>
+            <th>Slip</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.rows.map(personRow)}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td class="name">TOTALS</td>
+            <td></td>
+            <td></td>
+            <td class="num" data-tot="ho">${m(sum((p) => typedNumber(parseAmount, cur(p).ho)))}</td>
+            <td class="num">${m(sum((p) => p.advance))}</td>
+            <td class="num">${m(sum((p) => p.generic))}</td>
+            ${state.cols.map((c) => html`<td class="num" data-tot="x:${c.column_id}">${m(sum((p) => typedNumber(parseAmount, cur(p).x[c.column_id])))}</td>`)}
+            <td class="num" data-total>${m(sum(netOf))}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }
+
+  // Live totals while typing (the net column and the footer).
+  function refreshTotals() {
+    const sum = (fn) => state.rows.reduce((t, p) => t + fn(p), 0);
+    const set = (sel, v) => {
+      const node = el.querySelector(sel);
+      if (node) node.textContent = m(v);
+    };
+    for (const p of state.rows) set(`[data-net="${p.staff_id}"]`, netOf(p));
+    set(
+      '[data-tot="ho"]',
+      sum((p) => typedNumber(parseAmount, cur(p).ho)),
+    );
+    for (const c of state.cols)
+      set(
+        `[data-tot="x:${c.column_id}"]`,
+        sum((p) => typedNumber(parseAmount, cur(p).x[c.column_id])),
+      );
+    set('[data-total]', sum(netOf));
   }
 
   function paint() {
@@ -147,16 +218,7 @@ export async function mount(el, { ctx }) {
             ${canEdit ? html` <button type="button" class="link" data-act="addcol">+ Add column</button>` : ''}
           </p>
         </div>
-        ${state.rows.length ? state.rows.map(personCard) : html`<div class="card"><p class="muted">Nobody to show.</p></div>`}
-        ${
-          state.rows.length
-            ? html`<div class="card total-card">
-                <div>
-                  <span class="label">TOTAL NET SALARY</span><strong data-total>${m(state.rows.reduce((s, p) => s + netOf(p), 0))}</strong>
-                </div>
-              </div>`
-            : ''
-        }
+        ${state.rows.length ? salaryTable() : html`<div class="card"><p class="muted">Nobody to show.</p></div>`}
         <div class="actions">
           ${canEdit ? html`<button type="button" class="btn btn-primary" data-act="save">${closed() ? 'Save a revision' : 'Save sheet'}</button>` : ''}
           ${canClose && hasSheet() && !closed() ? html`<button type="button" class="btn btn-ghost" data-act="close">Close month</button>` : ''}
@@ -171,9 +233,7 @@ export async function mount(el, { ctx }) {
     if (t.dataset.s) slot[t.dataset.s] = t.value;
     else (slot.x ??= {})[t.dataset.x] = t.value;
     state.key = null; // an edited sheet is a new save, so it needs a new idempotency key
-    const p = state.rows.find((r) => r.staff_id === t.dataset.id);
-    el.querySelector(`[data-net="${p.staff_id}"]`).textContent = m(netOf(p));
-    el.querySelector('[data-total]').textContent = m(state.rows.reduce((s, r) => s + netOf(r), 0));
+    refreshTotals();
   });
 
   async function save() {
