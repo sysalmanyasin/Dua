@@ -1,6 +1,10 @@
 # Testing and verification
 
-**Status snapshot:** 21 November 2026. This document separates automated test evidence from live deployment and real-device acceptance.
+**Status snapshot:** 22 November 2026.
+
+**Fresh CI evidence:** GitHub Actions [CI run #444](https://github.com/sysalmanyasin/Dua/actions/runs/45006802268) completed successfully on `main` commit `18283f17600be54d562a5eb3c40bf89906416b29` on 22 Nov 2026. GitHub Pages deployment [#244](https://github.com/sysalmanyasin/Dua/actions/runs/45006801951) also succeeded on that commit. The CI workflow runs app lint/format/unit/secret/vendor/workflow checks, the PostgreSQL migration/database suite, and Deno checks for four current functions (`staff-login`, `admin-users`, `sync-inventory-from-dropbox`, `notify-ntfy`). The two deployed retired functions (`claim-account`, `request-access`) are not in that type-check loop. This confirms CI scope only; it does not prove live business acceptance or physical-device behaviour.
+
+Live database facts and migration drift are recorded in [the 22 Nov audit](PROJECT_AUDIT_2026-11-22.md). This document separates automated test evidence from live deployment and real-device acceptance.
 
 ## Latest recorded verification
 
