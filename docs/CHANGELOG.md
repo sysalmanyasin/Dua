@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Operations Redesign, Stage 2b (Business Intelligence, Staff sections, realtime)
+- Owner Home: Business Intelligence for 7, 30 or 90 days with fair comparison; closings refresh the lists in real time.
+- Staff Home: My Payroll (own closed payslips, read only, per-person permission `payroll.view_own`) and My Recent Activity.
+- New migrations `0220_closing_ops_period`, `0702_ops_bi_summary`, `0109_mgmt_my_payslips` (tested locally; not applied until approved: `docs/ops/f9-stage2b-apply-and-rollback.md`).
+
 ## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
 - New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (applied live and registered on 22 Nov 2026; procedure, verification and rollback in `docs/ops/f8-stage2-apply-and-rollback.md`).
 - Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
