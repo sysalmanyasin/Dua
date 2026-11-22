@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Workspace Sheets: migration 1111 applied live
+- Applied `1111_workspace_style_validator_fix` to the live project by hand as one `execute_sql` batch (not `apply_migration`, D-35), on the owner's instruction, and registered it as version `1111` in the same batch. Before: registry held `1100`, `1101`, `1102`, `1110`; no sheet, cell or style rows existed.
+- Verified live: function body hash equals the repo file (`22dd6078…`); `search_path` pinned to `public`; `anon` and `authenticated` cannot execute it; `size "big"`, `size 8.5`, `weight null`, `numfmt.decimals 2.5`, a null border side and sizes 7 and 73 are refused; a full valid style, `{}` and `numfmt: {}` (type optional) still pass. Only the changed function and the registry were touched; the live Workspace data (2 notes) was not.
+- Not re-run live: the database test files (they need a clean PostgreSQL; they passed on PostgreSQL 16 before).
+
 ## 22 Nov — Workspace Sheets: data layer (Phase 5, increment 3; branch `module/workspace-sheets-data`, not merged)
 - New `js/modules/workspace/data/workbooks.js`: open a workbook and build the local copy (`openWorkbookFull`: styles and cells page by page, then pull from the `head_version` it opened at so edits made while paging are not missed); `pullAndApply`; `createOperationSender` (batches of at most 200 operations / 3 MB; a batch that was not answered is kept and sent again with the SAME operation ids and content, D-45; a batch the server refuses is held, never dropped; `drain` waits 2 s to 60 s between failures); restore points (`createSnapshot`, `listSnapshots`, `restoreSnapshot`, owner only in the database). Operations are checked before sending (ids in integer range, envelope, size). Every call goes through `data/api.js`; eight new friendly messages added there.
 - Tests: `tests/unit/workspace-workbooks.test.js` (41 tests) run the data layer against the JS reference model acting as the server. Five deliberate mutations were each caught. Whole suite 2,043 tests, lint, prettier, secrets, vendor checks and the whole database suite (3,643 checks) pass. No migration written or applied; the live project was only read. Not imported by any screen yet, so `sw.js` was not regenerated. Still no Sheets screens.
