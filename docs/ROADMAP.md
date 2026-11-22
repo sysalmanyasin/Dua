@@ -38,7 +38,8 @@
 
 ### Workspace (Notes & Sheets)
 - **Done (Phases 2–4, merged 19 Nov 2026):** database core and Notes backend (`1100`, `1101`), Notes editor, sharing, history/restore, home with search and folders; registered at `/workspace`.
-- **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Build Sheets Phase 5 increment 2: JS domain model with parity fixtures, data layer, grid and New workbook. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
+- **Done 22 Nov 2026 (branch, not merged):** Phase 5 increment 2, the JS reference model with a parity test against the database.
+- **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Build Sheets Phase 5 increment 3: data layer, then the grid and New workbook. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
 - **Next (Phase 5):** workbooks and the spreadsheet grid. `1102` (sheets, cells with stable row/column ids, styles, operation log, snapshots) is on `main` and applied live (21 Nov 2026); the Sheets UI is not built; next are the JS domain model with a parity fixture, then the grid.
 - **Then:** formula engine (6), formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
 
