@@ -47,8 +47,8 @@ This is the concise operational snapshot. For per-module evidence, migration not
 
 | Area | Recorded evidence | Caveat |
 |---|---|---|
-| Unit tests | Repository records 1,891 unit tests across 121 files on the 21 Nov main snapshot. | Latest GitHub Actions CI run #444 on commit `18283f1` passed app, database and functions jobs; see `TESTING.md`. |
-| Database suite | CI #444 database job passed on audited main commit `18283f1`; 77 database test files are present. | Re-run on current main before release; do not add older module-specific counts. |
+| Unit tests | Historical baseline was 1,891 unit tests across 121 files on 21 Nov; current main has 127 unit-test files (exact current test total not recorded in this audit). | Latest GitHub Actions CI run #444 on commit `18283f1` passed app, database and functions jobs; see `TESTING.md`. |
+| Database suite | CI #444 database job passed on audited main commit `18283f1`; 82 SQL database test files are present. | Re-run on current main before release; do not add older module-specific counts. |
 | Deno and workflow lint | CI #444 functions job and app workflow-lint steps passed on audited main. | Local run is optional; inspect the exact CI run after changes. |
 | GitHub Actions | CI run #444 on commit `18283f1` completed successfully: app, database and functions jobs all green. | Pages deployment run #244 on the same commit also succeeded. |
 | GitHub Pages | Main is the deployment source. | Current real-device UI acceptance remains outstanding. |
