@@ -4,7 +4,7 @@
 
 > Fresh verification: main commit `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages #244 passed. Live database has 124/124 public tables RLS-enabled, 341 public routines and 93 four-digit migration registry rows; main has 92 migration files, with live-applied 0015 source only on `ops-redesign-stage1`. Workspace Sheets reference model is merged; no grid UI/data layer yet. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md).  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
-**Main baseline:** [`96694979`](https://github.com/sysalmanyasin/Dua/commit/96694979e65242f5ee24eb86f215630686b552c8)  
+**Main baseline:** [`18283f17`](https://github.com/sysalmanyasin/Dua/commit/18283f17600be54d562a5eb3c40bf89906416b29)  
 **Live app:** https://sysalmanyasin.github.io/Dua/  
 **Live Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
 
