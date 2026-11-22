@@ -15,7 +15,7 @@ The 19 Nov instructions below describe the Notes-only checkpoint and predate Pha
 - **Not verified by anyone yet:** the editor in a real browser. All tests so far run in jsdom. The owner has to try it on a real phone and a desktop with two accounts. Do not start Phase 5 until the owner has said the Notes try-out is acceptable, or has said "go" anyway (rule N-17: each phase waits for a separate owner go).
 - `main` last known good point for Workspace: commit `468873a` (merge of Phase 4). Later commits on `main` may belong to other modules.
 
-## 2. Read in this order
+## 3. Original reading order
 
 1. `docs/modules/workspace.md` — the brief and the 17 owner decisions (N-1 to N-17), structure, permissions, screens, phases.
 2. `docs/modules/workspace.design.md` — the design for everything not built (Sheets storage, how operations are applied, offline sync, formulas, grid, attachments, phases 5–11, open risks).
@@ -23,7 +23,7 @@ The 19 Nov instructions below describe the Notes-only checkpoint and predate Pha
 4. `docs/MODULES.md` (rules every module obeys), `docs/DECISIONS.md` D-41 to D-47, `docs/SECURITY_MODEL.md` (Workspace section).
 5. Code: `supabase/migrations/1100_workspace_core.sql` and `1101_workspace_notes.sql` are the pattern for every new Workspace table and function.
 
-## 3. What exists (file map)
+## 4. Original file map
 
 | Area | Files |
 |---|---|
