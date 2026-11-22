@@ -5,7 +5,7 @@ Dates are 2026. Counts are as of the end of each step.
 ## 22 Nov — Migration registry: no timestamp rows; `0412` renamed
 - Read-only check of `supabase_migrations.schema_migrations`: 92 rows, 91 with four-digit repo versions matching the 91 files on `main`, plus `0412` as `20261122035159`. The 12 timestamp rows reported by the 21 Nov audit were already numbered.
 - Backup `supabase_migrations.schema_migrations_backup_20261122` (92 rows), then the guarded rename `20261122035159` → `0412` (exactly one row or nothing). Afterwards 92 rows, 0 timestamp rows, 91 identical to the backup.
-- Open: `0015_core_trigger_search_path` is registered live but its file exists only on the unmerged branch `ops-redesign-stage1`. Old backup `..._20261112` is past its one-week hold; both backup tables can be dropped after review.
+- Open: `0015_core_trigger_search_path` is registered live but its file exists only on the unmerged branch `ops-redesign-stage1`. The old backup `..._20261112` was dropped on 22 Nov 2026 at the owner's request; backups `..._20261121` (91 rows, origin not documented) and `..._20261122` (92 rows) remain and can be dropped after review.
 - The earlier "13 timestamp rows / 90 files" wording in the entry below and in several docs was wrong and is corrected here.
 
 ## 22 Nov — Audit: Individual Audit compiles itself on submit (migration 0412, applied live)

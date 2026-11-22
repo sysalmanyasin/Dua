@@ -14,7 +14,7 @@
 
 ## Next work
 - **PHONE 4 (new):** Individual Audit auto-compile on a real phone: submit, see "Your result", tap **Start another audit**. Not done.
-- **Registry:** reconciled on 22 Nov 2026; nothing to fix. Backup table `schema_migrations_backup_20261122` can be dropped after review.
+- **Registry:** reconciled on 22 Nov 2026; nothing to fix. Backup tables `schema_migrations_backup_20261121` and `..._20261122` can be dropped after review (the 12 Nov one is already dropped).
 - **PHONE 1 / PHONE 2:** real-phone tests (counting offline and back online; two people, two rounds, end to end). Not done.
 - **B2 is built** and merged (see progress doc). Still to do on it: try Print / Save as PDF and the CSV on a real phone and desktop.
 - **C1 is built** and merged (see progress doc; optional later: CSV/print of the register, expiry-by-month summary). **C2 Barcode** is next: Center, register, verify, conflicts, scanner, scan outbox, hybrid counting. It needs the vendored scanner libraries and the Foundation requests (`audit.md` section 7).
