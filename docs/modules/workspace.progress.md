@@ -2,7 +2,7 @@
 
 Updated: 2026-11-22 (Phase 5 increment 2: reference model and parity test; handover: `workspace.next-session.md`)
 
-> **Current status (verified 22 Nov):** Notes are integrated. Sheets database migrations `1100`–`1102` and `1110` are live; Phase 5 increment 2 browser reference model, fixtures and parity tests are merged to main (PR #66). This is not a finished Sheets feature: workbook/grid UI, Sheets data integration, formulas, offline queue, sync/conflict UI and attachments remain. Migration `1111` is in main but is not in the live registry snapshot. See [22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
+> **Current status (verified 22 Nov):** Notes are integrated. Sheets database migrations `1100`–`1102` and `1110` are live; Phase 5 increment 2 browser reference model, fixtures and parity tests are merged to main (PR #66). This is not a finished Sheets feature: workbook/grid UI, Sheets data integration, formulas, offline queue, sync/conflict UI and attachments remain. Migration `1111_workspace_style_validator_fix` is present in main and appears as version `1111` in the live registry. See [22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
 
 ## Completed
 
