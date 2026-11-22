@@ -1,5 +1,11 @@
 # Database design and schema reference
 
+> **Fresh live snapshot — 22 Nov 2026 (read-only):** project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`), PostgreSQL 17.11. There are **124 public base tables and all 124 have RLS enabled**. Fourteen have no policies; a separate privilege check found **zero** of those 14 directly exposed to `anon` or `authenticated` (internal/service-role-only pattern). The public schema has **341 routines**, including **283 SECURITY DEFINER** routines; none of those 283 lacks a configured `search_path`. The live migration registry has **93 rows** while `main` contains **92 migration SQL files**: live-only `0015_core_trigger_search_path` has no corresponding migration file on `main`. This is migration-source drift, not a reason to reapply or duplicate the migration. Advisor snapshot: 14 policy-less RLS tables; 220 authenticated-callable SECURITY DEFINER functions flagged for review; performance findings include 124 unindexed foreign keys, 5 RLS initplan warnings, 23 unused-index notices and one duplicate permissive SELECT policy. These are review findings, not automatically confirmed vulnerabilities. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md).
+
+> The catalogue and migration summaries below include historical sections from earlier snapshots. Treat the fresh counts above and repository migration files as current; do not quote old totals or assume every older function/table list is exhaustive.
+
+
+
 > **Live schema snapshot (21 Nov 2026):** the legacy catalogue below is historical and not a full current schema inventory. A fresh read-only check of DuaPharmaPlus found 124 public base tables (all 124 have RLS enabled), 337 public routines, 279 SECURITY DEFINER routines and zero SECURITY DEFINER routines missing a configured `search_path`. Fourteen RLS tables have no policies and also have no `anon` or `authenticated` table grants (internal/service-role-only tables). See `docs/PROJECT_AUDIT_2026-11-21.md` for the audit boundary and advisor findings. Do not use the old table totals as current totals.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
