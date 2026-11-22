@@ -1,6 +1,6 @@
 # Stage 2a — apply and rollback (0219, 0700, 0701)
 
-Status: **written and tested locally; NOT applied to the live database.** Apply only after the owner says so.
+Status: **applied to the live database on 22 Nov 2026 (owner-approved) and registered as `0219`, `0700`, `0701`.** Backup first: `supabase_migrations.schema_migrations_backup_20261122_preops` (93 rows). Verified: all nine function-body hashes equal the locally tested copy (D-47); as the Owner (second factor) the Action Centre returns issues and Recent Activity returns 10 events; as a non-owner every call returns null; security advisor shows no search_path warnings, 2 informational "RLS enabled, no policy" notes for the two new rules tables (intended: they are reachable only through the functions) and 5 more signed-in-callable SECURITY DEFINER functions (220 to 225; each checks `ops.view` or `ops.manage_rules` inside). Note: the first paste of `ops_action_items` omitted five explanatory comment lines, which changed its hash; it was re-applied exactly as in the file and the hash then matched.
 These three migrations are additive: new tables and new functions, plus two new permission keys. Nothing existing is changed.
 
 | Order | File | Adds |

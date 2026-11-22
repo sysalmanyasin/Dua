@@ -3,7 +3,7 @@
 Dates are 2026. Counts are as of the end of each step.
 
 ## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
-- New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (tested locally, not applied live: `docs/ops/f8-stage2-apply-and-rollback.md`).
+- New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (applied live and registered on 22 Nov 2026; procedure, verification and rollback in `docs/ops/f8-stage2-apply-and-rollback.md`).
 - Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
 - Decisions D-56 to D-60 recorded (schedules, no evidence storage, in-app notifications, Groq free plan, activity defaults and deposit figure).
 

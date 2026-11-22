@@ -43,7 +43,7 @@ Favourites are stored on the current device, not synchronized between devices. R
 
 The older 19 Nov paragraph was a historical pre-release note and is superseded by the 21 Nov CI result above.
 
-## Operations redesign, Stage 2a (22 Nov 2026, branch `ops-redesign-stage1`, not yet merged or applied)
+## Operations redesign, Stage 2a (22 Nov 2026; migrations applied live, merged to `main`)
 
 Owner-only additions, shown only when the person holds `ops.view` (admins at the second factor; no role preset carries it):
 - **Action Centre** (after the snapshots): issues computed live by `ops_action_items()` from each module's own data and the Owner's rules in `ops_rules`. Priority and area filters; each issue shows priority, responsible person, explanation and an Open link to the module where it is fixed. There is no dismiss button: an issue clears only when its condition clears.
