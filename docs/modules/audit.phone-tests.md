@@ -14,6 +14,13 @@ These are for the owner to run. Nothing here has been run on a real phone yet.
 2. Look for: each counter sees only their own items (AUD-5), no one sees another's quantities.
 3. Owner compiles, reviews, resolves a conflict with a reason, starts round 2. Look for: fresh stock in round 2.
 
+## PHONE 4: Individual Audit compiles itself (new, 22 Nov 2026)
+1. A person with `audit.individual` and `audit.count` starts an Individual Audit (a template or one company) and counts a few items, leaving some uncounted.
+2. Submit. Look for: **Your result** shows the item count, how many differ and the value; the owner does not need to compile.
+3. Tap **Start another audit** and start a second one straight away. Look for: it starts without waiting.
+4. A second person counts the same product to a different quantity and submits. Look for: no conflict appears for the owner.
+5. Owner reopens the first submission with a reason while the person has the second audit open. Look for: a clear message that they already have another Individual Audit open.
+
 ## PHONE 3: barcode scanner (new)
 Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, one with `audit.barcode_admin`; a few real product boxes.
 1. Open Audit > Barcodes > Find. Tap "Scan a barcode". Look for: the browser asks for the camera; the view shows the camera. If refused, the message says how to allow it and you can type the number.

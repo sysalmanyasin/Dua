@@ -2,6 +2,14 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Audit: Individual Audit compiles itself on submit (migration 0412, applied live)
+- Migration `0412_audit_individual_autocompile.sql`: an Individual Audit round is compiled in the same transaction as the person's submit, so they can start the next one without waiting for the main auditor. New internal `audit_compile_round_core` (not callable by users); `audit_compile_round` still needs `audit.compile` and still compiles normal rounds by hand.
+- No cross-round conflicts are raised in the individual engagement (owner decision AUD-14). `audit_reopen` refuses with `self_pick_open` when the person already has another open Individual Audit. No `audit.compiled` owner alert for individual rounds; the `audit.submitted` alert still fires.
+- Screen: after submit the counting screen shows "Your result" (items, differences, value) and **Start another audit**.
+- Applied to live DuaPharmaPlus with the Supabase `apply_migration` tool, so it is registered as `20261122035159` rather than `0412` (the RUNBOOK says to apply by hand under the repo number). The SQL is verified identical to the tested copy (function body hashes, D-47). 90 migration files and 90 live rows now; 13 timestamp-registered.
+- Tests: new `0412_audit_individual_autocompile_test.sql` (16 checks); full database suite and `npm run verify` (125 files / 1,933 unit tests) pass. Phone check (PHONE 4) pending.
+- Documents updated: Audit brief (R8, AUD-14), progress, handover and phone tests; Audit 2.0 note; USER_GUIDE (new Audit section), ADMIN_GUIDE, BUSINESS_RULES, DECISIONS (D-50), SECURITY_MODEL, RUNBOOK, TESTING, ROADMAP, PROJECT_STATUS, MODULE_PROGRESS_REGISTER, README, PROJECT_PROGRESS.
+
 ## 21 Nov — Closing: Owner-only Shift ↔ Final change (PR #60, applied live)
 - Migration `0218_closing_mode_change.sql`: `closing_change_mode`, `closing_is_admin_owner`, trigger `closings_mode_guard`. Only an admin at MFA level 2 may change a closing's type; the database refuses every other route, including the ordinary draft save.
 - Draft: changes in place, figures and rows kept. Submitted: reopened through the existing `closing_reopen` as a new revision carrying the new type; original kept until the revision is submitted; resubmitted with the ordinary `closing_submit`. CLS-6 and CLS-7 hold. Audit: `closing.mode_changed` in the activity log.

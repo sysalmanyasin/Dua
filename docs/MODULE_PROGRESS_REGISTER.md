@@ -30,7 +30,7 @@ This register describes what is present in the source tree, what the live databa
 | **STR** | Integrated list/detail/report/zero-dispatch screens, archive and overdue jobs, per-person preferences. | Migrations 0500–0504 and scheduled archive/overdue jobs are live. | Owner phone try-outs #1/#2; supplier/pack metadata integration; small wording/icon follow-ups; formal acceptance. |
 | **Candela Sales** | Integrated owner overview, daily history, credit-by-customer and reports; staff-safe daily-total pill. | Migration 0900 and initial history capture are live. | Owner phone acceptance; confirm hourly history continues to append and source feed remains reliable. |
 | **Emergency Billing** | Integrated POS, PIN-checked save, device/discount controls, offline queue/sync, holds, history, partial refunds, corrections, receipt settings/printing, reports and exports. Phase 6 automated testing is documented complete. | 0601/0602, 0610–0612, 0620–0622, 0630–0634 and 0640–0642 are live. | Owner must grant intended `ebill.*` permissions, complete receipt settings, and test Android/Windows plus physical 58/80 mm printers. |
-| **Audit** | Integrated Audit 2.0 hub, counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports, expiry/racks and Barcode. | 0401–0411 and Inventory 0308 are live; 0409–0411 use timestamp registry versions. | PHONE 1/2/3 tests, scanner/offline acceptance, print/CSV checks, and RPC permission/security review. |
+| **Audit** | Integrated Audit 2.0 hub, counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports, expiry/racks and Barcode. | 0401–0412 and Inventory 0308 are live; 0409–0412 use timestamp registry versions (`0412` = `20261122035159`, 22 Nov 2026: Individual Audit rounds compile on submit). | PHONE 1/2/3/4 tests, scanner/offline acceptance, print/CSV checks, and RPC permission/security review. |
 | **Invoice Desk** | Integrated three business-specific invoice templates, create/history/product screens and 80 mm browser print path. | 1000–1003 live under timestamp registry versions 20261117135131–20261117140223. | E2E save/product/history/RLS tests; compare output to source workbooks, verify embedded logo; Android/Windows and physical printer acceptance. |
 | **Workspace** | Integrated Notes home/search/folders, rich-text editor, autosave, sharing, history/restore and archive/delete. | 1100, 1101, 1102 and 1110 in live registry; 1102 applied 21 Nov. Notes accepted by owner after live testing (reported in chat). | Build Sheets Phase 5 UI (domain model, data layer, grid, New workbook); then formulas, formatting/filter/CSV, offline queue, sync/conflict merge and attachments. |
 
@@ -67,7 +67,7 @@ This register describes what is present in the source tree, what the live databa
 
 ## Migration registry drift — P0 before further database batches
 
-Twelve files use a four-digit repository version but their live registry rows use timestamp versions: `0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, and `1000`–`1003`. The corresponding timestamp rows have the same migration names. **0214_closing_staff_see_all exists both in the repository and live registry**; the previous claim that its file was missing was wrong.
+Twelve files use a four-digit repository version but their live registry rows use timestamp versions: `0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, and `1000`–`1003`. The corresponding timestamp rows have the same migration names. **0214_closing_staff_see_all exists both in the repository and live registry**; the previous claim that its file was missing was wrong. **Added after the audit (22 Nov 2026):** `0412_audit_individual_autocompile` is a thirteenth, registered live as `20261122035159` (applied with `apply_migration`); repository and live registry now each have 90 migration rows.
 
 Do not blindly insert four-digit duplicates, rename applied versions, or run new migration batches through an unverified automatic pipeline. Create and review a safe reconciliation plan first.
 
@@ -77,7 +77,7 @@ The GitHub branch list contained `main`, `audit/actual-module-status-2026-11-21`
 
 ## Priority work left
 
-1. **P0 — Migration safety:** reconcile the 12 timestamp-versioned migrations and verify the future migration apply process.
+1. **P0 — Migration safety:** reconcile the 13 timestamp-versioned migrations (12 from the audit plus `0412`) and verify the future migration apply process.
 2. **P0 — Security:** review 219 authenticated-callable SECURITY DEFINER RPCs for explicit permission checks and least-privilege grants; pin search paths on the two flagged trigger functions; consider enabling leaked-password protection with the PIN login design in mind.
 3. **P0 — Backup recovery:** perform a real encrypted Drive backup restore into a separate empty Supabase project.
 4. **P1 — Operational performance:** review 124 unindexed foreign keys, five RLS initplan warnings, one duplicate permissive policy and 28 unused indexes using workload evidence.

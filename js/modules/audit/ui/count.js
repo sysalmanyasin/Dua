@@ -116,6 +116,7 @@ async function mountCounting(el, assignmentId, ctx) {
     collapsed: new Set(),
     lastAction: null,
     confirmSubmit: false,
+    result: null, // an Individual Audit compiles itself on submit; its totals are shown once it is submitted
     extraNote: '',
     busy: false,
     fromCache: false,
@@ -155,6 +156,11 @@ async function mountCounting(el, assignmentId, ctx) {
       s.notes[it.round_item_id] = it.note ?? '';
     }
   }
+  const loadResult = async () => {
+    if (s.a?.method !== 'individual-self-pick' || s.a.status !== 'submitted' || s.fromCache) return;
+    s.result = await api.myCompilation(s.a.round_id).catch(() => null);
+  };
+  await loadResult();
   // counts still waiting on this device show straight away, before they are sent
   const waitingEvents = await store.all(assignmentId).catch(() => []);
   for (const [itemId, ev] of Object.entries(latestByItem(waitingEvents))) {
@@ -344,6 +350,22 @@ async function mountCounting(el, assignmentId, ctx) {
             : html`<p class="note" role="status">
                 ${submitted ? 'You submitted this count. It is shown here for reading only.' : `Counting is not open: the round is ${ROUND[s.a.round_state] ?? s.a.round_state}.`}
               </p>`
+        }
+        ${
+          submitted && s.a.method === 'individual-self-pick'
+            ? html`<section class="card aud-card" aria-label="Result">
+                <h2>Your result</h2>
+                ${
+                  s.result
+                    ? html`<p>
+                        ${s.result.item_count} items · ${s.result.variance_count} different ·
+                        ${rupees(Math.round(Number(s.result.variance_value) * 100))}
+                      </p>`
+                    : html`<p class="muted">Your count is saved.</p>`
+                }
+                <a class="btn btn-primary" href="#/audit/individual">Start another audit</a>
+              </section>`
+            : ''
         }
         <section class="card aud-card" id="aud-summary" aria-label="Progress"></section>
         <section class="card aud-card" aria-label="Find items">
@@ -620,6 +642,7 @@ async function mountCounting(el, assignmentId, ctx) {
         try {
           await api.submitCount(assignmentId, s.extraNote.trim());
           s.a = { ...s.a, status: 'submitted' };
+          await loadResult();
           await store.setKv(`items:${assignmentId}`, { a: s.a, items: s.items }).catch(() => {});
           toast('Count submitted.');
         } catch (err) {

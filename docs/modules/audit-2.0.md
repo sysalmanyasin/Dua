@@ -41,7 +41,7 @@ Show the engagements returned by `listEngagements()` (RLS remains authoritative)
 Use available facts only. Do not invent a global counted-progress percentage, discrepancy value, near-expiry count, or pending-review count unless an existing authorized read returns the necessary exact data.
 
 ### Individual audit access (`audit.individual`)
-Show a direct start action and the existing templates route. If the user also has `audit.count`, show personal assignments in the same "My work" section.
+Show a direct start action and the existing templates route. If the user also has `audit.count`, show personal assignments in the same "My work" section. Since migration 0412 (22 Nov 2026) an Individual Audit compiles itself on submit, so a submitted self-pick shows its result and a **Start another audit** action on the counting screen; the hub needs no change.
 
 ### Expiry access (`audit.expiry_log`, `audit.expiry_manage`, or `audit.manage`)
 Show the expiry register shortcut; show rack management only to users whose effective permissions allow the route. Do not claim a near-expiry count: the existing `audit_expiry_overview()` returns racks and assignments, not entry totals.

@@ -76,6 +76,14 @@ Open **Workspace** from the menu. **New note** starts a note and opens it (you n
 - **Finding things:** search looks in titles and in note text. Folders are your own: other people do not see how you file things.
 - Not available yet: sheets and spreadsheets, attachments, editing offline, and links you can send to a colleague.
 
+## 5b. Audit: Individual Audit (where enabled)
+For people with the Individual Audit permission. Open **Audit → Individual audit**, choose a saved template or whole companies, and tap **Start counting**. Count your items; items you do not count read as 0.
+- **Submit:** tap **Submit count**. The audit is worked out at once. You do not have to wait for the main auditor.
+- **Your result:** after you submit you see how many items you counted, how many differ from the system and the value of the difference.
+- **Next audit:** tap **Start another audit** straight away. You can have only one open at a time, so submit the one you are counting first.
+- **Same product counted twice in the month:** counting the same product on another day, or someone else counting it, is not treated as a conflict between individual audits.
+- If a count needs a change after you submit, ask the owner to reopen it (they give a reason). You cannot reopen it while another of your audits is open.
+
 ## 6. Users & Access (owner)
 See the Admin Guide.
 

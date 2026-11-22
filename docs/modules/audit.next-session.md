@@ -1,10 +1,11 @@
 # Audit module: handover for the next session
 
-**State on 21 Nov 2026.** Slices A1–C2 are on `main`; Barcode is implemented, not paused. Live registry includes `0411_audit_barcode` under timestamp version `20261120181743` (17 functions; RLS on the three new tables). Next: PHONE 1/2/3, scanner/offline acceptance, print/CSV checks, then D Hardening. Read `docs/modules/audit.md` and `docs/modules/audit.progress.md` first.
+**State on 22 Nov 2026.** Individual Audit rounds now compile themselves on submit (`0412`, live; see "0412" in `audit.progress.md`). Slices A1–C2 are on `main`; Barcode is implemented, not paused. Live registry includes `0411_audit_barcode` under timestamp version `20261120181743` (17 functions; RLS on the three new tables). Next: PHONE 1/2/3, scanner/offline acceptance, print/CSV checks, then D Hardening. Read `docs/modules/audit.md` and `docs/modules/audit.progress.md` first.
 
 ## What exists
-- **Database** `0401`–`0411` (Audit) and `0308` (Inventory interface), all applied live on project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`) and registered in `supabase_migrations.schema_migrations`. Some later migrations were registered under timestamp versions. Do not use `apply_migration` for repo-numbered work; follow RUNBOOK §4 and the current migration-registry reconciliation plan before applying anything new.
+- **Database** `0401`–`0412` (Audit) and `0308` (Inventory interface), all applied live on project `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`) and registered in `supabase_migrations.schema_migrations`. Some later migrations were registered under timestamp versions (`0412` is `20261122035159`). Do not use `apply_migration` for repo-numbered work; follow RUNBOOK §4 and the current migration-registry reconciliation plan before applying anything new.
 - **App** `js/modules/audit/`: hub, engagements and rounds, counting screen with offline outbox (IndexedDB), Individual Audit (one rolling engagement per month, by template, codes or companies), templates, review and compile screen (Force Submit, corrections, conflicts, next round).
+- **Individual rounds (0412):** submit compiles the round in the same transaction through `audit_compile_round_core` (internal, not callable by users); no cross-round conflicts are raised in the individual engagement (AUD-14); reopen is refused while the person has another open self-pick; no `audit.compiled` owner alert for individual rounds. Normal rounds are unchanged.
 - **Rules to keep:** every new round takes fresh stock from Inventory and freezes it; no blind counting (AUD-4); counters see system qty, price, variance, value for their own assignment (AUD-5); compile writes a new revision each time; conflicts are never auto-resolved; approved corrections apply at the next compile.
 
 ## Check before anything else
@@ -12,6 +13,8 @@
 2. The session proxy may not hold a GitHub credential for the repo and the GitHub API may be blocked. The owner supplies a PAT when needed (use it once via `git -c http.extraheader=...`, never store it, ask the owner to revoke it). The repo has moved to `sysalmanyasin/Dua`.
 
 ## Next work
+- **PHONE 4 (new):** Individual Audit auto-compile on a real phone: submit, see "Your result", tap **Start another audit**. Not done.
+- **Registry:** fix the `0412` row (and the 12 older ones) as part of the reconciliation; see RUNBOOK §4.
 - **PHONE 1 / PHONE 2:** real-phone tests (counting offline and back online; two people, two rounds, end to end). Not done.
 - **B2 is built** and merged (see progress doc). Still to do on it: try Print / Save as PDF and the CSV on a real phone and desktop.
 - **C1 is built** and merged (see progress doc; optional later: CSV/print of the register, expiry-by-month summary). **C2 Barcode** is next: Center, register, verify, conflicts, scanner, scan outbox, hybrid counting. It needs the vendored scanner libraries and the Foundation requests (`audit.md` section 7).
@@ -33,3 +36,6 @@
 - Error hints in 04xx migrations must each have a sentence in `js/modules/audit/domain/errors.js` (a test checks both ways).
 - Temp tables inside `audit_round_next` are dropped explicitly (no `ON COMMIT DROP`) so it can run twice in one transaction.
 - The stop hook may claim "unpushed commits / no remote branch" when pushing with a token header; trust `git ls-remote`.
+- A function that is internal (called only by another security-definer function) needs `revoke all ... from public, anon, authenticated` and no grant back; a test should show a counter gets "permission denied" (no hint code), so use `pg_temp.fails`, not `pg_temp.refused`.
+- Counters cannot read `audit_assignments` or `audit_assignment_items` directly in tests; read through `audit_my_assignments()` and `audit_my_items()`.
+- An untouched item reads as counted 0, so in a two-item round with one item counted, two rows can show a variance.

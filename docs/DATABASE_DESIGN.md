@@ -101,7 +101,7 @@ PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). Th
 | `0009_inventory_feed` | inventory feed tables and sync (Foundation F3, built in a separate session) |
 | `0010_manage_fields` | field management functions, Sale Book view |
 
-**Registry note:** the registry was reconciled to repo-numbered migrations on 12 Nov 2026 (`docs/DECISIONS.md` D-35, `docs/RUNBOOK.md` §4). New migrations are still applied by hand and registered under the repo number; never use a tool that registers a timestamp version.
+**Registry note:** the registry was reconciled to repo-numbered migrations on 12 Nov 2026 (`docs/DECISIONS.md` D-35, `docs/RUNBOOK.md` §4). New migrations are still applied by hand and registered under the repo number; never use a tool that registers a timestamp version. (22 Nov 2026: `0412` was registered as `20261122035159` by `apply_migration`; see `docs/RUNBOOK.md` §4.) Public routines also gained one internal function, `audit_compile_round_core` (0412), after the 21 Nov snapshot above.
 
 ## Seed and private data
 Reference data (permissions, payment methods, check-list content, settings) is in migrations. **Private values are not in Git:** the owner's contact details, the doctor name, competitor figures (applied by SQL) and every real sales figure (imported once, never committed).
