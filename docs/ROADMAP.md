@@ -44,7 +44,7 @@
 
 ### Closing / Manager / STR
 - Treat the core implementations as built; prioritize acceptance and documented integration gaps rather than rebuilding their existing screens.
-- Registry reconciled (22 Nov 2026). Get `0015_core_trigger_search_path.sql` onto `main`; drop the old registry backup tables after review.
+- Registry reconciled (22 Nov 2026). Get `0015_core_trigger_search_path.sql` onto `main`; the 12 Nov registry backup is dropped; the 21 and 22 Nov backups can go after review.
 - STR supplier/pack metadata and presentation follow-ups should not block unrelated module acceptance.
 
 ## P3 — Quality and future modules

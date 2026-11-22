@@ -61,7 +61,7 @@ The branch list currently contains `main` plus two maintenance refs: `audit/actu
 
 ## Immediate priorities
 
-1. Registry reconciled (22 Nov 2026). Remaining: put `0015_core_trigger_search_path.sql` on `main`, and drop the two old registry backup tables after review. Keep applying migrations by hand under the repo number.
+1. Registry reconciled (22 Nov 2026). Remaining: put `0015_core_trigger_search_path.sql` on `main`, and drop the remaining registry backup tables (`..._20261121`, `..._20261122`) after review; the 12 Nov one was dropped on 22 Nov 2026. Keep applying migrations by hand under the repo number.
 2. Run and inspect a fresh full GitHub Actions run on current `main`.
 3. Complete real-device/owner acceptance across existing modules, plus Gmail send verification.
 4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; Workspace Notes accepted by the owner (21 Nov 2026); build Workspace Phase 5 (Sheets UI).
