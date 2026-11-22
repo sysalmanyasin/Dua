@@ -4,7 +4,11 @@
 
 Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
 
-## 1. Where things stand
+## 1. Historical handover context
+
+The 19 Nov instructions below describe the Notes-only checkpoint and predate Phase 5 increment 2. Use the updated status banner above and `workspace.progress.md` as the current source of truth.
+
+## 2. Original handover notes (historical)
 
 - **Notes are built, merged to `main` and registered** (`/workspace`, `/workspace/note`, nav order 86). Migrations `1100` and `1101` are applied to the shared Supabase project (`sdsynzsflubdxnelgthh`) and registered as versions `1100` and `1101`; their function bodies were verified identical to the tested copy (D-47).
 - **Not built:** Sheets (workbooks, grid, formulas, CSV), offline editing, synchronisation and the conflict screens, attachments. The button "New workbook" is shown disabled.
