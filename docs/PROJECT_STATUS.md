@@ -1,6 +1,8 @@
 # Project status — canonical snapshot
 
-**Snapshot date:** 21 November 2026  
+**Snapshot date:** 22 November 2026
+
+> **Fresh verification supersedes conflicting values below:** `main` is at `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages #244 succeeded on this commit. Live `DuaPharmaPlus` is ACTIVE_HEALTHY on PostgreSQL 17.11, with 124/124 public tables under RLS, 341 public routines (283 SECURITY DEFINER; zero missing configured search paths), and 93 migration registry rows. The current repository has 92 migration SQL files; `0015_core_trigger_search_path` exists live but is absent from `main`. Six Edge Functions are active: four current functions and two retired 410 endpoints (`claim-account`, `request-access`). Workspace Sheets' reference/domain model is now merged on main; the data layer and UI remain unbuilt. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). Do not rely on the older 21 Nov figures or statements where they conflict.  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Code baseline inspected:** [`9669497`](https://github.com/sysalmanyasin/Dua/commit/96694979e65242f5ee24eb86f215630686b552c8)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
