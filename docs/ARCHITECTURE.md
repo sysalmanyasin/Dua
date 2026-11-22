@@ -1,5 +1,11 @@
 # Architecture (as built)
 
+> **Verified against `main` at `18283f17600be54d562a5eb3c40bf89906416b29` on 22 Nov 2026.** The live project is `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`), PostgreSQL 17.11, region `ap-south-1`. Current module IDs are the 13 values in `js/modules/index.js`: `home`, `sales`, `manager`, `access`, `tools`, `closing`, `inventory`, `str`, `candela-sales`, `ebill`, `audit`, `invoice-desk`, `workspace`. Do not rely on the older module table below for completeness; several entries there describe early/partial versions and are historical. The current route contract is each module's `manifest.js`.
+
+> **Deployment caveat:** `js/core/config.js` currently points both `staging` and `production` at the same Supabase project. The GitHub Pages site is therefore using that shared project; there is not yet environment isolation.
+
+
+
 One static web app on GitHub Pages plus one Supabase project. No build step: the browser loads the same JavaScript files that are in the repository. `npm` is used only for development tools (lint, tests).
 
 ```
@@ -53,8 +59,8 @@ Add Entry page → `domain/entry.js` parses what was typed → `data/api.js` cal
 ## Inventory data flow
 The Candela → Dropbox → Edge Function feed is live and integrated. Every hour the function checks Dropbox's content hash and, only when the file changed, sends it to the database in one request body (`inventory_apply_sync_body`, migration 0307), which compares row hashes and writes only changed rows (migrations 0301–0307, Edge Function v23). Phones read a changed-rows feed into a local copy, never the products table. All six Inventory screens and the Stock row on Home are integrated. See `docs/PROJECT_STATUS.md`, `docs/modules/inventory.md` and `docs/modules/inventory-sync-design.md`.
 
-## Offline behaviour
-Only the Daily Check List keeps working through a dropped connection: it saves a copy on the phone and retries. Everything else needs a connection and says so. The copy is removed at sign-out. A general offline queue for closing and audit counting is planned (see the roadmap).
+## Offline and local persistence
+Offline behaviour is module-specific, not a single application-wide mode. Emergency Billing has a local database and queued synchronisation; Audit uses local barcode/counting/outbox components; Inventory maintains a local mirror/feed; the Daily Check List has local draft/retry behaviour; Workspace Notes has local editor/autosave state and server persistence. Closing uses shared/live drafts but should not be described as a general offline-first module. Verify each module's current `data/` implementation and progress file before promising offline support. Sign-out cleanup and outbox guards are implemented in shared core code.
 
 ## Environments
 There is **one** Supabase project today, used as staging and as the live site (`production` in `js/core/config.js` points at the same project, marked TEMPORARY). A separate production project is planned before launch.
