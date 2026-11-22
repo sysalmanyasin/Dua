@@ -1,15 +1,15 @@
 # Roadmap — remaining work
 
-**Status snapshot:** 21 November 2026. This file lists unfinished work only; it is not a list of all implemented features. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the concise snapshot and [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md) for module-by-module evidence and branch status.
+**Status snapshot:** 22 November 2026. This file lists unfinished work only. Current verified state and evidence: [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md). This file lists unfinished work only; it is not a list of all implemented features. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the concise snapshot and [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md) for module-by-module evidence and branch status.
 
 ## P0 — Deployment, migration and security confidence
 
-1. **Migration registry parity:** **Done on 22 Nov 2026:** the live registry has 92 rows for 91 repository files and none uses a timestamp version (the 12 timestamp rows listed in the 21 Nov audit were already numbered when checked; `0412` was renamed from `20261122035159`). Left: `0015_core_trigger_search_path.sql` is registered live but its file is only on the unmerged branch `ops-redesign-stage1`. Do not edit applied migrations or insert duplicate rows. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
-2. **Security advisor review:** review the 219 authenticated-callable SECURITY DEFINER functions for explicit permission checks and least-privilege grants; decide whether to pin `search_path` on the two flagged trigger functions; enable leaked-password protection if compatible with the staff-login model. Do not blanket-revoke RPCs without mapping required clients.
+1. **Migration registry parity:** **Done on 22 Nov 2026:** the live registry has 93 four-digit rows; main has 92 migration files and none uses a timestamp version (the 12 timestamp rows listed in the 21 Nov audit were already numbered when checked; `0412` was renamed from `20261122035159`). Left: `0015_core_trigger_search_path.sql` is already applied and registered live; its exact file is on `ops-redesign-stage1` and must be brought into main without reapplying. Do not edit applied migrations or insert duplicate rows. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
+2. **Security advisor review:** review the 220 authenticated-callable SECURITY DEFINER functions for explicit permission checks and least-privilege grants; migration 0015 pins the two flagged trigger functions live, but its source must be reconciled into main; enable leaked-password protection if compatible with the staff-login model. Do not blanket-revoke RPCs without mapping required clients.
 3. **Real backup restore drill:** restore an actual encrypted Drive backup into a separate empty Supabase project. The local 39/39 round-trip and upload checksum do not prove the real restore path.
 4. **Separate production project:** plan a controlled production/staging split, secrets/Vault/cron recreation and data/config validation before broader launch.
-5. **Performance hygiene:** prioritize 124 unindexed foreign keys and five RLS initplan warnings; review 28 unused indexes only after representative workload observation. The advisor also reports one duplicate permissive policy on `payment_methods`.
-6. **CI baseline:** current `main` commit `9669497` has a green CI run (#401: app, database and functions) and Pages deployment (#226). Continue checking the exact commit after every merge.
+5. **Performance hygiene:** prioritize 124 unindexed foreign keys and five RLS initplan warnings; review 23 unused indexes only after representative workload observation. The advisor also reports one duplicate permissive policy on `payment_methods`.
+6. **CI baseline:** current audited `main` commit `18283f1` has green CI run #444 and Pages deployment #244. Continue checking the exact commit after every merge.
 
 ## P1 — Owner acceptance and production confidence
 
