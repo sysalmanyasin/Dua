@@ -2,15 +2,15 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
-## 22 Nov — Workspace Sheets: browser reference model and database parity test (branch, not merged)
+## 22 Nov — Workspace Sheets: browser reference model and database parity test (merged to main, PR #66)
 - New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
 - New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
 - Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction, not applied live yet. Screens still draw styles through `sanitizeStyle`.
-- Tests: 47 new unit tests; whole database suite passes. No migration applied; the live project was not touched. Still no Sheets screens.
+- Tests: 47 new unit tests; whole database suite passes. No migration applied; the live project was not touched. The reference model and fixtures/tests are merged to main; still no Sheets screens.
 
-## 22 Nov — Migration registry: no timestamp rows; `0412` renamed
-- Read-only check of `supabase_migrations.schema_migrations`: 92 rows, 91 with four-digit repo versions matching the 91 files on `main`, plus `0412` as `20261122035159`. The 12 timestamp rows reported by the 21 Nov audit were already numbered.
-- Backup `supabase_migrations.schema_migrations_backup_20261122` (92 rows), then the guarded rename `20261122035159` → `0412` (exactly one row or nothing). Afterwards 92 rows, 0 timestamp rows, 91 identical to the backup.
+## 22 Nov — Migration registry: all versions four-digit; `0412` reconciled
+- Read-only check of `supabase_migrations.schema_migrations`: 93 rows, all four-digit; 92 migration files on `main` plus live-only `0015`. The 12 timestamp rows reported by the 21 Nov audit were already numbered.
+- Backup `supabase_migrations.schema_migrations_backup_20261122` (92 rows), then the guarded rename `20261122035159` → `0412` (exactly one row or nothing). Afterwards 93 rows, 0 timestamp rows. The 0015 source remains only on `ops-redesign-stage1`; add it to main without reapplying.
 - Open: `0015_core_trigger_search_path` is registered live but its file exists only on the unmerged branch `ops-redesign-stage1`. The old backup `..._20261112` was dropped on 22 Nov 2026 at the owner's request; backups `..._20261121` (91 rows, origin not documented) and `..._20261122` (92 rows) remain and can be dropped after review.
 - The earlier "13 timestamp rows / 90 files" wording in the entry below and in several docs was wrong and is corrected here.
 
