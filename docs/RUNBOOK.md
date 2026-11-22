@@ -1,4 +1,6 @@
-# Runbook (how to operate, fix and change things)
+# Runbook
+
+> **22 Nov 2026 live-state note:** before applying any migration, compare the local `supabase/migrations/*.sql` set with the live `supabase_migrations.schema_migrations` registry. Current main has 92 migration files; live registry has 93 rows, including `0015_core_trigger_search_path` which is not present on main. Do not rerun, rename, or recreate that live migration as an ad-hoc fix. Reconcile source history in a reviewed PR first. Current project is `DuaPharmaPlus` (PostgreSQL 17.11). See [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md). (how to operate, fix and change things)
 
 ## 1. Where things are
 | Thing | Where |
