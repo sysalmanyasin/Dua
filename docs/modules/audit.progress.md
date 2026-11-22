@@ -161,7 +161,7 @@
 
 ## Done (0412, Individual Audit compiles itself on submit) — 22 Nov 2026
 Problem: a person's Individual Audit stayed in `counting` after submit until the main auditor compiled it by hand, so the person saw no result and the round waited for a manual step.
-- `supabase/migrations/0412_audit_individual_autocompile.sql` (applied live 22 Nov 2026; registered as version `20261122035159`, see the registry note below):
+- `supabase/migrations/0412_audit_individual_autocompile.sql` (applied live 22 Nov 2026; registry row renamed to `0412`, see the registry note below):
   - `audit_compile_round_core(round, allow_missing, expected_version)`: the compile body of 0402 without the permission check. Internal only: `authenticated` and `anon` cannot call it.
   - `audit_compile_round` keeps the `audit.compile` check and calls the core. Normal (non-individual) rounds still compile by hand.
   - `audit_submit`: when the assignment method is `individual-self-pick`, the submit calls the core in the same transaction. The round is `compiled` at once; the compile is attributed to the person who submitted. A replayed submit does nothing new. The result now carries `compiled` and `compilation_id`.
@@ -172,5 +172,5 @@ Problem: a person's Individual Audit stayed in `counting` after submit until the
 - Still manual for the main auditor: corrections, conflict handling in normal rounds, Final Snapshot. Finalizing an individual round works as before; `compile_stale` cannot happen because every submit recompiles.
 - Tests: new `supabase/tests/0412_audit_individual_autocompile_test.sql` (16 checks: counter cannot compile by hand or call the core, compiled at once and attributed to the counter, variances, next audit starts straight away, replay is a no-op, no conflict between two people's counts, reopen refused while another is open then allowed, revision 2 on re-submit). Full database suite and `npm run verify` (125 files / 1,933 unit tests at this change) pass.
 - Live check (22 Nov 2026): the four changed functions and the new core have the same body hash as the locally tested copy (D-47); the core is not executable by `authenticated` or `anon`; no open individual conflicts and no submitted-but-uncompiled individual rounds existed.
-- **Registry note:** this migration was applied with the Supabase `apply_migration` tool, which registered it under a timestamp version instead of `0412` (RUNBOOK §4 says to apply by hand under the repo number). It is the 13th timestamp-registered row. The SQL is unaffected. Do not reapply it; fix the row with the rest of the registry reconciliation.
+- **Registry note:** this migration was applied with the Supabase `apply_migration` tool, which registered it as `20261122035159` (RUNBOOK §4 says to apply by hand under the repo number). The registry was backed up and the row renamed to `0412` on 22 Nov 2026; the registry now has no timestamp rows. The SQL was never affected.
 - Not done: phone check of the result card and "Start another" (PHONE 4 in `audit.phone-tests.md`); real-phone acceptance by the owner.
