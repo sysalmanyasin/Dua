@@ -51,7 +51,7 @@ Updated: 2026-11-22 (Phase 5 increment 2: reference model and parity test; hando
 ## Not yet done
 
 - [ ] **Phase 5, increment 3 onwards — Sheets UI:** the domain model and parity fixture are done (increment 2); still to do: the data layer, the grid, the New workbook flow, and the operations the database answers "not available yet" (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`).
-- [x] Style validator fix written (owner said fix it, 22 Nov): `supabase/migrations/1111_workspace_style_validator_fix.sql` and `1111_workspace_style_validator_fix_test.sql` (20 checks). Whole database suite passes. **Not applied live yet: owner applies by hand, then it is registered as `1111`.**
+- [x] Style validator fix written (owner said fix it, 22 Nov): `supabase/migrations/1111_workspace_style_validator_fix.sql` and `1111_workspace_style_validator_fix_test.sql` (20 checks). Whole database suite passes. **Applied live 22 Nov 2026 by hand (one `execute_sql` batch, owner's go) and registered as `1111`. Checked live: the function body hash equals the repo file, `search_path` pinned, `anon` and `authenticated` cannot run it, `size "big"`, `size 8.5`, `weight null`, `decimals 2.5` and a null border side are refused, valid styles still pass. No sheet or style rows existed, so no stored data was affected.**
 - [ ] **Phase 5 onward:** formula engine; formatting, sort/filter and CSV.
 - [ ] **Phase 8:** IndexedDB offline queue, retry/sync and sign-out cleanup (requires the Foundation sign-out hook).
 - [ ] **Phase 9:** conflict detection/merge and compare UI for Notes and Sheets.

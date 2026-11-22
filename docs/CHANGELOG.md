@@ -2,10 +2,15 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Workspace Sheets: migration 1111 applied live
+- Applied `1111_workspace_style_validator_fix` to the live project by hand as one `execute_sql` batch (not `apply_migration`, D-35), on the owner's instruction, and registered it as version `1111` in the same batch. Before: registry held `1100`, `1101`, `1102`, `1110`; no sheet, cell or style rows existed.
+- Verified live: function body hash equals the repo file (`22dd6078…`); `search_path` pinned to `public`; `anon` and `authenticated` cannot execute it; `size "big"`, `size 8.5`, `weight null`, `numfmt.decimals 2.5`, a null border side and sizes 7 and 73 are refused; a full valid style, `{}` and `numfmt: {}` (type optional) still pass. Only the changed function and the registry were touched; the live Workspace data (2 notes) was not.
+- Not re-run live: the database test files (they need a clean PostgreSQL; they passed on PostgreSQL 16 before).
+
 ## 22 Nov — Workspace Sheets: browser reference model and database parity test (branch, not merged)
 - New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
 - New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
-- Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction, not applied live yet. Screens still draw styles through `sanitizeStyle`.
+- Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction (applied live later the same day, see the entry above). Screens still draw styles through `sanitizeStyle`.
 - Tests: 47 new unit tests; whole database suite passes. No migration applied; the live project was not touched. Still no Sheets screens.
 
 ## 22 Nov — Migration registry: no timestamp rows; `0412` renamed

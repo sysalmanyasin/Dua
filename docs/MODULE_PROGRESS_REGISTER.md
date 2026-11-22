@@ -38,7 +38,7 @@ This register describes what is present in the source tree, what the live databa
 
 | Workstream | Actual state | Next |
 |---|---|---|
-| Workspace Sheets | Database migration 1102 is live. Reference model `domain/spreadsheet.js` plus a PostgreSQL parity test exist on branch `module/workspace-sheets-domain` (22 Nov, not merged). No data layer, grid or New workbook action yet. | Merge the branch; build the data layer, then the grid (increment 3). Apply migration `1111` (style validator fix) live by hand. |
+| Workspace Sheets | Database migrations 1102 and 1111 (style validator fix) are live. Reference model `domain/spreadsheet.js` plus a PostgreSQL parity test exist on branch `module/workspace-sheets-domain` (22 Nov, not merged). No data layer, grid or New workbook action yet. | Merge the branch; build the data layer, then the grid (increment 3). |
 | Unified Reports | Planned, not registered. | Define permission-safe source contracts after modules are accepted. |
 | Assistant / AI | Planned, not registered. | Build only over deterministic, permission-safe interfaces. |
 | Android shell/widgets | Later phase. | Plan after web workflows and device acceptance. |
