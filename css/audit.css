@@ -357,6 +357,10 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+.aud-scan .aud-scan-zoom input {
+  width: 100%;
+  min-height: 44px;
+}
 .aud-scan .aud-scan-type {
   display: grid;
   gap: 0.5rem;

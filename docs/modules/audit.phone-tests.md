@@ -49,3 +49,13 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 5. Open the calculator before tapping any box. Look for: it says to tap a count box first, and the put button is off.
 6. Turn on airplane mode, count one item with the calculator. Look for: the count shows as waiting to send, and it sends when the signal returns.
 7. With the on-screen keyboard up in a count box, tap Calculator. Look for: the sheet is fully visible and no key is hidden behind the keyboard.
+
+## PHONE 6: scanner help (new, Audit 3.0 F3)
+1. Open the scanner on a pack with a small or dense barcode. Look for: it reads within a few seconds, and while it is trying the line under the picture stays on "Hold the barcode inside the frame."
+2. Cover the camera with a hand, or scan in a dim room. Look for: "Too dark. Turn on the light." and, on a phone with a light, the light comes on by itself once. Turn it off with the button. Look for: it does not switch itself on again.
+3. Tilt a shiny pack under a lamp. Look for: "Glare. Tilt the pack a little."
+4. Hold the phone too close. Look for: "Hold steady and move back a little to focus."
+5. On a phone with zoom, look for a Zoom slider starting a little zoomed in. Slide it. Look for: the picture zooms and the slider can reach both ends.
+6. Tap the picture. Look for: the camera refocuses on that spot (a short pause, then sharp).
+7. Scan a tiny barcode that normally fails live. Look for: after a few seconds it reads from a still photo (the phone may make a shutter sound or a brief flash).
+8. Read a barcode, then keep the scanner open on the next pack. Look for: no old hint is left on screen.
