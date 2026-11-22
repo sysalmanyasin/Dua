@@ -1,5 +1,9 @@
 # Dua — Fazal Din's Pharma Plus
 
+> **Verified 22 Nov 2026:** audited main commit `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages deployment #244 succeeded. Live DuaPharmaPlus: PostgreSQL 17.11, 124/124 public tables have RLS, 341 public routines and 93 four-digit migration registry rows. Main has 92 migration files; already-applied live migration 0015 source is on `ops-redesign-stage1` and must be reconciled into main without reapplying. See [22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md).
+
+
+
 A modular pharmacy operations web app built with plain HTML and JavaScript ES modules, Supabase (Postgres, Auth and Edge Functions), and GitHub Pages.
 
 **Live application:** https://sysalmanyasin.github.io/Dua/  
