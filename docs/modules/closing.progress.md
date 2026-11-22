@@ -1,6 +1,6 @@
 # Closing — progress
 
-> **Current status (21 Nov 2026):** Closing is integrated on `main`: 14-section ledger, submit/reopen, shared drafts/live sync, Credit and Misc ledgers, Manager feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review, Settings and Inventory Audit card. Live registry confirms `0201`–`0214` under repo versions; `closing_refresh_existing_drafts` and `0216`/`0217` are present under timestamp versions. The previous statement that `0214` was missing from the repository is incorrect and superseded. Remaining: owner phone try-out #5, formal acceptance and the owner's decision whether to re-enable the Inventory Audit gate. Preserve the timestamp migration mapping; see the master register.
+> **Current status (21 Nov 2026):** Closing is integrated on `main`: 14-section ledger, submit/reopen, shared drafts/live sync, Credit and Misc ledgers, Manager feed, Closing Book/PDF, CC/RBD/MEDIQ history, Review, Settings and Inventory Audit card. Live registry confirms `0201`–`0218` under four-digit repo versions, including `0216` and `0217`. The previous statement that `0214` was missing from the repository is incorrect and superseded. Remaining: owner phone try-out #5, formal acceptance and the owner's decision whether to re-enable the Inventory Audit gate. See the 22 Nov live registry snapshot in the master audit; no timestamp-versioned migration rows remain.
 
 Historical session table follows.
 
