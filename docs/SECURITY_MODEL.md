@@ -21,6 +21,7 @@ What a **basic staff member** can reach, by design: their own sign-in, the Last 
 3. `security definer` functions have a fixed `search_path` and execute only for the roles that need them.
 4. Idempotency keys make retried saves safe.
 5. Views run with the caller's permissions (`security_invoker`).
+6. Internal functions that only other `security definer` functions call have every execute grant revoked (`public`, `anon`, `authenticated`). Example: `audit_compile_round_core` (0412) lets an Individual Audit compile itself on submit without giving staff the `audit.compile` permission; a test proves a counter gets "permission denied" on it and still cannot compile by hand.
 
 ## Browser
 Strict Content Security Policy (see `index.html`), vendored libraries with recorded hashes, escaped templates, no inline handlers or styles, only the public publishable key in the code, the service-role key only inside Edge Function secrets. Sign-out removes unsent drafts and page hand-offs from the phone.

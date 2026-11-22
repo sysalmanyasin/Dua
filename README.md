@@ -17,7 +17,7 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Closing | 14-section ledger, shared drafts/live sync, ledgers, Book/PDF, history, review and settings integrated; owner try-out #5 and audit-gate decision remain |
 | Inventory | Six screens and feed integrated; live migrations through 0309 and sync Edge Function v24; phone PDF check and sync cleanup remain |
 | STR and Candela Sales | Screens and live database workflows integrated; owner phone acceptance and sync monitoring remain |
-| Audit | A1–C2 integrated/live, including expiry and barcode; phone, print/CSV acceptance and hardening remain |
+| Audit | A1–C2 integrated/live, including expiry and barcode; Individual Audit rounds compile themselves on submit (0412, 22 Nov 2026); phone, print/CSV acceptance and hardening remain |
 | Emergency Billing | Phases 1–6 automated work integrated; live partial refunds, receipt settings, reports and exports; real-device/printer acceptance and granting `ebill.*` rights remain |
 | Invoice Desk | Three business templates, create/history/product screens integrated; migrations 1000–1003 live under timestamp registry versions; E2E and physical-printer acceptance remain |
 | Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` applied live (21 Nov 2026), Sheets UI not built, no offline sync or attachments yet; Notes accepted by the owner after live testing |

@@ -36,7 +36,7 @@ Branch history: `module/audit` · Migration range: `0400–0499` · Prefix: `aud
 | R5 | Cross-round conflicts are never auto-resolved; the owner picks a side and the choice is recorded | KEEP |
 | R6 | A correction is proposed, reviewed, then approved or rejected; the original count is always kept | KEEP |
 | R7 | Row timing credits at most 600 seconds to one item | KEEP |
-| R8 | Individual audits live in one rolling monthly engagement; one open self-pick per person | KEEP |
+| R8 | Individual audits live in one rolling monthly engagement; one open self-pick per person. **Each self-pick compiles itself when submitted (0412) and raises no cross-round conflicts (AUD-14)** | KEEP |
 | R9 | A barcode is globally unique and never silently reassigned; conflicts need an explicit owner decision with a reason. Numeric EAN/UPC/GTIN codes are check-digit validated | KEEP |
 | R10 | A locked expiry entry can be reopened, edited or deleted only by the owner (`audit.expiry_manage`) | KEEP |
 | R11 | Item identity is `company::<position>` inside one round's snapshot | IMPROVE: stable uuid plus product code per round item |
@@ -68,7 +68,7 @@ Table names are a proposal; the first migration confirms them. Every table: `cre
 
 Not rebuilt: old `staff` and `audit_log` (core `staff`, `profiles`, `activity_log` replace them).
 
-**Functions (writes):** `audit_engagement_create`, `audit_round_create`, `audit_round_lock`, `audit_assign_auto`, `audit_assign_move`, `audit_count_batch`, `audit_submit`, `audit_reopen`, `audit_compile_round`, `audit_round_next`, `audit_correction_propose`, `audit_correction_decide`, `audit_conflict_resolve`, `audit_finalize`, `audit_individual_start`, plus barcode and expiry equivalents. Each checks `has_perm`, runs in one transaction, logs with `log_activity`, takes an idempotency key or expected version where it is a draft-like write, and follows the MODULES.md §5.4 security pattern.
+**Functions (writes):** `audit_engagement_create`, `audit_round_create`, `audit_round_lock`, `audit_assign_auto`, `audit_assign_move`, `audit_count_batch`, `audit_submit`, `audit_reopen`, `audit_compile_round` (and the internal `audit_compile_round_core`, 0412), `audit_round_next`, `audit_correction_propose`, `audit_correction_decide`, `audit_conflict_resolve`, `audit_finalize`, `audit_individual_start`, plus barcode and expiry equivalents. Each checks `has_perm`, runs in one transaction, logs with `log_activity`, takes an idempotency key or expected version where it is a draft-like write, and follows the MODULES.md §5.4 security pattern.
 **Reads for counters:** `audit_my_items(assignment)`; counters never read the item tables directly.
 **Error codes:** every refusal the screen must explain gets its own SQLSTATE and hint from the first migration (lesson G3 from Closing); `data/api.js` maps by code, never by message text.
 **Version guard:** mutable writes take the version the browser last saw and refuse an older one (lesson G5 / CLS-13).
@@ -168,6 +168,7 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 | AUD-11 | Drop legacy Verify Stock; keep the Counting Calculator inside the counting screen | Accepted (default) |
 | AUD-12 | Keep the old layout and crimson accent, scoped in `css/audit.css` (as CLS-15 for Closing) | Accepted (default) |
 | AUD-13 | Start the brief and the database and domain slices now; real round creation waits for `inventory_products_for_scope` | Accepted (default) |
+| AUD-14 | Individual Audit rounds compile automatically on submit so the person can start the next without waiting for the main auditor; no cross-round conflicts are raised between individual rounds (same product on another day or by another person is a normal difference). Other rounds keep manual compile and conflicts. The `audit.compiled` owner alert is not sent for individual rounds | Accepted (owner, 22 Nov 2026) |
 
 ## 9. Slices (build order)
 
