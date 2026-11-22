@@ -40,3 +40,12 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 4. Count every item and tap Submit in the bar. Look for: it submits at once. Then look for **Your next assignment** if you have another open one.
 5. Individual Audit: count some items wrongly, submit, then tap **Recount my differences**. Look for: a new audit with only the products that differed. Tap it twice quickly, or with a weak signal. Look for: only one audit is started.
 6. As the main auditor, open a round, go back to the Overview, then close the tab and reopen the app. Look for: **Pick up where you left off** opens the same audit and round.
+
+## PHONE 5b: the counting calculator (new, Audit 3.0 F2)
+1. Open a count that is in progress. Tap a count box, then tap **Calculator**. Look for: the sheet rises from the bottom and says "The answer goes into" with that item's name. The keys are large enough to hit one at a time with a thumb.
+2. Type 6 × 10 + 4. Look for: "6 × 10 +" above, 4 on the big display, and "= 64" under it. Tap **Put 64 in the count box**. Look for: the sheet closes, 64 is in the box, the difference shows at once, and the next box is ready.
+3. Type 4 + 6 × 10. Look for: 64, not 100.
+4. Type 10 ÷ 3 and tap Put. Look for: a message that it has more than 3 decimals, and nothing is counted. Type 3 − 5. Look for: "A count cannot be below zero."
+5. Open the calculator before tapping any box. Look for: it says to tap a count box first, and the put button is off.
+6. Turn on airplane mode, count one item with the calculator. Look for: the count shows as waiting to send, and it sends when the signal returns.
+7. With the on-screen keyboard up in a count box, tap Calculator. Look for: the sheet is fully visible and no key is hidden behind the keyboard.

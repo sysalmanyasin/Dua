@@ -956,3 +956,107 @@
     display: none;
   }
 }
+
+/* The counting calculator: a bottom sheet attached to the page body (like the scanner), so it uses the shared tokens. */
+.aud-calc {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  overscroll-behavior: contain;
+}
+.aud-calc .aud-calc-box {
+  box-sizing: border-box;
+  width: min(100%, 24rem);
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem max(1rem, env(safe-area-inset-bottom));
+  background: var(--surface, #fff);
+  color: var(--text, #111);
+  border-radius: 1rem 1rem 0 0;
+}
+.aud-calc .aud-calc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.aud-calc .aud-calc-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.aud-calc .aud-calc-target {
+  margin: 0;
+}
+.aud-calc .aud-calc-screen {
+  padding: 0.5rem 0.75rem;
+  text-align: right;
+  background: var(--surface-2, #edf2f8);
+  border-radius: 0.6rem;
+  min-height: 5rem;
+  overflow-wrap: anywhere;
+}
+.aud-calc .aud-calc-expr {
+  min-height: 1.3em;
+  color: var(--text-muted, #586a82);
+}
+.aud-calc .aud-calc-main {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.aud-calc .aud-calc-total {
+  min-height: 1.3em;
+}
+.aud-calc .aud-calc-note {
+  margin: 0;
+  min-height: 1.3em;
+  color: var(--danger, #b42318);
+  font-weight: 600;
+}
+.aud-calc .aud-calc-pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+.aud-calc .aud-calc-key {
+  min-height: 3.2rem; /* well above the 44 px touch target */
+  font: inherit;
+  font-size: 1.25rem;
+  color: var(--text, #111);
+  background: var(--surface-2, #edf2f8);
+  border: 1px solid var(--border, #d9e2ee);
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+.aud-calc .aud-calc-key.is-op {
+  color: var(--primary-text, #fff);
+  background: var(--primary, #1d4ed8);
+  border-color: var(--primary, #1d4ed8);
+}
+.aud-calc .aud-calc-key.is-wide {
+  grid-column: span 2;
+}
+.aud-calc .aud-calc-key:active {
+  filter: brightness(0.92);
+}
+.aud-calc .aud-calc-insert {
+  min-height: 3rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aud-calc * {
+    transition: none;
+    animation: none;
+  }
+}
+@media print {
+  .aud-calc {
+    display: none;
+  }
+}
