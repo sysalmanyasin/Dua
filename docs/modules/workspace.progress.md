@@ -2,7 +2,7 @@
 
 Updated: 2026-11-22 (Phase 5 increment 2: reference model and parity test; handover: `workspace.next-session.md`)
 
-> **Current status:** Notes are integrated and accepted by the owner after live testing (reported 21 Nov). Migrations `1100`, `1101`, `1102` and `1110` are in the live registry; `1102` was applied 21 Nov. The Sheets database is present, but no Sheets UI/domain/data/grid or “New workbook” flow exists yet. Remaining Workspace phases: Sheets UI (Phase 5), formulas, formatting/filter/CSV, offline queue, sync/conflict merge and attachments.
+> **Current status (verified 22 Nov):** Notes are integrated. Sheets database migrations `1100`–`1102` and `1110` are live; Phase 5 increment 2 browser reference model, fixtures and parity tests are merged to main (PR #66). This is not a finished Sheets feature: workbook/grid UI, Sheets data integration, formulas, offline queue, sync/conflict UI and attachments remain. Migration `1111` is in main but is not in the live registry snapshot. See [22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
 
 ## Completed
 
