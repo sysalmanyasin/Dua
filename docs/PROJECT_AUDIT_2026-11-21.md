@@ -1,5 +1,7 @@
 # Repository and live-system audit — 21 November 2026
 
+> **Historical snapshot — superseded where facts conflict by [the 22 Nov 2026 audit](PROJECT_AUDIT_2026-11-22.md).** Repository/live migration counts, the 0015 source-file location, Edge Function retirement state and Workspace Sheets branch status changed or were clarified after this audit.
+
 ## Scope and method
 
 Reviewed the public GitHub repository `sysalmanyasin/Dua` at main commit `96694979e65242f5ee24eb86f215630686b552c8`, including the recursive source tree, module registry and manifests, module progress files, root project documents, migration files, test-file inventory, latest GitHub Actions runs, live Supabase project metadata, live migration registry, Edge Function inventory, SQL catalog facts and Supabase security/performance advisors.
