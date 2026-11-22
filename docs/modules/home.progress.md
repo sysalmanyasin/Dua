@@ -1,6 +1,6 @@
 # Home 2.0 — implementation progress
 
-> **Current status (21 Nov 2026):** Home 2.0 is integrated on `main`; latest CI run #401 and Pages deployment #226 succeeded on commit `9669497`. It uses existing permission-filtered summaries and adds no migration. Real-device owner acceptance remains.
+> **Current status (21 Nov 2026):** Home 2.0 is integrated on `main`; latest verified CI run #444 and Pages deployment #244 succeeded on commit `18283f1`. It uses existing permission-filtered summaries and adds no migration. Real-device owner acceptance remains.
 
 **Branch:** `main`  
 **Scope:** Replace the existing Home page in place. No new module, database migration, business table, or dependency.

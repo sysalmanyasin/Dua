@@ -27,7 +27,7 @@ const api = await import('../../js/modules/audit/data/api.js');
 const { mount: mountRound } = await import('../../js/modules/audit/ui/round.js');
 const { mount: mountHub } = await import('../../js/modules/audit/ui/hub.js');
 const { mount: mountAudits } = await import('../../js/modules/audit/ui/engagements.js');
-const { setView } = await import('../../js/modules/audit/domain/nav.js');
+const { getView, setView } = await import('../../js/modules/audit/domain/nav.js');
 
 const people = [
   { user_id: 'u1', full_name: 'Count One', can_count: true },
@@ -190,7 +190,78 @@ describe('audit hub', () => {
     expect(api.engagementOverview).toHaveBeenCalledWith('e1');
   });
 
-  it('renders navigation groups collapsed by default and expands them accessibly on tap', async () => {
+  it('hands the chosen assignment to the counting page, so each card opens its own work', async () => {
+    api.myAssignments.mockResolvedValueOnce([
+      {
+        assignment_id: 'a1',
+        engagement_name: 'Monthly Stock Audit',
+        round_number: 2,
+        round_suffix: null,
+        round_state: 'counting',
+        status: 'counting',
+        items: 20,
+        counted: 15,
+      },
+      {
+        assignment_id: 'a2',
+        engagement_name: 'Autumn Audit',
+        round_number: 1,
+        round_suffix: null,
+        round_state: 'counting',
+        status: 'assigned',
+        items: 10,
+        counted: 0,
+      },
+    ]);
+    const el = document.getElementById('root');
+    await mountHub(el, { ctx: { permissions: ['audit.count'] } });
+    el.querySelector('a[data-open-assignment="a2"]').click();
+    expect(getView()).toMatchObject({ assignment: 'a2' });
+    el.querySelector('a[data-open-assignment="a1"]').click();
+    expect(getView()).toMatchObject({ assignment: 'a1' });
+  });
+
+  describe('pick up where you left off', () => {
+    const manager = { ctx: { permissions: ['audit.manage', 'audit.view'] } };
+    const e1 = { id: 'e1', name: 'Annual Audit', scope_type: 'full', status: 'open', created_at: '2026-11-19T08:00:00Z' };
+
+    it('offers the last round opened, and opening it sets the audit and round', async () => {
+      api.listEngagements.mockResolvedValueOnce([e1]);
+      api.engagementOverview.mockResolvedValueOnce({ rounds: [] });
+      const el = document.getElementById('root');
+      await mountHub(el, manager);
+      const link = el.querySelector('a[data-open-last]');
+      expect(el.textContent).toContain('Pick up where you left off');
+      expect(link.getAttribute('href')).toBe('#/audit/round');
+      setView({});
+      link.click();
+      expect(getView()).toEqual({ engagement: 'e1', round: 'r1' });
+    });
+
+    it('goes to the audit when no round was open', async () => {
+      setView({ engagement: 'e1' });
+      api.listEngagements.mockResolvedValueOnce([e1]);
+      api.engagementOverview.mockResolvedValueOnce({ rounds: [] });
+      const el = document.getElementById('root');
+      await mountHub(el, manager);
+      expect(el.querySelector('a[data-open-last]').getAttribute('href')).toBe('#/audit/engagement');
+    });
+
+    it('says nothing when that audit is not one the person can see now, or the person only counts', async () => {
+      setView({ engagement: 'gone', round: 'r9' });
+      api.listEngagements.mockResolvedValueOnce([e1]);
+      api.engagementOverview.mockResolvedValueOnce({ rounds: [] });
+      const el = document.getElementById('root');
+      await mountHub(el, manager);
+      expect(el.querySelector('a[data-open-last]')).toBeNull();
+      setView({ engagement: 'e1', round: 'r1' });
+      const counter = document.createElement('div');
+      await mountHub(counter, { ctx: { permissions: ['audit.count'] } });
+      expect(counter.querySelector('a[data-open-last]')).toBeNull();
+    });
+  });
+
+  it('opens the first navigation group by default and keeps the others folded until tapped', async () => {
     const el = document.getElementById('root');
     await mountHub(el, {
       ctx: {
@@ -207,18 +278,20 @@ describe('audit hub', () => {
     });
     const toggles = [...el.querySelectorAll('[data-aud-toggle]')];
     expect(toggles.length).toBeGreaterThanOrEqual(5);
-    for (const toggle of toggles) {
-      expect(toggle.getAttribute('aria-expanded')).toBe('false');
-      const panel = el.querySelector(`#${toggle.getAttribute('aria-controls')}`);
-      expect(panel.hidden).toBe(true);
-    }
-    const first = toggles[0];
-    first.click();
+    const panelOf = (toggle) => el.querySelector(`#${toggle.getAttribute('aria-controls')}`);
+    const [first, ...others] = toggles;
     expect(first.getAttribute('aria-expanded')).toBe('true');
-    expect(el.querySelector(`#${first.getAttribute('aria-controls')}`).hidden).toBe(false);
+    expect(panelOf(first).hidden).toBe(false);
+    for (const toggle of others) {
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(panelOf(toggle).hidden).toBe(true);
+    }
     first.click();
     expect(first.getAttribute('aria-expanded')).toBe('false');
-    expect(el.querySelector(`#${first.getAttribute('aria-controls')}`).hidden).toBe(true);
+    expect(panelOf(first).hidden).toBe(true);
+    others[0].click();
+    expect(others[0].getAttribute('aria-expanded')).toBe('true');
+    expect(panelOf(others[0]).hidden).toBe(false);
   });
 
   it('shows team administration only with users.manage and expiry links only when permitted', async () => {

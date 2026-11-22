@@ -1,5 +1,9 @@
 # Dua — Fazal Din's Pharma Plus
 
+> **Verified 22 Nov 2026:** audited main commit `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages deployment #244 succeeded. Live DuaPharmaPlus: PostgreSQL 17.11, 124/124 public tables have RLS, 341 public routines and 93 four-digit migration registry rows. Main has 92 migration files; already-applied live migration 0015 source is on `ops-redesign-stage1` and must be reconciled into main without reapplying. See [22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md).
+
+
+
 A modular pharmacy operations web app built with plain HTML and JavaScript ES modules, Supabase (Postgres, Auth and Edge Functions), and GitHub Pages.
 
 **Live application:** https://sysalmanyasin.github.io/Dua/  
@@ -7,7 +11,9 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 **Full module register:** [docs/MODULE_PROGRESS_REGISTER.md](docs/MODULE_PROGRESS_REGISTER.md)  
 **Repository:** https://github.com/sysalmanyasin/Dua
 
-## Current project status (21 Nov 2026)
+## Previous project status snapshot (21 Nov 2026; superseded)
+
+The current verified snapshot is at the top of this README and in [the 22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md). The following section is retained as historical context.
 
 | Area | Status |
 |---|---|
@@ -17,9 +23,9 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 | Closing | 14-section ledger, shared drafts/live sync, ledgers, Book/PDF, history, review and settings integrated; owner try-out #5 and audit-gate decision remain |
 | Inventory | Six screens and feed integrated; live migrations through 0309 and sync Edge Function v24; phone PDF check and sync cleanup remain |
 | STR and Candela Sales | Screens and live database workflows integrated; owner phone acceptance and sync monitoring remain |
-| Audit | A1–C2 integrated/live, including expiry and barcode; phone, print/CSV acceptance and hardening remain |
+| Audit | A1–C2 integrated/live, including expiry and barcode; Individual Audit rounds compile themselves on submit (0412, 22 Nov 2026); phone, print/CSV acceptance and hardening remain |
 | Emergency Billing | Phases 1–6 automated work integrated; live partial refunds, receipt settings, reports and exports; real-device/printer acceptance and granting `ebill.*` rights remain |
-| Invoice Desk | Three business templates, create/history/product screens integrated; migrations 1000–1003 live under timestamp registry versions; E2E and physical-printer acceptance remain |
+| Invoice Desk | Three business templates, create/history/product screens integrated; migrations 1000–1003 live and registered by repo number; E2E and physical-printer acceptance remain |
 | Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` applied live (21 Nov 2026), Sheets UI not built, no offline sync or attachments yet; Notes accepted by the owner after live testing |
 | Unified Reports, assistant and Android | Future work |
 

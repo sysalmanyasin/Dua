@@ -5,12 +5,32 @@ Dates are 2026. Counts are as of the end of each step.
 ## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
 - New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (tested locally, not applied live: `docs/ops/f8-stage2-apply-and-rollback.md`).
 - Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
-- Decisions D-55 to D-59 recorded (schedules, no evidence storage, in-app notifications, Groq free plan, activity defaults and deposit figure).
+- Decisions D-56 to D-60 recorded (schedules, no evidence storage, in-app notifications, Groq free plan, activity defaults and deposit figure).
 
 ## 21 Nov — Operations Redesign, Stage 1 (audit and plan)
 - Added `docs/OPERATIONS_REDESIGN_PLAN.md`: audit of the current app, gap analysis against the redesign brief, architecture decisions, Task Master / notifications / AI design, eleven owner decisions, stage-by-stage acceptance. Nothing in the redesign is built yet.
 - Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Applied live and registered as `0015`.
 - Added `tools/check-registry.mjs` (compares migration files with a read-only registry export) and `docs/ops/f7-registry-reconciliation.md` (guarded, reversible procedure for the 12 timestamp-versioned rows). Executed live: 13 rows renamed (incl. `0218`), 0 timestamp versions remain.
+
+## 22 Nov — Workspace Sheets: browser reference model and database parity test (merged to main, PR #66)
+- New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
+- New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
+- Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction and now recorded as live migration `1111` (verified in the 22 Nov live registry). No workbook/grid screen exists yet; future UI must use the existing style sanitization rules.
+- Tests: 47 new unit tests; whole database suite passes. The live registry now includes `1111`; treat this migration as applied live. The audit query confirmed its registry row; do not reapply it. The reference model and fixtures/tests are merged to main; still no Sheets screens.
+
+## 22 Nov — Migration registry: all versions four-digit; `0412` reconciled
+- Read-only check of `supabase_migrations.schema_migrations`: 93 rows, all four-digit; 92 migration files on `main` plus live-only `0015`. The 12 timestamp rows reported by the 21 Nov audit were already numbered.
+- Backup `supabase_migrations.schema_migrations_backup_20261122` (92 rows), then the guarded rename `20261122035159` → `0412` (exactly one row or nothing). Afterwards 93 rows, 0 timestamp rows. The 0015 source remains only on `ops-redesign-stage1`; add it to main without reapplying.
+- Open: `0015_core_trigger_search_path` is registered live but its file exists only on the unmerged branch `ops-redesign-stage1`. The old backup `..._20261112` was dropped on 22 Nov 2026 at the owner's request; backups `..._20261121` (91 rows, origin not documented) and `..._20261122` (92 rows) remain and can be dropped after review.
+- The earlier "13 timestamp rows / 90 files" wording in the entry below and in several docs was wrong and is corrected here.
+
+## 22 Nov — Audit: Individual Audit compiles itself on submit (migration 0412, applied live)
+- Migration `0412_audit_individual_autocompile.sql`: an Individual Audit round is compiled in the same transaction as the person's submit, so they can start the next one without waiting for the main auditor. New internal `audit_compile_round_core` (not callable by users); `audit_compile_round` still needs `audit.compile` and still compiles normal rounds by hand.
+- No cross-round conflicts are raised in the individual engagement (owner decision AUD-14). `audit_reopen` refuses with `self_pick_open` when the person already has another open Individual Audit. No `audit.compiled` owner alert for individual rounds; the `audit.submitted` alert still fires.
+- Screen: after submit the counting screen shows "Your result" (items, differences, value) and **Start another audit**.
+- Applied to live DuaPharmaPlus with the Supabase `apply_migration` tool, which registered it as `20261122035159` (the RUNBOOK says to apply by hand under the repo number). The SQL is verified identical to the tested copy (function body hashes, D-47). The row was renamed to `0412` the same day (see the registry entry above).
+- Tests: new `0412_audit_individual_autocompile_test.sql` (16 checks); full database suite and `npm run verify` (125 files / 1,933 unit tests) pass. Phone check (PHONE 4) pending.
+- Documents updated: Audit brief (R8, AUD-14), progress, handover and phone tests; Audit 2.0 note; USER_GUIDE (new Audit section), ADMIN_GUIDE, BUSINESS_RULES, DECISIONS (D-50), SECURITY_MODEL, RUNBOOK, TESTING, ROADMAP, PROJECT_STATUS, MODULE_PROGRESS_REGISTER, README, PROJECT_PROGRESS.
 
 ## 21 Nov — Closing: Owner-only Shift ↔ Final change (PR #60, applied live)
 - Migration `0218_closing_mode_change.sql`: `closing_change_mode`, `closing_is_admin_owner`, trigger `closings_mode_guard`. Only an admin at MFA level 2 may change a closing's type; the database refuses every other route, including the ordinary draft save.

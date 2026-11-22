@@ -1,6 +1,6 @@
 # Sales — progress
 
-Updated: 21 November 2026  
+Updated: 22 November 2026  
 Branch: integrated on `main`.
 
 ## Implemented source

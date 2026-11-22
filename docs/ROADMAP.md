@@ -1,15 +1,15 @@
 # Roadmap — remaining work
 
-**Status snapshot:** 21 November 2026. This file lists unfinished work only; it is not a list of all implemented features. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the concise snapshot and [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md) for module-by-module evidence and branch status.
+**Status snapshot:** 22 November 2026. This file lists unfinished work only. Current verified state and evidence: [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md). This file lists unfinished work only; it is not a list of all implemented features. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the concise snapshot and [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md) for module-by-module evidence and branch status.
 
 ## P0 — Deployment, migration and security confidence
 
-1. **Migration registry parity:** 89 repository migration files and 89 live registry rows exist, but 12 migrations are registered under timestamp versions instead of their four-digit file versions: `0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, and `1000`–`1003`. The live registry has corresponding timestamp-name rows. Do not edit applied migrations or blindly insert duplicate rows; this was reconciled on 21 Nov 2026 (13 rows incl. `0218`; see `docs/ops/f7-registry-reconciliation.md`). Check before each batch with `node tools/check-registry.mjs registry.json`. The wider redesign plan is `docs/OPERATIONS_REDESIGN_PLAN.md`. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
-2. **Security advisor review:** review the 219 authenticated-callable SECURITY DEFINER functions for explicit permission checks and least-privilege grants; decide whether to pin `search_path` on the two flagged trigger functions; enable leaked-password protection if compatible with the staff-login model. Do not blanket-revoke RPCs without mapping required clients.
+1. **Migration registry numbering:** **Reconciled on 22 Nov 2026; source parity still open:** the live registry has 93 four-digit rows; main has 92 migration files and none uses a timestamp version (the 12 timestamp rows listed in the 21 Nov audit were already numbered when checked; `0412` was renamed from `20261122035159`). Left: `0015_core_trigger_search_path.sql` is already applied and registered live; its exact file is on `ops-redesign-stage1` and must be brought into main without reapplying. Do not edit applied migrations or insert duplicate rows. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
+2. **Security advisor review:** review the 220 authenticated-callable SECURITY DEFINER functions for explicit permission checks and least-privilege grants; migration 0015 has fixed the two trigger search-path findings live; its source must be reconciled into main. The advisor currently flags leaked-password protection as disabled; assess compatibility with staff PIN sign-in before enabling. Do not blanket-revoke RPCs without mapping required clients.
 3. **Real backup restore drill:** restore an actual encrypted Drive backup into a separate empty Supabase project. The local 39/39 round-trip and upload checksum do not prove the real restore path.
 4. **Separate production project:** plan a controlled production/staging split, secrets/Vault/cron recreation and data/config validation before broader launch.
-5. **Performance hygiene:** prioritize 124 unindexed foreign keys and five RLS initplan warnings; review 28 unused indexes only after representative workload observation. The advisor also reports one duplicate permissive policy on `payment_methods`.
-6. **CI baseline:** current `main` commit `9669497` has a green CI run (#401: app, database and functions) and Pages deployment (#226). Continue checking the exact commit after every merge.
+5. **Performance hygiene:** prioritize 124 unindexed foreign keys and five RLS initplan warnings; review 23 unused indexes only after representative workload observation. The advisor also reports one duplicate permissive policy on `payment_methods`.
+6. **CI baseline:** current audited `main` commit `18283f1` has green CI run #444 and Pages deployment #244. Continue checking the exact commit after every merge.
 
 ## P1 — Owner acceptance and production confidence
 
@@ -31,19 +31,21 @@
 - Open decisions: whether counter "Return" bills are wanted (refunds are a manager action in History today); Settings "Device settings" panel (last sync, pending/failed counts).
 
 ### Audit
-- C2 Barcode is implemented and integrated on `main`; migrations 0411 are present in the live registry under a timestamp version. Remaining work is real-device scanner/offline acceptance and hardening, not initial implementation.
+- Individual Audit rounds compile themselves on submit (migration 0412, live 22 Nov 2026); remaining: PHONE 4 on a real phone.
+- C2 Barcode is implemented and integrated on `main`; migration 0411 is live and registered by repo number. Remaining work is real-device scanner/offline acceptance and hardening, not initial implementation.
 - After C2, complete D hardening: offline end-to-end, accessibility, low-end-phone behaviour, data-use review and formal acceptance.
 - Optional later improvements: expiry-register CSV/print and expiry-by-month summary.
 
 ### Workspace (Notes & Sheets)
 - **Done (Phases 2–4, merged 19 Nov 2026):** database core and Notes backend (`1100`, `1101`), Notes editor, sharing, history/restore, home with search and folders; registered at `/workspace`.
-- **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Build Sheets Phase 5 increment 2: JS domain model with parity fixtures, data layer, grid and New workbook. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
+- **Done 22 Nov 2026 (branch, not merged):** Phase 5 increment 2, the JS reference model with a parity test against the database.
+- **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Build Sheets Phase 5 increment 3: data layer, then the grid and New workbook. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
 - **Next (Phase 5):** workbooks and the spreadsheet grid. `1102` (sheets, cells with stable row/column ids, styles, operation log, snapshots) is on `main` and applied live (21 Nov 2026); the Sheets UI is not built; next are the JS domain model with a parity fixture, then the grid.
 - **Then:** formula engine (6), formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
 
 ### Closing / Manager / STR
 - Treat the core implementations as built; prioritize acceptance and documented integration gaps rather than rebuilding their existing screens.
-- Reconcile the 12 timestamp-versioned migration registry rows before adding more database migrations; 0214 is present in both repo and live registry.
+- Registry reconciled (22 Nov 2026). Get `0015_core_trigger_search_path.sql` onto `main`; the 12 Nov registry backup is dropped; the 21 and 22 Nov backups can go after review.
 - STR supplier/pack metadata and presentation follow-ups should not block unrelated module acceptance.
 
 ## P3 — Quality and future modules

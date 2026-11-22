@@ -1,5 +1,9 @@
 # Database design and schema reference
 
+> **Fresh live snapshot — 22 Nov 2026 (read-only):** 124 public base tables, all 124 with RLS enabled; 14 have no policies and zero of those are directly exposed to `anon`/`authenticated` by table grants. Public schema: 341 routines, 283 SECURITY DEFINER; zero SECURITY DEFINER routines without configured `search_path`. Live migration registry: 93 four-digit rows. Main contains 92 migration SQL files; live-only `0015_core_trigger_search_path` has its exact source on `ops-redesign-stage1` and is already applied live. Advisor findings: 220 authenticated-callable SECURITY DEFINER functions, 124 unindexed foreign keys, 5 RLS initplan warnings, 23 unused-index notices, one duplicate permissive SELECT policy. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). Historical counts below are dated snapshots and superseded where they conflict.
+
+
+
 > **Live schema snapshot (21 Nov 2026):** the legacy catalogue below is historical and not a full current schema inventory. A fresh read-only check of DuaPharmaPlus found 124 public base tables (all 124 have RLS enabled), 337 public routines, 279 SECURITY DEFINER routines and zero SECURITY DEFINER routines missing a configured `search_path`. Fourteen RLS tables have no policies and also have no `anon` or `authenticated` table grants (internal/service-role-only tables). See `docs/PROJECT_AUDIT_2026-11-21.md` for the audit boundary and advisor findings. Do not use the old table totals as current totals.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
@@ -101,7 +105,7 @@ PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). Th
 | `0009_inventory_feed` | inventory feed tables and sync (Foundation F3, built in a separate session) |
 | `0010_manage_fields` | field management functions, Sale Book view |
 
-**Registry note:** the registry was reconciled to repo-numbered migrations on 12 Nov 2026 (`docs/DECISIONS.md` D-35, `docs/RUNBOOK.md` §4). New migrations are still applied by hand and registered under the repo number; never use a tool that registers a timestamp version.
+**Registry note:** the registry was reconciled to repo-numbered migrations on 12 Nov 2026 (`docs/DECISIONS.md` D-35, `docs/RUNBOOK.md` §4). New migrations are still applied by hand and registered under the repo number; never use a tool that registers a timestamp version. (22 Nov 2026: `0412` was registered as `20261122035159` by `apply_migration` and renamed to `0412` the same day; see `docs/RUNBOOK.md` §4.) Public routines also gained one internal function, `audit_compile_round_core` (0412), after the 21 Nov snapshot above.
 
 ## Seed and private data
 Reference data (permissions, payment methods, check-list content, settings) is in migrations. **Private values are not in Git:** the owner's contact details, the doctor name, competitor figures (applied by SQL) and every real sales figure (imported once, never committed).

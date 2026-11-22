@@ -1,6 +1,6 @@
 # Invoice Desk — Module Brief
 
-**Current status (21 Nov 2026):** Module source and three routes are integrated on `main`; CI run #401 passed app/database/functions on commit `9669497`. Migrations 1000–1003 are live under timestamp registry versions `20261117135131`–`20261117140223`. Remaining: explicit E2E save/product/history/RLS coverage, workbook/logo fidelity, Android/Windows browser and physical 80mm printer acceptance.
+**Current status (22 Nov 2026):** Module source and three routes are integrated on `main`; CI run #444 and Pages deployment #244 passed on commit `18283f176`. Migrations 1000–1003 are live under their four-digit repository versions. Remaining: explicit E2E save/product/history/RLS coverage, workbook/logo fidelity, Android/Windows browser and physical 80mm printer acceptance.
 
 ## Purpose
 Replace the owner's three Excel invoice workflows with a secure, historical, printable module inside Dua. This is invoicing only, not accounting, inventory or POS.

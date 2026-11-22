@@ -1,15 +1,21 @@
 # Dua Workspace — start here (handover for the next session)
 
+> **Updated 22 Nov 2026:** this handover was originally written 19 Nov and its Phase 5 status is stale. Phase 5 increment 2 (browser reference model, shared fixtures, generator, parity SQL and 47 unit tests) is merged to `main` via PR #66. The Sheets database is live; the model/tests are in main; a workbook/grid UI and complete Sheets data layer are still not built. Continue from current `main`, not commit `468873a`. See [workspace.progress.md](workspace.progress.md) and [the 22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
+
 Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
 
-## 1. Where things stand
+## 1. Historical handover context
+
+The 19 Nov instructions below describe the Notes-only checkpoint and predate Phase 5 increment 2. Use the updated status banner above and `workspace.progress.md` as the current source of truth.
+
+## 2. Original handover notes (historical)
 
 - **Notes are built, merged to `main` and registered** (`/workspace`, `/workspace/note`, nav order 86). Migrations `1100` and `1101` are applied to the shared Supabase project (`sdsynzsflubdxnelgthh`) and registered as versions `1100` and `1101`; their function bodies were verified identical to the tested copy (D-47).
 - **Not built:** Sheets (workbooks, grid, formulas, CSV), offline editing, synchronisation and the conflict screens, attachments. The button "New workbook" is shown disabled.
 - **Not verified by anyone yet:** the editor in a real browser. All tests so far run in jsdom. The owner has to try it on a real phone and a desktop with two accounts. Do not start Phase 5 until the owner has said the Notes try-out is acceptable, or has said "go" anyway (rule N-17: each phase waits for a separate owner go).
 - `main` last known good point for Workspace: commit `468873a` (merge of Phase 4). Later commits on `main` may belong to other modules.
 
-## 2. Read in this order
+## 3. Original reading order
 
 1. `docs/modules/workspace.md` — the brief and the 17 owner decisions (N-1 to N-17), structure, permissions, screens, phases.
 2. `docs/modules/workspace.design.md` — the design for everything not built (Sheets storage, how operations are applied, offline sync, formulas, grid, attachments, phases 5–11, open risks).
@@ -17,7 +23,7 @@ Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions 
 4. `docs/MODULES.md` (rules every module obeys), `docs/DECISIONS.md` D-41 to D-47, `docs/SECURITY_MODEL.md` (Workspace section).
 5. Code: `supabase/migrations/1100_workspace_core.sql` and `1101_workspace_notes.sql` are the pattern for every new Workspace table and function.
 
-## 3. What exists (file map)
+## 4. Original file map
 
 | Area | Files |
 |---|---|
@@ -35,13 +41,19 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 
 `supabase/migrations/1102_workspace_sheets.sql` and its test (203 checks) are merged to `main` (branch `module/workspace-sheets` merged and deleted on 21 Nov 2026). The migration is applied live and registered as version `1102` (21 Nov 2026; verified against the live project: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal ones not callable by `anon` or `authenticated`). The four trigger guards are pinned by `1110`. **The Sheets UI is not built** (confirmed by the owner 21 Nov 2026): the next work is increment 2 below. Payload formats and rules for the browser side are in `workspace.design.md` §4a. The shared status documents were brought up to date on 21 Nov 2026; keep them current with every increment.
 
+## 3b. Phase 5 increment 2: the reference model (22 Nov 2026, branch `module/workspace-sheets-domain`)
+
+- `js/modules/workspace/domain/spreadsheet.js` mirrors `workspace_apply_ops` and its helpers: same checks in the same order, same answers (`applied`, `conflict`, `rejected`, `duplicate`), same log and pull, restore points and restore. `applyRemote(wb, pulledOperation)` keeps a local copy current (it throws `ReplicaOutOfSync` when the copy has drifted or after a restore: load the workbook again). `loadWorkbook` / `addLoadedCells` / `addLoadedStyles` build a copy from `workspace_workbook_open`, `workspace_load_sheet` and the styles table.
+- Parity: `tests/fixtures/workspace-sheet-cases.json` holds 10 operation sequences with expected answers. `node tools/workspace-sheet-cases.mjs --record` runs them through the model, stores the answers and rewrites `supabase/tests/1102_workspace_sheet_parity_test.sql`. The **database** is the oracle: that SQL file must pass on PostgreSQL (85 checks, run on 22 Nov 2026), so a wrong model cannot be recorded into a passing test. Mutation check: changing one expected answer makes the SQL test fail. After editing the fixture by hand, run the tool without `--record` to regenerate only the SQL; a unit test fails if the committed SQL is stale.
+- **Not in this increment:** applying the person's own pending operations locally (optimistic edits, offline queue: Phase 8), formulas (Phase 6), any screen, any data-layer call. `sw.js` was not regenerated because nothing imports the model yet; run `npm run build:sw` when the first screen or data-layer file does.
+
 ## 4. What to do next
 
 **Phase 5 — workbooks and grid** (full design in `workspace.design.md` §3, §4, §7, §9). Suggested increments, each its own reviewable change:
 
 1. ~~**Database only:** `1102_workspace_sheets.sql`~~ — **built** (see 3a). Still to add: a parity fixture of operation sequences shared by the SQL tests and the JS reference model; and the operations not yet implemented (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`), which are answered `rejected` today.
-2. **Next:** domain model for spreadsheets (`domain/spreadsheet.js`: stable-id structure, operation generation, client-chosen ids ≥ 1000) with a JS reference model that runs the **same** operation sequences as the SQL and gives the same answers.
-3. Data layer, then a read-only grid, then editing, then structure operations, then formats.
+2. ~~**Domain model** (`domain/spreadsheet.js`) with a JS reference model that runs the same operation sequences as the SQL~~ — **built 22 Nov 2026** (see 3b). The parity fixture covers every implemented operation; `move_rows`, `move_cols`, `duplicate_sheet`, `sort_range` are still unbuilt in the database, so are only checked as "rejected".
+3. **Next:** data layer (`data/workbooks.js`: open, load pages of cells and styles, pull, send batches with the **same operation ids resent until answered**, snapshots), then a read-only grid, then editing, then structure operations, then formats.
 4. Enable "New workbook" on the home page and add the route `/workspace/sheet` (remember routes carry no ids: use the session-storage pattern in `domain/documents.js`, or ask Foundation for the router change).
 
 Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (not the repo): grid scrolling on a real phone, and whether `wss://*.supabase.co` needs a CSP change.
@@ -68,6 +80,9 @@ Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (
 9. **The validators must agree.** Edit `tests/fixtures/workspace-note-cases.json`, run `node tools/workspace-note-cases.mjs` to regenerate the SQL test, and keep `tests/unit/workspace-editor-model.test.js` passing: it proves the editor schema and both validators accept and refuse the same notes.
 10. **Autosave resends the same operation id and content after a failed send.** Do not change this without reading D-45; it prevents a person conflicting with their own lost reply. The Sheets outbox in Phase 8 must do the same.
 11. **Function privileges:** every new function needs `set search_path = public`, `revoke all … from public, anon, authenticated`, and an explicit grant only for what the browser may call (trigger functions get the revoke too). The hygiene checks at the end of the test files catch mistakes; copy them.
+13. **FIXED by migration `1111` (written 22 Nov 2026, NOT yet applied live: apply by hand and register as version `1111`).** The style validator in `1102` was looser than it read. `workspace_style_valid` lets through a JSON null or a non-integer for `weight`, `size`, `halign`, `valign`, border sides, `numfmt.type`, `numfmt.decimals` and `numfmt.pattern`, because `not (null between 8 and 72)` is null, not true. Verified on PostgreSQL 16 (parity case 6, "known looseness"): `size: "big"`, `size: 8.5`, `weight: null`, `decimals: 2.5` and `numfmt: {}` are all stored. `1111` now refuses null and wrong-kind values for every key that is present (new writes only; rows stored earlier are not re-checked). The model and fixture case 6 were changed with it. Still **draw cells with `sanitizeStyle()`**, since a style stored before `1111` could hold the old values.
+14. **Whole-call errors versus `rejected`.** An id outside the integer range in `insert_*`/`delete_*` makes PostgreSQL raise a plain error (not `WS001`), which undoes the whole batch and is not answered per operation. The model throws `CallRefused` for it; the data layer should never build such ids (`newIds` stays in range).
+15. **Restore forgets blank markers.** `workspace_sheet_restore` deletes a restored sheet's cell rows (markers included) before writing the snapshot's cells, so after a restore the ids of deleted rows are no longer remembered as "used". Harmless today (client ids are random 31-bit numbers) but worth knowing if id reuse ever matters.
 12. **Hand-typed SQL drifts.** When you must paste a migration into a tool call, include comments inside function bodies too, or the hash check will differ (it did once, harmlessly).
 
 ## 7. Known problems that are not from Workspace

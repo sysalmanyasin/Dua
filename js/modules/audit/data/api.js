@@ -134,6 +134,17 @@ export async function compiledRows({ compilationId, mode = 'diff', text = '', fr
   if (error) throw error;
   return { rows: data, total: count ?? data.length };
 }
+/** The latest compile of a round, as the person who counted it may read it (item, variance and value totals). Null if there is none yet. */
+export const myCompilation = (roundId) =>
+  one(
+    db()
+      .from('audit_compilations')
+      .select('item_count, variance_count, variance_value, compiled_at, revision')
+      .eq('round_id', roundId)
+      .order('revision', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  );
 export const compileRound = ({ roundId, allowMissing = false, version }) =>
   one(db().rpc('audit_compile_round', { p_round: roundId, p_allow_missing: allowMissing, p_expected_version: version }));
 export const forceSubmit = ({ assignmentId, mode, reason }) =>

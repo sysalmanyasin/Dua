@@ -1,6 +1,6 @@
 # Operations Redesign — audit, gap analysis and implementation plan
 
-Status: **Stage 1 (audit and plan), 21 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-50 to D-54).** Nothing in this plan is built yet except the two hygiene fixes in §9.
+Status: **Stage 1 (audit and plan), 21 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-51 to D-55).** Nothing in this plan is built yet except the two hygiene fixes in §9.
 Source brief: "DUA — Complete Operations Redesign & Implementation". Where the brief leaves a policy open, this plan lists it in §8 as a **decision for the owner** and does not assume an answer.
 
 ## 1. Method and limits
@@ -29,15 +29,15 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
 | Business Snapshot: sales, transactions | Have | `cover_summary()`, sales views | Comparison and trend fields; confirm transaction count source |
 | Snapshot: stock alerts | Have | `inventory_cover_summary()` | Reuse as is |
 | Snapshot: closing status | Partial | Closing tables and status in the Closing module | A read RPC that reports today's closing state without opening Closing data |
-| Snapshot: cash position | Partial | Manager ledgers (authority, D-53), Closing deposits, Sales "Cash to Deposit" | An Owner-only read RPC over the Manager ledgers; a rule that flags a day whose bank deposit does not match its cash sale |
+| Snapshot: cash position | Partial | Manager ledgers (authority, D-54), Closing deposits, Sales "Cash to Deposit" | An Owner-only read RPC over the Manager ledgers; a rule that flags a day whose bank deposit does not match its cash sale |
 | Snapshot: pending tasks, critical alerts | Missing | Owner "Needs attention" covers notification failures only | Task Master (§5) and a business-rules table for alerts |
-| Snapshot / Team: staff attendance | Deferred (D-50) | Waits for the Android app | Nothing now. Attendance tiles and sections are not shown, and no figure is invented. Slots stay reserved in the layout |
+| Snapshot / Team: staff attendance | Deferred (D-51) | Waits for the Android app | Nothing now. Attendance tiles and sections are not shown, and no figure is invented. Slots stay reserved in the layout |
 | Action Centre | Missing | Individual module warnings | A read-only aggregator that lists issues with a deep link to the owning module; an issue closes only when its source condition clears |
 | Critical alerts by configurable rules, not AI | Missing | `settings` table with versioned history | A rules table (rule, threshold, severity, enabled, owner) evaluated in the database; AI may explain but never edit severity |
 | Staff & Team Overview, completion rate | Missing | `staff`, `mgmt_staff_details` (owner only) | Task and attendance data; a defined completion-rate rule (§5.4) |
 | Business Intelligence (7/30/90 days) | Partial | Sales Dashboard charts, views | Period-parameterised read RPCs reusing existing sales and inventory views; detail stays in Reports |
 | Recent Activity (latest 10, configured categories) | Missing | `activity_log` (append-only, restricted read via `activity.view`) | A permission-checked feed RPC with category mapping; owner-configured categories stored in `settings`; never writes to the log |
-| Manager dashboard | Not needed | Manager is the Owner (D-51) | None: the Owner dashboard is the management dashboard. Staff get a "To verify" list if the owner has named them as verifiers (D-52) |
+| Manager dashboard | Not needed | Manager is the Owner (D-52) | None: the Owner dashboard is the management dashboard. Staff get a "To verify" list if the owner has named them as verifiers (D-53) |
 | Staff dashboard, personal payroll | Partial | Salary data exists in `mgmt_salary_*`, owner only | A per-person, read-only RPC returning only the caller's own payslip |
 | Task Master | **Missing** | Nothing (Audit has assignments; Workspace has notes; neither is a task system) | Whole module (§5) |
 | Notifications and reminders for staff | Missing | Owner-only table and sender | Per-recipient rows, delivery and acknowledgement history, reminder policies, in-app inbox (§6) |
@@ -64,12 +64,12 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
    | Notifications | extend `notify_owner` into a per-recipient service | Stage 4 |
    | AI tools | Edge Function with a tool registry | Stage 5 |
 5. **Every new write goes through a SECURITY DEFINER RPC** with `set search_path = public`, an explicit `has_perm` or ownership check, `revoke … from public, anon, authenticated` then a targeted `grant … to authenticated`, and a `log_activity` call. Each is covered by a database test that also tries the call as the wrong role.
-6. **Migrations:** one reserved range per workstream (D-54, `docs/MODULES.md` §5.1). Apply by hand and register under the four-digit version, never with `apply_migration`; run `tools/check-registry.mjs` first.
+6. **Migrations:** one reserved range per workstream (D-55, `docs/MODULES.md` §5.1). Apply by hand and register under the four-digit version, never with `apply_migration`; run `tools/check-registry.mjs` first.
 7. **Hosting unchanged** (GitHub Pages + Supabase). The AI and push features need Edge Functions only; no new host.
 
 ## 5. Task Master (Stage 3)
 ### 5.1 Data model (proposal; prefix `task_`)
-- `task_defs` — the task template (title, instructions, evidence rule, default assignee, active). `task_schedules` — the recurring rule (daily, weekly weekdays, monthly day, Nth week of the month), approved by the Owner, with a unique `(schedule, cycle)` key so one cycle can only ever create one task (D-55).
+- `task_defs` — the task template (title, instructions, evidence rule, default assignee, active). `task_schedules` — the recurring rule (daily, weekly weekdays, monthly day, Nth week of the month), approved by the Owner, with a unique `(schedule, cycle)` key so one cycle can only ever create one task (D-56).
 - `task_items` — one task: status, assignee, creator, deadline, priority, evidence rule, source (`manual`, `schedule`, `ai_proposal`), `version` for optimistic concurrency.
 - `task_events` — append-only history: created, assigned, accepted, started, submitted, verified, returned, reassigned, deadline changed, comment. Uses the same immutable-trigger pattern as `activity_log`.
 - `task_comments` — the only staff-to-staff channel (no chat or direct messages).
@@ -80,22 +80,22 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
 `created → assigned → accepted → in_progress → submitted → verification → completed`; a rejected submission returns to `in_progress` for correction and resubmission. One RPC per transition, each checking the caller's role on the task. Staff cannot change owner or deadline except by a change request. A person can never verify a submission they made, the Owner included (check on `submitted_by <> auth.uid()` inside the RPC, covered by a test). Every completed task requires verification.
 
 ### 5.3 Permissions
-New keys: `tasks.view_own`, `tasks.assign`, `tasks.verify`, `tasks.manage_defs`, `tasks.approve_proposals`, `tasks.review_requests`. Because Manager is the Owner (D-51), everything except `tasks.view_own` is Owner-only by default: only an admin at MFA level `aal2` holds them, and no role template carries them.
-**Verification (D-52):** the Owner, and Senior staff the owner has named. A SQL helper `task_can_verify()` returns true only when the caller is the Owner, or the caller's login is `senior` **and** has an explicit per-user `grant` of `tasks.verify`. The `senior` template never carries the key, so granting it to all seniors by mistake does not widen access, and a Junior is refused even if granted. The helper is called inside every verify and return RPC and tested for: Owner, named Senior, unnamed Senior, Junior, a disabled login, and a person verifying their own submission.
+New keys: `tasks.view_own`, `tasks.assign`, `tasks.verify`, `tasks.manage_defs`, `tasks.approve_proposals`, `tasks.review_requests`. Because Manager is the Owner (D-52), everything except `tasks.view_own` is Owner-only by default: only an admin at MFA level `aal2` holds them, and no role template carries them.
+**Verification (D-53):** the Owner, and Senior staff the owner has named. A SQL helper `task_can_verify()` returns true only when the caller is the Owner, or the caller's login is `senior` **and** has an explicit per-user `grant` of `tasks.verify`. The `senior` template never carries the key, so granting it to all seniors by mistake does not widen access, and a Junior is refused even if granted. The helper is called inside every verify and return RPC and tested for: Owner, named Senior, unnamed Senior, Junior, a disabled login, and a person verifying their own submission.
 
 ### 5.4 Completion rate (defined, so it is fair)
 Rate = tasks completed and verified on or before their deadline ÷ tasks whose deadline fell inside the period and which were assigned to that person for at least their full window. Excluded: tasks cancelled by management, tasks reassigned away before the deadline, tasks created already overdue, and days on approved leave once attendance exists. The period (7, 30 or 90 days) is always shown next to the figure.
 
-### 5.5 Evidence (D-56)
+### 5.5 Evidence (D-57)
 No files or photos. The task creator chooses `none`, `note` (written text) or `tick` (a confirmation tick). The submit RPC refuses a submission that does not meet the rule. The note is stored on the submission event, so there is no evidence table and no Storage.
 
 ## 6. Notifications and reminders (Stage 4)
 - New `ntf_recipients` (notification, user, created, delivered, read, acknowledged) so history is per person. The existing owner `notifications` table and `notify_owner()` keep working unchanged; new code calls a new `notify_users(kind, payload, recipients)` that writes the same kind of row and never raises.
 - In-app inbox read through RLS (a person sees only their own rows); push through the existing `notify-ntfy` pattern.
 - **Privacy:** push payloads carry ids and generic wording only. Salary, amounts and names never appear in a push or lock-screen text. This extends the rule already stated in `0012`.
-- Reminder policy: owner-set defaults in `settings`; only the Owner adjusts reminders (Manager is the Owner, D-51). Overdue and approaching-deadline checks run on a schedule.
+- Reminder policy: owner-set defaults in `settings`; only the Owner adjusts reminders (Manager is the Owner, D-52). Overdue and approaching-deadline checks run on a schedule.
 - Announcements with required acknowledgement use the same recipient table.
-- **In-app only for staff at first (D-57).** Staff push is a later add-on; the owner's push path is unchanged.
+- **In-app only for staff at first (D-58).** Staff push is a later add-on; the owner's push path is unchanged.
 
 ## 7. Dua AI Assistant (Stage 5)
 - One assistant, reachable from the dashboard and the navigation, role-aware through the same `my_context()` permissions.
@@ -105,24 +105,24 @@ No files or photos. The task creator chooses `none`, `note` (written text) or `t
 - Conversation memory is session-only (kept in the browser tab, never stored server-side). App Guide uses a static, versioned guide file, so it works without the model.
 - The assistant explains alerts and suggests responses; it cannot change severity or rules.
 - Task Master and every module keep working when the assistant is unavailable.
-- **Provider: Groq, free plan only (D-58).** Free-plan limits are low and shared across the whole organisation (one published example for a single model is 30 requests a minute, about 1,000 a day and 8,000 tokens a minute; limits differ by model and can change without notice), so the assistant has a per-person throttle, short prompts and a graceful "busy" reply, and everything works without it. The key is an Edge Function secret behind a provider adapter. Salary and cash figures are shown by the app from the database result and are not passed to the model. Model choice is made at Stage 5 by testing tool calling; Groq's current data terms are read first.
+- **Provider: Groq, free plan only (D-59).** Free-plan limits are low and shared across the whole organisation (one published example for a single model is 30 requests a minute, about 1,000 a day and 8,000 tokens a minute; limits differ by model and can change without notice), so the assistant has a per-person throttle, short prompts and a graceful "busy" reply, and everything works without it. The key is an Edge Function secret behind a provider adapter. Salary and cash figures are shown by the app from the database result and are not passed to the model. Model choice is made at Stage 5 by testing tool calling; Groq's current data terms are read first.
 
 ## 8. Owner decisions
-Decided items are recorded in `docs/DECISIONS.md` (D-50 to D-59). The plan proceeds without any open item up to the stage that needs it.
+Decided items are recorded in `docs/DECISIONS.md` (D-51 to D-60). The plan proceeds without any open item up to the stage that needs it.
 
 | # | Decision | Status | Effect on the plan |
 |---|---|---|---|
-| D1 | Who may verify completed tasks | **Decided (D-52):** Owner and Senior staff the owner has named | Per-person `tasks.verify` grant on a Senior login; `task_can_verify()` in the database; no self-verification, the Owner included |
-| D2 | Attendance source | **Decided (D-50):** wait for the Android app | No attendance UI or figures now; completion rate has no leave exclusion yet |
-| D3 | Manager tier | **Decided (D-51):** Manager is the Owner | Two dashboards only: Owner and Staff. "Authorised manager" actions are Owner-only |
+| D1 | Who may verify completed tasks | **Decided (D-53):** Owner and Senior staff the owner has named | Per-person `tasks.verify` grant on a Senior login; `task_can_verify()` in the database; no self-verification, the Owner included |
+| D2 | Attendance source | **Decided (D-51):** wait for the Android app | No attendance UI or figures now; completion rate has no leave exclusion yet |
+| D3 | Manager tier | **Decided (D-52):** Manager is the Owner | Two dashboards only: Owner and Staff. "Authorised manager" actions are Owner-only |
 | D4 | Separate staging Supabase project | **Open, recommendation changed:** not required if the safeguards in §8.1 are accepted | Awaiting the owner's confirmation |
-| D5 | Migration ranges | **Decided and reserved (D-54)** | `0700–0749` ops, `0750–0799` reports, `0800–0899` AI, `1200–1299` tasks, `1300–1399` inbox; enforced by `tests/unit/migration-ranges.test.js` |
-| D6 | Cash position authority and deposit figure | **Decided (D-53, D-59):** Manager ledgers; Closing deposit rows are compared with cash sale | Owner-only read RPC over the ledgers; mismatch is a rule-based Action Centre issue |
-| D7 | Approved schedules | **Decided (D-55)**, one detail open | Rule types incl. "Nth week of the month"; Owner approves. Open: how "3rd week" is counted (proposal: days 15–21, due at the end) |
-| D8 | Evidence storage | **Decided (D-56):** none | Evidence is none, a note, or a tick |
-| D9 | Staff push | **Decided (D-57):** in-app only at first | |
-| D10 | AI provider | **Decided (D-58):** Groq, free plan only | Throttling, provider adapter, no sensitive figures sent to the model |
-| D11 | Default Recent Activity categories | **Decided (D-59):** closing drafts and closing completed | Draft status comes from a Closing-owned read function; no audit event exists for drafts today |
+| D5 | Migration ranges | **Decided and reserved (D-55)** | `0700–0749` ops, `0750–0799` reports, `0800–0899` AI, `1200–1299` tasks, `1300–1399` inbox; enforced by `tests/unit/migration-ranges.test.js` |
+| D6 | Cash position authority and deposit figure | **Decided (D-54, D-60):** Manager ledgers; Closing deposit rows are compared with cash sale | Owner-only read RPC over the ledgers; mismatch is a rule-based Action Centre issue |
+| D7 | Approved schedules | **Decided (D-56)**, one detail open | Rule types incl. "Nth week of the month"; Owner approves. Open: how "3rd week" is counted (proposal: days 15–21, due at the end) |
+| D8 | Evidence storage | **Decided (D-57):** none | Evidence is none, a note, or a tick |
+| D9 | Staff push | **Decided (D-58):** in-app only at first | |
+| D10 | AI provider | **Decided (D-59):** Groq, free plan only | Throttling, provider adapter, no sensitive figures sent to the model |
+| D11 | Default Recent Activity categories | **Decided (D-60):** closing drafts and closing completed | Draft status comes from a Closing-owned read function; no audit event exists for drafts today |
 
 ### 8.1 Why a staging project was recommended, and the lighter alternative
 Task Master adds about six new tables, many functions and RLS policies to the live database that holds real sales and payroll data, and migrations are applied by hand. Local tests run on a clean Postgres, not on live data, so a staging copy would catch live-only problems (extensions, real roles, cron). It is **not required**, because the Task Master and notification migrations are additive (new tables and functions, nothing existing changed). Instead, each such migration ships with:

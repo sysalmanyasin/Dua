@@ -5,7 +5,7 @@ import { shortDate } from '../../../shared/format.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
-import { setView } from '../domain/nav.js';
+import { getLastView, setView } from '../domain/nav.js';
 import manifest from '../manifest.js';
 import { loadingCard } from './parts.js';
 import { installSignOutGuard } from './signoutGuard.js';
@@ -100,6 +100,8 @@ function statusLabel(status) {
 function navCard(group, index) {
   const panelId = `aud-nav-panel-${index}`;
   const tone = index % 5;
+  // the first group is the person's main work, so it starts open; the others stay folded until tapped
+  const open = index === 0;
   const links = group.items.map(
     (item) =>
       html`<a class="aud-nav-link" href="#${item.path}">
@@ -111,8 +113,8 @@ function navCard(group, index) {
       </a>`,
   );
 
-  return html`<section class="card aud-card aud-nav-group aud-nav-tone-${tone}" aria-label="${group.title}">
-    <button type="button" class="aud-group-toggle" data-aud-toggle aria-expanded="false" aria-controls="${panelId}">
+  return html`<section class="card aud-card aud-nav-group aud-nav-tone-${tone}${open ? ' is-expanded' : ''}" aria-label="${group.title}">
+    <button type="button" class="aud-group-toggle" data-aud-toggle aria-expanded="${open}" aria-controls="${panelId}">
       <span class="aud-group-copy">
         <span class="aud-group-heading">
           <strong>${group.title}</strong>
@@ -122,7 +124,24 @@ function navCard(group, index) {
       </span>
       <span class="aud-group-chevron" aria-hidden="true">⌄</span>
     </button>
-    <div class="aud-group-links" id="${panelId}" data-aud-panel hidden>${links}</div>
+    <div class="aud-group-links" id="${panelId}" data-aud-panel ${open ? '' : 'hidden'}>${links}</div>
+  </section>`;
+}
+
+// Offered only when the last audit opened on this device is one the database still shows this person.
+function resumeSection(last, engagements) {
+  const engagement = last ? engagements.find((item) => item.id === last.engagement) : null;
+  if (!engagement) return '';
+  const path = last.round ? '/audit/round' : '/audit/engagement';
+  // prettier-ignore
+  return html`<section class="card aud-card aud-resume" aria-label="Pick up where you left off">
+    <div class="aud-section-head">
+      <div>
+        <h2>Pick up where you left off</h2>
+        <p class="muted small">${engagement.name}${last.round ? ' · the round you had open' : ''}</p>
+      </div>
+      <a class="btn btn-sm btn-primary" href="#${path}" data-open-last>Open</a>
+    </div>
   </section>`;
 }
 
@@ -159,7 +178,7 @@ function assignmentCard(assignment) {
       </div>
       <p class="muted small">${remaining.toLocaleString()} remaining · ${percent}% complete</p>
     </div>
-    <a class="btn btn-sm ${buttonClass}" href="#/audit/count">${buttonLabel}</a>
+    <a class="btn btn-sm ${buttonClass}" href="#/audit/count" data-open-assignment="${assignment.assignment_id}">${buttonLabel}</a>
   </article>`;
 }
 
@@ -361,8 +380,11 @@ export async function mount(el, { ctx } = {}) {
   }
 
   let managementContent = '';
+  let resumeContent = '';
+  const last = getLastView();
   if (canSeeEngagements) {
     managementContent = engagementSection(engagements, engagementDetails, engagementError, activeRounds, compiledRounds);
+    resumeContent = resumeSection(last, engagements);
   }
 
   let accessNotice = '';
@@ -397,6 +419,7 @@ export async function mount(el, { ctx } = {}) {
         </div>
         <button type="button" class="aud-refresh" data-refresh aria-label="Refresh dashboard">Refresh ↻</button>
       </section>
+      ${resumeContent}
       ${personalContent}
       ${managementContent}
       ${accessNotice}
@@ -431,6 +454,16 @@ export async function mount(el, { ctx } = {}) {
     }
     if (event.target.closest('[data-refresh]')) {
       mount(el, { ctx });
+      return;
+    }
+    // the counting page opens the assignment named here; with none named it shows the list (or the only open one)
+    const assignmentLink = event.target.closest('[data-open-assignment]');
+    if (assignmentLink) {
+      setView({ assignment: assignmentLink.dataset.openAssignment });
+      return;
+    }
+    if (event.target.closest('[data-open-last]') && last) {
+      setView(last.round ? { engagement: last.engagement, round: last.round } : { engagement: last.engagement });
       return;
     }
     const engagementLink = event.target.closest('[data-open-engagement]');
