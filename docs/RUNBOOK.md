@@ -1,5 +1,9 @@
 # Runbook (how to operate, fix and change things)
 
+> **22 Nov 2026 live-state warning:** before applying any migration, compare local `supabase/migrations/*.sql` with live `supabase_migrations.schema_migrations`. Main has 92 migration files; the live registry has 93 four-digit rows. Live-applied `0015_core_trigger_search_path` is missing from main but its exact source is on `ops-redesign-stage1`. Bring the file into main through review; do not reapply it or alter the registry. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md).
+
+
+
 ## 1. Where things are
 | Thing | Where |
 |---|---|
