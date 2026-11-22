@@ -11,7 +11,9 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 **Full module register:** [docs/MODULE_PROGRESS_REGISTER.md](docs/MODULE_PROGRESS_REGISTER.md)  
 **Repository:** https://github.com/sysalmanyasin/Dua
 
-## Current project status (21 Nov 2026)
+## Previous project status snapshot (21 Nov 2026; superseded)
+
+The current verified snapshot is at the top of this README and in [the 22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md). The following section is retained as historical context.
 
 | Area | Status |
 |---|---|
