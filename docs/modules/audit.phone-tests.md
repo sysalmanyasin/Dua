@@ -14,6 +14,13 @@ These are for the owner to run. Nothing here has been run on a real phone yet.
 2. Look for: each counter sees only their own items (AUD-5), no one sees another's quantities.
 3. Owner compiles, reviews, resolves a conflict with a reason, starts round 2. Look for: fresh stock in round 2.
 
+## PHONE 4: Individual Audit compiles itself (new, 22 Nov 2026)
+1. A person with `audit.individual` and `audit.count` starts an Individual Audit (a template or one company) and counts a few items, leaving some uncounted.
+2. Submit. Look for: **Your result** shows the item count, how many differ and the value; the owner does not need to compile.
+3. Tap **Start another audit** and start a second one straight away. Look for: it starts without waiting.
+4. A second person counts the same product to a different quantity and submits. Look for: no conflict appears for the owner.
+5. Owner reopens the first submission with a reason while the person has the second audit open. Look for: a clear message that they already have another Individual Audit open.
+
 ## PHONE 3: barcode scanner (new)
 Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, one with `audit.barcode_admin`; a few real product boxes.
 1. Open Audit > Barcodes > Find. Tap "Scan a barcode". Look for: the browser asks for the camera; the view shows the camera. If refused, the message says how to allow it and you can type the number.
@@ -25,3 +32,11 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 7. Which engine: on an Android phone with Chrome the browser reader is used (no download). On an iPhone the first scan loads a small file once; note if it takes more than a few seconds.
 8. Battery and heat: leave the scanner open without scanning. Look for: it pauses itself after about 45 seconds ("Keep scanning" button).
 9. Low-end phone: note how long a box takes to read, and whether the page stays responsive.
+
+## PHONE 5: getting into counting quickly (new, Audit 3.0 F1)
+1. A counter with exactly one open assignment taps **Counting** from the Audit Overview. Look for: the count screen opens at once, with no list in between. Tap **All assignments**. Look for: the list shows and stays.
+2. With two open assignments, tap **Continue counting** on the second card. Look for: that assignment opens, not the first.
+3. On a long list, scroll down. Look for: a bar stays at the bottom with "N left" and **Submit**; it is easy to tap with a thumb. Tap Submit with items uncounted. Look for: the "not counted" warning, and nothing is submitted.
+4. Count every item and tap Submit in the bar. Look for: it submits at once. Then look for **Your next assignment** if you have another open one.
+5. Individual Audit: count some items wrongly, submit, then tap **Recount my differences**. Look for: a new audit with only the products that differed. Tap it twice quickly, or with a weak signal. Look for: only one audit is started.
+6. As the main auditor, open a round, go back to the Overview, then close the tab and reopen the app. Look for: **Pick up where you left off** opens the same audit and round.

@@ -1,6 +1,8 @@
 # Audit module — progress
 
-> **Current status (21 Nov 2026):** Audit is integrated on `main`, including Audit 2.0 command centre, counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports, expiry/racks and Barcode. Live registry contains `0401`–`0411`; `0409`–`0411` are timestamp-registered. The older section below describing Barcode as paused or not merged is superseded by the 20 Nov merge and live 0411 entry. Remaining: real-phone PHONE 1/2/3, scanner/offline acceptance, print/CSV checks and hardening.
+> **Update (22 Nov 2026):** Individual Audit rounds now compile themselves when submitted (migration `0412`, applied live; see the last section). Everything else below is unchanged.
+>
+> **Status as of 21 Nov 2026:** Audit is integrated on `main`, including Audit 2.0 command centre, counting/outbox, Individual Audit, compile/review/corrections/conflicts, Final Snapshot, reports, expiry/racks and Barcode. Live registry contains `0401`–`0411`; `0409`–`0411` are timestamp-registered. The older section below describing Barcode as paused or not merged is superseded by the 20 Nov merge and live 0411 entry. Remaining: real-phone PHONE 1/2/3, scanner/offline acceptance, print/CSV checks and hardening.
 
 ## Done (slice A1, database core)
 - `supabase/migrations/0401_audit_core.sql`: 14 new `audit.*` permissions (17 in total), 6 tables with RLS, guard triggers, and the RPCs `audit_engagement_create`, `audit_member_set`, `audit_round_create`, `audit_assign_auto`, `audit_assign_move`, `audit_assign_revoke` and `audit_round_lock`.
@@ -156,3 +158,32 @@
 - Full-suite testing exposed an existing eBill receipt-settings race: printing could start before asynchronous receipt settings loaded. Printing now waits for the settings load; the auto-print test waits for that asynchronous operation. This preserves the shop name/tax/footer in printed receipts and avoids printing with incomplete defaults.
 - The temporary formatter workflow and temporary CI workflow edits were removed; `.github/workflows/ci.yml` matches `main` again. The formatted Audit hub is committed on the feature branch.
 - All automated CI checks are green. Real-device Android acceptance is still pending with the owner after deployment.
+
+## Done (0412, Individual Audit compiles itself on submit) — 22 Nov 2026
+Problem: a person's Individual Audit stayed in `counting` after submit until the main auditor compiled it by hand, so the person saw no result and the round waited for a manual step.
+- `supabase/migrations/0412_audit_individual_autocompile.sql` (applied live 22 Nov 2026; registry row renamed to `0412`, see the registry note below):
+  - `audit_compile_round_core(round, allow_missing, expected_version)`: the compile body of 0402 without the permission check. Internal only: `authenticated` and `anon` cannot call it.
+  - `audit_compile_round` keeps the `audit.compile` check and calls the core. Normal (non-individual) rounds still compile by hand.
+  - `audit_submit`: when the assignment method is `individual-self-pick`, the submit calls the core in the same transaction. The round is `compiled` at once; the compile is attributed to the person who submitted. A replayed submit does nothing new. The result now carries `compiled` and `compilation_id`.
+  - **No cross-round conflicts in an individual engagement** (owner decision, 22 Nov 2026, AUD-14). Individual rounds are personal counts against that day's stock, so the same product counted differently on another day or by another person is not a conflict. Normal engagements still raise conflicts exactly as before.
+  - `audit_reopen`: refuses with `self_pick_open` if the person already has another open Individual Audit (it used to fail on the one-open-self-pick unique index). Re-submitting after a reopen adds compile revision 2 automatically.
+  - `audit_alert_compiled`: no `audit.compiled` owner alert for the individual engagement (the `audit.submitted` alert still fires). One-line revert if the owner wants it back.
+- App: after submit, the counting screen shows "Your result" (items, how many differ, value) from the person's own compilation row, and a **Start another audit** button (`js/modules/audit/ui/count.js`, `data/api.js` `myCompilation`).
+- Still manual for the main auditor: corrections, conflict handling in normal rounds, Final Snapshot. Finalizing an individual round works as before; `compile_stale` cannot happen because every submit recompiles.
+- Tests: new `supabase/tests/0412_audit_individual_autocompile_test.sql` (16 checks: counter cannot compile by hand or call the core, compiled at once and attributed to the counter, variances, next audit starts straight away, replay is a no-op, no conflict between two people's counts, reopen refused while another is open then allowed, revision 2 on re-submit). Full database suite and `npm run verify` (125 files / 1,933 unit tests at this change) pass.
+- Live check (22 Nov 2026): the four changed functions and the new core have the same body hash as the locally tested copy (D-47); the core is not executable by `authenticated` or `anon`; no open individual conflicts and no submitted-but-uncompiled individual rounds existed.
+- **Registry note:** this migration was applied with the Supabase `apply_migration` tool, which registered it as `20261122035159` (RUNBOOK §4 says to apply by hand under the repo number). The registry was backed up and the row renamed to `0412` on 22 Nov 2026; the registry now has no timestamp rows. The SQL was never affected.
+- Not done: phone check of the result card and "Start another" (PHONE 4 in `audit.phone-tests.md`); real-phone acceptance by the owner.
+
+## Audit 3.0, slice F1: staff and hub quick wins — 22 Nov 2026
+Plan: the "Audit 3.0 plan" doc (port five features from the old Audit Hub, shorten the staff and owner flows). F1 is screens only: no migration, no new database read.
+- **S1** Counting opens the only open assignment straight away. "All assignments" still shows the list and does not jump back in. A submitted, revoked or not-yet-counting assignment is not "open" (`isOpenAssignment`, `soleOpenAssignment` in `domain/count.js`).
+- **S2** Each assignment card on the Overview opens its own assignment (`data-open-assignment`), not whichever one was last opened.
+- **S3** A sticky bar on the counting screen shows "N left" and a Submit button. With items still uncounted it opens the usual "not counted" warning; it never submits past it. When everything is counted, Submit goes straight through, and so does the main Submit button (it used to go nowhere if the last item was counted after the screen was drawn).
+- **S4** "Recount my differences" on the Individual Audit result card starts a new Individual Audit on only the products that differed (`differingCodes`: uncounted reads as zero in stock, so it matches what the compile counted; at most `MAX_CODES`). One key per attempt, kept across a lost connection, so a retry never starts two audits. Not shown when nothing differed.
+- **S5** After submitting, "Your next assignment" offers the next open assignment in one tap.
+- **N1** "Pick up where you left off" on the Overview, for people who can see audits: the last audit and round opened on this device. Only ids are kept (`dua.audit.last` in `localStorage`, inside try/catch); it is shown only if that audit is still in the person's own list.
+- **N3** The first navigation group is open by default; the others stay folded.
+- Files: `domain/count.js`, `domain/nav.js`, `ui/count.js`, `ui/hub.js`, `css/audit.css`; tests in `audit-count-pages`, `audit-pages`, and new `audit-quick-wins`.
+- Verify: lint, Prettier, 126 test files / 1,955 tests, secret and vendor checks all pass. The database suite was not run: nothing in the database changed.
+- Not done: PHONE 5 (below) on a real phone.

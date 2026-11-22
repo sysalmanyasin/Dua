@@ -37,7 +37,7 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow
 
 ## Recorded module-specific evidence
 
-- Audit progress records DB tests through migrations 0401–0411 and unit/page tests for counting, compile, reports, final snapshot, expiry and barcode. Its 19 Nov handover records the full main test suite at 1,562 unit tests and the database suite passing.
+- Audit progress records DB tests through migrations 0401–0412 (0412 adds `0412_audit_individual_autocompile_test.sql`, 16 checks; at that change the full database suite and `npm run verify` with 125 files / 1,933 unit tests passed locally on PostgreSQL 16) and unit/page tests for counting, compile, reports, final snapshot, expiry and barcode. Its 19 Nov handover records the full main test suite at 1,562 unit tests and the database suite passing.
 - Manager progress records a 2,434-check DB suite and 1,267 unit tests at its 17 Nov snapshot. These are historical module-session totals, not additive to the current main total.
 - Closing progress records successive DB and page tests through 0211; its individual session counts are historical snapshots.
 - Inventory progress records feed/delta, export, sync and screen tests; individual counts are from earlier snapshots.
@@ -48,14 +48,14 @@ The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow
 
 ## Live verification recorded (not independently re-run here)
 
-- Inventory migrations 0301–0309 are present in the live registry (0309 timestamp-registered); `sync-inventory-from-dropbox` is active at Edge Function v24. Real-phone PDF acceptance and sync fallback cleanup remain.
+- Inventory migrations 0301–0309 are present in the live registry (registered by repo number); `sync-inventory-from-dropbox` is active at Edge Function v24. Real-phone PDF acceptance and sync fallback cleanup remain.
 - Manager migrations 0101–0108 are recorded live and registered; Credit Inbox still needs a real Closing-data test.
-- Closing migrations 0201–0214 are in the repository and live registry. Later Closing migrations 0215–0217 and `closing_refresh_existing_drafts` are registered under timestamp versions; reconcile the registry mapping before future migration batches.
+- Closing migrations 0201–0214 are in the repository and live registry. Later Closing migrations 0215–0218 are registered by repo number too.
 - STR migrations 0500–0504 and scheduled archive/overdue jobs are recorded live.
 - Emergency Billing 0601/0602, 0610–0612, 0620–0622, 0630–0634 and 0640–0642 are recorded live (0633/0634/0640/0641 on 20 Nov 2026 and 0642 on 21 Nov 2026, each with owner approval; read-only safety checks passed).
-- Audit migrations 0401–0411 and Inventory 0308 are in the live registry; 0409–0411 are timestamp-registered. Barcode is integrated; phone/scanner acceptance remains.
+- Audit migrations 0401–0412 and Inventory 0308 are in the live registry; all are registered by repo number (`0412` was renamed from `20261122035159` on 22 Nov 2026). Barcode is integrated; phone/scanner acceptance remains.
 - Candela Sales 0900 is recorded live.
-- Invoice Desk migrations 1000–1003 are live under timestamp registry versions; exact source files remain in the repository.
+- Invoice Desk migrations 1000–1003 are live and registered by repo number; exact source files remain in the repository.
 - Workspace migrations 1100, 1101, 1102 and 1110 are recorded live (1102 applied and verified 21 Nov 2026); details in its progress file.
 
 These statements come from module progress records. Before production changes, query the actual live migration registry and verify the deployed function bodies.
