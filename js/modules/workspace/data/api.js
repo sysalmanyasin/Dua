@@ -26,6 +26,15 @@ const KNOWN = [
   'folders can be nested at most 5 deep',
   'a folder cannot be placed inside itself',
   'document is deleted',
+  // Sheets (1102)
+  'not a workbook',
+  'no such restore point',
+  'that restore point is not valid',
+  'a label is at most 100 characters',
+  'this workbook is too large to take a restore point of',
+  'send 1 to 200 operations',
+  'that batch is too large',
+  'every operation needs an operation_id and a known operation_type',
 ];
 
 export class WorkspaceError extends Error {
