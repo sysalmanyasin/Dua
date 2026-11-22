@@ -81,8 +81,8 @@ The deployed retired function bodies explicitly state that setup-code claiming a
 ### Security
 - 14 RLS-enabled tables have no policies; none are directly exposed to `anon` or `authenticated` by table privileges.
 - 220 SECURITY DEFINER functions are executable by the authenticated role and flagged for review. This is not proof that all are vulnerable. Review authorization checks, caller identity assumptions and intended grant scope function by function; do not blanket-revoke.
-- The catalog query found no SECURITY DEFINER routine without a configured `search_path`. The advisor separately flags two non-definer trigger functions, `set_updated_at` and `activity_log_immutable`, for mutable search paths. Migration 0015, already live, pins both; its source is not yet in main.
-- The earlier security snapshot's leaked-password-protection setting and Edge Function JWT settings were not independently re-read in this pass; consult current dashboard settings before changing them.
+- The catalog query found no SECURITY DEFINER routine without a configured `search_path`. The two non-definer trigger functions, `set_updated_at` and `activity_log_immutable`, both now have `search_path=public`; direct EXECUTE is false for `PUBLIC`, `anon` and `authenticated`. Migration 0015, already live, fixed the earlier mutable-search-path findings; the current advisor no longer reports `function_search_path_mutable`.
+- The current security advisor reports `auth_leaked_password_protection` (one warning): leaked-password protection is disabled. This needs an owner/security decision after confirming compatibility with the custom staff PIN sign-in model. Edge Function JWT settings were not independently re-read in this pass.
 
 ### Performance
 - 124 unindexed foreign-key findings.
