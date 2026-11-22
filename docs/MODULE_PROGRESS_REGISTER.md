@@ -22,7 +22,7 @@ This register describes what is present in the source tree, what the live databa
 
 | Module | Actual source state on main | Live/deployment evidence | Work left |
 |---|---|---|---|
-| **Home** | Home 2.0 is integrated; permission-filtered business and stock snapshots, daily progress, attention links and per-device favourites. | No new migration. CI #401 and Pages #226 green on audited main. | Owner acceptance on actual pharmacy phones; check layout and shortcuts with different permission sets. |
+| **Home** | Home 2.0 is integrated; permission-filtered business and stock snapshots, daily progress, attention links and per-device favourites. | No new migration. CI #444 and Pages #244 green on audited main. | Owner acceptance on actual pharmacy phones; check layout and shortcuts with different permission sets. |
 | **Sales** | Integrated: dashboard, monthly history, daily entry/correction, reports, daily data, checklist, diff, deposit and last-day routes. | Core/Sales migrations and imported history are present in the live baseline. | Owner phone acceptance; verify Gmail OAuth origin and one real send from deployed site. Review any remaining old-dashboard extras as separate scope decisions. |
 | **Manager** | Integrated: overview, staff registry, credit, salary, generic, incentive, petty cash, expenses, JazzCash, inbox, reports and misc ledgers. Attendance is intentionally excluded. | Migrations 0101–0108 are live; Closing migration 0214 is also present in repo and live registry. | Owner try-outs #2–#4; exercise Credit Inbox with real Closing credit data. |
 | **Access** | Integrated foundation module: authentication, MFA gate, users, roles, permissions and owner-created staff logins. | Staff PIN migration 0014 is registered by repo number; six Edge Functions are active. | Review staff-login operational edge cases, complete security hardening and plan production/staging separation. |
@@ -48,7 +48,7 @@ This register describes what is present in the source tree, what the live databa
 
 ## Repository and CI facts
 
-- Audited main commit: `96694979e65242f5ee24eb86f215630686b552c8`.
+- Audited main commit: `18283f17600be54d562a5eb3c40bf89906416b29`.
 - Repository tree: 707 files; 13 module folders with manifests.
 - Front-end tests: 121 test files; repository snapshot records 1,891 passing tests.
 - Database tests: 77 test files.
