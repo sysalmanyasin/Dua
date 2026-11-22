@@ -132,37 +132,36 @@ const textBytes = (v) => new TextEncoder().encode(jsonbText(v)).length;
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const between = (n, lo, hi) => n !== null && n >= lo && n <= hi;
 
-// workspace_style_valid, including its looseness. In the database a JSON null, or a value that is not a whole number
-// (size: "big", size: 8.5, decimals: 2.5), is NOT refused for weight, size, halign, valign, border sides, numfmt.type,
-// numfmt.decimals and numfmt.pattern (SQL's "not (null between ...)" is null, not true). Mirrored here so the parity
-// test passes; the renderer must therefore treat a stored style as untrusted (see sanitizeStyle).
+// workspace_style_valid (migration 1111). If a key is present its value must be exactly valid; null is not valid. (1102 let a
+// JSON null or a value of the wrong kind through for weight, size, alignments, border sides and several number format keys;
+// 1111 closed that. Styles already stored under 1102 can still hold such values, so drawing still goes through sanitizeStyle.)
 export function styleValid(p) {
   if (!isObj(p) || textBytes(p) > 500) return false;
   const keys = ['weight', 'size', 'color', 'bg', 'borders', 'halign', 'valign', 'numfmt'];
   if (Object.keys(p).some((k) => !keys.includes(k))) return false;
-  const textIn = (v, set) => v === undefined || v === null || (typeof v === 'string' && set.includes(v));
-  if (!textIn(p.weight, ['normal', 'bold'])) return false;
-  if (p.size !== undefined && p.size !== null && jsonInt(p.size) !== null && !between(p.size, 8, 72)) return false;
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const oneOf = (v, set) => typeof v === 'string' && set.includes(v);
+  if (has(p, 'weight') && !oneOf(p.weight, ['normal', 'bold'])) return false;
+  if (has(p, 'size') && !(jsonInt(p.size) !== null && between(p.size, 8, 72))) return false;
   for (const k of ['color', 'bg']) {
-    if (p[k] !== undefined && (typeof p[k] !== 'string' || !HEX.test(p[k]))) return false;
+    if (has(p, k) && (typeof p[k] !== 'string' || !HEX.test(p[k]))) return false;
   }
-  if (!textIn(p.halign, ['left', 'center', 'right'])) return false;
-  if (!textIn(p.valign, ['top', 'middle', 'bottom'])) return false;
-  if (p.borders !== undefined) {
+  if (has(p, 'halign') && !oneOf(p.halign, ['left', 'center', 'right'])) return false;
+  if (has(p, 'valign') && !oneOf(p.valign, ['top', 'middle', 'bottom'])) return false;
+  if (has(p, 'borders')) {
     if (!isObj(p.borders)) return false;
     for (const [side, v] of Object.entries(p.borders)) {
-      if (!['top', 'right', 'bottom', 'left'].includes(side)) return false;
-      if (!textIn(v, ['thin', 'medium', 'thick'])) return false;
+      if (!['top', 'right', 'bottom', 'left'].includes(side) || !oneOf(v, ['thin', 'medium', 'thick'])) return false;
     }
   }
-  if (p.numfmt !== undefined) {
+  if (has(p, 'numfmt')) {
     const nf = p.numfmt;
     if (!isObj(nf)) return false;
     if (Object.keys(nf).some((k) => !['type', 'decimals', 'currency', 'pattern'].includes(k))) return false;
-    if (!textIn(nf.type, ['general', 'number', 'currency', 'percent', 'date'])) return false;
-    if (nf.decimals !== undefined && nf.decimals !== null && jsonInt(nf.decimals) !== null && !between(nf.decimals, 0, 10)) return false;
-    if (nf.currency !== undefined && (typeof nf.currency !== 'string' || !/^[A-Z]{3}$/.test(nf.currency))) return false;
-    if (!textIn(nf.pattern, ['dd/mm/yyyy', 'yyyy-mm-dd', 'dd mmm yyyy'])) return false;
+    if (has(nf, 'type') && !oneOf(nf.type, ['general', 'number', 'currency', 'percent', 'date'])) return false;
+    if (has(nf, 'decimals') && !(jsonInt(nf.decimals) !== null && between(nf.decimals, 0, 10))) return false;
+    if (has(nf, 'currency') && (typeof nf.currency !== 'string' || !/^[A-Z]{3}$/.test(nf.currency))) return false;
+    if (has(nf, 'pattern') && !oneOf(nf.pattern, ['dd/mm/yyyy', 'yyyy-mm-dd', 'dd mmm yyyy'])) return false;
   }
   return true;
 }

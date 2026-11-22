@@ -5,7 +5,7 @@ Dates are 2026. Counts are as of the end of each step.
 ## 22 Nov — Workspace Sheets: browser reference model and database parity test (branch, not merged)
 - New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
 - New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
-- Finding: the live style validator accepts some malformed styles (for example `size: "big"`); screens must draw styles through `sanitizeStyle`. A fix would be a new migration and needs the owner's go.
+- Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction, not applied live yet. Screens still draw styles through `sanitizeStyle`.
 - Tests: 47 new unit tests; whole database suite passes. No migration applied; the live project was not touched. Still no Sheets screens.
 
 ## 21 Nov — Closing: Owner-only Shift ↔ Final change (PR #60, applied live)

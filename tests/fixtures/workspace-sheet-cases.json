@@ -1345,7 +1345,7 @@
     }
   },
   {
-    "name": "styles: valid, invalid, known looseness, cells using styles",
+    "name": "styles: valid, invalid (including what 1102 let through), cells using styles",
     "steps": [
       {
         "ops": [
@@ -1606,14 +1606,14 @@
         ],
         "expect": {
           "results": [
-            { "operation_id": "$O31", "seq": 31, "status": "applied" },
-            { "operation_id": "$O32", "seq": 32, "status": "applied" },
-            { "operation_id": "$O33", "seq": 33, "status": "applied" },
-            { "operation_id": "$O34", "seq": 34, "status": "applied" },
+            { "operation_id": "$O31", "seq": 31, "status": "rejected", "reason": "a style is not valid" },
+            { "operation_id": "$O32", "seq": 32, "status": "rejected", "reason": "a style is not valid" },
+            { "operation_id": "$O33", "seq": 33, "status": "rejected", "reason": "a style is not valid" },
+            { "operation_id": "$O34", "seq": 34, "status": "rejected", "reason": "a style is not valid" },
             { "operation_id": "$O35", "seq": 35, "status": "applied" },
-            { "operation_id": "$O36", "seq": 36, "status": "applied" },
-            { "operation_id": "$O37", "seq": 37, "status": "applied" },
-            { "operation_id": "$O38", "seq": 38, "status": "applied" }
+            { "operation_id": "$O36", "seq": 36, "status": "rejected", "reason": "a style is not valid" },
+            { "operation_id": "$O37", "seq": 37, "status": "rejected", "reason": "a style is not valid" },
+            { "operation_id": "$O38", "seq": 38, "status": "rejected", "reason": "a style is not valid" }
           ],
           "head_seq": 38
         }
@@ -1689,14 +1689,7 @@
               [1, { "weight": "normal" }],
               [2, {}],
               [3, { "weight": "normal", "numfmt": { "type": "percent" } }],
-              [4, { "size": "big" }],
-              [5, { "size": 8.5 }],
-              [6, { "weight": null }],
-              [7, { "numfmt": { "type": "number", "decimals": 2.5 } }],
-              [8, { "numfmt": {} }],
-              [9, { "borders": { "top": null } }],
-              [10, { "halign": null, "valign": null }],
-              [11, { "numfmt": { "type": null, "pattern": null } }]
+              [8, { "numfmt": {} }]
             ],
             "cells": [[2, 2, "plain", null, null, 42]]
           }
@@ -1737,40 +1730,9 @@
             }
           },
           {
-            "seq": 31,
-            "op_type": "set_styles",
-            "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 4, "style": { "size": "big" } }] }
-          },
-          { "seq": 32, "op_type": "set_styles", "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 5, "style": { "size": 8.5 } }] } },
-          {
-            "seq": 33,
-            "op_type": "set_styles",
-            "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 6, "style": { "weight": null } }] }
-          },
-          {
-            "seq": 34,
-            "op_type": "set_styles",
-            "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 7, "style": { "numfmt": { "type": "number", "decimals": 2.5 } } }] }
-          },
-          {
             "seq": 35,
             "op_type": "set_styles",
             "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 8, "style": { "numfmt": {} } }] }
-          },
-          {
-            "seq": 36,
-            "op_type": "set_styles",
-            "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 9, "style": { "borders": { "top": null } } }] }
-          },
-          {
-            "seq": 37,
-            "op_type": "set_styles",
-            "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 10, "style": { "halign": null, "valign": null } }] }
-          },
-          {
-            "seq": 38,
-            "op_type": "set_styles",
-            "payload": { "sheet_id": "$S1", "styles": [{ "style_id": 11, "style": { "numfmt": { "type": null, "pattern": null } } }] }
           },
           {
             "seq": 40,

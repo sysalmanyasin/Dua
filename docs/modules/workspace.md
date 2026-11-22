@@ -70,6 +70,8 @@ Built locally in `1102_workspace_sheets.sql` (Phase 5, increment 1; **applied to
 
 Browser code built in Phase 5, increment 2 (no screens yet): `domain/spreadsheet.js`, the pure reference model of the rules in `1102` (validate an operation batch, apply it with the same answers, build and restore restore points, keep a local copy current from pulled operations, A1 labels, cell input parsing, operation builders). It is held to the database by `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences, 85 checks): `tools/workspace-sheet-cases.mjs` turns the fixture into `supabase/tests/1102_workspace_sheet_parity_test.sql`, and `tests/unit/workspace-spreadsheet.test.js` runs the same fixture through the model.
 
+Migration `1111_workspace_style_validator_fix` (22 Nov 2026, written, not applied live) tightens the style check from `1102`.
+
 Planned (design: `workspace.design.md`): `1103` sheet conflict screens support, Realtime publication; `1104` attachments and Storage policies.
 
 Rich-text format: `{"v":1,"doc":{"type":"doc","content":[...]}}` with only the nodes `paragraph heading(1–3) bullet_list ordered_list list_item task_list task_item text hard_break` and marks `bold italic underline link(http, https, mailto, tel)`. Every top-level block has `attrs.id`. Maximum 256 KB and 8 levels of nesting.

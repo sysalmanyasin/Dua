@@ -469,23 +469,25 @@ describe('helpers for screens', () => {
   });
 });
 
-describe('styles: the database is looser than it looks, so drawing must be strict', () => {
-  const loose = [
+describe('styles', () => {
+  const formerlyLoose = [
     { size: 'big' },
     { size: 8.5 },
     { weight: null },
     { numfmt: { type: 'number', decimals: 2.5 } },
-    { numfmt: {} },
     { borders: { top: null } },
     { halign: null },
+    { numfmt: { type: null } },
   ];
-  it('the model accepts exactly what the live database accepts (see the "known looseness" fixture case)', () => {
-    for (const s of loose) expect(styleValid(s), JSON.stringify(s)).toBe(true);
+  it('what 1102 let through is refused since 1111; an empty number format and missing keys are still fine', () => {
+    for (const s of formerlyLoose) expect(styleValid(s), JSON.stringify(s)).toBe(false);
+    for (const s of [{}, { numfmt: {} }, { size: 8 }, { size: 72 }, { numfmt: { decimals: 0 } }, { weight: 'bold', bg: '#00ff00' }])
+      expect(styleValid(s), JSON.stringify(s)).toBe(true);
     for (const s of [{ size: 100 }, { color: null }, { borders: null }, { numfmt: null }, { weight: 'heavy' }, { font: 'x' }, []])
       expect(styleValid(s), JSON.stringify(s)).toBe(false);
   });
 
-  it('sanitizeStyle keeps only well-formed parts', () => {
+  it('sanitizeStyle keeps only well-formed parts (styles stored under 1102 may still hold the old looseness)', () => {
     expect(
       sanitizeStyle({
         size: 'big',
