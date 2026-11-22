@@ -4,7 +4,7 @@
 
 > Fresh verification baseline: `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages #244 passed. Live database: 124/124 public tables RLS-enabled, 341 public routines, 93 registry rows; repository migration files: 92, with live-only `0015_core_trigger_search_path` absent from main. Six Edge Functions active, including retired 410 endpoints `claim-account` and `request-access`. Workspace Sheets reference model/parity tests are merged on main; no Sheets UI/data layer yet. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). This dated register below retains historical module-session detail; the fresh audit overrides conflicting facts.  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
-**Main baseline:** [`96694979`](https://github.com/sysalmanyasin/Dua/commit/96694979e65242f5ee24eb86f215630686b552c8)  
+**Main baseline:** [`18283f17`](https://github.com/sysalmanyasin/Dua/commit/18283f17600be54d562a5eb3c40bf89906416b29)  
 **Live app:** https://sysalmanyasin.github.io/Dua/  
 **Live Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
 
@@ -40,7 +40,7 @@ This register describes what is present in the source tree, what the live databa
 
 | Workstream | Actual state | Next |
 |---|---|---|
-| Workspace Sheets | Database migration 1102 is live. Reference model `domain/spreadsheet.js` plus a PostgreSQL parity test exist on branch `module/workspace-sheets-domain` (22 Nov, not merged). No data layer, grid or New workbook action yet. | Merge the branch; build the data layer, then the grid (increment 3). Apply migration `1111` (style validator fix) live by hand. |
+| Workspace Sheets | Database migration 1102 is live. Reference model `domain/spreadsheet.js` plus PostgreSQL parity fixtures/tests were merged to main by PR #66 (22 Nov). No data layer, grid or New workbook action yet. | Build the data layer, then the grid (increment 3). Verify migration `1111` is applied live before relying on its validator fix. |
 | Unified Reports | Planned, not registered. | Define permission-safe source contracts after modules are accepted. |
 | Assistant / AI | Planned, not registered. | Build only over deterministic, permission-safe interfaces. |
 | Android shell/widgets | Later phase. | Plan after web workflows and device acceptance. |
@@ -69,7 +69,7 @@ This register describes what is present in the source tree, what the live databa
 
 ## Migration registry drift — P0 before further database batches
 
-**Resolved (read-only check, 22 Nov 2026):** the 21 Nov audit found twelve files (`0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, `1000`–`1003`) whose live rows used timestamp versions. When checked on 22 Nov none of them did: every live row carried its four-digit repo version. The only timestamp row left was `0412_audit_individual_autocompile` (`20261122035159`, applied with `apply_migration`); it was renamed to `0412` the same day. **0214_closing_staff_see_all exists both in the repository and live registry**; the previous claim that its file was missing was wrong. State now: 92 live rows for 91 repository files. The one extra row is `0015_core_trigger_search_path` (applied by hand); its file exists only on the unmerged branch `ops-redesign-stage1`, not on `main`.
+**Resolved (read-only check, 22 Nov 2026):** the 21 Nov audit found twelve files (`0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, `1000`–`1003`) whose live rows used timestamp versions. When checked on 22 Nov none of them did: every live row carried its four-digit repo version. The only timestamp row left was `0412_audit_individual_autocompile` (`20261122035159`, applied with `apply_migration`); it was renamed to `0412` the same day. **0214_closing_staff_see_all exists both in the repository and live registry**; the previous claim that its file was missing was wrong. State now: 93 live rows for 92 repository files. The extra live row is `0015_core_trigger_search_path`; no matching file exists on `main`. Recover its exact source from trusted history before further migration work.
 
 Do not blindly insert four-digit duplicates, rename applied versions, or run new migration batches through an unverified automatic pipeline. Create and review a safe reconciliation plan first.
 
@@ -79,12 +79,12 @@ The GitHub branch list contained `main`, `audit/actual-module-status-2026-11-21`
 
 ## Priority work left
 
-1. **P0 — Migration safety:** the registry has no timestamp rows (22 Nov 2026). Remaining: get `0015_core_trigger_search_path.sql` onto `main` (branch `ops-redesign-stage1`) and verify the future migration apply process.
+1. **P0 — Migration safety:** the registry has no timestamp rows (22 Nov 2026). Remaining: recover the exact source for live-only `0015_core_trigger_search_path.sql` and add it to `main` through a reviewed PR and verify the future migration apply process.
 2. **P0 — Security:** review 219 authenticated-callable SECURITY DEFINER RPCs for explicit permission checks and least-privilege grants; pin search paths on the two flagged trigger functions; consider enabling leaked-password protection with the PIN login design in mind.
 3. **P0 — Backup recovery:** perform a real encrypted Drive backup restore into a separate empty Supabase project.
 4. **P1 — Operational performance:** review 124 unindexed foreign keys, five RLS initplan warnings, one duplicate permissive policy and 28 unused indexes using workload evidence.
 5. **P1 — Owner acceptance:** complete phone/printer/Gmail acceptance across Sales, Home, Manager, Closing, Inventory, STR, Candela, Audit, Emergency Billing and Invoice Desk.
-6. **P1 — Workspace Sheets:** the reference model is done; build the data layer and the user-facing Phase 5 grid on the already-live database.
+6. **P1 — Workspace Sheets:** the reference model is merged; build the data layer and the user-facing Phase 5 grid on the already-live database.
 7. **P2 — Architecture/operations:** separate production and staging projects; add Playwright E2E, Sentry, accessibility and low-end Android checks.
 8. **P3 — Future modules:** Unified Reports, assistant/AI, Android widgets and Attendance only after current workflows are accepted.
 
