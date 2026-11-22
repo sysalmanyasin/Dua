@@ -1,5 +1,7 @@
 # Dua documentation index
 
+> Current verified source/live backend snapshot: [22 Nov 2026 code and Supabase audit](PROJECT_AUDIT_2026-11-22.md). Historical session notes remain useful but are not the source of truth for current state.
+
 Start with these documents; dated history is not a substitute for current status.
 
 ## Project status and planning
