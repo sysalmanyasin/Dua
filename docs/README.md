@@ -4,6 +4,8 @@ Start with these documents; dated history is not a substitute for current status
 
 ## Project status and planning
 
+- [22 Nov 2026 code and live Supabase audit](PROJECT_AUDIT_2026-11-22.md) — fresh source baseline, database catalogue, migration drift, deployed Edge Functions, advisor findings and verification boundaries. This supersedes the 21 Nov audit where facts conflict.
+
 - [Canonical project status](PROJECT_STATUS.md) — concise current operational snapshot.
 - [Master module progress register](MODULE_PROGRESS_REGISTER.md) — all registered modules, non-registered work, branches, evidence and outstanding work.
 - [21 Nov 2026 repository and live-system audit](PROJECT_AUDIT_2026-11-21.md) — source inventory, CI, live schema, migration drift, advisor findings and prioritized work left.
