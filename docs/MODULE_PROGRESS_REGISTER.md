@@ -1,6 +1,8 @@
 # Dua — Master module progress register
 
-**Snapshot:** 21 November 2026  
+**Snapshot:** 22 November 2026
+
+> Fresh verification baseline: `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages #244 passed. Live database: 124/124 public tables RLS-enabled, 341 public routines, 93 registry rows; repository migration files: 92, with live-only `0015_core_trigger_search_path` absent from main. Six Edge Functions active, including retired 410 endpoints `claim-account` and `request-access`. Workspace Sheets reference model/parity tests are merged on main; no Sheets UI/data layer yet. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). This dated register below retains historical module-session detail; the fresh audit overrides conflicting facts.  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Main baseline:** [`96694979`](https://github.com/sysalmanyasin/Dua/commit/96694979e65242f5ee24eb86f215630686b552c8)  
 **Live app:** https://sysalmanyasin.github.io/Dua/  
