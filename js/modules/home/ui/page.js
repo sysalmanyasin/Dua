@@ -4,6 +4,7 @@ import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
 import { BRAND } from '../../../core/config.js';
 import { coverSummary, inventoryCover, lifetimeSalesMonths, notificationsAttention } from '../data/api.js';
+import { startOpsSections } from './ops.js';
 import {
   buildAttention,
   buildDailyProgress,
@@ -152,6 +153,7 @@ export async function mount(el, { ctx, modules = [] }) {
         <span class="home-lifetime-orbit home-lifetime-orbit-two" aria-hidden="true"></span>
       </section>`
     : '';
+  const showOps = perms.includes('ops.view'); // Owner only: Action Centre and Recent Activity
   const kpis = buildKpis(summary, perms);
   const attention = buildAttention(summary, perms, hour, alerts);
   const progress = buildDailyProgress(summary, perms);
@@ -246,6 +248,7 @@ export async function mount(el, { ctx, modules = [] }) {
             </section>`
           : ''
       }
+      ${showOps ? html`<div id="home-ops-actions"></div>` : ''}
       ${
         hasAttentionContext
           ? html`<section class="home-section home-attention">
@@ -284,6 +287,7 @@ export async function mount(el, { ctx, modules = [] }) {
             </section>`
           : ''
       }
+      ${showOps ? html`<div id="home-ops-activity"></div>` : ''}
       <section class="home-section">
         <div class="home-section-head">
           <div>
@@ -297,6 +301,10 @@ export async function mount(el, { ctx, modules = [] }) {
   );
 
   renderFavourites();
+
+  if (showOps) {
+    startOpsSections({ actionHost: el.querySelector('#home-ops-actions'), activityHost: el.querySelector('#home-ops-activity') });
+  }
 
   const syncPins = () => {
     el.querySelectorAll('[data-pin]').forEach((button) => {

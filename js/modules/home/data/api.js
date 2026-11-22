@@ -28,3 +28,18 @@ export async function inventoryCover() {
   if (error) throw error;
   return data;
 }
+
+// Owner Action Centre: issues worked out live by the database from each module's own data and the Owner's rules (ops_rules).
+// null for anyone without ops.view. Nothing here can dismiss or change an issue; it is fixed in the module that owns it.
+export async function opsActionItems() {
+  const { data, error } = await db().rpc('ops_action_items');
+  if (error) throw error;
+  return data;
+}
+
+// Latest events from the categories the Owner has switched on (null without ops.view).
+export async function opsRecentActivity(limit = 10) {
+  const { data, error } = await db().rpc('ops_recent_activity', { p_limit: limit });
+  if (error) throw error;
+  return data;
+}

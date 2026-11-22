@@ -2,6 +2,16 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
+- New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (applied live and registered on 22 Nov 2026; procedure, verification and rollback in `docs/ops/f8-stage2-apply-and-rollback.md`).
+- Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
+- Decisions D-56 to D-60 recorded (schedules, no evidence storage, in-app notifications, Groq free plan, activity defaults and deposit figure).
+
+## 21 Nov — Operations Redesign, Stage 1 (audit and plan)
+- Added `docs/OPERATIONS_REDESIGN_PLAN.md`: audit of the current app, gap analysis against the redesign brief, architecture decisions, Task Master / notifications / AI design, eleven owner decisions, stage-by-stage acceptance. Nothing in the redesign is built yet.
+- Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Applied live and registered as `0015`.
+- Added `tools/check-registry.mjs` (compares migration files with a read-only registry export) and `docs/ops/f7-registry-reconciliation.md` (guarded, reversible procedure for the 12 timestamp-versioned rows). Executed live: 13 rows renamed (incl. `0218`), 0 timestamp versions remain.
+
 ## 22 Nov — Workspace Sheets: browser reference model and database parity test (merged to main, PR #66)
 - New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
 - New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
