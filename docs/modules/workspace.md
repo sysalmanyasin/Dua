@@ -68,6 +68,8 @@ Browser code built in Phase 3 (no screens yet): `domain/validation.js` (note for
 
 Built locally in `1102_workspace_sheets.sql` (Phase 5, increment 1; **applied to the shared project and registered as `1102` on 21 Nov 2026**): tables `workspace_sheets` (order arrays, sizes, soft delete), `workspace_cells` (stable row and column ids; empty marker rows), `workspace_sheet_styles`, `workspace_operations` (append-only log) and `workspace_sheet_revisions` (immutable restore points, readable only through `workspace_snapshot_list`); functions `workspace_workbook_open`, `workspace_load_sheet`, `workspace_pull`, `workspace_apply_ops` (with internal `workspace_apply_one`), `workspace_snapshot_create`, `workspace_snapshot_list`, `workspace_sheet_restore`, and internal validators and snapshot builders. Also pins `search_path` on the four trigger guards from 1100 and 1101. Operation payloads: `workspace.design.md` §4a.
 
+Browser code built in Phase 5, increment 2 (no screens yet): `domain/spreadsheet.js`, the pure reference model of the rules in `1102` (validate an operation batch, apply it with the same answers, build and restore restore points, keep a local copy current from pulled operations, A1 labels, cell input parsing, operation builders). It is held to the database by `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences, 85 checks): `tools/workspace-sheet-cases.mjs` turns the fixture into `supabase/tests/1102_workspace_sheet_parity_test.sql`, and `tests/unit/workspace-spreadsheet.test.js` runs the same fixture through the model.
+
 Planned (design: `workspace.design.md`): `1103` sheet conflict screens support, Realtime publication; `1104` attachments and Storage policies.
 
 Rich-text format: `{"v":1,"doc":{"type":"doc","content":[...]}}` with only the nodes `paragraph heading(1–3) bullet_list ordered_list list_item task_list task_item text hard_break` and marks `bold italic underline link(http, https, mailto, tel)`. Every top-level block has `attrs.id`. Maximum 256 KB and 8 levels of nesting.
@@ -122,7 +124,7 @@ Requests to Foundation (approved by the owner acting as Foundation, 18 Nov 2026;
 | 2 | Database core: `1100_workspace_core.sql` | Done; applied to the shared project 18 Nov 2026 |
 | 3 | Notes backend (`1101`), domain and data layers | Built and tested; see progress file for the live status |
 | 4 | Notes editor, sharing and history screens, home page, module registered | Done and merged to main 19 Nov 2026; needs a real-phone check by the owner |
-| 5 | Workbooks and grid (`1102`) | Increment 1 (database `1102`, no screens) built, merged to `main` and applied live (21 Nov 2026). **Sheets UI not built:** domain model, data layer, grid and the "New workbook" button are still to do |
+| 5 | Workbooks and grid (`1102`) | Increment 1 (database `1102`) is on `main` and live (21 Nov 2026). Increment 2 (22 Nov 2026): the browser reference model `domain/spreadsheet.js`, proved equal to the database by a shared parity fixture (see the progress file). **Still to do:** data layer, read-only grid, editing, structure and format screens, "New workbook", route `/workspace/sheet` |
 | 6 | Formula engine | Planned |
 | 7 | Formatting, sort, filter, CSV | Planned |
 | 8 | IndexedDB and offline queue | Planned |

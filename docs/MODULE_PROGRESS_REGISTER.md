@@ -38,7 +38,7 @@ This register describes what is present in the source tree, what the live databa
 
 | Workstream | Actual state | Next |
 |---|---|---|
-| Workspace Sheets | Database migration 1102 is live; there is no Sheets UI/domain model/data layer/grid or New workbook action. | Complete Phase 5 increment 2 onwards. |
+| Workspace Sheets | Database migration 1102 is live. Reference model `domain/spreadsheet.js` plus a PostgreSQL parity test exist on branch `module/workspace-sheets-domain` (22 Nov, not merged). No data layer, grid or New workbook action yet. | Merge the branch; build the data layer, then the grid (increment 3). Owner decision needed on the loose style validator. |
 | Unified Reports | Planned, not registered. | Define permission-safe source contracts after modules are accepted. |
 | Assistant / AI | Planned, not registered. | Build only over deterministic, permission-safe interfaces. |
 | Android shell/widgets | Later phase. | Plan after web workflows and device acceptance. |
@@ -82,7 +82,7 @@ The GitHub branch list contained `main`, `audit/actual-module-status-2026-11-21`
 3. **P0 — Backup recovery:** perform a real encrypted Drive backup restore into a separate empty Supabase project.
 4. **P1 — Operational performance:** review 124 unindexed foreign keys, five RLS initplan warnings, one duplicate permissive policy and 28 unused indexes using workload evidence.
 5. **P1 — Owner acceptance:** complete phone/printer/Gmail acceptance across Sales, Home, Manager, Closing, Inventory, STR, Candela, Audit, Emergency Billing and Invoice Desk.
-6. **P1 — Workspace Sheets:** build the user-facing Phase 5 grid on the already-live database.
+6. **P1 — Workspace Sheets:** the reference model is done; build the data layer and the user-facing Phase 5 grid on the already-live database.
 7. **P2 — Architecture/operations:** separate production and staging projects; add Playwright E2E, Sentry, accessibility and low-end Android checks.
 8. **P3 — Future modules:** Unified Reports, assistant/AI, Android widgets and Attendance only after current workflows are accepted.
 

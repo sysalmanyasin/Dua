@@ -2,6 +2,12 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Workspace Sheets: browser reference model and database parity test (branch, not merged)
+- New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
+- New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
+- Finding: the live style validator accepts some malformed styles (for example `size: "big"`); screens must draw styles through `sanitizeStyle`. A fix would be a new migration and needs the owner's go.
+- Tests: 47 new unit tests; whole database suite passes. No migration applied; the live project was not touched. Still no Sheets screens.
+
 ## 21 Nov — Closing: Owner-only Shift ↔ Final change (PR #60, applied live)
 - Migration `0218_closing_mode_change.sql`: `closing_change_mode`, `closing_is_admin_owner`, trigger `closings_mode_guard`. Only an admin at MFA level 2 may change a closing's type; the database refuses every other route, including the ordinary draft save.
 - Draft: changes in place, figures and rows kept. Submitted: reopened through the existing `closing_reopen` as a new revision carrying the new type; original kept until the revision is submitted; resubmitted with the ordinary `closing_submit`. CLS-6 and CLS-7 hold. Audit: `closing.mode_changed` in the activity log.

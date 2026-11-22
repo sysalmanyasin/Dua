@@ -1,6 +1,6 @@
 # Dua Workspace — Progress
 
-Updated: 2026-11-21 (live `1102` verification and project-wide audit; handover: `workspace.next-session.md`)
+Updated: 2026-11-22 (Phase 5 increment 2: reference model and parity test; handover: `workspace.next-session.md`)
 
 > **Current status:** Notes are integrated and accepted by the owner after live testing (reported 21 Nov). Migrations `1100`, `1101`, `1102` and `1110` are in the live registry; `1102` was applied 21 Nov. The Sheets database is present, but no Sheets UI/domain/data/grid or “New workbook” flow exists yet. Remaining Workspace phases: Sheets UI (Phase 5), formulas, formatting/filter/CSV, offline queue, sync/conflict merge and attachments.
 
@@ -18,6 +18,10 @@ Updated: 2026-11-21 (live `1102` verification and project-wide audit; handover: 
 
 - [x] **Phase 5, increment 1 (database only), 19 Nov 2026, branch `module/workspace-sheets` (from `main` at `7563cfd`):** `supabase/migrations/1102_workspace_sheets.sql` and `supabase/tests/1102_workspace_sheets_test.sql` (203 checks: permissions for every role, all implemented operation types, validation of every field, atomic rejection, conflicts including a partly applied batch, structure rules and limits, styles, sizes, pulling changes, restore points and a restore that returns the exact earlier state, the automatic restore point every 200 operations, the 50,000-cell limit, append-only logs, isolation between documents, privilege hygiene). The whole database suite passes locally on PostgreSQL 16 (74 test files, 86 migrations). Merged to `main` on 21 Nov 2026 and applied live and registered as version `1102` (21 Nov 2026; verified against the live project: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal ones not callable by `anon` or `authenticated`).
 - [x] Owner decision on `1102`: applied by hand and merged (21 Nov 2026).
+- [x] **Phase 5, increment 2 (22 Nov 2026, branch `module/workspace-sheets-domain`, not merged, nothing applied live):** `js/modules/workspace/domain/spreadsheet.js` (browser reference model of `1102`), `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences), `tools/workspace-sheet-cases.mjs` (records answers, generates the SQL), `supabase/tests/1102_workspace_sheet_parity_test.sql` (generated; 85 checks) and `tests/unit/workspace-spreadsheet.test.js` (47 tests: the fixture, the generated SQL being current, a local copy following pulled operations for every fixture case, the limits (20 sheets, 100 columns, 10,000 rows, 50,000 cells, 32,767 characters, 200-operation checkpoint), rollback of a refused batch, conflicts, duplicates, restore, helpers).
+  - Verified: the parity SQL passes on PostgreSQL 16 after every migration (85 checks), and also inside the whole database suite (`ALL DATABASE TESTS PASSED`, no FAIL or ERROR lines); a deliberately wrong expected answer makes it fail. Lint, `prettier --check`, secret scan and vendor check pass. Full unit suite: 1,979 of 1,980 pass; the one failure was in `ebill-page.test.js` (a dialog check) while the database suite ran at the same time; that file passes alone (56 of 56) and is not touched by this work, so it looks like a timing flake under load.
+  - Not verified: anything in a real browser or phone (there is no screen yet); the live project was not touched.
+  - Finding (not fixed, needs the owner): the live style validator accepts malformed styles; see `workspace.next-session.md` §6 item 13.
 
 ## Needs the owner (cannot be done from here)
 
@@ -46,7 +50,8 @@ Updated: 2026-11-21 (live `1102` verification and project-wide audit; handover: 
 
 ## Not yet done
 
-- [ ] **Phase 5, increment 2 — Sheets UI:** implement the JavaScript workbook/sheet domain model and parity fixtures; add the data layer; build the grid and New workbook flow on the live 1102 database foundation.
+- [ ] **Phase 5, increment 3 onwards — Sheets UI:** the domain model and parity fixture are done (increment 2); still to do: the data layer, the grid, the New workbook flow, and the operations the database answers "not available yet" (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`).
+- [ ] Decide whether to fix the loose style validator in a new migration (`1111`); see the next-session file §6 item 13.
 - [ ] **Phase 5 onward:** formula engine; formatting, sort/filter and CSV.
 - [ ] **Phase 8:** IndexedDB offline queue, retry/sync and sign-out cleanup (requires the Foundation sign-out hook).
 - [ ] **Phase 9:** conflict detection/merge and compare UI for Notes and Sheets.

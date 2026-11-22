@@ -33,7 +33,7 @@ This is the concise operational snapshot. For per-module evidence, migration not
 | Emergency Billing | Integrated; Phases 1–5: offline billing, sync, holds, history, partial refunds by item and quantity, corrections, receipt settings and printing (shop's own slip layout, 58/80 mm), Search receipt, reports and CSV/Excel/PDF exports with pending/failed warnings. | 0601/0602, 0610–0612, 0620–0622, 0630–0632, 0633, 0634, 0640, 0641 and 0642 recorded live (the last five applied 20–21 Nov 2026 with owner approval). | Phase 6 automated testing done (`docs/modules/ebill-phase6.md`). Remaining, owner: grant `ebill.*` rights (none granted live yet), fill in Settings > Receipt, real-device and real-printer acceptance. |
 | Audit | Integrated; counting, compile/review, final snapshot, reports, expiry/racks and Barcode (scanner, hybrid counting, shared outbox). | 0401–0411 and Inventory 0308 are in the live registry; later Audit migrations 0409–0411 are timestamp-registered. | Real-phone PHONE 1/2/3 (`docs/modules/audit.phone-tests.md`), print/CSV checks and security review of callable RPCs. |
 | Invoice Desk | Integrated and registered on main; three template-based invoice flows, product/history and 80mm print path. | 1000–1003 recorded live in its progress file. | Correct stale handover; run full checks and add E2E/RLS coverage; verify workbook layout/logo and real printer/browser acceptance. |
-| Workspace (Notes) | Integrated and registered: home, search/folders, rich-text editor, autosave, sharing, history/restore and archive/delete. Notes accepted by owner after live testing (reported 21 Nov). Sheets UI is not built. | 1100, 1101, 1102 and 1110 present in live registry; 1102 was applied 21 Nov. | Phase 5 Sheets domain/data/grid; later formula engine, offline queue, conflict merge and attachments. See `docs/modules/workspace.next-session.md`. |
+| Workspace (Notes) | Integrated and registered: home, search/folders, rich-text editor, autosave, sharing, history/restore and archive/delete. Notes accepted by owner after live testing (reported 21 Nov). Sheets: database live; browser reference model with a database parity test built on branch `module/workspace-sheets-domain` (22 Nov, not merged); no screens yet. | 1100, 1101, 1102 and 1110 present in live registry; 1102 was applied 21 Nov. | Phase 5 Sheets domain/data/grid; later formula engine, offline queue, conflict merge and attachments. See `docs/modules/workspace.next-session.md`. |
 
 ## Not yet an application module
 
@@ -64,7 +64,7 @@ The branch list currently contains `main` plus two maintenance refs: `audit/actu
 1. Reconcile the 12 timestamp-versioned live migration rows with their four-digit repository files; 0214 is present on both sides. Keep the registry safe for future ordered migration applies.
 2. Run and inspect a fresh full GitHub Actions run on current `main`.
 3. Complete real-device/owner acceptance across existing modules, plus Gmail send verification.
-4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; Workspace Notes accepted by the owner (21 Nov 2026); build Workspace Phase 5 (Sheets UI).
+4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; Workspace Notes accepted by the owner (21 Nov 2026); continue Workspace Phase 5 (Sheets data layer and grid; the reference model is done).
 5. Perform the real encrypted Drive restore drill and plan a separate production Supabase project.
 6. Expand into Reports, assistant and Android only after the above acceptance gates.
 
