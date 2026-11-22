@@ -1,5 +1,7 @@
 # Dua Workspace — start here (handover for the next session)
 
+> **Updated 22 Nov 2026:** this handover was originally written 19 Nov and its Phase 5 status is stale. Phase 5 increment 2 (browser reference model, shared fixtures, generator, parity SQL and 47 unit tests) is merged to `main` via PR #66. The Sheets database is live; the model/tests are in main; a workbook/grid UI and complete Sheets data layer are still not built. Continue from current `main`, not commit `468873a`. See [workspace.progress.md](workspace.progress.md) and [the 22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
+
 Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
 
 ## 1. Where things stand
