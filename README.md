@@ -7,7 +7,11 @@ A modular pharmacy operations web app built with plain HTML and JavaScript ES mo
 **Full module register:** [docs/MODULE_PROGRESS_REGISTER.md](docs/MODULE_PROGRESS_REGISTER.md)  
 **Repository:** https://github.com/sysalmanyasin/Dua
 
-## Current project status (21 Nov 2026)
+## Current project status (22 Nov 2026)
+
+**Fresh verification:** source baseline `18283f17600be54d562a5eb3c40bf89906416b29`; CI run [#444](https://github.com/sysalmanyasin/Dua/actions/runs/45006802268) and Pages deployment [#244](https://github.com/sysalmanyasin/Dua/actions/runs/45006801951) both succeeded on this commit. Live Supabase `DuaPharmaPlus` was queried on 22 Nov: PostgreSQL 17.11, 124/124 public tables have RLS, 341 public routines, and 93 migration registry rows. The repository has 92 migration SQL files; live-only migration `0015_core_trigger_search_path` has no matching file on `main`. Six Edge Functions are active, including two retired endpoints that return HTTP 410. See [the 22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md) for exact scope and limitations.
+
+
 
 | Area | Status |
 |---|---|
