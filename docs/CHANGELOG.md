@@ -7,15 +7,25 @@ Dates are 2026. Counts are as of the end of each step.
 - Tests: `tests/unit/workspace-workbooks.test.js` (41 tests) run the data layer against the JS reference model acting as the server. Five deliberate mutations were each caught. Whole suite 2,043 tests, lint, prettier, secrets, vendor checks and the whole database suite (3,643 checks) pass. No migration written or applied; the live project was only read. Not imported by any screen yet, so `sw.js` was not regenerated. Still no Sheets screens.
 - Live read-only check before and after: registry 1100, 1101, 1102, 1110, 1111; all 51 `workspace_*` functions have a pinned `search_path`, none is callable by `anon`, internal helpers are not callable by signed-in users. Advisor: nothing new from Workspace (`workspace_save_keys` and `workspace_sheet_revisions` have row level security and no policy on purpose, reached only through functions); known and not Workspace: `rls_auto_enable()` executable by signed-in users, leaked-password protection off.
 
-## 22 Nov — Workspace Sheets: browser reference model and database parity test (merged, PR #66)
+## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
+- New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (applied live and registered on 22 Nov 2026; procedure, verification and rollback in `docs/ops/f8-stage2-apply-and-rollback.md`).
+- Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
+- Decisions D-56 to D-60 recorded (schedules, no evidence storage, in-app notifications, Groq free plan, activity defaults and deposit figure).
+
+## 21 Nov — Operations Redesign, Stage 1 (audit and plan)
+- Added `docs/OPERATIONS_REDESIGN_PLAN.md`: audit of the current app, gap analysis against the redesign brief, architecture decisions, Task Master / notifications / AI design, eleven owner decisions, stage-by-stage acceptance. Nothing in the redesign is built yet.
+- Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Applied live and registered as `0015`.
+- Added `tools/check-registry.mjs` (compares migration files with a read-only registry export) and `docs/ops/f7-registry-reconciliation.md` (guarded, reversible procedure for the 12 timestamp-versioned rows). Executed live: 13 rows renamed (incl. `0218`), 0 timestamp versions remain.
+
+## 22 Nov — Workspace Sheets: browser reference model and database parity test (merged to main, PR #66)
 - New `js/modules/workspace/domain/spreadsheet.js`: a pure model of the `1102` rules (apply operation batches with the same answers, conflicts, duplicates, log and pull, restore points, a local copy that follows pulled operations, A1 labels, cell input parsing, operation builders).
 - New shared fixture `tests/fixtures/workspace-sheet-cases.json` (10 operation sequences) and tool `tools/workspace-sheet-cases.mjs`, which generates `supabase/tests/1102_workspace_sheet_parity_test.sql` (85 checks). Verified on PostgreSQL 16: the database and the model answer identically.
-- Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction, not applied live yet. Screens still draw styles through `sanitizeStyle`.
-- Tests: 47 new unit tests; whole database suite passes. No migration applied; the live project was not touched. Still no Sheets screens.
+- Finding and fix: the `1102` style validator accepted some malformed styles (for example `size: "big"`). New migration `1111_workspace_style_validator_fix` (with a 20-check database test) refuses them; written on the owner's instruction and now recorded as live migration `1111` (verified in the 22 Nov live registry). No workbook/grid screen exists yet; future UI must use the existing style sanitization rules.
+- Tests: 47 new unit tests; whole database suite passes. The live registry now includes `1111`; treat this migration as applied live. The audit query confirmed its registry row; do not reapply it. The reference model and fixtures/tests are merged to main; still no Sheets screens.
 
-## 22 Nov — Migration registry: no timestamp rows; `0412` renamed
-- Read-only check of `supabase_migrations.schema_migrations`: 92 rows, 91 with four-digit repo versions matching the 91 files on `main`, plus `0412` as `20261122035159`. The 12 timestamp rows reported by the 21 Nov audit were already numbered.
-- Backup `supabase_migrations.schema_migrations_backup_20261122` (92 rows), then the guarded rename `20261122035159` → `0412` (exactly one row or nothing). Afterwards 92 rows, 0 timestamp rows, 91 identical to the backup.
+## 22 Nov — Migration registry: all versions four-digit; `0412` reconciled
+- Read-only check of `supabase_migrations.schema_migrations`: 93 rows, all four-digit; 92 migration files on `main` plus live-only `0015`. The 12 timestamp rows reported by the 21 Nov audit were already numbered.
+- Backup `supabase_migrations.schema_migrations_backup_20261122` (92 rows), then the guarded rename `20261122035159` → `0412` (exactly one row or nothing). Afterwards 93 rows, 0 timestamp rows. The 0015 source remains only on `ops-redesign-stage1`; add it to main without reapplying.
 - Open: `0015_core_trigger_search_path` is registered live but its file exists only on the unmerged branch `ops-redesign-stage1`. The old backup `..._20261112` was dropped on 22 Nov 2026 at the owner's request; backups `..._20261121` (91 rows, origin not documented) and `..._20261122` (92 rows) remain and can be dropped after review.
 - The earlier "13 timestamp rows / 90 files" wording in the entry below and in several docs was wrong and is corrected here.
 

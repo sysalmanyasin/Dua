@@ -1,15 +1,21 @@
 # Dua Workspace — start here (handover for the next session)
 
+> **Updated 22 Nov 2026:** this handover was originally written 19 Nov and its Phase 5 status is stale. Phase 5 increment 2 (browser reference model, shared fixtures, generator, parity SQL and 47 unit tests) is merged to `main` via PR #66. The Sheets database is live; the model/tests are in main; a workbook/grid UI and complete Sheets data layer are still not built. Continue from current `main`, not commit `468873a`. See [workspace.progress.md](workspace.progress.md) and [the 22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
+
 Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
 
-## 1. Where things stand
+## 1. Historical handover context
+
+The 19 Nov instructions below describe the Notes-only checkpoint and predate Phase 5 increment 2. Use the updated status banner above and `workspace.progress.md` as the current source of truth.
+
+## 2. Original handover notes (historical)
 
 - **Notes are built, merged to `main` and registered** (`/workspace`, `/workspace/note`, nav order 86). Migrations `1100` and `1101` are applied to the shared Supabase project (`sdsynzsflubdxnelgthh`) and registered as versions `1100` and `1101`; their function bodies were verified identical to the tested copy (D-47).
 - **Not built:** Sheets (workbooks, grid, formulas, CSV), offline editing, synchronisation and the conflict screens, attachments. The button "New workbook" is shown disabled.
 - **Not verified by anyone yet:** the editor in a real browser. All tests so far run in jsdom. The owner has to try it on a real phone and a desktop with two accounts. Do not start Phase 5 until the owner has said the Notes try-out is acceptable, or has said "go" anyway (rule N-17: each phase waits for a separate owner go).
 - `main` last known good point for Workspace: commit `468873a` (merge of Phase 4). Later commits on `main` may belong to other modules.
 
-## 2. Read in this order
+## 3. Original reading order
 
 1. `docs/modules/workspace.md` — the brief and the 17 owner decisions (N-1 to N-17), structure, permissions, screens, phases.
 2. `docs/modules/workspace.design.md` — the design for everything not built (Sheets storage, how operations are applied, offline sync, formulas, grid, attachments, phases 5–11, open risks).
@@ -17,7 +23,7 @@ Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions 
 4. `docs/MODULES.md` (rules every module obeys), `docs/DECISIONS.md` D-41 to D-47, `docs/SECURITY_MODEL.md` (Workspace section).
 5. Code: `supabase/migrations/1100_workspace_core.sql` and `1101_workspace_notes.sql` are the pattern for every new Workspace table and function.
 
-## 3. What exists (file map)
+## 4. Original file map
 
 | Area | Files |
 |---|---|

@@ -1,7 +1,7 @@
 # Business Rules (Phase 0) — Fazal Din's Pharma Plus
 
 Source: read directly from the old code (Closing `actions.js` calc(), `state.js`; BT-Sale-Data2 `platform/config.js`, `shared/summary-calc.js`; READMEs; Audit Hub blueprint).
-Status: Sales rules are implemented (see §11). Closing has database/domain implementation and a partial guided-ledger UI; its remaining screens and workflows are still in progress. Inventory (feed rules and screens) is implemented and live, while STR remains incomplete. Audit Hub and Emergency Billing remain planned. See `docs/PROJECT_STATUS.md` and the module progress files for current delivery status. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
+**Current implementation status (22 Nov 2026):** the formulas and business rules below remain the historical source contract; delivery status has moved on. Sales, Closing, Inventory, STR, Audit, Emergency Billing, Manager, Candela Sales and Invoice Desk have substantial integrated implementations; Workspace Notes is integrated and Sheets currently has its database model plus a merged browser reference model, not a usable grid UI. All 13 module IDs are registered in `js/modules/index.js`. Real-device acceptance and outstanding work are tracked in `docs/PROJECT_STATUS.md`, `docs/MODULE_PROGRESS_REGISTER.md` and module progress files. Do not read the old-app source description below as a current feature inventory. Formulas below are **exactly as the old code computes them today**. V2 must reproduce them before anyone may change them.
 Tags: KEEP / IMPROVE / DROP / ASK.
 
 ## 1. Time and dates

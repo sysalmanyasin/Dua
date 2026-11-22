@@ -1,6 +1,6 @@
 # Dua Workspace — brief
 
-Status: Notes integrated on main (Phase 4 of 11 done, 19 Nov 2026); Sheets, offline sync and attachments planned · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
+Status (22 Nov 2026): Notes integrated; Sheets DB and browser reference model/fixture parity are merged; Sheets UI/data layer, formulas, offline sync and attachments remain incomplete · Owner approval: yes (18 Nov 2026, plan N-1 to N-17 and Foundation requests M-1 to M-10)
 Branch history: `module/workspace` merged to main at `468873a` · Migration range: 1100–1199        Prefix: workspace\_        Permissions: workspace.\*
 
 > **New session? Start with [workspace.next-session.md](workspace.next-session.md).** Design of everything not yet built: [workspace.design.md](workspace.design.md). Evidence: [workspace.progress.md](workspace.progress.md).

@@ -1,6 +1,6 @@
 # Tools — progress
 
-Updated: 21 November 2026  
+Updated: 22 November 2026  
 Status: integrated operations module on `main`.
 
 ## Implemented source and operations

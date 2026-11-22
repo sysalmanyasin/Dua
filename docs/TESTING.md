@@ -1,6 +1,8 @@
 # Testing and verification
 
-**Status snapshot:** 21 November 2026. This document separates automated test evidence from live deployment and real-device acceptance.
+**Status snapshot:** 22 November 2026.
+
+**Fresh CI evidence:** GitHub Actions [CI run #444](https://github.com/sysalmanyasin/Dua/actions/runs/45006802268) passed on main commit `18283f17600be54d562a5eb3c40bf89906416b29`; GitHub Pages deployment [#244](https://github.com/sysalmanyasin/Dua/actions/runs/45006801951) succeeded on the same commit. CI covers automated app, DB and four current Edge Function checks; it does not prove live business acceptance or physical-device behaviour. Migration-source drift (live-applied 0015 source missing from main) is recorded in [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). This document separates automated test evidence from live deployment and real-device acceptance.
 
 ## Latest recorded verification
 

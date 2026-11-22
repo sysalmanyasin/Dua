@@ -3,7 +3,7 @@
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 
-Last updated: 21 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file.
+Last updated: 22 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file. For the verified source/live backend snapshot see [PROJECT_AUDIT_2026-11-22.md](PROJECT_AUDIT_2026-11-22.md); it supersedes older dated claims where they conflict.
 
 ---
 
@@ -172,11 +172,16 @@ Migrations are applied in filename order, on a clean database, by CI (`supabase/
 | `0400`–`0499` | Audit |
 | `0500`–`0599` | STR |
 | `0600`–`0699` | Emergency Billing |
-| `0700`–`0799` | Reports / Cover signals / Herald |
-| `0800`–`0899` | AI / Intelligence |
+| `0700`–`0749` | Operations Dashboard (Home read RPCs, alert rules, activity feed; prefix `ops_`) — reserved 21 Nov 2026 |
+| `0750`–`0799` | Unified Reports / Herald (prefix `reports_`) — reserved 21 Nov 2026 |
+| `0800`–`0899` | AI / Intelligence (assistant, tool registry; prefix `ai_`) |
 | `0900`–`0999` | Candela Sales (assigned by the owner, 14 Nov 2026) |
 | `1000`–`1099` | Invoice Desk (assigned by the owner; recorded here 18 Nov 2026) |
 | `1100`–`1199` | Dua Workspace (assigned by the owner, 18 Nov 2026) |
+| `1200`–`1299` | Task Master (prefix `task_`) — reserved 21 Nov 2026, owner delegated the choice of ranges |
+| `1300`–`1399` | Notifications & Reminders for staff (prefix `ntf_`) — reserved 21 Nov 2026 |
+
+Attendance is **not** given a range: it waits for the Android app and, when built, lives in Manager's range (`0100`–`0199`) with its own permission (§8.3). Ranges `1400` and above are unassigned; the owner (or a session the owner has delegated to) reserves them here before using them. `tests/unit/migration-ranges.test.js` fails if a migration file falls outside every range above or two ranges overlap.
 
 File name: `<4-digit number>_<module>_<what>.sql`, e.g. `0201_closing_tables.sql`. Test name: `<same number>_<module>_<what>_test.sql` (the runner picks up every `*_test.sql`).
 
@@ -283,7 +288,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 
 | Module id | Scope (source in old apps) | Table / function prefix | Permission prefix | Route prefix | Nav order | Migrations | Depends on | Status |
 |---|---|---|---|---|---|---|---|---|
-| `home` | Cover / landing (core) | — | — | `/home` | 0 | — | core | Building |
+| `home` | Cover / landing (core); becomes the role-based Operations Dashboard (`docs/OPERATIONS_REDESIGN_PLAN.md`) | `ops_` (new) | — | `/home` | 0 | 0700–0749 | core, other modules' snapshot interfaces | Building; redesign planned |
 | `sales` | Daily sales, dashboard, reports, check list (BT-Sale-Data2 `js/sales`) | _(legacy, none)_ | `sales.`, `targets.`, `checklist.` | `/sales` | 10 | 0001–0099 | core | Building |
 | `candela-sales` | **Owner-only reports** on the Candela daily payment and customer-credit summaries, kept permanently; one staff-safe number (today's total) in the status bar | `candela_` | `candela.` | `/candela-sales` | 15 | 0900–0999 | core, inventory feed (landing tables, by trigger) | Building |
 | `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Building |
@@ -292,7 +297,9 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `audit` | Engagements, rounds, assignments, counting, barcode, expiry, reports (Random repo) | `audit_` | `audit.` | `/audit` | 50 | 0400–0499 | core, inventory interface | Building |
 | `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Building |
 | `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Built (Phases 1–5); acceptance pending |
-| `reports` | Cross-module reports, Herald, cover signals | `reports_` | `reports.` | `/reports` | 80 | 0700–0799 | other modules' interfaces | Planned |
+| `reports` | Unified Reports: cross-module reports, Herald | `reports_` | `reports.` | `/reports` | 80 | 0750–0799 | other modules' interfaces | Planned |
+| `tasks` | **Task Master**: independent operational task system (create, assign, accept, submit, verify), change requests, history; works without AI | `task_` | `tasks.` (new) | `/tasks` | 25 | 1200–1299 | core | Planned |
+| `inbox` | Per-person in-app notifications, reminders, announcements with acknowledgement; push delivery through the existing ntfy sender | `ntf_` | `ntf.` (new) | `/inbox` | 26 | 1300–1399 | core | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
 | `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |
 | `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Notes integrated (Phase 4); Sheets planned |

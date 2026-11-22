@@ -1,5 +1,9 @@
 # Architecture (as built)
 
+> **Verified against `main` at `18283f17600be54d562a5eb3c40bf89906416b29` on 22 Nov 2026.** The live project is DuaPharmaPlus (`sdsynzsflubdxnelgthh`), PostgreSQL 17.11. The current module registry is `js/modules/index.js` (13 IDs); each module's `manifest.js` defines routes. `js/core/config.js` maps both staging and production to the same Supabase project, so those labels are not environment isolation. See [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md).
+
+
+
 One static web app on GitHub Pages plus one Supabase project. No build step: the browser loads the same JavaScript files that are in the repository. `npm` is used only for development tools (lint, tests).
 
 ```

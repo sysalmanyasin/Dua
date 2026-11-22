@@ -800,3 +800,110 @@
 .home-search-section {
   display: none;
 }
+
+/* ───────── Operations: Action Centre and Recent Activity (Owner only) ───────── */
+.ops-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  background: var(--surface-2, rgb(127 127 127 / 8%));
+}
+.ops-status.ops-warn {
+  border-left: 4px solid #b7791f;
+}
+.ops-status.ops-bad {
+  border-left: 4px solid #c53030;
+}
+.ops-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+}
+.ops-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.ops-filters label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.8rem;
+  min-width: 140px;
+}
+.ops-filters select {
+  min-height: 44px;
+}
+.ops-issues,
+.ops-activity {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ops-issue {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border, rgb(127 127 127 / 25%));
+  border-left-width: 5px;
+  border-radius: 12px;
+}
+.ops-issue.ops-sev-critical {
+  border-left-color: #c53030;
+}
+.ops-issue.ops-sev-warning {
+  border-left-color: #b7791f;
+}
+.ops-issue.ops-sev-info {
+  border-left-color: #2b6cb0;
+}
+.ops-badge {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgb(127 127 127 / 14%);
+}
+.ops-issue-body p {
+  margin: 4px 0;
+}
+.ops-issue-body small {
+  opacity: 0.8;
+}
+.ops-issue .btn {
+  justify-self: start;
+  min-height: 44px;
+}
+.ops-activity li {
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border, rgb(127 127 127 / 18%));
+}
+.ops-activity small {
+  display: block;
+  opacity: 0.8;
+}
+.ops-when {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+@media (min-width: 640px) {
+  .ops-issue {
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+  }
+}

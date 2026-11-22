@@ -1,5 +1,7 @@
 # Administrator Guide
 
+> **Current-state note (22 Nov 2026):** the live app registers 13 modules. Permission catalog descriptions below are a dated reference and the live `public.permissions` table remains authoritative. Current project/deployment status and verification boundaries are in [PROJECT_STATUS](PROJECT_STATUS.md) and the [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md).
+
 For the owner. Everything here is done inside the app unless it says "Supabase" or "Google".
 
 ## 1. People and permissions (Users & Access)
@@ -13,7 +15,7 @@ For the owner. Everything here is done inside the app unless it says "Supabase" 
 
 ### Permission keys
 
-The live permission catalog contained **70 keys** on 21 November 2026. Descriptions below are copied from the live `public.permissions` catalog; the database remains authoritative.
+The live permission catalog contained **70 keys** on 21 November 2026 (last explicitly counted snapshot; re-query before relying on the count). Descriptions below are copied from the live `public.permissions` catalog; the database remains authoritative.
 
 | Key | Meaning |
 |---|---|
