@@ -1,6 +1,6 @@
 # Inventory — progress
 
-> **Current status (21 Nov 2026):** Inventory is integrated on `main`; all six screens, Home stock summary and Excel/PDF/CSV exports are present. Live registry includes `0301`–`0309` (0309 `inventory_company_summary` is timestamp-registered); `sync-inventory-from-dropbox` is active at Edge Function v24. The older v23/0307 statement below is historical. Remaining: real-phone PDF acceptance, monitor sync health, confirm when Candela publishes the Dropbox file, and remove the legacy RPC fallback only after stable operation.
+> **Current status (21 Nov 2026):** Inventory is integrated on `main`; all six screens, Home stock summary and Excel/PDF/CSV exports are present. Live registry includes `0301`–`0309` under four-digit repo versions; `sync-inventory-from-dropbox` is active at Edge Function v24. The older v23/0307 statement below is historical. Remaining: real-phone PDF acceptance, monitor sync health, confirm when Candela publishes the Dropbox file, and remove the legacy RPC fallback only after stable operation.
 
 Branch `module/inventory` was merged into `main`. Live project: `DuaPharmaPlus` (`sdsynzsflubdxnelgthh`).
 

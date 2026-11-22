@@ -1,4 +1,4 @@
-> **Current status (19 Nov 2026):** Manager features through Credit Inbox (`0108`), dashboard and reports are integrated on `main`. The progress record reports migrations `0101`–`0108` applied and registered live in DuaPharmaPlus, and a full database suite plus repository verification passed in the 17 Nov session. Owner phone try-outs #2–#4 and testing the inbox against real Closing feed data remain. Attendance is deliberately deferred. See `manager.progress.md` and `MODULE_PROGRESS_REGISTER.md`.
+> **Current status (22 Nov 2026):** Manager features through Credit Inbox (`0108`), dashboard and reports are integrated on `main`; migrations `0101`–`0108` are present in the live registry. CI #444 and Pages deployment #244 passed on the current main baseline. Owner phone try-outs #2–#4 and testing the inbox against real Closing feed data remain. Attendance is deliberately deferred. See `manager.progress.md`, `MODULE_PROGRESS_REGISTER.md` and the [22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
 
 # Manager — brief
 

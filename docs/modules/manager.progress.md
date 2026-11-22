@@ -1,6 +1,6 @@
 # Manager — progress
 
-> **Current status (21 Nov 2026):** Manager is integrated on `main`; migrations `0101`–`0108` are live and registered. The latest live project also contains Closing migration `0214_closing_staff_see_all` (present in repository and live registry). The old note below claiming `0214` is absent is superseded. Remaining: owner phone try-outs #2–#4 and a real-data Credit Inbox check against Closing's live feed; Attendance remains intentionally deferred.
+> **Current status (22 Nov 2026):** Manager is integrated on `main`; migrations `0101`–`0108` are live and registered. The live registry contains Closing migrations through `0218`, including `0214_closing_staff_see_all`; all are under four-digit repository versions. The old note below claiming `0214` is absent is superseded. Remaining: owner phone try-outs #2–#4 and a real-data Credit Inbox check against Closing's live feed; Attendance remains intentionally deferred.
 
 ## Manager Dashboard (17 Nov 2026)
 

@@ -1,6 +1,10 @@
 # Security Model (as built)
 
-> **Live advisor snapshot (21 Nov 2026):** all 124 public base tables have RLS enabled. Fourteen tables have no policies and no direct grants to `anon` or `authenticated` (internal/service-role-only/idempotency tables). The advisor flags 219 SECURITY DEFINER functions callable by `authenticated`; all 279 live SECURITY DEFINER routines have a configured `search_path`, but each callable RPC still needs a permission-check/least-privilege review. Two non-definer trigger functions (`set_updated_at`, `activity_log_immutable`) have mutable search paths. Leaked-password protection is off. All six active Edge Functions report `verify_jwt=false`; this may be intentional for custom staff-login/secret-authenticated operations, but each function's internal authentication, origin checks and secret validation need explicit review. See `docs/PROJECT_AUDIT_2026-11-21.md`.
+> **Verified 22 Nov 2026 against live DuaPharmaPlus:** 124/124 public tables have RLS; 14 have no policies but none is directly granted to `anon` or `authenticated`. The advisor flags 220 authenticated-callable SECURITY DEFINER functions for review; the catalog has 283 SECURITY DEFINER routines and none lacks a configured `search_path`. Migration `0015_core_trigger_search_path` is already applied live and its exact source is on `ops-redesign-stage1`, not main; live catalog verification confirms both non-definer trigger functions (`set_updated_at`, `activity_log_immutable`) now have `search_path=public` and no direct EXECUTE grants to `PUBLIC`, `anon` or `authenticated`. The current advisor no longer reports mutable-search-path findings. It does report leaked-password protection disabled (one warning); decide on enablement after checking compatibility with the custom staff PIN model. Performance advisor: 124 unindexed foreign keys, 5 RLS initplan findings, 23 unused-index notices and one duplicate permissive SELECT policy. See [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md). Earlier 21 Nov counts below are historical and superseded where they conflict.
+
+
+
+
 
 ## Identity
 | Who | Sign-in | Notes |

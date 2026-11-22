@@ -3,7 +3,7 @@
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 
-Last updated: 21 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file.
+Last updated: 22 Nov 2026 · Owner: the pharmacy owner · Maintained by the owner/authorized project maintainers. Current progress lives in `docs/MODULE_PROGRESS_REGISTER.md` and each module's progress file. For the verified source/live backend snapshot see [PROJECT_AUDIT_2026-11-22.md](PROJECT_AUDIT_2026-11-22.md); it supersedes older dated claims where they conflict.
 
 ---
 

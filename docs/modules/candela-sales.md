@@ -1,6 +1,6 @@
 # Candela Sales — brief
 
-Status: Built, not yet accepted (owner phone try-out pending)        Owner approval: yes (13–14 Nov 2026)
+Status (22 Nov 2026): Built and integrated; owner phone acceptance and ongoing hourly history-capture monitoring remain pending. Owner approval: yes (13–14 Nov 2026)
 Branch: module/candela-sales (merged to `main` 14 Nov 2026; branch and PR #9 closed)        Migration range: 0900–0999 (assigned by the owner, 14 Nov 2026)        Prefix: candela_        Permissions: candela.*
 
 ## 1. Scope

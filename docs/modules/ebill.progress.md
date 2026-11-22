@@ -1,6 +1,6 @@
 # Emergency Billing — progress
 
-Updated: 21 November 2026  
+Updated: 22 November 2026  
 Status: integrated on `main`; Phase 6 automated stabilisation/testing documented complete.
 
 ## Implemented

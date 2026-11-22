@@ -1,6 +1,8 @@
 # Emergency Billing (`ebill`)
 
-Branch `feature/backup-emergency-pos` (merged into `main`; kept for Phase 5). Migration range **0600–0699** (already assigned to Emergency Billing in `docs/MODULES.md` §5.1; nothing in it exists on any branch). Table and function prefix `ebill_`, permission prefix `ebill.`, route `/ebill`.
+> **Current status (22 Nov 2026):** Emergency Billing is integrated on `main`, with POS, hold/resume, PIN save, offline queue/sync, history, corrections/refunds, reports and CSV/Excel/PDF export. Live registry includes schema/feature migrations `0601`–`0642`. Owner/device acceptance, staff permission grants, receipt settings and physical printer checks remain; see [ebill.progress.md](ebill.progress.md).
+
+Branch `feature/backup-emergency-pos` (merged into `main`; kept for Phase 5). Migration range **0600–0699** (already assigned to Emergency Billing in `docs/MODULES.md` §5.1; the migration files are present in the repository). Table and function prefix `ebill_`, permission prefix `ebill.`, route `/ebill`.
 
 Business boundary (owner): emergency invoices stay separate from normal Sales and Candela. No reconciliation and no automatic posting. The owner enters them in the real POS by hand from the exported history.
 
