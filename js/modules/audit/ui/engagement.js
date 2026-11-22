@@ -9,6 +9,11 @@ import { errorCard, loadingCard, toast } from './parts.js';
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ROLES = { lead: 'Lead', deputy: 'Deputy', counter: 'Counter', observer: 'Observer' };
 export const roundLabel = (r) => `Round ${r.round_number}${r.round_suffix ?? ''}`;
+// The monthly Individual audit has no scope of its own: each person's round is made from the Individual page
+// (audit_individual_start). Asking for a round here would send the scope type 'individual', which stock does not accept.
+const NO_NEW_ROUND = 'Rounds in the Individual audits are started from each person’s Individual page, not here.';
+const scopeLabel = (g) =>
+  g.scope_type === 'full' ? 'Full stock' : g.scope_type === 'individual' ? 'Individual audits' : g.scope_companies.join(', ');
 
 export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions ?? [];
@@ -41,7 +46,7 @@ export async function mount(el, { ctx } = {}) {
         ${hero({
           label: 'Audit',
           title: g.name,
-          sub: `${g.scope_type === 'full' ? 'Full stock' : g.scope_companies.join(', ')} · ${g.status === 'open' ? 'Open' : g.status}`,
+          sub: `${scopeLabel(g)} · ${g.status === 'open' ? 'Open' : g.status}`,
         })}
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
         <section class="card aud-card" aria-label="Rounds">
@@ -66,18 +71,22 @@ export async function mount(el, { ctx } = {}) {
                 </ul>`
           }
           ${
-            canManage && g.status === 'open'
-              ? html`<div class="aud-actions">
-                  <label class="field"
-                    ><span>Split work by</span
-                    ><select data-f="unit">
-                      <option value="company" ${s.unit === 'company' ? 'selected' : ''}>Company (whole companies per person)</option>
-                      <option value="item" ${s.unit === 'item' ? 'selected' : ''}>Item (items dealt one by one)</option>
-                    </select></label
-                  >
-                  <button type="button" class="btn btn-primary" data-act="new-round" ${s.busy ? 'disabled' : ''}>Start a new round</button>
-                </div>`
-              : ''
+            canManage && g.status === 'open' && g.scope_type === 'individual'
+              ? html`<p class="muted small" data-no-new-round>${NO_NEW_ROUND}</p>`
+              : canManage && g.status === 'open'
+                ? html`<div class="aud-actions">
+                    <label class="field"
+                      ><span>Split work by</span
+                      ><select data-f="unit">
+                        <option value="company" ${s.unit === 'company' ? 'selected' : ''}>Company (whole companies per person)</option>
+                        <option value="item" ${s.unit === 'item' ? 'selected' : ''}>Item (items dealt one by one)</option>
+                      </select></label
+                    >
+                    <button type="button" class="btn btn-primary" data-act="new-round" ${s.busy ? 'disabled' : ''}>
+                      Start a new round
+                    </button>
+                  </div>`
+                : ''
           }
         </section>
         <section class="card aud-card" aria-label="Members">
@@ -170,6 +179,10 @@ export async function mount(el, { ctx } = {}) {
       return;
     }
     if (act === 'new-round') {
+      if (s.data.engagement.scope_type === 'individual') {
+        s.error = NO_NEW_ROUND;
+        return draw();
+      }
       s.busy = true;
       s.error = null;
       draw();
