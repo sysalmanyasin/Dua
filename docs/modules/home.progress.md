@@ -42,3 +42,13 @@ Favourites are stored on the current device, not synchronized between devices. R
 - Real-device owner acceptance remains outstanding, especially checking layout and permission-filtered shortcuts with different staff permission sets.
 
 The older 19 Nov paragraph was a historical pre-release note and is superseded by the 21 Nov CI result above.
+
+## Operations redesign, Stage 2a (22 Nov 2026, branch `ops-redesign-stage1`, not yet merged or applied)
+
+Owner-only additions, shown only when the person holds `ops.view` (admins at the second factor; no role preset carries it):
+- **Action Centre** (after the snapshots): issues computed live by `ops_action_items()` from each module's own data and the Owner's rules in `ops_rules`. Priority and area filters; each issue shows priority, responsible person, explanation and an Open link to the module where it is fixed. There is no dismiss button: an issue clears only when its condition clears.
+- **Recent Activity** (before Favourites): the latest 10 events from the categories the Owner has switched on (default: closing drafts and closing completed), read through Closing's own feed function. The audit log is never read or changed.
+- **Shared refresh** (`js/shared/refresh.js`): loads on open, every 60 seconds while visible, when the tab returns and when the phone is back online; manual Refresh button; shows the last successful update time; keeps the last good data and warns it may be out of date when a refresh fails; stops by itself when the page is replaced.
+- Database: `0219` (Closing-owned read functions), `0700` (rules, categories, permissions), `0701` (the two read functions). Procedure and rollback: `docs/ops/f8-stage2-apply-and-rollback.md`.
+
+Not in 2a (still planned): the Staff dashboard variant, Business Intelligence periods (7/30/90 days), Staff & Team Overview (needs Task Master), the compact Dua AI Assistant, real-time updates for important events, Owner screens to edit the rules, and the "full activity history" link.

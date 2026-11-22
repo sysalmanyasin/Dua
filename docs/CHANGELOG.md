@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
+- New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (tested locally, not applied live: `docs/ops/f8-stage2-apply-and-rollback.md`).
+- Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
+- Decisions D-55 to D-59 recorded (schedules, no evidence storage, in-app notifications, Groq free plan, activity defaults and deposit figure).
+
 ## 21 Nov — Operations Redesign, Stage 1 (audit and plan)
 - Added `docs/OPERATIONS_REDESIGN_PLAN.md`: audit of the current app, gap analysis against the redesign brief, architecture decisions, Task Master / notifications / AI design, eleven owner decisions, stage-by-stage acceptance. Nothing in the redesign is built yet.
 - Added migration `0015_core_trigger_search_path` (pins `search_path` on `set_updated_at` and `activity_log_immutable`, removes their PUBLIC execute right) with test `0015_core_trigger_search_path_test.sql`. Applied live and registered as `0015`.
