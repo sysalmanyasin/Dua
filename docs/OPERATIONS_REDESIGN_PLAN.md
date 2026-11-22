@@ -69,10 +69,9 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
 
 ## 5. Task Master (Stage 3)
 ### 5.1 Data model (proposal; prefix `task_`)
-- `task_defs` — recurring definition (title, instructions, evidence rule, schedule, default assignee or role, approved_by, active).
+- `task_defs` — the task template (title, instructions, evidence rule, default assignee, active). `task_schedules` — the recurring rule (daily, weekly weekdays, monthly day, Nth week of the month), approved by the Owner, with a unique `(schedule, cycle)` key so one cycle can only ever create one task (D-55).
 - `task_items` — one task: status, assignee, creator, deadline, priority, evidence rule, source (`manual`, `schedule`, `ai_proposal`), `version` for optimistic concurrency.
 - `task_events` — append-only history: created, assigned, accepted, started, submitted, verified, returned, reassigned, deadline changed, comment. Uses the same immutable-trigger pattern as `activity_log`.
-- `task_evidence` — type, reference to stored file or text, uploader.
 - `task_comments` — the only staff-to-staff channel (no chat or direct messages).
 - `task_change_requests` — staff request for reassignment or a new deadline, with a reason, decided by authorised management.
 - `task_proposals` — AI-recommended tasks waiting for approval; nothing becomes a task without an authorised approval.
@@ -87,8 +86,8 @@ New keys: `tasks.view_own`, `tasks.assign`, `tasks.verify`, `tasks.manage_defs`,
 ### 5.4 Completion rate (defined, so it is fair)
 Rate = tasks completed and verified on or before their deadline ÷ tasks whose deadline fell inside the period and which were assigned to that person for at least their full window. Excluded: tasks cancelled by management, tasks reassigned away before the deadline, tasks created already overdue, and days on approved leave once attendance exists. The period (7, 30 or 90 days) is always shown next to the figure.
 
-### 5.5 Evidence
-The task creator chooses `none`, `text`, `photo` or `file` and the allowed type. **No file storage exists today** (no Storage bucket and a strict Content Security Policy). Decision in §8; until then only `none` and `text` are built.
+### 5.5 Evidence (D-56)
+No files or photos. The task creator chooses `none`, `note` (written text) or `tick` (a confirmation tick). The submit RPC refuses a submission that does not meet the rule. The note is stored on the submission event, so there is no evidence table and no Storage.
 
 ## 6. Notifications and reminders (Stage 4)
 - New `ntf_recipients` (notification, user, created, delivered, read, acknowledged) so history is per person. The existing owner `notifications` table and `notify_owner()` keep working unchanged; new code calls a new `notify_users(kind, payload, recipients)` that writes the same kind of row and never raises.
@@ -96,7 +95,7 @@ The task creator chooses `none`, `text`, `photo` or `file` and the allowed type.
 - **Privacy:** push payloads carry ids and generic wording only. Salary, amounts and names never appear in a push or lock-screen text. This extends the rule already stated in `0012`.
 - Reminder policy: owner-set defaults in `settings`; only the Owner adjusts reminders (Manager is the Owner, D-51). Overdue and approaching-deadline checks run on a schedule.
 - Announcements with required acknowledgement use the same recipient table.
-- Push to staff phones needs a per-user delivery channel; options are in §8.
+- **In-app only for staff at first (D-57).** Staff push is a later add-on; the owner's push path is unchanged.
 
 ## 7. Dua AI Assistant (Stage 5)
 - One assistant, reachable from the dashboard and the navigation, role-aware through the same `my_context()` permissions.
@@ -106,26 +105,33 @@ The task creator chooses `none`, `text`, `photo` or `file` and the allowed type.
 - Conversation memory is session-only (kept in the browser tab, never stored server-side). App Guide uses a static, versioned guide file, so it works without the model.
 - The assistant explains alerts and suggests responses; it cannot change severity or rules.
 - Task Master and every module keep working when the assistant is unavailable.
-- Needs from the owner: model provider and account, monthly spend limit (§8).
+- **Provider: Groq, free plan only (D-58).** Free-plan limits are low and shared across the whole organisation (one published example for a single model is 30 requests a minute, about 1,000 a day and 8,000 tokens a minute; limits differ by model and can change without notice), so the assistant has a per-person throttle, short prompts and a graceful "busy" reply, and everything works without it. The key is an Edge Function secret behind a provider adapter. Salary and cash figures are shown by the app from the database result and are not passed to the model. Model choice is made at Stage 5 by testing tool calling; Groq's current data terms are read first.
 
 ## 8. Owner decisions
-Decided items are recorded in `docs/DECISIONS.md`. Open items are the "do not assume" list; the plan proceeds without them up to the stage that needs each.
+Decided items are recorded in `docs/DECISIONS.md` (D-50 to D-59). The plan proceeds without any open item up to the stage that needs it.
 
 | # | Decision | Status | Effect on the plan |
 |---|---|---|---|
 | D1 | Who may verify completed tasks | **Decided (D-52):** Owner and Senior staff the owner has named | Per-person `tasks.verify` grant on a Senior login; `task_can_verify()` in the database; no self-verification, the Owner included |
 | D2 | Attendance source | **Decided (D-50):** wait for the Android app | No attendance UI or figures now; completion rate has no leave exclusion yet |
 | D3 | Manager tier | **Decided (D-51):** Manager is the Owner | Two dashboards only: Owner and Staff. "Authorised manager" actions are Owner-only |
-| D4 | Staging Supabase project before new tables | **Open** | Recommended before Stage 3 migrations; Stage 2 adds read RPCs and the rules table only |
-| D5 | Migration ranges | **Decided and reserved (D-54)** | `0700–0749` ops, `0750–0799` reports, `0800–0899` AI, `1200–1299` tasks, `1300–1399` inbox; table in `docs/MODULES.md`, enforced by `tests/unit/migration-ranges.test.js` |
-| D6 | Cash position authority | **Decided (D-53):** Manager ledgers; deposits are made daily to match cash sale | Owner-only read RPC over the ledgers; deposit-vs-cash-sale mismatch is a rule-based Action Centre issue |
-| D7 | What "approved schedules" are for auto-generated tasks: who approves, how entered | Open (needed in Stage 3) | Given D-51 the proposal is Owner-only approval |
-| D8 | Evidence storage: enable Supabase Storage, allowed types and size | Open (Stage 3) | Needs a CSP change; until then only `none` and `text` evidence |
-| D9 | Staff push channel: per-user ntfy topics, web push, or in-app only first | Open (Stage 4) | ntfy is a public server; payload rules in §6 |
-| D10 | AI provider, account, spend limit, first tools | Open (Stage 5) | |
-| D11 | Default Recent Activity categories | Open (Stage 2) | Owner can change later |
+| D4 | Separate staging Supabase project | **Open, recommendation changed:** not required if the safeguards in §8.1 are accepted | Awaiting the owner's confirmation |
+| D5 | Migration ranges | **Decided and reserved (D-54)** | `0700–0749` ops, `0750–0799` reports, `0800–0899` AI, `1200–1299` tasks, `1300–1399` inbox; enforced by `tests/unit/migration-ranges.test.js` |
+| D6 | Cash position authority and deposit figure | **Decided (D-53, D-59):** Manager ledgers; Closing deposit rows are compared with cash sale | Owner-only read RPC over the ledgers; mismatch is a rule-based Action Centre issue |
+| D7 | Approved schedules | **Decided (D-55)**, one detail open | Rule types incl. "Nth week of the month"; Owner approves. Open: how "3rd week" is counted (proposal: days 15–21, due at the end) |
+| D8 | Evidence storage | **Decided (D-56):** none | Evidence is none, a note, or a tick |
+| D9 | Staff push | **Decided (D-57):** in-app only at first | |
+| D10 | AI provider | **Decided (D-58):** Groq, free plan only | Throttling, provider adapter, no sensitive figures sent to the model |
+| D11 | Default Recent Activity categories | **Decided (D-59):** closing drafts and closing completed | Draft status comes from a Closing-owned read function; no audit event exists for drafts today |
 
-Small open point inside D6, to settle against live data at the start of Stage 2: which deposit figure is compared with the cash sale (Closing deposit rows or a Manager ledger entry).
+### 8.1 Why a staging project was recommended, and the lighter alternative
+Task Master adds about six new tables, many functions and RLS policies to the live database that holds real sales and payroll data, and migrations are applied by hand. Local tests run on a clean Postgres, not on live data, so a staging copy would catch live-only problems (extensions, real roles, cron). It is **not required**, because the Task Master and notification migrations are additive (new tables and functions, nothing existing changed). Instead, each such migration ships with:
+1. a tested rollback script that drops only the objects it created;
+2. a fresh backup first (the nightly dump plus a registry copy);
+3. a clean-database replay and wrong-role tests in the same change (the existing pattern);
+4. the post-apply hash check of every function body (D-47);
+5. a quiet-hours window.
+The few changes that touch existing objects (for example extending `my_context()` with the new permission keys) are applied alone, never in the same batch as new tables. If any migration cannot meet 1 to 5, a staging project is created first.
 
 ## 9. Stage 1 changes made with this plan
 1. **`0015_core_trigger_search_path`** pins `search_path = public` on `public.set_updated_at()` and `public.activity_log_immutable()` (the two advisor warnings) and removes their unneeded PUBLIC execute right. Test `0015_core_trigger_search_path_test.sql` checks the pin, that browser roles cannot call them, that the audit log still refuses update and delete, and that triggers still fire for a signed-in role. **Applied live and registered as `0015` on 21 Nov 2026** (verified: both functions pinned, not executable by `anon`/`authenticated`/PUBLIC, triggers still attached).
