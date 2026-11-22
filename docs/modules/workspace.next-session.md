@@ -1,13 +1,13 @@
 # Dua Workspace — start here (handover for the next session)
 
-Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
+Updated 22 Nov 2026 after PR #66 merged the Workspace Sheets reference model to main. Earlier phase notes below are retained as dated handover history. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
 
 ## 1. Where things stand
 
 - **Notes are built, merged to `main` and registered** (`/workspace`, `/workspace/note`, nav order 86). Migrations `1100` and `1101` are applied to the shared Supabase project (`sdsynzsflubdxnelgthh`) and registered as versions `1100` and `1101`; their function bodies were verified identical to the tested copy (D-47).
-- **Not built:** Sheets (workbooks, grid, formulas, CSV), offline editing, synchronisation and the conflict screens, attachments. The button "New workbook" is shown disabled.
+- **Not built:** Sheets data layer, workbook/grid UI, formulas, CSV, offline editing/synchronisation/conflict screens and attachments. The reference/domain model and database parity tests are now merged to main; the New workbook action remains unavailable.
 - **Not verified by anyone yet:** the editor in a real browser. All tests so far run in jsdom. The owner has to try it on a real phone and a desktop with two accounts. Do not start Phase 5 until the owner has said the Notes try-out is acceptable, or has said "go" anyway (rule N-17: each phase waits for a separate owner go).
-- `main` last known good point for Workspace: commit `468873a` (merge of Phase 4). Later commits on `main` may belong to other modules.
+- Current main baseline: `18283f17600be54d562a5eb3c40bf89906416b29` (PR #66 merged).
 
 ## 2. Read in this order
 
@@ -33,9 +33,9 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 
 ## 3a. Phase 5 increment 1 is merged to `main` and applied live
 
-`supabase/migrations/1102_workspace_sheets.sql` and its test (203 checks) are merged to `main` (branch `module/workspace-sheets` merged and deleted on 21 Nov 2026). The migration is applied live and registered as version `1102` (21 Nov 2026; verified against the live project: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal ones not callable by `anon` or `authenticated`). The four trigger guards are pinned by `1110`. **The Sheets UI is not built** (confirmed by the owner 21 Nov 2026): the next work is increment 2 below. Payload formats and rules for the browser side are in `workspace.design.md` §4a. The shared status documents were brought up to date on 21 Nov 2026; keep them current with every increment.
+`supabase/migrations/1102_workspace_sheets.sql` and its test (203 checks) are merged to `main` (branch `module/workspace-sheets` merged and deleted on 21 Nov 2026). The migration is applied live and registered as version `1102` (21 Nov 2026; verified against the live project: 5 Sheets tables with row level security, 15 functions with pinned `search_path`, internal ones not callable by `anon` or `authenticated`). The four trigger guards are pinned by `1110`. **The Sheets UI is not built**: the reference model was added in increment 2 and is now merged; next is the data layer and UI. Payload formats and rules for the browser side are in `workspace.design.md` §4a. The shared status documents were brought up to date on 21 Nov 2026; keep them current with every increment.
 
-## 3b. Phase 5 increment 2: the reference model (22 Nov 2026, branch `module/workspace-sheets-domain`)
+## 3b. Phase 5 increment 2: reference model (22 Nov 2026, merged to main by PR #66)
 
 - `js/modules/workspace/domain/spreadsheet.js` mirrors `workspace_apply_ops` and its helpers: same checks in the same order, same answers (`applied`, `conflict`, `rejected`, `duplicate`), same log and pull, restore points and restore. `applyRemote(wb, pulledOperation)` keeps a local copy current (it throws `ReplicaOutOfSync` when the copy has drifted or after a restore: load the workbook again). `loadWorkbook` / `addLoadedCells` / `addLoadedStyles` build a copy from `workspace_workbook_open`, `workspace_load_sheet` and the styles table.
 - Parity: `tests/fixtures/workspace-sheet-cases.json` holds 10 operation sequences with expected answers. `node tools/workspace-sheet-cases.mjs --record` runs them through the model, stores the answers and rewrites `supabase/tests/1102_workspace_sheet_parity_test.sql`. The **database** is the oracle: that SQL file must pass on PostgreSQL (85 checks, run on 22 Nov 2026), so a wrong model cannot be recorded into a passing test. Mutation check: changing one expected answer makes the SQL test fail. After editing the fixture by hand, run the tool without `--record` to regenerate only the SQL; a unit test fails if the committed SQL is stale.
