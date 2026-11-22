@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 22 Nov — Workspace Sheets: data layer (Phase 5, increment 3; branch `module/workspace-sheets-data`, not merged)
+- New `js/modules/workspace/data/workbooks.js`: open a workbook and build the local copy (`openWorkbookFull`: styles and cells page by page, then pull from the `head_version` it opened at so edits made while paging are not missed); `pullAndApply`; `createOperationSender` (batches of at most 200 operations / 3 MB; a batch that was not answered is kept and sent again with the SAME operation ids and content, D-45; a batch the server refuses is held, never dropped; `drain` waits 2 s to 60 s between failures); restore points (`createSnapshot`, `listSnapshots`, `restoreSnapshot`, owner only in the database). Operations are checked before sending (ids in integer range, envelope, size). Every call goes through `data/api.js`; eight new friendly messages added there.
+- Tests: `tests/unit/workspace-workbooks.test.js` (41 tests) run the data layer against the JS reference model acting as the server. Five deliberate mutations were each caught. Whole suite 2,043 tests, lint, prettier, secrets, vendor checks and the whole database suite (3,643 checks) pass. No migration written or applied; the live project was only read. Not imported by any screen yet, so `sw.js` was not regenerated. Still no Sheets screens.
+- Live read-only check before and after: registry 1100, 1101, 1102, 1110, 1111; all 51 `workspace_*` functions have a pinned `search_path`, none is callable by `anon`, internal helpers are not callable by signed-in users. Advisor: nothing new from Workspace (`workspace_save_keys` and `workspace_sheet_revisions` have row level security and no policy on purpose, reached only through functions); known and not Workspace: `rls_auto_enable()` executable by signed-in users, leaked-password protection off.
+
 ## 22 Nov — Operations Redesign, Stage 2a (Owner Action Centre and Recent Activity)
 - New migrations `0219_closing_ops_feed`, `0700_ops_rules`, `0701_ops_action_items` (applied live and registered on 22 Nov 2026; procedure, verification and rollback in `docs/ops/f8-stage2-apply-and-rollback.md`).
 - Home shows an Action Centre and Recent Activity to the Owner only; new shared refresh service with last-updated time and stale-data warning.
