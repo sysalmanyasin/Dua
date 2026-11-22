@@ -4,7 +4,7 @@
 
 ## P0 — Deployment, migration and security confidence
 
-1. **Migration registry parity:** 90 repository migration files and 90 live registry rows exist (89 and 89 at the 21 Nov audit; `0412` added 22 Nov), but 13 migrations are registered under timestamp versions instead of their four-digit file versions: `0014`, `0215`, `0216`, `0217`, `0309`, `0409`, `0410`, `0411`, `0412` (`20261122035159`), and `1000`–`1003`. The live registry has corresponding timestamp-name rows. Do not edit applied migrations or blindly insert duplicate rows; design and test a safe reconciliation plan before the next migration batch. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
+1. **Migration registry parity:** **Done on 22 Nov 2026:** the live registry has 92 rows for 91 repository files and none uses a timestamp version (the 12 timestamp rows listed in the 21 Nov audit were already numbered when checked; `0412` was renamed from `20261122035159`). Left: `0015_core_trigger_search_path.sql` is registered live but its file is only on the unmerged branch `ops-redesign-stage1`. Do not edit applied migrations or insert duplicate rows. Migration `0214_closing_staff_see_all` is present in both repository and live registry; the old missing-file warning was incorrect.
 2. **Security advisor review:** review the 219 authenticated-callable SECURITY DEFINER functions for explicit permission checks and least-privilege grants; decide whether to pin `search_path` on the two flagged trigger functions; enable leaked-password protection if compatible with the staff-login model. Do not blanket-revoke RPCs without mapping required clients.
 3. **Real backup restore drill:** restore an actual encrypted Drive backup into a separate empty Supabase project. The local 39/39 round-trip and upload checksum do not prove the real restore path.
 4. **Separate production project:** plan a controlled production/staging split, secrets/Vault/cron recreation and data/config validation before broader launch.
@@ -32,7 +32,7 @@
 
 ### Audit
 - Individual Audit rounds compile themselves on submit (migration 0412, live 22 Nov 2026); remaining: PHONE 4 on a real phone.
-- C2 Barcode is implemented and integrated on `main`; migrations 0411 are present in the live registry under a timestamp version. Remaining work is real-device scanner/offline acceptance and hardening, not initial implementation.
+- C2 Barcode is implemented and integrated on `main`; migration 0411 is live and registered by repo number. Remaining work is real-device scanner/offline acceptance and hardening, not initial implementation.
 - After C2, complete D hardening: offline end-to-end, accessibility, low-end-phone behaviour, data-use review and formal acceptance.
 - Optional later improvements: expiry-register CSV/print and expiry-by-month summary.
 
@@ -44,7 +44,7 @@
 
 ### Closing / Manager / STR
 - Treat the core implementations as built; prioritize acceptance and documented integration gaps rather than rebuilding their existing screens.
-- Reconcile the 13 timestamp-versioned migration registry rows before adding more database migrations; 0214 is present in both repo and live registry.
+- Registry reconciled (22 Nov 2026). Get `0015_core_trigger_search_path.sql` onto `main`; the 12 Nov registry backup is dropped; the 21 and 22 Nov backups can go after review.
 - STR supplier/pack metadata and presentation follow-ups should not block unrelated module acceptance.
 
 ## P3 — Quality and future modules
