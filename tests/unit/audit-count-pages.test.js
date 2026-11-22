@@ -8,6 +8,7 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
   countBatch: vi.fn(async (_a, events) => ({ accepted: events.length, duplicates: 0 })),
   submitCount: vi.fn(async () => ({ revision: 1 })),
   startIndividual: vi.fn(),
+  myCompilation: vi.fn(async () => null),
   listCompanies: vi.fn(async () => {
     throw new Error('not loaded');
   }),
@@ -217,13 +218,116 @@ describe('counting screen', () => {
     expect(root().querySelector('input[data-qty="i1"]').disabled).toBe(true);
   });
 
-  it('with no assignment chosen, lists the assignments and opens one', async () => {
+  it('with no assignment chosen and several open, lists the assignments and opens one', async () => {
     setView({});
+    api.myAssignments.mockResolvedValue([asg(), asg({ assignment_id: 'asg2', engagement_name: 'Autumn audit' })]);
     await mountCount(root(), { ctx: { permissions: ['audit.count', 'audit.individual'] } });
     expect(root().textContent).toContain('Spring audit · Round 1');
+    expect(root().textContent).toContain('Autumn audit · Round 1');
     expect(root().textContent).toContain('Start an Individual Audit');
     root().querySelector('button[data-open="asg1"]').click();
     await until(() => root().querySelector('input[data-qty="i1"]'));
+  });
+});
+
+describe('getting into counting quickly', () => {
+  it('with exactly one open assignment, opens it straight away, and "All assignments" still shows the list', async () => {
+    setView({});
+    await mountCount(root(), { ctx: { permissions: ['audit.count'] } });
+    expect(root().querySelector('input[data-qty="i1"]')).not.toBeNull();
+    expect(api.myItems).toHaveBeenCalledWith('asg1');
+    click('button[data-act="back"]');
+    await until(() => root().textContent.includes('Your assignments'));
+    expect(root().querySelector('input[data-qty="i1"]')).toBeNull(); // the list stays; it does not jump back in
+    expect(root().querySelector('button[data-open="asg1"]')).not.toBeNull();
+  });
+
+  it('a submitted assignment is not "open": the one that is still open is chosen', async () => {
+    setView({});
+    api.myAssignments.mockResolvedValue([asg({ assignment_id: 'old', status: 'submitted' }), asg({ assignment_id: 'asg1' })]);
+    await mountCount(root(), { ctx: {} });
+    expect(api.myItems).toHaveBeenCalledWith('asg1');
+  });
+
+  it('keeps a "N left" bar and a Submit shortcut in reach, and the shortcut asks about uncounted items', async () => {
+    await mountCount(root(), { ctx: {} });
+    const bar = () => root().querySelector('#aud-sticky-text').textContent;
+    expect(bar()).toBe('3 left');
+    type('i1', '10');
+    expect(bar()).toBe('2 left');
+    click('button[data-act="sticky-submit"]');
+    expect(root().textContent).toContain('2 items are not counted');
+    expect(api.submitCount).not.toHaveBeenCalled(); // the shortcut never submits past the warning
+  });
+
+  it('the Submit shortcut submits at once when every item is counted, and the bar is gone afterwards', async () => {
+    await mountCount(root(), { ctx: {} });
+    type('i1', '10');
+    type('i2', '5');
+    type('i3', '8');
+    expect(root().querySelector('#aud-sticky-text').textContent).toBe('All counted');
+    click('button[data-act="sticky-submit"]');
+    await until(() => api.submitCount.mock.calls.length === 1);
+    await until(() => root().textContent.includes('You submitted this count'));
+    expect(root().querySelector('.aud-sticky')).toBeNull();
+  });
+
+  it('after submitting, offers the next open assignment and opens it in one tap', async () => {
+    api.myAssignments.mockResolvedValue([asg(), asg({ assignment_id: 'asg2', engagement_name: 'Autumn audit', items: 3 })]);
+    await mountCount(root(), { ctx: {} });
+    expect(root().textContent).not.toContain('Your next assignment'); // not while this one is still being counted
+    type('i1', '10');
+    type('i2', '5');
+    type('i3', '8');
+    click('button[data-act="ask-submit"]'); // drawn while items were uncounted; with all counted it submits at once
+    await until(() => root().textContent.includes('Your next assignment'));
+    expect(root().textContent).toContain('Autumn audit · Round 1');
+    click('button[data-open-next="asg2"]');
+    await until(() => api.myItems.mock.calls.some(([id]) => id === 'asg2'));
+  });
+});
+
+describe('recount my differences', () => {
+  const individual = (over = {}) => asg({ method: 'individual-self-pick', ...over });
+  const finish = async () => {
+    await mountCount(root(), { ctx: { permissions: ['audit.count', 'audit.individual'] } });
+    type('i1', '7'); // 3 short on A1; the other two match
+    type('i2', '5');
+    type('i3', '8');
+    click('button[data-act="ask-submit"]');
+    await until(() => root().textContent.includes('Your result'));
+  };
+  beforeEach(() => {
+    api.myAssignments.mockResolvedValue([individual(), individual({ assignment_id: 'asg9' })]);
+    api.myCompilation.mockResolvedValue({ item_count: 3, variance_count: 1, variance_value: -3.015 });
+  });
+
+  it('starts a new Individual Audit on only the items that differed and opens it', async () => {
+    api.startIndividual.mockResolvedValue({ assignment_id: 'asg9', items: 1, requested: 1 });
+    await finish();
+    click('button[data-act="recount"]');
+    await until(() => api.myItems.mock.calls.some(([id]) => id === 'asg9'));
+    expect(api.startIndividual).toHaveBeenCalledWith({ key: expect.any(String), codes: ['A1'], companies: [], templateId: null });
+  });
+
+  it('keeps one key across a retry after a lost connection, so two audits are never started', async () => {
+    api.startIndividual
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ assignment_id: 'asg9', items: 1, requested: 1 });
+    await finish();
+    click('button[data-act="recount"]');
+    await until(() => root().querySelector('button[data-act="recount"]') && !root().querySelector('button[data-act="recount"]').disabled);
+    expect(root().querySelector('[role="alert"]')).not.toBeNull();
+    click('button[data-act="recount"]');
+    await until(() => api.startIndividual.mock.calls.length === 2);
+    expect(api.startIndividual.mock.calls[1][0].key).toBe(api.startIndividual.mock.calls[0][0].key);
+  });
+
+  it('is not offered when nothing differed', async () => {
+    api.myCompilation.mockResolvedValue({ item_count: 3, variance_count: 0, variance_value: 0 });
+    await finish();
+    expect(root().querySelector('button[data-act="recount"]')).toBeNull();
+    expect(root().querySelector('a[href="#/audit/individual"]')).not.toBeNull();
   });
 });
 

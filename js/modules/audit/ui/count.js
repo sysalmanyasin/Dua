@@ -8,9 +8,20 @@ import { loadMirror, refreshMirror, saveScan, sendScans } from '../data/barcodeS
 import { outboxStore } from '../data/outboxStore.js';
 import { cleanBarcode, lookup, makeScanEvent, resolveScan, scanMessage } from '../domain/barcode.js';
 import { computeRowTimeDelta, truncateExtraNote } from '../domain/compile.js';
-import { filterItems, groupByCompany, impactPaisa, parseQty, rupees, summarize, varianceView } from '../domain/count.js';
+import {
+  differingCodes,
+  filterItems,
+  groupByCompany,
+  impactPaisa,
+  nextOpenAssignment,
+  parseQty,
+  rupees,
+  soleOpenAssignment,
+  summarize,
+  varianceView,
+} from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
-import { getView, setView } from '../domain/nav.js';
+import { getView, newKey, setView } from '../domain/nav.js';
 import { flushOutbox, latestByItem, makeEvent, timing } from '../domain/outbox.js';
 import { errorCard, loadingCard, toast } from './parts.js';
 import { openScanner } from './scanner.js';
@@ -30,7 +41,8 @@ export async function mount(el, { ctx } = {}) {
 }
 
 // ───────── the person's assignments ─────────
-async function mountList(el, ctx) {
+// `auto`: with exactly one open assignment, go straight into it. The "All assignments" button turns this off so it can show the list.
+async function mountList(el, ctx, auto = true) {
   const store = outboxStore();
   render(el, loadingCard());
   let list;
@@ -42,6 +54,11 @@ async function mountList(el, ctx) {
     list = await store.getKv('assignments').catch(() => null);
     if (!list) return render(el, errorCard('your counts', friendlyError(e).message));
     offline = true;
+  }
+  const sole = auto ? soleOpenAssignment(list) : null;
+  if (sole) {
+    setView({ ...(getView() ?? {}), assignment: sole });
+    return mountCounting(el, sole, ctx);
   }
   const canIndividual = (ctx?.permissions ?? []).includes('audit.individual');
   render(
@@ -128,12 +145,15 @@ async function mountCounting(el, assignmentId, ctx) {
     unlocked: new Set(),
     scanMsg: '',
     choices: [],
+    next: null, // another assignment of theirs that is still open, offered once this one is submitted
+    recountKey: null, // one key per "Recount my differences" attempt, so a retry never starts two audits
   };
 
   // the assignment's facts and its items: from the database, or the copy saved on this device
   try {
     const [list, items] = await Promise.all([api.myAssignments(), api.myItems(assignmentId)]);
     s.a = list.find((x) => x.assignment_id === assignmentId);
+    s.next = nextOpenAssignment(list, assignmentId);
     s.items = items;
     await store.setKv('assignments', list).catch(() => {});
     await store.setKv(`items:${assignmentId}`, { a: s.a, items }).catch(() => {});
@@ -147,7 +167,7 @@ async function mountCounting(el, assignmentId, ctx) {
   }
   if (!s.a) {
     setView({ ...(getView() ?? {}), assignment: null });
-    return mountList(el, ctx);
+    return mountList(el, ctx, false);
   }
   s.byId = new Map(s.items.map((it) => [it.round_item_id, it]));
   for (const it of s.items) {
@@ -182,6 +202,13 @@ async function mountCounting(el, assignmentId, ctx) {
   }
 
   const open = () => s.a.round_state === 'counting' && s.a.status !== 'submitted';
+  const stickyText = (t) => (t.left > 0 ? `${t.left} left` : 'All counted');
+  // leaving this screen for another count: stop the background sending that belongs to this one
+  const stop = () => {
+    clearTimeout(timer);
+    clearInterval(every);
+    window.removeEventListener('online', onOnline);
+  };
   const companies = [...new Set(s.items.map((i) => i.company))].sort();
   const signedRs = (delta, value) => `${delta > 0 ? '+' : '-'}${rupees(Math.abs(value))}`;
   const diffHtml = (it) => {
@@ -319,6 +346,8 @@ async function mountCounting(el, assignmentId, ctx) {
             : ''
         }`,
     );
+    const bar = el.querySelector('#aud-sticky-text');
+    if (bar) bar.textContent = stickyText(t);
   }
 
   function patchRow(id) {
@@ -363,7 +392,25 @@ async function mountCounting(el, assignmentId, ctx) {
                       </p>`
                     : html`<p class="muted">Your count is saved.</p>`
                 }
-                <a class="btn btn-primary" href="#/audit/individual">Start another audit</a>
+                <div class="aud-actions">
+                  <a class="btn btn-primary" href="#/audit/individual">Start another audit</a>
+                  ${
+                    Number(s.result?.variance_count) > 0
+                      ? html`<button type="button" class="btn" data-act="recount" ${s.busy ? 'disabled' : ''}>
+                          Recount my differences
+                        </button>`
+                      : ''
+                  }
+                </div>
+              </section>`
+            : ''
+        }
+        ${
+          submitted && s.next
+            ? html`<section class="card aud-card" aria-label="Next assignment">
+                <h2>Your next assignment</h2>
+                <p class="muted small">${label(s.next)} · ${s.next.items} items · ${s.next.counted} counted</p>
+                <button type="button" class="btn btn-primary" data-open-next="${s.next.assignment_id}">Count it now</button>
               </section>`
             : ''
         }
@@ -387,12 +434,19 @@ async function mountCounting(el, assignmentId, ctx) {
           </div>
         </section>
         <section class="card aud-card" id="aud-list" aria-label="Items"></section>
-        ${open() ? submitCard() : ''}
+        ${open() ? submitCard() : ''} ${open() ? stickyBar() : ''}
       </div>`,
     );
     drawSummary();
     drawList();
   }
+
+  // always in reach on a long list: how many are left, and a way to the submit step without scrolling to the bottom
+  const stickyBar = () =>
+    html`<div class="aud-sticky" role="region" aria-label="Submit shortcut">
+      <span id="aud-sticky-text">${stickyText(summarize(s.items, s.entries))}</span>
+      <button type="button" class="btn btn-primary btn-sm" data-act="sticky-submit" ${s.busy ? 'disabled' : ''}>Submit</button>
+    </div>`;
 
   const scanBox = () =>
     s.canScan && open()
@@ -599,6 +653,11 @@ async function mountCounting(el, assignmentId, ctx) {
       return void [...el.querySelectorAll('input[data-qty]')].find((i) => i.dataset.qty === b.dataset.hand)?.focus();
     }
     if (b.dataset.choose) return pin(b.dataset.choose);
+    if (b.dataset.openNext) {
+      stop();
+      setView({ ...(getView() ?? {}), assignment: b.dataset.openNext });
+      return void mountCounting(el, b.dataset.openNext, ctx);
+    }
     if (b.dataset.same) {
       const it = s.byId.get(b.dataset.same);
       return void record(b.dataset.same, { qty: Number(it.prev_counted), confirmed: true });
@@ -612,11 +671,22 @@ async function mountCounting(el, assignmentId, ctx) {
         s.choices = [];
         return drawShell();
       case 'back':
+        stop();
         setView({ ...(getView() ?? {}), assignment: null });
-        return mountList(el, ctx);
+        return mountList(el, ctx, false);
+      case 'recount':
+        return recountDifferences();
+      case 'sticky-submit': {
+        if (summarize(s.items, s.entries).left === 0) return submitNow();
+        s.confirmSubmit = true;
+        drawShell();
+        return void el.querySelector('[aria-label="Submit"]')?.scrollIntoView?.({ block: 'center' });
+      }
       case 'send':
         return flush(true);
       case 'ask-submit':
+        // the button was drawn while items were still uncounted; if they have all been counted since, there is nothing to ask
+        if (summarize(s.items, s.entries).left === 0) return submitNow();
         s.confirmSubmit = true;
         return drawShell();
       case 'cancel-submit':
@@ -629,33 +699,61 @@ async function mountCounting(el, assignmentId, ctx) {
         s.confirmSubmit = false;
         return drawShell();
       }
-      case 'submit': {
-        s.busy = true;
-        s.error = null;
-        drawShell();
-        await flush(false);
-        if (s.waiting > 0) {
-          s.busy = false;
-          s.error = s.error ?? 'Some counts are still waiting to send. Connect to the internet and try again.';
-          return drawShell();
-        }
-        try {
-          await api.submitCount(assignmentId, s.extraNote.trim());
-          s.a = { ...s.a, status: 'submitted' };
-          await loadResult();
-          await store.setKv(`items:${assignmentId}`, { a: s.a, items: s.items }).catch(() => {});
-          toast('Count submitted.');
-        } catch (err) {
-          const f = friendlyError(err);
-          s.error = f.message;
-        }
-        s.busy = false;
-        s.confirmSubmit = false;
-        return drawShell();
-      }
+      case 'submit':
+        return submitNow();
       default:
     }
   };
+
+  async function submitNow() {
+    s.busy = true;
+    s.error = null;
+    drawShell();
+    await flush(false);
+    if (s.waiting > 0) {
+      s.busy = false;
+      s.error = s.error ?? 'Some counts are still waiting to send. Connect to the internet and try again.';
+      return drawShell();
+    }
+    try {
+      await api.submitCount(assignmentId, s.extraNote.trim());
+      s.a = { ...s.a, status: 'submitted' };
+      await loadResult();
+      await store.setKv(`items:${assignmentId}`, { a: s.a, items: s.items }).catch(() => {});
+      // another open assignment of theirs, if any, is offered next so the list is not needed in between
+      s.next = nextOpenAssignment(await api.myAssignments().catch(() => []), assignmentId);
+      toast('Count submitted.');
+    } catch (err) {
+      const f = friendlyError(err);
+      s.error = f.message;
+    }
+    s.busy = false;
+    s.confirmSubmit = false;
+    return drawShell();
+  }
+
+  // starts an Individual Audit on just the items that differed; one key per attempt, so a retry never starts two
+  async function recountDifferences() {
+    const codes = differingCodes(s.items, s.entries);
+    if (codes.length === 0) return;
+    s.busy = true;
+    s.error = null;
+    drawShell();
+    try {
+      s.recountKey ??= newKey();
+      const r = await api.startIndividual({ key: s.recountKey, codes, companies: [], templateId: null });
+      s.recountKey = null;
+      stop();
+      setView({ ...(getView() ?? {}), assignment: r.assignment_id });
+      return void mountCounting(el, r.assignment_id, ctx);
+    } catch (err) {
+      const f = friendlyError(err);
+      if (f.kind === 'refused') s.recountKey = null; // a refusal is final; a lost connection can be retried with the same key
+      s.error = f.message;
+      s.busy = false;
+      return drawShell();
+    }
+  }
 
   // sends in the background: when the connection returns, and every so often while the screen is open
   const onOnline = () => {
