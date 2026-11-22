@@ -23,12 +23,14 @@ import {
 import { friendlyError } from '../domain/errors.js';
 import { getView, newKey, setView } from '../domain/nav.js';
 import { flushOutbox, latestByItem, makeEvent, timing } from '../domain/outbox.js';
+import { openCalculator } from './calculator.js';
 import { errorCard, loadingCard, toast } from './parts.js';
 import { openScanner } from './scanner.js';
 import { installSignOutGuard } from './signoutGuard.js';
 
 const ROUND = { draft: 'being set up', locked: 'locked, not started', counting: 'counting', compiled: 'compiled', final: 'final' };
 const PAGE = 100;
+const focusTrackers = new WeakMap(); // screen element -> its `focusin` listener, so a second visit does not stack a second one
 const q = (n) => String(Number(n));
 
 const label = (a) => `${a.engagement_name} · Round ${a.round_number}${a.round_suffix ?? ''}`;
@@ -145,6 +147,7 @@ async function mountCounting(el, assignmentId, ctx) {
     unlocked: new Set(),
     scanMsg: '',
     choices: [],
+    lastQty: null, // the count box the person was last in (an item id), for the calculator
     next: null, // another assignment of theirs that is still open, offered once this one is submitted
     recountKey: null, // one key per "Recount my differences" attempt, so a retry never starts two audits
   };
@@ -448,28 +451,51 @@ async function mountCounting(el, assignmentId, ctx) {
       <button type="button" class="btn btn-primary btn-sm" data-act="sticky-submit" ${s.busy ? 'disabled' : ''}>Submit</button>
     </div>`;
 
+  // the tools above the list: scanning (where allowed) and the calculator, side by side
   const scanBox = () =>
-    s.canScan && open()
+    open()
       ? html`<div class="aud-actions">
-            <button type="button" class="btn btn-primary btn-sm" data-act="scan">Scan a barcode</button>
-            ${s.pinned ? html`<button type="button" class="btn btn-ghost btn-sm" data-act="unpin">Show the whole list</button>` : ''}
+            ${s.canScan ? html`<button type="button" class="btn btn-primary btn-sm" data-act="scan">Scan a barcode</button>` : ''}
+            <button type="button" class="btn btn-ghost btn-sm" data-act="calc">Calculator</button>
+            ${s.canScan && s.pinned ? html`<button type="button" class="btn btn-ghost btn-sm" data-act="unpin">Show the whole list</button>` : ''}
           </div>
-          <p class="small" id="aud-scan-note" role="status" aria-live="polite">${s.scanMsg}</p>
           ${
-            s.choices.length
-              ? html`<ul class="aud-list">
-                  ${s.choices.map((id) => {
-                    const it = s.byId.get(id);
-                    return html`<li>
-                      <button type="button" class="btn btn-ghost btn-sm" data-choose="${id}">
-                        <strong>${it.name || it.code}</strong> <span class="muted small">${it.company}</span>
-                      </button>
-                    </li>`;
-                  })}
-                </ul>`
+            s.canScan
+              ? html`<p class="small" id="aud-scan-note" role="status" aria-live="polite">${s.scanMsg}</p>
+                  ${
+                    s.choices.length
+                      ? html`<ul class="aud-list">
+                          ${s.choices.map((id) => {
+                            const it = s.byId.get(id);
+                            return html`<li>
+                              <button type="button" class="btn btn-ghost btn-sm" data-choose="${id}">
+                                <strong>${it.name || it.code}</strong> <span class="muted small">${it.company}</span>
+                              </button>
+                            </li>`;
+                          })}
+                        </ul>`
+                      : ''
+                  }`
               : ''
           }`
       : '';
+
+  // the calculator hands its answer to the count box the person was last in; it is saved exactly as if it had been typed
+  function openCalc() {
+    const id = s.lastQty && s.byId.has(s.lastQty) ? s.lastQty : null;
+    const it = id ? s.byId.get(id) : null;
+    const usable = it && open() && !locked(id);
+    openCalculator({
+      target: usable ? `${it.name || it.code}${it.code ? ` (${it.code})` : ''}` : '',
+      onClose: () => el.querySelector('[data-act="calc"]')?.focus(),
+      onInsert: (qty) => {
+        void record(id, { qty });
+        // on to the next box, as Enter does
+        const input = [...el.querySelectorAll('input[data-qty]')].find((i) => i.dataset.qty === id);
+        if (input) nextInput(input);
+      },
+    });
+  }
 
   // a scan finds an item in the person's own list and puts it first; the quantity is always typed (AUD-4, AUD-5)
   function pin(id) {
@@ -619,6 +645,15 @@ async function mountCounting(el, assignmentId, ctx) {
       return void record(id, { qty: s.entries[id].qty, auto: false, note: t.value });
     }
   };
+  // which count box the person was last in: the calculator's answer goes there. (`focusin` is not a handler property, so it
+  // is added as a listener, and the one from an earlier visit to this screen is taken off first.)
+  const focusIn = (e) => {
+    if (e.target.dataset?.qty) s.lastQty = e.target.dataset.qty;
+  };
+  const earlier = focusTrackers.get(el);
+  if (earlier) el.removeEventListener('focusin', earlier);
+  el.addEventListener('focusin', focusIn);
+  focusTrackers.set(el, focusIn);
   el.oninput = (e) => {
     const f = e.target.dataset?.f;
     if (f === 'text') {
@@ -663,6 +698,8 @@ async function mountCounting(el, assignmentId, ctx) {
       return void record(b.dataset.same, { qty: Number(it.prev_counted), confirmed: true });
     }
     switch (b.dataset.act) {
+      case 'calc':
+        return openCalc();
       case 'scan':
         return void openScanner({ title: 'Scan an item', onCode: onScan, onClose: () => el.querySelector('[data-act="scan"]')?.focus() });
       case 'unpin':

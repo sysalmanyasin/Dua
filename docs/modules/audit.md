@@ -13,7 +13,7 @@ Branch history: `module/audit` · Migration range: `0400–0499` · Prefix: `aud
 - Assignments (auto-split by company count or item volume, manual move, revoke, reopen)
 - Counting (manual, barcode, hybrid), offline counting, calculator, notes, row timing, "Mark Remaining as Match", Force Submit
 - Compilation, variance review, difference rounds (differences only, full company recount, random spot-check), cross-round conflicts, corrections (propose → review → approve/reject), Final Snapshot
-- Individual (self-service) audits in a rolling monthly engagement; saved templates
+- Individual (self-service) audits in a rolling monthly engagement; saved templates; templates can also be made by choosing CSV files of product codes only (one template per file, named after the file, previewed before saving)
 - Expiry tracking (racks, monthly rack-to-staff assignment, entries)
 - Barcode Center (register, verify, change, disable, conflicts, scan history) and the camera scanner
 - Reports (final, variance, round and submission history, audit trail) with print / Save as PDF

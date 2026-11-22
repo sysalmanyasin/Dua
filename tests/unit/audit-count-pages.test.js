@@ -287,6 +287,89 @@ describe('getting into counting quickly', () => {
   });
 });
 
+describe('the calculator on the counting screen', () => {
+  const sheet = () => document.querySelector('.aud-calc');
+  const tapKeys = (...keys) => keys.forEach((k) => sheet().querySelector(`button[data-k="${k}"]`).click());
+  const focusBox = (id) =>
+    root()
+      .querySelector(`input[data-qty="${id}"]`)
+      .dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+  it('is there while counting, and not once the count is submitted', async () => {
+    await mountCount(root(), { ctx: {} });
+    expect(root().querySelector('button[data-act="calc"]')).not.toBeNull();
+    api.myAssignments.mockResolvedValue([asg({ status: 'submitted' })]);
+    setView({ assignment: 'asg1' });
+    await mountCount(root(), { ctx: {} });
+    expect(root().querySelector('button[data-act="calc"]')).toBeNull();
+  });
+
+  it('puts the answer in the box the person was last in, saved exactly as a typed count, and moves on to the next box', async () => {
+    await mountCount(root(), { ctx: {} });
+    focusBox('i1');
+    root().querySelector('input[data-qty="i1"]').blur(); // tapping the button takes focus off the box
+    click('button[data-act="calc"]');
+    expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Alpha one (A1)');
+    tapKeys('6', '×', '1', '0', '+', '4');
+    sheet().querySelector('[data-s="insert"]').click();
+    expect(sheet()).toBeNull();
+    expect(root().querySelector('input[data-qty="i1"]').value).toBe('64');
+    expect(root().querySelector('[data-diff="i1"]').textContent).toBe('+54+Rs 5,427'); // 54 over, at Rs 100.5
+    expect(await store.count('asg1')).toBe(1); // kept on the device first, like any count
+    await until(() => api.countBatch.mock.calls.length === 1);
+    expect(api.countBatch.mock.calls[0][1][0]).toMatchObject({ item: 'i1', qty: 64, auto: false });
+    expect(document.activeElement).toBe(root().querySelector('input[data-qty="i2"]'));
+  });
+
+  it('with no box chosen yet it opens but cannot insert, and says so', async () => {
+    await mountCount(root(), { ctx: {} });
+    click('button[data-act="calc"]');
+    expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Tap a count box first');
+    expect(sheet().querySelector('[data-s="insert"]').disabled).toBe(true);
+  });
+
+  it('a sum that is not a valid count is refused and nothing is counted', async () => {
+    await mountCount(root(), { ctx: {} });
+    focusBox('i2');
+    click('button[data-act="calc"]');
+    tapKeys('3', '−', '5');
+    sheet().querySelector('[data-s="insert"]').click();
+    expect(sheet().querySelector('[data-note]').textContent).toBe('A count cannot be below zero.');
+    expect(await store.count('asg1')).toBe(0);
+    expect(root().querySelector('input[data-qty="i2"]').value).toBe('');
+  });
+
+  it('closing it without inserting changes nothing and returns focus to the button', async () => {
+    await mountCount(root(), { ctx: {} });
+    focusBox('i1');
+    click('button[data-act="calc"]');
+    sheet().querySelector('[data-s="close"]').click();
+    expect(await store.count('asg1')).toBe(0);
+    expect(document.activeElement).toBe(root().querySelector('button[data-act="calc"]'));
+  });
+
+  it('answers a different box after the person moves to it', async () => {
+    await mountCount(root(), { ctx: {} });
+    focusBox('i1');
+    focusBox('i3');
+    click('button[data-act="calc"]');
+    expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Beta one (B1)');
+    tapKeys('8');
+    sheet().querySelector('[data-s="insert"]').click();
+    expect(root().querySelector('input[data-qty="i3"]').value).toBe('8');
+    expect(root().querySelector('input[data-qty="i1"]').value).toBe('');
+  });
+
+  it('visiting the screen again does not stack a second focus tracker', async () => {
+    await mountCount(root(), { ctx: {} });
+    const spy = vi.spyOn(root(), 'addEventListener');
+    const off = vi.spyOn(root(), 'removeEventListener');
+    await mountCount(root(), { ctx: {} });
+    expect(spy.mock.calls.filter(([type]) => type === 'focusin')).toHaveLength(1);
+    expect(off.mock.calls.filter(([type]) => type === 'focusin')).toHaveLength(1);
+  });
+});
+
 describe('recount my differences', () => {
   const individual = (over = {}) => asg({ method: 'individual-self-pick', ...over });
   const finish = async () => {
@@ -485,5 +568,37 @@ describe('templates page', () => {
     document.body.innerHTML = '<div id="root"></div>';
     await mountTemplates(root(), { ctx: { permissions: ['audit.individual'] } });
     expect(root().querySelector('button[data-act="save"]')).toBeNull();
+    expect(root().querySelector('input[data-act="csv-files"]')).toBeNull();
+  });
+
+  it('makes one template per CSV file after a preview, skips a name already used, and keeps a failed one on screen', async () => {
+    api.saveTemplate.mockClear();
+    api.listTemplates.mockResolvedValueOnce([{ id: 't0', name: 'Syrups', codes: ['1'], updated_at: null }]);
+    await mountTemplates(root(), { ctx: { permissions: ['audit.templates'] } });
+    const input = root().querySelector('input[data-act="csv-files"]');
+    const files = [
+      new File(['Code\n00123\n00456\n00123\n'], 'weekly_fridge.csv', { type: 'text/csv' }),
+      new File(['889\n890\n'], 'Syrups.csv', { type: 'text/csv' }),
+      new File(['A9\nA10\n'], 'broken.csv', { type: 'text/csv' }),
+    ];
+    Object.defineProperty(input, 'files', { value: files, configurable: true });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await until(() => root().querySelectorAll('input[data-f="csvname"]').length === 3);
+    expect(api.saveTemplate).not.toHaveBeenCalled(); // a preview first, nothing saved yet
+    expect(root().textContent.replace(/\s+/g, ' ')).toContain('weekly_fridge.csv · 2 codes · e.g. 00123, 00456');
+    expect(root().querySelector('[data-csv-note="1"]').textContent).toContain('already exists');
+    expect(root().querySelector('button[data-act="csv-create"]').textContent.trim()).toBe('Create 2 templates');
+
+    api.saveTemplate.mockImplementation(async ({ name }) => {
+      if (name === 'broken') throw Object.assign(new Error('x'), { hint: 'template_name_taken' });
+      return 'tpl-new';
+    });
+    click('button[data-act="csv-create"]');
+    await until(() => api.saveTemplate.mock.calls.length === 2);
+    expect(api.saveTemplate).toHaveBeenCalledWith({ id: null, name: 'weekly fridge', codes: ['00123', '00456'] });
+    expect(api.saveTemplate).toHaveBeenCalledWith({ id: null, name: 'broken', codes: ['A9', 'A10'] });
+    await until(() => root().querySelectorAll('input[data-f="csvname"]').length === 2);
+    api.saveTemplate.mockReset();
+    api.saveTemplate.mockResolvedValue('tpl-1');
   });
 });
