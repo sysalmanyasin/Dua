@@ -485,5 +485,37 @@ describe('templates page', () => {
     document.body.innerHTML = '<div id="root"></div>';
     await mountTemplates(root(), { ctx: { permissions: ['audit.individual'] } });
     expect(root().querySelector('button[data-act="save"]')).toBeNull();
+    expect(root().querySelector('input[data-act="csv-files"]')).toBeNull();
+  });
+
+  it('makes one template per CSV file after a preview, skips a name already used, and keeps a failed one on screen', async () => {
+    api.saveTemplate.mockClear();
+    api.listTemplates.mockResolvedValueOnce([{ id: 't0', name: 'Syrups', codes: ['1'], updated_at: null }]);
+    await mountTemplates(root(), { ctx: { permissions: ['audit.templates'] } });
+    const input = root().querySelector('input[data-act="csv-files"]');
+    const files = [
+      new File(['Code\n00123\n00456\n00123\n'], 'weekly_fridge.csv', { type: 'text/csv' }),
+      new File(['889\n890\n'], 'Syrups.csv', { type: 'text/csv' }),
+      new File(['A9\nA10\n'], 'broken.csv', { type: 'text/csv' }),
+    ];
+    Object.defineProperty(input, 'files', { value: files, configurable: true });
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await until(() => root().querySelectorAll('input[data-f="csvname"]').length === 3);
+    expect(api.saveTemplate).not.toHaveBeenCalled(); // a preview first, nothing saved yet
+    expect(root().textContent.replace(/\s+/g, ' ')).toContain('weekly_fridge.csv · 2 codes · e.g. 00123, 00456');
+    expect(root().querySelector('[data-csv-note="1"]').textContent).toContain('already exists');
+    expect(root().querySelector('button[data-act="csv-create"]').textContent.trim()).toBe('Create 2 templates');
+
+    api.saveTemplate.mockImplementation(async ({ name }) => {
+      if (name === 'broken') throw Object.assign(new Error('x'), { hint: 'template_name_taken' });
+      return 'tpl-new';
+    });
+    click('button[data-act="csv-create"]');
+    await until(() => api.saveTemplate.mock.calls.length === 2);
+    expect(api.saveTemplate).toHaveBeenCalledWith({ id: null, name: 'weekly fridge', codes: ['00123', '00456'] });
+    expect(api.saveTemplate).toHaveBeenCalledWith({ id: null, name: 'broken', codes: ['A9', 'A10'] });
+    await until(() => root().querySelectorAll('input[data-f="csvname"]').length === 2);
+    api.saveTemplate.mockReset();
+    api.saveTemplate.mockResolvedValue('tpl-1');
   });
 });
