@@ -4,7 +4,7 @@
 
 > **Fresh verification supersedes conflicting values below:** main commit `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages #244 succeeded. Live DuaPharmaPlus is ACTIVE_HEALTHY on PostgreSQL 17.11, with 124/124 public tables under RLS, 341 public routines and 93 four-digit migration registry rows. Main has 92 migration SQL files; the already-applied live-only 0015 source exists on `ops-redesign-stage1`. Six Edge Functions are active, including two retired HTTP 410 endpoints. Workspace Sheets reference model and parity tests are merged; UI/data layer remain incomplete. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md).  
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
-**Code baseline inspected:** [`9669497`](https://github.com/sysalmanyasin/Dua/commit/96694979e65242f5ee24eb86f215630686b552c8)  
+**Code baseline inspected:** [`18283f1`](https://github.com/sysalmanyasin/Dua/commit/18283f17600be54d562a5eb3c40bf89906416b29)  
 **Live application:** https://sysalmanyasin.github.io/Dua/  
 **Recorded Supabase project:** DuaPharmaPlus (`sdsynzsflubdxnelgthh`)
 
