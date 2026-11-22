@@ -174,3 +174,16 @@ Problem: a person's Individual Audit stayed in `counting` after submit until the
 - Live check (22 Nov 2026): the four changed functions and the new core have the same body hash as the locally tested copy (D-47); the core is not executable by `authenticated` or `anon`; no open individual conflicts and no submitted-but-uncompiled individual rounds existed.
 - **Registry note:** this migration was applied with the Supabase `apply_migration` tool, which registered it under a timestamp version instead of `0412` (RUNBOOK §4 says to apply by hand under the repo number). It is the 13th timestamp-registered row. The SQL is unaffected. Do not reapply it; fix the row with the rest of the registry reconciliation.
 - Not done: phone check of the result card and "Start another" (PHONE 4 in `audit.phone-tests.md`); real-phone acceptance by the owner.
+
+## Audit 3.0, slice F1: staff and hub quick wins — 22 Nov 2026
+Plan: the "Audit 3.0 plan" doc (port five features from the old Audit Hub, shorten the staff and owner flows). F1 is screens only: no migration, no new database read.
+- **S1** Counting opens the only open assignment straight away. "All assignments" still shows the list and does not jump back in. A submitted, revoked or not-yet-counting assignment is not "open" (`isOpenAssignment`, `soleOpenAssignment` in `domain/count.js`).
+- **S2** Each assignment card on the Overview opens its own assignment (`data-open-assignment`), not whichever one was last opened.
+- **S3** A sticky bar on the counting screen shows "N left" and a Submit button. With items still uncounted it opens the usual "not counted" warning; it never submits past it. When everything is counted, Submit goes straight through, and so does the main Submit button (it used to go nowhere if the last item was counted after the screen was drawn).
+- **S4** "Recount my differences" on the Individual Audit result card starts a new Individual Audit on only the products that differed (`differingCodes`: uncounted reads as zero in stock, so it matches what the compile counted; at most `MAX_CODES`). One key per attempt, kept across a lost connection, so a retry never starts two audits. Not shown when nothing differed.
+- **S5** After submitting, "Your next assignment" offers the next open assignment in one tap.
+- **N1** "Pick up where you left off" on the Overview, for people who can see audits: the last audit and round opened on this device. Only ids are kept (`dua.audit.last` in `localStorage`, inside try/catch); it is shown only if that audit is still in the person's own list.
+- **N3** The first navigation group is open by default; the others stay folded.
+- Files: `domain/count.js`, `domain/nav.js`, `ui/count.js`, `ui/hub.js`, `css/audit.css`; tests in `audit-count-pages`, `audit-pages`, and new `audit-quick-wins`.
+- Verify: lint, Prettier, 126 test files / 1,955 tests, secret and vendor checks all pass. The database suite was not run: nothing in the database changed.
+- Not done: PHONE 5 (below) on a real phone.

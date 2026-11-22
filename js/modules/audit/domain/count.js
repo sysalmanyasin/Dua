@@ -119,6 +119,33 @@ export function filterItems(items, entries, { text = '', company = '', mode = 'a
   });
 }
 
+/** An assignment the person can still count: the round is counting and they have not submitted. A revoked one is no longer theirs. */
+export const isOpenAssignment = (a) => a.round_state === 'counting' && a.status !== 'submitted' && a.status !== 'revoked';
+
+/** The id of the only open assignment, or null when there is none or there are several. */
+export function soleOpenAssignment(list) {
+  const open = (list ?? []).filter(isOpenAssignment);
+  return open.length === 1 ? open[0].assignment_id : null;
+}
+
+/** The first open assignment other than `currentId`, or null. */
+export const nextOpenAssignment = (list, currentId) =>
+  (list ?? []).find((a) => a.assignment_id !== currentId && isOpenAssignment(a)) ?? null;
+
+/**
+ * Codes of the items whose difference is not zero, uncounted items reading as zero in stock (R1), so a recount covers exactly
+ * what the compile counts as different. Distinct, in list order, at most `max`.
+ */
+export function differingCodes(items, entries, max = MAX_CODES) {
+  const seen = new Set();
+  for (const it of items) {
+    if (!it.code || varianceView(it, entries[it.round_item_id]).delta === 0) continue;
+    seen.add(String(it.code));
+    if (seen.size >= max) break;
+  }
+  return [...seen];
+}
+
 /** Whole rupees with the sign kept, from paisa. */
 export const rupees = (paisa) => {
   const sign = paisa < 0 ? '-' : '';
