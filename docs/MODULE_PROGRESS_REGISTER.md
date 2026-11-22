@@ -49,9 +49,9 @@ This register describes what is present in the source tree, what the live databa
 ## Repository and CI facts
 
 - Audited main commit: `18283f17600be54d562a5eb3c40bf89906416b29`.
-- Repository tree: 707 files; 13 module folders with manifests.
-- Front-end tests: 121 test files; repository snapshot records 1,891 passing tests.
-- Database tests: 77 test files.
+- Repository tree: 735 tracked blobs; 13 registered modules.
+- Front-end tests: 127 test files; 1,891 passing tests is a historical 21 Nov count (fresh total not recorded here).
+- Database tests: 82 SQL test files.
 - Migrations: 89 SQL migration files.
 - GitHub Actions CI run #401 on this commit: **success** for app, database and functions jobs.
 - GitHub Pages deployment run #226 on the same commit: **success**.
@@ -80,9 +80,9 @@ The GitHub branch list contained `main`, `audit/actual-module-status-2026-11-21`
 ## Priority work left
 
 1. **P0 — Migration safety:** the registry has no timestamp rows (22 Nov 2026). Remaining: recover the exact source for live-only `0015_core_trigger_search_path.sql` and add it to `main` through a reviewed PR and verify the future migration apply process.
-2. **P0 — Security:** review 219 authenticated-callable SECURITY DEFINER RPCs for explicit permission checks and least-privilege grants; pin search paths on the two flagged trigger functions; consider enabling leaked-password protection with the PIN login design in mind.
+2. **P0 — Security:** review 220 authenticated-callable SECURITY DEFINER RPCs for explicit permission checks and least-privilege grants; pin search paths on the two flagged trigger functions; consider enabling leaked-password protection with the PIN login design in mind.
 3. **P0 — Backup recovery:** perform a real encrypted Drive backup restore into a separate empty Supabase project.
-4. **P1 — Operational performance:** review 124 unindexed foreign keys, five RLS initplan warnings, one duplicate permissive policy and 28 unused indexes using workload evidence.
+4. **P1 — Operational performance:** review 124 unindexed foreign keys, five RLS initplan warnings, one duplicate permissive policy and 23 unused-index notices using workload evidence.
 5. **P1 — Owner acceptance:** complete phone/printer/Gmail acceptance across Sales, Home, Manager, Closing, Inventory, STR, Candela, Audit, Emergency Billing and Invoice Desk.
 6. **P1 — Workspace Sheets:** the reference model is merged; build the data layer and the user-facing Phase 5 grid on the already-live database.
 7. **P2 — Architecture/operations:** separate production and staging projects; add Playwright E2E, Sentry, accessibility and low-end Android checks.
