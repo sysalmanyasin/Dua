@@ -167,6 +167,8 @@ do $t$ declare r jsonb; m uuid; c public.closings; h text; d text; begin
   -- hand-worked: grand 55200 + 5000 = 60200; liquid 15200
   perform pg_temp.ok((r -> 'result' ->> 'liquid')::numeric = 15200, 'the corrected Night has Liquid 15200');
   reset role;
+  perform pg_temp.ok((select count(*) from public.notifications where kind = 'closing.corrected' and payload ->> 'closing_id' = r ->> 'closing_id' and (payload ->> 'revision')::int = 2) = 1,
+    'a one-step correction raises exactly one closing.corrected alert');
 
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000b1');
   perform pg_temp.refused($q$select public.closing_submit('a0000000-0000-0000-0000-000000000011')$q$, 'carry_changed', 'submit is refused when the carried-in figures changed since the last save');
@@ -228,6 +230,7 @@ do $t$ declare r jsonb; rev uuid; orig uuid := (select v::uuid from memo where k
   r := public.closing_save_draft('f0000000-0000-0000-0000-000000000001', current_date - 5, 'morning', 'shift', '{"sys_cash": 121000}', null, 1);
   perform pg_temp.ok((r ->> 'version') = '2', 'the admin edits the revision');
   r := public.closing_submit('f0000000-0000-0000-0000-000000000001');
+  perform pg_temp.ok((r ->> 'notified') = 'true', 'submitting a revision reports that the owner was alerted');
   perform pg_temp.ok((select status from public.closings where id = orig) = 'superseded' and (select status from public.closings where id = rev) = 'submitted', 'resubmitting makes the revision current and keeps the original as superseded');
   -- shift sale = 121000 - 100000 = 21000 (the original had 20000)
   perform pg_temp.ok((r -> 'result' ->> 'shift_sale')::numeric = 21000 and (select shift_sale from public.closing_results where closing_id = orig) = 20000, 'the revision has its own result; the original''s result is untouched');

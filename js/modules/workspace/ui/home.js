@@ -5,11 +5,13 @@ import { roleLabel } from '../domain/permissions.js';
 import { cleanQuery, kindLabel, newId, nextCursor, OPEN_KEY, relativeWhen } from '../domain/documents.js';
 import { createDocument, listDocuments, listFolders, listUserState, saveFolder, setDocumentFlags } from '../data/documents.js';
 import { searchNotes } from '../data/notes.js';
+import { buildOp } from '../domain/spreadsheet.js';
+import { createOperationSender } from '../data/workbooks.js';
 import { askText } from './panel.js';
 
 export function openDocument(id, kind = 'note') {
   sessionStorage.setItem(OPEN_KEY, id);
-  location.hash = kind === 'note' ? '#/workspace/note' : '#/workspace';
+  location.hash = kind === 'note' ? '#/workspace/note' : kind === 'workbook' ? '#/workspace/sheet' : '#/workspace';
 }
 
 const SCOPES = [
@@ -44,7 +46,7 @@ export async function mount(el, { ctx } = {}) {
       <section class="card ws-home">
         <div class="ws-toolbar-row">
           <button class="btn btn-primary" data-act="new-note" ${canCreate ? '' : 'disabled'}>New note</button>
-          <button class="btn" disabled title="Sheets arrive in a later update">New workbook</button>
+          <button class="btn" data-act="new-workbook" ${canCreate ? '' : 'disabled'}>New workbook</button>
           <button class="btn btn-ghost" data-act="new-folder">New folder</button>
           <span class="ws-grow"></span>
           <label class="field ws-search"
@@ -55,7 +57,7 @@ export async function mount(el, { ctx } = {}) {
         <div id="ws-tabs" class="tabs-seg" role="tablist" aria-label="Which documents"></div>
         <div id="ws-folders" class="ws-chips" aria-label="Folders"></div>
         <div id="ws-list" aria-live="polite"></div>
-        <p class="muted ws-sheets-note">Sheets: workbooks with formulas are coming in a later update. Notes work now.</p>
+        <p class="muted ws-sheets-note">Workbooks open as a read-only grid for now. Editing and formulas are coming in later updates.</p>
       </section>`,
   );
   const $ = (sel) => el.querySelector(sel);
@@ -188,6 +190,28 @@ export async function mount(el, { ctx } = {}) {
       try {
         const doc = await createDocument({ id: newId(), kind: 'note', title: 'Untitled note', key: newId() });
         openDocument(doc.id, 'note');
+        return;
+      } catch (err) {
+        s.error = err.message;
+        drawList();
+      }
+      s.busy = false;
+      b.disabled = !canCreate;
+    } else if (b.dataset.act === 'new-workbook' && !s.busy) {
+      s.busy = true;
+      b.disabled = true;
+      try {
+        const doc = await createDocument({ id: newId(), kind: 'workbook', title: 'Untitled workbook', key: newId() });
+        // A new workbook starts with no sheet. Try to add the first one now; if that fails the workbook still opens and
+        // offers "Add a sheet" itself.
+        try {
+          const sender = createOperationSender({ docId: doc.id });
+          sender.enqueue(buildOp('add_sheet', { sheet_id: newId(), name: 'Sheet1' }));
+          await sender.flush();
+        } catch {
+          // handled on the workbook page
+        }
+        openDocument(doc.id, 'workbook');
         return;
       } catch (err) {
         s.error = err.message;
