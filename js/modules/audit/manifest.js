@@ -45,6 +45,13 @@ export default {
       load: () => import('./ui/engagements.js'),
     },
     {
+      path: '/audit/individuals',
+      title: 'Individual audits',
+      desc: 'Individual audits by person and month',
+      anyOf: ['audit.view', 'audit.manage'],
+      load: () => import('./ui/individuals.js'),
+    },
+    {
       path: '/audit/engagement',
       desc: 'One audit: its team and rounds',
       anyOf: ['audit.view', 'audit.manage'],

@@ -36,6 +36,7 @@ const GROUPS = [
     description: 'Engagements, rounds, counting teams and reconciliation.',
     routes: [
       ['/audit/engagements', 'All audits', 'Create and browse audit engagements.'],
+      ['/audit/individuals', 'Individual audits', 'See who counted what in a month, person by person.'],
       ['/audit/engagement', 'Engagement details', 'Manage members and rounds within an audit.'],
       ['/audit/round', 'Rounds & assignments', 'Split work, assign counters, lock and start rounds.'],
       ['/audit/compile', 'Review & reconciliation', 'Inspect submissions, differences, corrections and conflicts.'],

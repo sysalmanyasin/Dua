@@ -1158,3 +1158,24 @@
 .aud .aud-wiz-person select {
   min-height: 44px;
 }
+
+/* Product history and Individual audits by person (F6) */
+.aud .aud-hist-product h3 {
+  margin: 0.9rem 0 0.2rem;
+  font-size: 1rem;
+}
+.aud .aud-hist-diff {
+  color: var(--danger, #b42318);
+  font-weight: 600;
+}
+.aud .aud-hist-error {
+  color: var(--danger, #b42318);
+  font-weight: 600;
+}
+.aud .aud-more {
+  margin: 0.5rem 0;
+}
+.aud .aud-more .btn,
+.aud [data-hist-form] .btn {
+  min-height: 44px;
+}

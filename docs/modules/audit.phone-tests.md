@@ -78,3 +78,12 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 6. Tap **Summary CSV** and **Combined CSV**. Look for: the Round column on every line of the combined file.
 7. Barcode Center › All barcodes (as an administrator) › **Excel: all four**. Look for: Master, Verification, Conflicts and Scan history sheets.
 8. Turn the signal off and tap a download. Look for: a plain message, not a blank screen, and the buttons work again afterwards.
+
+## PHONE 9: find a product and Individual audits by person (new, Audit 3.0 F6)
+1. Audits › **Find a product**. Type part of a product name you know was counted and tap **Search**. Look for: the product listed with each compiled or final round it was in, newest first, with System, Counted and the difference.
+2. Type the start of its code. Look for: the same product. Type `%`. Look for: nothing found, not everything.
+3. Tap **Open** on a final round and on a compiled round. Look for: the Final page and the Review page of that round.
+4. Sign in as someone who only views one audit and search for a product that is only in another audit. Look for: nothing found.
+5. Audits › **Individual audits by person**. Look for: this month, people in A–Z order, each with their rounds newest first.
+6. Pick last month in the Month box. Look for: the list changes and nothing from this month stays on screen. Pick a month with no Individual audits. Look for: a plain "Nobody has counted…" line.
+7. Find a person whose Individual audit is still being counted. Look for: "Not compiled yet" for that round, not "0 differences".

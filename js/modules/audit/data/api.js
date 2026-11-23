@@ -268,3 +268,9 @@ export const scanBatch = (events) => one(db().rpc('audit_scan_batch', { p_events
 /** Owner: how an audit is counted ('manual', 'barcode' or 'hybrid'). */
 export const setCountingMethod = (engagementId, method) =>
   one(db().rpc('audit_engagement_set_method', { p_engagement: engagementId, p_method: method }));
+
+// ── product history and Individual audits by person (0413, 0414) ──
+/** One product (or a name/code search) across compiled and final rounds. Newest first; at most 200 rows. */
+export const productHistory = (query, limit = 50) => one(db().rpc('audit_product_history', { p_query: query, p_limit: limit }));
+/** Individual audits of one month ('YYYY-MM'; empty is this month), grouped by the database A–Z by person. */
+export const individualOverview = (month = null) => one(db().rpc('audit_individual_overview', { p_month: month }));

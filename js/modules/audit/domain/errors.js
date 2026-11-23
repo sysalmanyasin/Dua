@@ -35,6 +35,7 @@ export const MESSAGES = {
   invalid_method: 'That counting method is not valid.',
   invalid_qty: 'A quantity must be a number, zero or more.',
   invalid_role: 'That role is not valid.',
+  invalid_month: 'That month is not valid. Pick a month from the list.',
   invalid_scope: 'That scope is not valid.',
   invalid_split: 'That way of splitting is not valid.',
   invalid_suffix: 'A sub-round letter must be a single capital letter.',
