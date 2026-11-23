@@ -4,7 +4,8 @@ import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, newKey, setView } from '../domain/nav.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { latestRound } from '../domain/pipeline.js';
+import { crumbs, errorCard, goPipe, loadingCard, pipelineStrip, toast } from './parts.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ROLES = { lead: 'Lead', deputy: 'Deputy', counter: 'Counter', observer: 'Observer' };
@@ -43,12 +44,14 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="aud">
+        ${crumbs([{ label: 'Audits', href: '#/audit/engagements' }, { label: g.name }])}
         ${hero({
           label: 'Audit',
           title: g.name,
           sub: `${scopeLabel(g)} · ${g.status === 'open' ? 'Open' : g.status}`,
         })}
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
+        ${s.data.rounds.length ? pipelineStrip({ round: latestRound(s.data.rounds), assignments: [], compilation: null }, perms, 'engagement') : ''}
         <section class="card aud-card" aria-label="Rounds">
           <h2>Rounds</h2>
           ${
@@ -138,7 +141,6 @@ export async function mount(el, { ctx } = {}) {
               : ''
           }
         </section>
-        <p><a href="#/audit/engagements">← All audits</a></p>
       </div>`,
     );
   }
@@ -170,6 +172,8 @@ export async function mount(el, { ctx } = {}) {
     }
   };
   el.onclick = (e) => {
+    const p = e.target.closest('button[data-pipe]');
+    if (p) return goPipe(p.dataset.pipe, { engagement: id, round: latestRound(s.data.rounds)?.id });
     const b = e.target.closest('button[data-act]');
     if (!b || b.disabled) return;
     const { act, user } = b.dataset;

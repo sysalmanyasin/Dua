@@ -3,7 +3,7 @@
 Dates are 2026. Counts are as of the end of each step.
 
 ## 23 Nov — Operations Redesign, Stage 3a (Task Master database layer)
-- New migrations `1200_task_core`, `1201_task_lifecycle`, `1202_task_schedules`, `1203_task_reads` (tested locally; not applied yet: `docs/ops/f10-stage3a-apply-and-rollback.md`). Design and rules: `docs/DECISIONS.md` D-62.
+- New migrations `1200_task_core`, `1201_task_lifecycle`, `1202_task_schedules`, `1203_task_reads` (tested locally; not applied yet: `docs/ops/f10-stage3a-apply-and-rollback.md`). Design and rules: `docs/DECISIONS.md` D-63.
 - New security guard `1299_task_exposure_test.sql`. `0001_core_test` now expects a Junior to hold 6 permissions (adds `tasks.view_own`).
 - No screens yet: My Tasks, the Owner's Tasks page, verification and the dashboard sections come in Stage 3b.
 
