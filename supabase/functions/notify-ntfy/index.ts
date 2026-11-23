@@ -54,6 +54,19 @@ async function buildMessage(db: Db, row: Row): Promise<PushMessage> {
   return messageFor(row.kind, row.payload);
 }
 
+// When ntfy refuses with 429, say whether the token is in use and what the account has left, so the owner can see the cause.
+async function quotaNote(server: string, token: string | null): Promise<string> {
+  if (!token) return ' [NTFY_TOKEN is not set: sending anonymously]';
+  try {
+    const r = await fetch(`${server.replace(/\/+$/, '')}/v1/account`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(5000) });
+    if (!r.ok) return ` [NTFY_TOKEN was not accepted: ${r.status}]`;
+    const a = await r.json();
+    return ` [token ok, account ${a?.username ?? '?'}: ${a?.stats?.messages ?? '?'} sent today, ${a?.stats?.messages_remaining ?? '?'} left, limit ${a?.limits?.messages ?? '?'}]`;
+  } catch {
+    return ' [could not check the token]';
+  }
+}
+
 async function drain(): Promise<{ sent: number; failed: number }> {
   const db = serviceClient();
   const { data, error } = await db.rpc('notifications_claim', { p_limit: 20 });
@@ -77,7 +90,8 @@ async function drain(): Promise<{ sent: number; failed: number }> {
         if (!res.ok) {
           // ntfy explains a refusal in its body (e.g. which rate limit was hit); keep a short, scrubbed copy.
           const detail = (await res.text().catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 200);
-          problem = scrubError(`ntfy answered ${res.status}${detail ? `: ${detail}` : ''}`, [topic, token]);
+          const note = res.status === 429 ? await quotaNote(server, token) : '';
+          problem = scrubError(`ntfy answered ${res.status}${note}${detail ? `: ${detail}` : ''}`, [topic, token]);
         }
       } catch (e) {
         problem = scrubError(e, [topic, token]);
