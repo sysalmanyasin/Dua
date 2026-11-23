@@ -19,5 +19,11 @@ export default {
       permission: 'workspace.use',
       load: () => import('./ui/note.js'),
     },
+    {
+      // Same idea for the open workbook (session storage again).
+      path: '/workspace/sheet',
+      permission: 'workspace.use',
+      load: () => import('./ui/sheet.js'),
+    },
   ],
 };
