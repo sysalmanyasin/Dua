@@ -5,6 +5,7 @@ import { PALETTE, chartTheme, loadChartJs } from '../../../shared/chartjs.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { lifetimeSalesMonths } from '../../home/data/api.js';
+import { BRAND } from '../../../core/config.js';
 import { buildLifetimeSales } from '../../home/domain/cover.js';
 import {
   PRESETS,
@@ -68,8 +69,8 @@ export async function mount(el) {
           <div class="home-lifetime-brand">
             <span class="home-lifetime-mark" aria-hidden="true">D</span>
             <span class="home-lifetime-brand-copy">
-              <strong>Fazal Din's Pharma Plus</strong>
-              <small>Bahria Town · SALES INTELLIGENCE</small>
+              <strong>${BRAND.title}</strong>
+              <small>${BRAND.branch} · SALES INTELLIGENCE</small>
             </span>
           </div>
           <span class="home-lifetime-pill"><i aria-hidden="true"></i> ALL-TIME</span>
@@ -213,6 +214,7 @@ export async function mount(el) {
     render(
       el,
       html` ${hero({ label: 'Sales dashboard', title: 'Branch Overview', sub: kpi ? (kpi.isLive ? `${MONTH_WORD(kpi.lat.key)} is running: days 1–${kpi.D} have sales.` : `Latest month on record: ${MONTH_WORD(kpi.lat.key)}.`) : 'Not enough history yet.' })}
+        ${lifetimeHero}
         ${kpiRow()}${insightsBlock()} ${chartCard('ch-total', 'Monthly total', rangeBar)}
         <div class="dgrid2">
           ${chartCard('ch-cashbank', 'Cash vs banks', yearOpts)}${chartCard('ch-clients', 'Top credit clients (all time)')}
