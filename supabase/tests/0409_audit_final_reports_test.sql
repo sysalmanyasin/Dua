@@ -101,6 +101,13 @@ select pg_temp.ok((select count(*) from public.notifications where kind = 'audit
 select pg_temp.ok(exists (select 1 from public.notifications where kind = 'audit.compiled'), 'a compile queues an owner alert');
 select pg_temp.ok(not exists (select 1 from public.notifications where kind like 'audit.%' and exists (select 1 from jsonb_object_keys(payload) k where k <> 'dedupe_key')),
   'alerts carry nothing but their key: no names or amounts');
+create temp table round_alert as select public.audit_round_alert_json((select id from public.audit_compilations where round_id = (select v from ids where k = 'r1') order by revision desc limit 1)) as j;
+select pg_temp.ok(exists (select 1 from public.notifications n join public.audit_compilations c on n.payload ->> 'dedupe_key' = 'audit.compiled:' || c.id::text
+  where n.kind = 'audit.compiled' and c.round_id = (select v from ids where k = 'r1')), 'the compile alert is keyed by the compilation, so a recompile alerts again');
+select pg_temp.ok((select (j ->> 'round')::int from round_alert) = (select round_number from public.audit_rounds where id = (select v from ids where k = 'r1')), 'the round alert names the round');
+select pg_temp.ok((select (j ->> 'variance_count')::int from round_alert) = (select count(*) from public.audit_compiled_rows where compilation_id = (select id from public.audit_compilations where round_id = (select v from ids where k = 'r1') order by revision desc limit 1) and variance <> 0), 'the round alert counts the items that differ');
+select pg_temp.ok((select coalesce(sum((i ->> 'value')::numeric), 0) from round_alert, jsonb_array_elements(j -> 'companies') c, jsonb_array_elements(c -> 'items') i) = (select (j ->> 'net')::numeric from round_alert), 'the listed differences add up to the net');
+select pg_temp.ok((select (j ->> 'short')::numeric + (j ->> 'over')::numeric from round_alert) = (select (j ->> 'net')::numeric from round_alert), 'short plus over is the net');
 
 -- ── finalize guards ──
 select pg_temp.as_user('00000000-0000-0000-0000-0000000000c1');
