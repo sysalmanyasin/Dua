@@ -256,12 +256,9 @@ describe('Cover page', () => {
     expect(t).toContain('₨ 614,758');
     expect(t).toContain('This month so far');
     expect(t).toContain('have not been entered');
-    expect(t).toContain('TOTAL CUMULATIVE SALES');
-    expect(t).toContain('₨ 1,234,567');
-    expect(t).toContain('Since April 2020');
-    const hero = el.querySelector('.home-lifetime-hero');
-    const firstSection = el.querySelector('.home-section');
-    expect(hero.compareDocumentPosition(firstSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // the lifetime-sales banner now lives on the Sales dashboard, not on Home
+    expect(t).not.toContain('TOTAL CUMULATIVE SALES');
+    expect(el.querySelector('.home-lifetime-hero')).toBeNull();
     expect(el.querySelector('.kpfill').style.width).toBe('19%');
   });
 
