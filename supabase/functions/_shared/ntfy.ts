@@ -1,6 +1,8 @@
 // Pure helpers for the owner-notification sender (Foundation F4). No network or Deno APIs here, so they are unit tested.
 // The text of a push is generic on purpose: it goes through a public ntfy server, so it never carries amounts or names.
 // The only payload value that may appear is a date shaped YYYY-MM-DD.
+// ONE EXCEPTION, chosen by the owner (D-62): closing.submitted carries the closing's figures and staff-entered credit labels
+// (see closingMessage). Keep NTFY_TOPIC secret, and prefer NTFY_TOKEN / a self-hosted NTFY_SERVER, because of it.
 
 export type PushMessage = { title: string; message: string; priority: 1 | 2 | 3 | 4 | 5; tags: string[] };
 
@@ -29,6 +31,77 @@ export function messageFor(kind: string, payload: Record<string, unknown>): Push
   if (make) return make(payload ?? {});
   const safeKind = KIND.test(kind) ? kind : 'unknown';
   return { title: 'Dua: alert', message: `Alert: ${safeKind}. Open Dua to see it.`, priority: 3, tags: ['bell'] };
+}
+
+// ---- Closing summary push -------------------------------------------------------------------------------------------
+// Built from the JSON of public.closing_page_json(closing_id). Returns null when that JSON is not usable, so the caller
+// can fall back to the generic text above.
+type Obj = Record<string, unknown>;
+const SLOT_LABEL: Record<string, string> = { night: 'Night', morning: 'Morning', evening: 'Evening', handover: 'Handover' };
+const CREDIT_KIND_ORDER: Record<string, number> = { named: 0, tier: 1, free: 2 };
+const MAX_CREDIT_LINES = 30;
+
+const toNum = (v: unknown): number => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+// 32179 -> "Rs. 32,179"; -3000 -> "Rs. -3,000"; whole rupees unless the figure really has paisa.
+export function rs(v: unknown): string {
+  const n = Math.round(toNum(v) * 100) / 100;
+  return `Rs. ${n < 0 ? '-' : ''}${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
+}
+
+// Staff-typed text: strip control characters, cap the length. A tier line is stored as "Evening Shift — Name"; show the name.
+function cleanLabel(s: unknown, tier: boolean): string {
+  let t = typeof s === 'string' ? s : '';
+  if (tier && t.includes(' — ')) t = t.slice(t.lastIndexOf(' — ') + 3);
+  return t.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60);
+}
+
+export function closingMessage(page: unknown): PushMessage | null {
+  const p = page as Obj | null;
+  const inputs = p?.inputs as Obj | undefined;
+  const res = p?.results as Obj | undefined;
+  const date = p?.business_date;
+  if (!p || !inputs || !res || typeof date !== 'string' || !DATE.test(date)) return null;
+
+  const isFinal = p.mode === 'final';
+  const target = toNum(isFinal ? res.final_net_sale : res.net_sale);
+  const variance = isFinal && res.final_variance != null ? toNum(res.final_variance) : toNum(res.shift_variance);
+  const verdict = variance < 0 ? 'Less:' : variance > 0 ? 'Excess:' : 'Even';
+
+  const credit = (Array.isArray(p.credit) ? (p.credit as Obj[]) : [])
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => toNum(l?.amount) !== 0)
+    .sort((a, b) => (CREDIT_KIND_ORDER[String(a.l.kind)] ?? 3) - (CREDIT_KIND_ORDER[String(b.l.kind)] ?? 3) || a.i - b.i)
+    .slice(0, MAX_CREDIT_LINES)
+    .map(({ l }) => `${cleanLabel(l.label, l.kind === 'tier') || 'Credit'}: ${rs(l.amount)}`);
+  const adj = toNum(inputs.credit_adj);
+  if (adj !== 0) credit.push(`Credit adjustment: ${rs(adj)}`);
+
+  const message = [
+    `Net cash: ${rs(res.net_cash)}`,
+    `Target sale: ${rs(target)}`,
+    `Variance: ${rs(Math.abs(variance))} (${verdict})`,
+    '',
+    `Book Bills: ${rs(toNum(inputs.book_bill_1) + toNum(inputs.book_bill_2))}`,
+    `Manual Returns: ${rs(toNum(inputs.ret_manual_1) + toNum(inputs.ret_manual_2) + toNum(inputs.ret_manual_3))}`,
+    `Carried CC: ${rs(inputs.prev_cc)}`,
+    `Total Deposits: ${rs(res.deposits_f)}`,
+    '',
+    `Opening Credit: ${rs(inputs.prev_credit)}`,
+    ...credit,
+    `Total Credit: ${rs(res.debt_e)}`,
+  ].join('\n').slice(0, 3800); // ntfy's limit is 4096 bytes
+
+  const slot = SLOT_LABEL[String(p.kind)] ?? 'Shift';
+  return {
+    title: `Closing - ${slot} ${date}${isFinal ? ' (Final)' : ''}`,
+    message,
+    priority: 3,
+    tags: ['white_check_mark', 'moneybag'],
+  };
 }
 
 // Kinds the backup workflow may enqueue from outside the database. Everything else must come from inside Dua.

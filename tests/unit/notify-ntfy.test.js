@@ -4,7 +4,9 @@ import {
   cleanBackupReport,
   canEnqueue,
   cleanExternalPayload,
+  closingMessage,
   messageFor,
+  rs,
   safeEqual,
   scrubError,
   validServer,
@@ -116,5 +118,97 @@ describe('backup reports from the workflow', () => {
     expect(cleanBackupReport({ ...good, manifest: { 'Bad Name': { rows: '1', md5: 'empty' } } })).toBeNull();
     expect(cleanBackupReport({ ...good, manifest: { a: { rows: 'DROP', md5: 'empty' } } })).toBeNull();
     expect(cleanBackupReport(null)).toBeNull();
+  });
+});
+
+describe('closing summary push', () => {
+  const page = {
+    kind: 'night',
+    mode: 'shift',
+    business_date: '2026-11-22',
+    credit: [
+      { kind: 'tier', label: 'Evening Shift \u2014 Salman Ghulam Ali', amount: 350 },
+      { kind: 'named', label: 'Salman Jazz Cash', amount: 1227 },
+      { kind: 'named', label: 'Pharmacy Use', amount: 0 },
+      { kind: 'free', label: 'STRIPS LESS', amount: -3000 },
+    ],
+    inputs: {
+      prev_cc: 19872,
+      credit_adj: 0,
+      book_bill_1: 0,
+      book_bill_2: 0,
+      ret_manual_1: 585,
+      ret_manual_2: 157,
+      ret_manual_3: 0,
+      prev_credit: 85050,
+    },
+    results: {
+      net_cash: 32179,
+      net_sale: 32204,
+      shift_variance: -25,
+      deposits_f: 455000,
+      debt_e: 83627,
+      final_net_sale: -8849,
+      final_variance: null,
+    },
+  };
+
+  it("matches the owner's format line for line", () => {
+    const m = closingMessage(page);
+    expect(m.title).toBe('Closing - Night 2026-11-22');
+    expect(m.message).toBe(
+      [
+        'Net cash: Rs. 32,179',
+        'Target sale: Rs. 32,204',
+        'Variance: Rs. 25 (Less:)',
+        '',
+        'Book Bills: Rs. 0',
+        'Manual Returns: Rs. 742',
+        'Carried CC: Rs. 19,872',
+        'Total Deposits: Rs. 455,000',
+        '',
+        'Opening Credit: Rs. 85,050',
+        'Salman Jazz Cash: Rs. 1,227',
+        'Salman Ghulam Ali: Rs. 350',
+        'STRIPS LESS: Rs. -3,000',
+        'Total Credit: Rs. 83,627',
+      ].join('\n'),
+    );
+  });
+  it('says Excess for a surplus, Even for none, and uses the final figures for a final closing', () => {
+    expect(closingMessage({ ...page, results: { ...page.results, shift_variance: 40 } }).message).toContain('Variance: Rs. 40 (Excess:)');
+    expect(closingMessage({ ...page, results: { ...page.results, shift_variance: 0 } }).message).toContain('Variance: Rs. 0 (Even)');
+    const f = closingMessage({ ...page, mode: 'final', results: { ...page.results, final_net_sale: 163334, final_variance: -2788 } });
+    expect(f.title).toBe('Closing - Night 2026-11-22 (Final)');
+    expect(f.message).toContain('Target sale: Rs. 163,334');
+    expect(f.message).toContain('Variance: Rs. 2,788 (Less:)');
+  });
+  it('shows a credit adjustment so the total still ties', () => {
+    const m = closingMessage({ ...page, inputs: { ...page.inputs, credit_adj: -121320 } });
+    expect(m.message).toContain('Credit adjustment: Rs. -121,320');
+  });
+  it('cleans staff-typed labels', () => {
+    const m = closingMessage({ ...page, credit: [{ kind: 'free', label: 'A\nB\u0007 ' + 'x'.repeat(100), amount: 5 }] });
+    expect(m.message.includes('\u0007')).toBe(false);
+    expect(
+      m.message
+        .split('\n')
+        .filter((l) => l.startsWith('A B'))
+        .every((l) => l.length < 90),
+    ).toBe(true);
+  });
+  it('returns null (so the generic text is used) when the closing JSON is unusable', () => {
+    for (const bad of [null, {}, { ...page, business_date: 'x' }, { ...page, inputs: undefined }, { ...page, results: undefined }]) {
+      expect(closingMessage(bad)).toBeNull();
+    }
+  });
+  it('formats rupees', () => {
+    expect(rs(32179)).toBe('Rs. 32,179');
+    expect(rs(-3000)).toBe('Rs. -3,000');
+    expect(rs('1227.50')).toBe('Rs. 1,227.5');
+    expect(rs(null)).toBe('Rs. 0');
+  });
+  it('leaves the generic closing text alone for the fallback', () => {
+    expect(messageFor('closing.submitted', { closing_id: 'abc' }).message).toBe('A closing was submitted.');
   });
 });
