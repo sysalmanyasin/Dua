@@ -6,7 +6,7 @@ import { friendlyError } from '../domain/errors.js';
 import { getView } from '../domain/nav.js';
 import { SPLITS, planAutoSplit } from '../domain/split.js';
 import { roundLabel } from './engagement.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { crumbs, errorCard, goPipe, loadingCard, pipelineStrip, toast } from './parts.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ASG = { assigned: 'Not started', counting: 'Counting', submitted: 'Submitted' };
@@ -48,12 +48,14 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="aud">
+        ${crumbs([{ label: 'Audits', href: '#/audit/engagements' }, { label: 'This audit', href: '#/audit/engagement' }, { label: roundLabel(round) }])}
         ${hero({
           label: 'Audit',
           title: roundLabel(round),
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items · by ${round.unit}`,
         })}
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
+        ${pipelineStrip({ round, assignments, compilation: null }, perms, 'round')}
         <section class="card aud-card" aria-label="Who counts what">
           <h2>Who counts what</h2>
           ${
@@ -102,7 +104,6 @@ export async function mount(el, { ctx } = {}) {
         </section>
         ${draftOpen ? splitCard(counters, plan) : ''} ${draftOpen && assignments.length > 0 ? moveCard(companies) : ''}
         ${stateCard(round, unassigned, assignments.length)}
-        <p><a href="#/audit/engagement">← This audit</a></p>
       </div>`,
     );
     void nameOf;
@@ -237,6 +238,8 @@ export async function mount(el, { ctx } = {}) {
     }
   };
   el.onclick = (e) => {
+    const p = e.target.closest('button[data-pipe]');
+    if (p) return goPipe(p.dataset.pipe, { engagement: s.o.round.engagement_id, round: s.o.round.id });
     const b = e.target.closest('button[data-act]');
     if (!b || b.disabled) return;
     const v = s.o.round.version;

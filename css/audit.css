@@ -1064,3 +1064,75 @@
     display: none;
   }
 }
+
+/* Breadcrumb, round pipeline and the review page's jump bar (Audit 3.0 F4) */
+.aud .aud-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.aud .aud-crumbs li + li::before {
+  content: '›';
+  margin-right: 0.25rem;
+  color: var(--text-muted);
+}
+.aud .aud-crumbs a {
+  display: inline-block;
+  padding: 0.6rem 0.25rem;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.aud .aud-crumbs li[aria-current='page'] {
+  font-weight: 600;
+}
+.aud .aud-pipe-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+.aud .aud-pipe-steps li {
+  display: flex;
+  flex-direction: column;
+  min-width: 4.5rem;
+}
+.aud .aud-pipe-mark {
+  font-weight: 700;
+}
+.aud .aud-pipe-current .aud-pipe-name {
+  font-weight: 700;
+  text-decoration: underline;
+}
+.aud .aud-pipe-todo {
+  color: var(--text-muted);
+}
+.aud .aud-stepbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin: 0 0 0.75rem;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+.aud .aud-stepbar .btn {
+  flex: none;
+  min-height: 44px;
+}
+.aud .aud-recompile {
+  border-left: 4px solid var(--danger);
+}
+.aud [data-sec]:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
