@@ -5,7 +5,7 @@ Dates are 2026. Counts are as of the end of each step.
 ## 22 Nov — Operations Redesign, Stage 2b (Business Intelligence, Staff sections, realtime)
 - Owner Home: Business Intelligence for 7, 30 or 90 days with fair comparison; closings refresh the lists in real time.
 - Staff Home: My Payroll (own closed payslips, read only, per-person permission `payroll.view_own`) and My Recent Activity.
-- New migrations `0220_closing_ops_period`, `0702_ops_bi_summary`, `0109_mgmt_my_payslips` (tested locally; not applied until approved: `docs/ops/f9-stage2b-apply-and-rollback.md`).
+- New migrations `0220_closing_ops_period`, `0702_ops_bi_summary`, `0109_mgmt_my_payslips` (applied live and registered on 23 Nov 2026: `docs/ops/f9-stage2b-apply-and-rollback.md`). New security guard `0749_ops_exposure_test.sql`; `0199` lists `mgmt_my_payslips`. `payroll.view_own` is granted person by person only..
 
 ## 22 Nov — Workspace Sheets: migration 1111 applied live
 - Applied `1111_workspace_style_validator_fix` to the live project by hand as one `execute_sql` batch (not `apply_migration`, D-35), on the owner's instruction, and registered it as version `1111` in the same batch. Before: registry held `1100`, `1101`, `1102`, `1110`; no sheet, cell or style rows existed.

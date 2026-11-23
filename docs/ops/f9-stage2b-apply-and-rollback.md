@@ -1,6 +1,6 @@
 # Stage 2b — apply and rollback (0220, 0702, 0109)
 
-Status: **written and tested locally; NOT applied to the live database.** Apply only after the owner says so.
+Status: **applied to the live database on 23 Nov 2026 (owner-approved) and registered as `0220`, `0702`, `0109`.** Backup first: `supabase_migrations.schema_migrations_backup_20261123_prestage2b` (96 rows). Verified: the three function-body hashes equal the locally tested copy (D-47); as the Owner (second factor) `ops_bi_summary` returns 7, 30 and 90 day figures (28 days with sales, 6 days with a closing in the last 30); as a non-owner `ops_bi_summary` and `mgmt_my_payslips` return null; nobody holds `payroll.view_own` (0 individual grants, 0 role grants). No salary sheet exists yet in the live app, so a granted person would currently see an empty list; the payslip logic is proven by the local test with closed months. A new security guard, `0749_ops_exposure_test.sql`, fails if a ops or closing_ops function becomes browser-callable without being listed, if a table loses RLS or gains a policy or grant, or if a role template carries `ops.view`, `ops.manage_rules` or `payroll.view_own`.
 Additive only: three new read functions and one new permission key. No existing function, table or policy is changed.
 
 | Order | File | Adds |
@@ -10,7 +10,7 @@ Additive only: three new read functions and one new permission key. No existing 
 | 3 | `0109_mgmt_my_payslips.sql` | permission `payroll.view_own`; `mgmt_my_payslips(integer)`: the caller's OWN closed payslips |
 
 ## Decision the owner is making by applying this
-`payroll.view_own` is carried by **no role template**. After applying, nobody sees a payslip on Home until the owner grants the permission to that person (Users page, person-level permission). To give every Senior or Junior their own payslip, grant it per person or ask for a template change as a separate decision.
+**Owner decision (23 Nov 2026): `payroll.view_own` is granted person by person only.** It is carried by no role template, and the security guard enforces that. Nobody sees a payslip on Home until the owner grants the permission to that person.
 
 ## Before / apply / verify
 Follow `docs/ops/f8-stage2-apply-and-rollback.md` (registry in step, backup first, apply by hand in the order above, register `0220`, `0702`, `0109`, then hash check every new function against the locally tested copy). Extra checks for this batch:
