@@ -123,26 +123,57 @@ describe('backup reports from the workflow', () => {
 
 describe('closing summary push', () => {
   const page = {
-    kind: 'night', mode: 'shift', business_date: '2026-11-22',
+    kind: 'night',
+    mode: 'shift',
+    business_date: '2026-11-22',
     credit: [
       { kind: 'tier', label: 'Evening Shift \u2014 Salman Ghulam Ali', amount: 350 },
       { kind: 'named', label: 'Salman Jazz Cash', amount: 1227 },
       { kind: 'named', label: 'Pharmacy Use', amount: 0 },
       { kind: 'free', label: 'STRIPS LESS', amount: -3000 },
     ],
-    inputs: { prev_cc: 19872, credit_adj: 0, book_bill_1: 0, book_bill_2: 0, ret_manual_1: 585, ret_manual_2: 157, ret_manual_3: 0, prev_credit: 85050 },
-    results: { net_cash: 32179, net_sale: 32204, shift_variance: -25, deposits_f: 455000, debt_e: 83627, final_net_sale: -8849, final_variance: null },
+    inputs: {
+      prev_cc: 19872,
+      credit_adj: 0,
+      book_bill_1: 0,
+      book_bill_2: 0,
+      ret_manual_1: 585,
+      ret_manual_2: 157,
+      ret_manual_3: 0,
+      prev_credit: 85050,
+    },
+    results: {
+      net_cash: 32179,
+      net_sale: 32204,
+      shift_variance: -25,
+      deposits_f: 455000,
+      debt_e: 83627,
+      final_net_sale: -8849,
+      final_variance: null,
+    },
   };
 
-  it('matches the owner\'s format line for line', () => {
+  it("matches the owner's format line for line", () => {
     const m = closingMessage(page);
     expect(m.title).toBe('Closing - Night 2026-11-22');
-    expect(m.message).toBe([
-      'Net cash: Rs. 32,179', 'Target sale: Rs. 32,204', 'Variance: Rs. 25 (Less:)', '',
-      'Book Bills: Rs. 0', 'Manual Returns: Rs. 742', 'Carried CC: Rs. 19,872', 'Total Deposits: Rs. 455,000', '',
-      'Opening Credit: Rs. 85,050', 'Salman Jazz Cash: Rs. 1,227', 'Salman Ghulam Ali: Rs. 350', 'STRIPS LESS: Rs. -3,000',
-      'Total Credit: Rs. 83,627',
-    ].join('\n'));
+    expect(m.message).toBe(
+      [
+        'Net cash: Rs. 32,179',
+        'Target sale: Rs. 32,204',
+        'Variance: Rs. 25 (Less:)',
+        '',
+        'Book Bills: Rs. 0',
+        'Manual Returns: Rs. 742',
+        'Carried CC: Rs. 19,872',
+        'Total Deposits: Rs. 455,000',
+        '',
+        'Opening Credit: Rs. 85,050',
+        'Salman Jazz Cash: Rs. 1,227',
+        'Salman Ghulam Ali: Rs. 350',
+        'STRIPS LESS: Rs. -3,000',
+        'Total Credit: Rs. 83,627',
+      ].join('\n'),
+    );
   });
   it('says Excess for a surplus, Even for none, and uses the final figures for a final closing', () => {
     expect(closingMessage({ ...page, results: { ...page.results, shift_variance: 40 } }).message).toContain('Variance: Rs. 40 (Excess:)');
@@ -158,8 +189,13 @@ describe('closing summary push', () => {
   });
   it('cleans staff-typed labels', () => {
     const m = closingMessage({ ...page, credit: [{ kind: 'free', label: 'A\nB\u0007 ' + 'x'.repeat(100), amount: 5 }] });
-    expect(m.message).not.toMatch(/\u0007/);
-    expect(m.message.split('\n').filter((l) => l.startsWith('A B')).every((l) => l.length < 90)).toBe(true);
+    expect(m.message.includes('\u0007')).toBe(false);
+    expect(
+      m.message
+        .split('\n')
+        .filter((l) => l.startsWith('A B'))
+        .every((l) => l.length < 90),
+    ).toBe(true);
   });
   it('returns null (so the generic text is used) when the closing JSON is unusable', () => {
     for (const bad of [null, {}, { ...page, business_date: 'x' }, { ...page, inputs: undefined }, { ...page, results: undefined }]) {
