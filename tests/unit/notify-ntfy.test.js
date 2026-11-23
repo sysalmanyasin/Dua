@@ -208,6 +208,17 @@ describe('closing summary push', () => {
     expect(rs('1227.50')).toBe('Rs. 1,227.5');
     expect(rs(null)).toBe('Rs. 0');
   });
+  it('heads a corrected closing with its revision and reason', () => {
+    const m = closingMessage({ ...page, inputs: { ...page.inputs, revision: 2, correction_reason: 'Previous day difference' } });
+    expect(m.title).toBe('Closing Corrected - Night 2026-11-22');
+    expect(m.message.startsWith('Revision 2: Previous day difference\n\nNet cash: Rs. 32,179')).toBe(true);
+    const first = closingMessage({ ...page, inputs: { ...page.inputs, revision: 1 } });
+    expect(first.title).toBe('Closing - Night 2026-11-22');
+    expect(first.message.startsWith('Net cash:')).toBe(true);
+  });
+  it('has a generic fallback for a correction', () => {
+    expect(messageFor('closing.corrected', { closing_id: 'abc' }).message).toBe('A submitted closing was corrected.');
+  });
   it('leaves the generic closing text alone for the fallback', () => {
     expect(messageFor('closing.submitted', { closing_id: 'abc' }).message).toBe('A closing was submitted.');
   });

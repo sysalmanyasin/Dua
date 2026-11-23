@@ -19,7 +19,7 @@ In scope:
 - Credit Ledger and Misc/Ongoing Ledger views
 - Closing Book (flip-through, multi-page PDF), Register Book, CC / Returns-Book-Deposit / MEDIQ history tabs
 - Closing settings (strips, credit accounts, the 31 inventory-audit codes, per-customer charge, till float)
-- Owner alert on submit (through Foundation F4, ntfy). The push shows the closing's figures (D-62): Net cash, Target sale, Variance, Book Bills, Manual Returns, Carried CC, Total Deposits, then Opening Credit, each credit line and Total Credit
+- Owner alert on submit (through Foundation F4, ntfy). The push shows the closing's figures (D-62): Net cash, Target sale, Variance, Book Bills, Manual Returns, Carried CC, Total Deposits, then Opening Credit, each credit line and Total Credit. A correction (one-step or a reopened revision) raises its own push with the same figures, headed by the revision and reason (D-63)
 - **Credit feed for Manager** (`closing_credit_feed`, MODULES.md §8.2)
 
 Out of scope: salary, staff credit ledgers, petty cash (Manager); stock data (Inventory); Android widgets (later); Google Drive backup (Dua's own backup plan); the old sync engine, PIN login and PWA cache.

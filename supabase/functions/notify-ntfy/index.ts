@@ -20,10 +20,10 @@ type Db = ReturnType<typeof serviceClient>;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// closing.submitted carries the closing's figures (owner's choice, D-62). If the closing cannot be read for any reason,
+// closing.submitted and closing.corrected carry the closing's figures (owner's choice, D-62, D-63). If the closing cannot be read for any reason,
 // fall back to the generic text so the alert is never lost.
 async function buildMessage(db: Db, row: Row): Promise<PushMessage> {
-  if (row.kind === 'closing.submitted') {
+  if (row.kind === 'closing.submitted' || row.kind === 'closing.corrected') {
     const id = row.payload?.closing_id;
     if (typeof id === 'string' && UUID.test(id)) {
       try {

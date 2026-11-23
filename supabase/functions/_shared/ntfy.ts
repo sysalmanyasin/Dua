@@ -1,7 +1,7 @@
 // Pure helpers for the owner-notification sender (Foundation F4). No network or Deno APIs here, so they are unit tested.
 // The text of a push is generic on purpose: it goes through a public ntfy server, so it never carries amounts or names.
 // The only payload value that may appear is a date shaped YYYY-MM-DD.
-// ONE EXCEPTION, chosen by the owner (D-62): closing.submitted carries the closing's figures and staff-entered credit labels
+// ONE EXCEPTION, chosen by the owner (D-62, D-63): closing.submitted and closing.corrected carry the closing's figures and staff-entered credit labels
 // (see closingMessage). Keep NTFY_TOPIC secret, and prefer NTFY_TOKEN / a self-hosted NTFY_SERVER, because of it.
 
 export type PushMessage = { title: string; message: string; priority: 1 | 2 | 3 | 4 | 5; tags: string[] };
@@ -19,6 +19,7 @@ const KNOWN: Record<string, (p: Record<string, unknown>) => PushMessage> = {
   'audit.compiled': () => ({ title: 'Dua: audit compiled', message: 'An audit round was compiled and is ready to review.', priority: 3, tags: ['bar_chart'] }),
   'audit.conflict': () => ({ title: 'Dua: audit conflict', message: 'Two audit rounds disagree on an item. Open Audit to settle it.', priority: 4, tags: ['warning'] }),
   'audit.finalized': () => ({ title: 'Dua: audit final', message: 'An audit round was made final.', priority: 3, tags: ['white_check_mark'] }),
+  'closing.corrected': () => ({ title: 'Dua: closing corrected', message: 'A submitted closing was corrected.', priority: 3, tags: ['memo'] }),
   'inventory.sync_stale': () => ({ title: 'Dua: inventory feed is late', message: 'No successful inventory sync for over 3 hours.', priority: 4, tags: ['warning'] }),
   'inventory.sync_failed': () => ({ title: 'Dua: inventory sync failed', message: 'The last inventory sync failed. See Needs attention.', priority: 4, tags: ['warning'] }),
   'backup.failed': (p) => ({ title: 'Dua: BACKUP FAILED', message: `The daily backup did not complete${dateOf(p)}. Check the Tools tab.`, priority: 5, tags: ['rotating_light'] }),
@@ -66,6 +67,8 @@ export function closingMessage(page: unknown): PushMessage | null {
   const date = p?.business_date;
   if (!p || !inputs || !res || typeof date !== 'string' || !DATE.test(date)) return null;
 
+  const revision = toNum(inputs.revision);
+  const reason = revision > 1 ? cleanLabel(inputs.correction_reason, false).slice(0, 160) : '';
   const isFinal = p.mode === 'final';
   const target = toNum(isFinal ? res.final_net_sale : res.net_sale);
   const variance = isFinal && res.final_variance != null ? toNum(res.final_variance) : toNum(res.shift_variance);
@@ -81,6 +84,7 @@ export function closingMessage(page: unknown): PushMessage | null {
   if (adj !== 0) credit.push(`Credit adjustment: ${rs(adj)}`);
 
   const message = [
+    ...(revision > 1 ? [`Revision ${revision}${reason ? `: ${reason}` : ''}`, ''] : []),
     `Net cash: ${rs(res.net_cash)}`,
     `Target sale: ${rs(target)}`,
     `Variance: ${rs(Math.abs(variance))} (${verdict})`,
@@ -97,10 +101,10 @@ export function closingMessage(page: unknown): PushMessage | null {
 
   const slot = SLOT_LABEL[String(p.kind)] ?? 'Shift';
   return {
-    title: `Closing - ${slot} ${date}${isFinal ? ' (Final)' : ''}`,
+    title: `${revision > 1 ? 'Closing Corrected' : 'Closing'} - ${slot} ${date}${isFinal ? ' (Final)' : ''}`,
     message,
     priority: 3,
-    tags: ['white_check_mark', 'moneybag'],
+    tags: [revision > 1 ? 'memo' : 'white_check_mark', 'moneybag'],
   };
 }
 
