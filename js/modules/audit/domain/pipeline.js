@@ -85,3 +85,15 @@ export function recompileNeeded({ round, assignments = [], compilation = null, c
     allowMissing: assignments.some((a) => a.status !== 'submitted'),
   };
 }
+
+/** The round before this one in the same audit that was actually given to people, or undefined. Used for "same team as last round". */
+export function previousRound(rounds = [], currentId) {
+  const ordered = [...rounds].sort(
+    (a, b) => a.round_number - b.round_number || String(a.round_suffix ?? '').localeCompare(String(b.round_suffix ?? '')),
+  );
+  const at = ordered.findIndex((r) => r.id === currentId);
+  return ordered
+    .slice(0, at < 0 ? 0 : at)
+    .reverse()
+    .find((r) => Number(r.assignments) > 0);
+}

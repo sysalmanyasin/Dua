@@ -1136,3 +1136,25 @@
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
+.aud .aud-wiz-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+.aud .aud-wiz-steps li {
+  color: var(--text-muted);
+}
+.aud .aud-wiz-steps li[aria-current='step'] {
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: underline;
+}
+.aud .aud-wiz-person {
+  gap: 0.5rem;
+}
+.aud .aud-wiz-person select {
+  min-height: 44px;
+}
