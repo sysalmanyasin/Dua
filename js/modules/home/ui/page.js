@@ -105,7 +105,6 @@ export async function mount(el, { ctx, modules = [] }) {
   );
 
   const stockPromise = perms.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
-  // This is a separate, permission-gated read: staff with last-day-only access never request history.
 
   let summary = null;
   let failed = false;
