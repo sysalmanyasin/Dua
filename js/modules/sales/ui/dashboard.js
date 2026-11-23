@@ -64,7 +64,7 @@ export async function mount(el) {
   const kpi = computeKpis(months, days, targets, today);
   const lifetime = buildLifetimeSales(lifetimeRows, today);
   const lifetimeHero = lifetime
-    ? html\`<section class="home-lifetime-hero" aria-label="All-time cumulative sales">
+    ? html`<section class="home-lifetime-hero" aria-label="All-time cumulative sales">
         <div class="home-lifetime-top">
           <div class="home-lifetime-brand">
             <span class="home-lifetime-mark" aria-hidden="true">D</span>
@@ -87,7 +87,7 @@ export async function mount(el) {
         </div>
         <span class="home-lifetime-orbit home-lifetime-orbit-one" aria-hidden="true"></span>
         <span class="home-lifetime-orbit home-lifetime-orbit-two" aria-hidden="true"></span>
-      </section>\`
+      </section>`
     : '';
   const years = yearsOf(months);
   const state = { preset: '12M', compare: false, year: 'all', heatYear: years.at(-1) };
