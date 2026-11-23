@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 23 Nov — Operations Redesign, Stage 3a (Task Master database layer)
+- New migrations `1200_task_core`, `1201_task_lifecycle`, `1202_task_schedules`, `1203_task_reads` (tested locally; not applied yet: `docs/ops/f10-stage3a-apply-and-rollback.md`). Design and rules: `docs/DECISIONS.md` D-62.
+- New security guard `1299_task_exposure_test.sql`. `0001_core_test` now expects a Junior to hold 6 permissions (adds `tasks.view_own`).
+- No screens yet: My Tasks, the Owner's Tasks page, verification and the dashboard sections come in Stage 3b.
+
 ## 22 Nov — Operations Redesign, Stage 2b (Business Intelligence, Staff sections, realtime)
 - Owner Home: Business Intelligence for 7, 30 or 90 days with fair comparison; closings refresh the lists in real time.
 - Staff Home: My Payroll (own closed payslips, read only, per-person permission `payroll.view_own`) and My Recent Activity.
