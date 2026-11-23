@@ -3,14 +3,13 @@ import { html, render } from '../../../shared/html.js';
 import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
 import { BRAND } from '../../../core/config.js';
-import { coverSummary, inventoryCover, lifetimeSalesMonths, notificationsAttention } from '../data/api.js';
+import { coverSummary, inventoryCover, notificationsAttention } from '../data/api.js';
 import { startOpsSections } from './ops.js';
 import { startStaffSections } from './staff.js';
 import {
   buildAttention,
   buildDailyProgress,
   buildKpis,
-  buildLifetimeSales,
   buildStockCards,
   buildTiles,
   greeting,
@@ -107,7 +106,6 @@ export async function mount(el, { ctx, modules = [] }) {
 
   const stockPromise = perms.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
   // This is a separate, permission-gated read: staff with last-day-only access never request history.
-  const lifetimePromise = perms.includes('sales.view_history') ? lifetimeSalesMonths().catch(() => null) : Promise.resolve(null);
 
   let summary = null;
   let failed = false;
@@ -127,33 +125,6 @@ export async function mount(el, { ctx, modules = [] }) {
   }
 
   const stock = buildStockCards(await stockPromise);
-  const lifetime = buildLifetimeSales(await lifetimePromise, todayPkt());
-  const lifetimeHero = lifetime
-    ? html`<section class="home-lifetime-hero" aria-label="All-time cumulative sales">
-        <div class="home-lifetime-top">
-          <div class="home-lifetime-brand">
-            <span class="home-lifetime-mark" aria-hidden="true">D</span>
-            <span class="home-lifetime-brand-copy">
-              <strong>${BRAND.title}</strong>
-              <small>${BRAND.branch} · SALES INTELLIGENCE</small>
-            </span>
-          </div>
-          <span class="home-lifetime-pill"><i aria-hidden="true"></i> ALL-TIME</span>
-        </div>
-        <div class="home-lifetime-main">
-          <span class="home-lifetime-label">TOTAL CUMULATIVE SALES</span>
-          <h2>Your business at a glance</h2>
-          <strong class="home-lifetime-amount">₨ ${money(lifetime.total)}</strong>
-          <p>Every month. Every sale. One story.</p>
-        </div>
-        <div class="home-lifetime-foot">
-          <span>Since April 2020</span>
-          <span>${lifetime.months} months · ${lifetime.recordedDays.toLocaleString('en-US')} recorded days</span>
-        </div>
-        <span class="home-lifetime-orbit home-lifetime-orbit-one" aria-hidden="true"></span>
-        <span class="home-lifetime-orbit home-lifetime-orbit-two" aria-hidden="true"></span>
-      </section>`
-    : '';
   const showOps = perms.includes('ops.view'); // Owner only: Action Centre, Business Intelligence and Recent Activity
   const showStaff = !showOps && (perms.includes('payroll.view_own') || perms.includes('closing.enter_own')); // own payroll and own work, read only
   const kpis = buildKpis(summary, perms);
@@ -192,7 +163,7 @@ export async function mount(el, { ctx, modules = [] }) {
 
   render(
     el,
-    html`${head} ${lifetimeHero}
+    html`${head}
       ${
         failed
           ? html`<p class="note note-error" role="status">Business figures could not be loaded. Your navigation is still available.</p>`
