@@ -209,3 +209,14 @@ Helps a hard label scan. Reading rules are unchanged: the check digit, the 2–3
 - Fix found on the way: in continuous mode a stale hint stayed on screen after a read; it now clears.
 - Tests: audit-scan-quality (9, ported cases plus zoom), audit-scanner-help (15). `sw.js` regenerated (1 new file).
 - No database change. Phone check: PHONE 6.
+
+## Audit 3.0, slice F4: owner flow screens — 23 Nov 2026
+Screens only; no database change. Every call is one the Audit, Round and Review pages already made.
+- **O2 pipeline strip** (`ui/parts.js`, `domain/pipeline.js`): Set up, Locked, Counting (n of m submitted), Compiled (n differ), Final, with one button for the next step the person's keys allow. On the Audit page it follows the newest round; a next step that lives on the page itself is shown as a line of text. The strip is on the Audit, Round and Review pages.
+- **N2 breadcrumb** (`crumbs()` in `ui/parts.js`): Audits › Audit › Round › Review › Final, kept inside the audit module. Replaces the "← All audits", "← This audit" and "Back to the round" links.
+- **O3 jump bar** on the Review page: Progress, Compile, Differences, Corrections, Conflicts, Next round, each with its count; a button scrolls to that part and moves focus there (it is not a `#` link, so the router is not disturbed).
+- **O4 recompile banner**: appears when a correction was approved after the last compile, or a count was submitted after a compile that left it out, and says how many. A reopened count that has not been submitted again holds the button back, because a compile then would leave it out. "Recompile now" calls `compileRound` with the version the screen saw. Shown only to people who can compile.
+- **O1 New audit wizard** (`ui/wizard.js`, `domain/wizard.js`): Scope and method, Team, Split preview, Lock and start. It calls `createEngagement`, `setMember`, `createRound`, `assignAuto`, `lockRound` and `startRound` in order, remembering what is done: a retry reuses the same keys and never repeats a finished step. A failed step stops with its name ("Stopped while locking the round"); what was made stays and the Round page can carry on. The first round is a draft until "Lock and start", which is one press with its preview before it. "Create the audit only" keeps the old shortcut.
+- **O5 Same team as last round** on a draft round's split: fills the tick boxes with the earlier round's counters who can still count (names those who cannot) and still shows the preview before anything is applied.
+- Tests: audit-pipeline (14), audit-wizard (21), plus new cases in audit-compile-page, audit-pages and audit-engagement-page. Phone check: PHONE 7.
+- Not in F4: the per-person drill-down (O6) and attention badges (N4) are F7, they need new reads.

@@ -71,3 +71,35 @@ describe('audit page: starting a round', () => {
     expect(root().querySelector('[data-no-new-round]')).toBeNull();
   });
 });
+
+describe('audit page: breadcrumb and the newest round’s road (F4)', () => {
+  const rounds = [
+    { id: 'r1', round_number: 1, round_suffix: null, state: 'final', items: 5, assignments: 2, unit: 'company' },
+    { id: 'r2', round_number: 1, round_suffix: 'A', state: 'counting', items: 2, assignments: 1, unit: 'item' },
+  ];
+
+  it('shows Audits › the audit name, and no old back link', async () => {
+    api.engagementOverview.mockResolvedValueOnce(overview('full'));
+    await mount(root(), { ctx });
+    const crumb = root().querySelector('nav[aria-label="Breadcrumb"]');
+    expect(crumb.querySelector('a').getAttribute('href')).toBe('#/audit/engagements');
+    expect(crumb.querySelector('[aria-current="page"]').textContent).toBe('Audit');
+    expect(text()).not.toContain('← All audits');
+  });
+
+  it('has no strip while there are no rounds', async () => {
+    api.engagementOverview.mockResolvedValueOnce(overview('full'));
+    await mount(root(), { ctx });
+    expect(root().querySelector('.aud-pipe')).toBeNull();
+  });
+
+  it('shows the newest round on the strip, and its button opens that round’s review', async () => {
+    api.engagementOverview.mockResolvedValueOnce({ ...overview('full'), rounds });
+    await mount(root(), { ctx });
+    expect(root().querySelector('.aud-pipe [aria-current="step"]').textContent).toContain('Counting');
+    root().querySelector('button[data-pipe="compile"]').click();
+    expect(location.hash).toBe('#/audit/compile');
+    const { getView } = await import('../../js/modules/audit/domain/nav.js');
+    expect(getView()).toMatchObject({ engagement: 'e1', round: 'r2' });
+  });
+});

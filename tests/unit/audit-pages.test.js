@@ -340,3 +340,57 @@ describe('new audit company list', () => {
     expect(el2.querySelector('input[data-f="companies"]')).not.toBeNull();
   });
 });
+
+describe('where the person is and what is next, on the round page (F4)', () => {
+  it('shows the breadcrumb, with links up and no old back link', async () => {
+    const el = document.getElementById('root');
+    await mountRound(el, { ctx });
+    const crumb = el.querySelector('nav[aria-label="Breadcrumb"]');
+    expect([...crumb.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['#/audit/engagements', '#/audit/engagement']);
+    expect(crumb.querySelector('[aria-current="page"]').textContent).toBe('Round 1');
+    expect(el.textContent).not.toContain('← This audit');
+  });
+
+  it('while set up, the strip says so and the next step is below on this page', async () => {
+    const el = document.getElementById('root');
+    await mountRound(el, { ctx });
+    expect(el.querySelector('.aud-pipe [aria-current="step"]').textContent).toContain('Set up');
+    expect(el.querySelector('[data-pipe-next]').textContent).toContain('Give out the work');
+    expect(el.querySelector('button[data-pipe]')).toBeNull();
+  });
+
+  it('once counting, the next step is a button to the review, and it keeps the audit and round', async () => {
+    api.roundOverview.mockResolvedValue(
+      overview({
+        round: {
+          id: 'r1',
+          engagement_id: 'e9',
+          round_number: 1,
+          round_suffix: null,
+          unit: 'company',
+          state: 'counting',
+          version: 5,
+          items: 7,
+        },
+        assignments: [
+          { id: 'a1', auditor_id: 'u1', name: 'Count One', status: 'submitted', items: 4, companies: 1 },
+          { id: 'a2', auditor_id: 'u2', name: 'Count Two', status: 'counting', items: 3, companies: 1 },
+        ],
+        companies: [{ company: 'Acme', items: 7, unassigned: 0 }],
+      }),
+    );
+    const el = document.getElementById('root');
+    await mountRound(el, { ctx });
+    expect(el.querySelector('.aud-pipe').textContent).toContain('1 of 2 submitted');
+    el.querySelector('button[data-pipe="compile"]').click();
+    expect(location.hash).toBe('#/audit/compile');
+    expect(getView()).toMatchObject({ engagement: 'e9', round: 'r1' });
+  });
+
+  it('offers no next-step button to someone who cannot do it', async () => {
+    const el = document.getElementById('root');
+    await mountRound(el, { ctx: { permissions: ['audit.view'] } });
+    expect(el.querySelector('.aud-pipe [data-pipe-next]')).toBeNull();
+    expect(el.querySelector('.aud-pipe button')).toBeNull();
+  });
+});

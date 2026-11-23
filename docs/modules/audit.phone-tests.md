@@ -59,3 +59,12 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 6. Tap the picture. Look for: the camera refocuses on that spot (a short pause, then sharp).
 7. Scan a tiny barcode that normally fails live. Look for: after a few seconds it reads from a still photo (the phone may make a shutter sound or a brief flash).
 8. Read a barcode, then keep the scanner open on the next pack. Look for: no old hint is left on screen.
+
+## PHONE 7: the owner starts a round and reaches the review (new, Audit 3.0 F4)
+1. On the Audits page, fill Name, choose Full stock, tap **Next: team**. Look for: four steps listed, the second one marked as the one you are on, and Next greyed out until you type a name.
+2. Tick two counters and give one other person the role Deputy. Tap **Next: make the round and preview**. Look for: the round is made as a draft and you see each counter's share before anything is given out.
+3. Change the balance. Look for: the shares change at once. Tap **Next: lock and start**, then **Lock and start**. Look for: you land on the Round page, which shows Counting as the step you are on.
+4. Without using the browser's back button: tap the button for the next step, then look at the top of each page. Look for: Audits › Audit › Round › Review, each earlier part is a link, and the Review page has a bar of jump buttons with numbers.
+5. Turn off the signal just as you tap **Lock and start**. Look for: a message naming the step that stopped. Turn the signal on and tap the button again. Look for: no second round or second audit appears in the list.
+6. Let a counter submit, compile, approve a correction, then look at the Review page. Look for: "Out of date" with "1 approved correction waiting" and a **Recompile now** button. Tap it. Look for: the banner disappears.
+7. On the next round's page (draft), tap **Same team as last round**. Look for: last round's counters are ticked and the preview shows, and nothing is given out until you tap Apply.

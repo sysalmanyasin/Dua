@@ -4,23 +4,23 @@ import { hero } from '../../../shared/ui.js';
 import { shortDate } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
-import { newKey, setView } from '../domain/nav.js';
-import { companyPicker } from './companyPicker.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { setView } from '../domain/nav.js';
+import { errorCard, loadingCard } from './parts.js';
+import { mountWizard } from './wizard.js';
 
-const SCOPES = {
+const SCOPE_LABEL = {
   full: 'Full stock',
   selected: 'Selected companies',
   single: 'One company',
+  template: 'Template',
+  individual: 'Individual',
 };
-const METHODS = { manual: 'Manual counting', barcode: 'Barcode scanning', hybrid: 'Scan or type' };
-const SCOPE_LABEL = { ...SCOPES, template: 'Template', individual: 'Individual' };
 const STATUS = { open: 'Open', archived: 'Archived', closed: 'Closed' };
 
 export async function mount(el, { ctx } = {}) {
   const canManage = (ctx?.permissions ?? []).includes('audit.manage');
-  const form = { name: '', scope: 'full', companies: '', picked: [], method: 'manual', key: newKey(), busy: false, error: null };
   let list = [];
+  let people = []; // null = the list of people could not load
   let companyList = null; // null = could not load, so the typed box is used instead
 
   const draw = () => {
@@ -28,7 +28,7 @@ export async function mount(el, { ctx } = {}) {
       el,
       html`<div class="aud">
         ${hero({ label: 'Audit', title: 'Audits', sub: 'One audit holds the rounds and the counting team for one piece of work.' })}
-        ${canManage ? newForm() : ''}
+        ${canManage ? html`<div data-wizard-host></div>` : ''}
         <section class="card aud-card" aria-label="All audits">
           <h2>All audits</h2>
           ${
@@ -56,103 +56,15 @@ export async function mount(el, { ctx } = {}) {
         </section>
       </div>`,
     );
-    const host = el.querySelector('[data-picker-host]');
-    if (host) {
-      companyPicker(host, {
-        companies: companyList,
-        selected: form.picked,
-        max: 500,
-        single: form.scope === 'single',
-        onChange: (names) => {
-          form.picked = names;
-        },
-      });
-    }
+    const host = el.querySelector('[data-wizard-host]');
+    if (host) mountWizard(host, { people, companyList });
   };
 
-  const newForm = () =>
-    html`<section class="card aud-card" aria-label="New audit">
-      <h2>New audit</h2>
-      ${form.error ? html`<p class="note note-error" role="alert">${form.error}</p>` : ''}
-      <label class="field"
-        ><span>Name</span
-        ><input type="text" data-f="name" maxlength="120" value="${form.name}" placeholder="e.g. Annual stock audit" autocomplete="off"
-      /></label>
-      <label class="field"
-        ><span>Scope</span
-        ><select data-f="scope">
-          ${Object.entries(SCOPES).map(([k, v]) => html`<option value="${k}" ${form.scope === k ? 'selected' : ''}>${v}</option>`)}
-        </select></label
-      >
-      ${
-        form.scope === 'full'
-          ? ''
-          : companyList
-            ? html`<div class="field">
-                <span>${form.scope === 'single' ? 'Company' : 'Companies'}</span>
-                <div data-picker-host></div>
-              </div>`
-            : html`<label class="field"
-                ><span>${form.scope === 'single' ? 'Company' : 'Companies (separate with commas)'}</span
-                ><input
-                  type="text"
-                  data-f="companies"
-                  value="${form.companies}"
-                  placeholder="Exactly as written in the stock list"
-                  autocomplete="off"
-              /></label>`
-      }
-      <label class="field"
-        ><span>Counting method</span
-        ><select data-f="method">
-          ${Object.entries(METHODS).map(([k, v]) => html`<option value="${k}" ${form.method === k ? 'selected' : ''}>${v}</option>`)}
-        </select></label
-      >
-      <button type="button" class="btn btn-primary" data-act="create" ${form.busy ? 'disabled' : ''}>Create audit</button>
-    </section>`;
-
-  el.oninput = (e) => {
-    const f = e.target.dataset?.f;
-    if (f === 'name' || f === 'companies') form[f] = e.target.value;
-  };
-  el.onchange = (e) => {
-    const f = e.target.dataset?.f;
-    if (f === 'scope' || f === 'method') {
-      form[f] = e.target.value;
-      if (f === 'scope' && form.scope === 'single') form.picked = form.picked.slice(0, 1);
-      draw();
-    }
-  };
-  el.onclick = async (e) => {
-    const b = e.target.closest('button[data-act]');
+  el.onclick = (e) => {
+    const b = e.target.closest('button[data-act="open"]');
     if (!b || b.disabled) return;
-    if (b.dataset.act === 'open') {
-      setView({ engagement: b.dataset.id });
-      location.hash = '#/audit/engagement';
-      return;
-    }
-    if (b.dataset.act === 'create') {
-      form.busy = true;
-      form.error = null;
-      draw();
-      try {
-        const id = await api.createEngagement({
-          key: form.key,
-          name: form.name,
-          scopeType: form.scope,
-          companies: form.scope === 'full' ? [] : companyList ? form.picked : form.companies.split(','),
-          method: form.method,
-        });
-        toast('Audit created.');
-        setView({ engagement: id });
-        location.hash = '#/audit/engagement';
-        return;
-      } catch (err) {
-        form.error = friendlyError(err).message;
-        form.busy = false;
-        draw();
-      }
-    }
+    setView({ engagement: b.dataset.id });
+    location.hash = '#/audit/engagement';
   };
 
   render(el, loadingCard());
@@ -164,6 +76,11 @@ export async function mount(el, { ctx } = {}) {
         if (Array.isArray(found) && found.length > 0) companyList = found;
       } catch {
         companyList = null;
+      }
+      try {
+        people = await api.listPeopleForAudit();
+      } catch {
+        people = null;
       }
     }
   } catch (e) {

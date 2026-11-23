@@ -7,7 +7,8 @@ import { parseQty, rupees, toPaisa } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, newKey, setView } from '../domain/nav.js';
 import { roundLabel } from './engagement.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { recompileNeeded } from '../domain/pipeline.js';
+import { crumbs, errorCard, goPipe, loadingCard, pipelineStrip, toast } from './parts.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ASG = { assigned: 'Not started', counting: 'Counting', submitted: 'Submitted' };
@@ -78,7 +79,7 @@ export async function mount(el, { ctx } = {}) {
   function progress() {
     const { round, assignments } = s.o;
     const f = s.form;
-    return html`<section class="card aud-card" aria-label="Progress">
+    return html`<section class="card aud-card" aria-label="Progress" data-sec="progress" tabindex="-1">
       <h2>Who has counted</h2>
       ${assignments.length === 0 ? html`<p class="muted">Nobody has been given anything to count.</p>` : ''}
       ${assignments.map(
@@ -147,7 +148,7 @@ export async function mount(el, { ctx } = {}) {
     const { round, assignments, compilation: c } = s.o;
     if (!canCompile || !['counting', 'compiled'].includes(round.state)) return '';
     const missing = assignments.filter((a) => a.status !== 'submitted');
-    return html`<section class="card aud-card" aria-label="Compile">
+    return html`<section class="card aud-card" aria-label="Compile" data-sec="compile" tabindex="-1">
       <h2>${round.state === 'compiled' ? 'Compile again' : 'Compile'}</h2>
       ${
         missing.length
@@ -205,7 +206,7 @@ export async function mount(el, { ctx } = {}) {
     if (!c) return '';
     const from = s.total === 0 ? 0 : s.page * PAGE + 1;
     const to = Math.min(s.total, s.page * PAGE + s.rows.length);
-    return html`<section class="card aud-card" aria-label="Items">
+    return html`<section class="card aud-card" aria-label="Items" data-sec="differences" tabindex="-1">
       <h2>Items</h2>
       <div class="aud-filters">
         <select data-f="mode" aria-label="Show">
@@ -274,7 +275,7 @@ export async function mount(el, { ctx } = {}) {
   function correctionsCard() {
     const { round, corrections } = s.o;
     if (corrections.length === 0) return '';
-    return html`<section class="card aud-card" aria-label="Corrections">
+    return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
       <h2>Corrections</h2>
       ${corrections.map((c) => {
         const open = s.form && s.form.type === 'reject' && s.form.id === c.id;
@@ -309,7 +310,7 @@ export async function mount(el, { ctx } = {}) {
   function conflictsCard() {
     const { round, conflicts } = s.o;
     if (conflicts.length === 0) return '';
-    return html`<section class="card aud-card" aria-label="Conflicts">
+    return html`<section class="card aud-card" aria-label="Conflicts" data-sec="conflicts" tabindex="-1">
       <h2>Conflicts between rounds</h2>
       <p class="muted small">The same product was counted differently in two rounds. Nothing is decided for you.</p>
       ${conflicts.map((k) => {
@@ -349,7 +350,7 @@ export async function mount(el, { ctx } = {}) {
   function nextCard() {
     const { round, compilation: c } = s.o;
     if (!canCompile || round.state !== 'compiled' || !c) return '';
-    return html`<section class="card aud-card" aria-label="Next round">
+    return html`<section class="card aud-card" aria-label="Next round" data-sec="next" tabindex="-1">
       <h2>Count again</h2>
       <p class="muted small">
         Makes the next lettered round from this result, on today's stock: current quantities and prices, and new products in the companies
@@ -370,23 +371,69 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   }
 
+  // O4: the result on screen is older than something that was decided after it
+  function recompileBanner() {
+    const need = recompileNeeded(s.o);
+    if (!need || !canCompile) return '';
+    return html`<section class="card aud-card aud-recompile" aria-label="Recompile" data-recompile>
+      <p class="note" role="status"><strong>Out of date.</strong> ${need.text}.</p>
+      ${
+        need.ready
+          ? html`<button type="button" class="btn btn-primary" data-act="recompile" ${s.busy ? 'disabled' : ''}>
+              ${s.busy ? 'Working…' : 'Recompile now'}
+            </button>`
+          : html`<p class="muted small">Recompile once they have submitted again.</p>`
+      }
+    </section>`;
+  }
+
+  // O3: jump links to the parts of this page, each with the number that needs a look
+  function stepBar() {
+    const { assignments, compilation: c, corrections, conflicts } = s.o;
+    const waiting = corrections.filter((x) => x.status === 'proposed').length;
+    const open = conflicts.filter((k) => !k.resolved_side).length;
+    const submitted = assignments.filter((a) => a.status === 'submitted').length;
+    const steps = [
+      ['progress', 'Progress', `${submitted}/${assignments.length}`],
+      canCompile && ['counting', 'compiled'].includes(s.o.round.state) && ['compile', 'Compile', ''],
+      c && ['differences', 'Differences', String(c.variance_count)],
+      corrections.length > 0 && ['corrections', 'Corrections', waiting ? String(waiting) : ''],
+      conflicts.length > 0 && ['conflicts', 'Conflicts', open ? String(open) : ''],
+      canCompile && s.o.round.state === 'compiled' && c && ['next', 'Next round', ''],
+    ].filter(Boolean);
+    return html`<nav class="aud-stepbar" aria-label="Parts of this page">
+      ${steps.map(
+        ([key, label, badge]) =>
+          html`<button type="button" class="btn btn-ghost btn-sm" data-jump="${key}">
+            ${label}${badge ? html` <span class="aud-badge">${badge}</span>` : ''}
+          </button>`,
+      )}
+    </nav>`;
+  }
+
   function draw() {
     const { round } = s.o;
     render(
       el,
       html`<div class="aud">
+        ${crumbs([
+          { label: 'Audits', href: '#/audit/engagements' },
+          { label: 'This audit', href: '#/audit/engagement' },
+          { label: roundLabel(round), href: '#/audit/round' },
+          { label: 'Review' },
+        ])}
         ${hero({
           label: 'Audit',
           title: `${roundLabel(round)} · review`,
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items`,
           actions: html`${
-              round.state === 'compiled' || round.state === 'final'
-                ? html`<a class="btn btn-sm" href="#/audit/final">${round.state === 'final' ? 'Final' : 'Final snapshot'}</a> `
-                : ''
-            }<a class="btn btn-ghost btn-sm" href="#/audit/round">Back to the round</a>`,
+            round.state === 'compiled' || round.state === 'final'
+              ? html`<a class="btn btn-sm" href="#/audit/final">${round.state === 'final' ? 'Final' : 'Final snapshot'}</a> `
+              : ''
+          }`,
         })}
-        ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''} ${progress()} ${compileCard()} ${results()}
-        ${rowsCard()} ${correctionsCard()} ${conflictsCard()} ${nextCard()}
+        ${pipelineStrip(s.o, perms, 'compile')} ${stepBar()} ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
+        ${recompileBanner()} ${progress()} ${compileCard()} ${results()} ${rowsCard()} ${correctionsCard()} ${conflictsCard()} ${nextCard()}
       </div>`,
     );
   }
@@ -454,6 +501,12 @@ export async function mount(el, { ctx } = {}) {
   el.onclick = async (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
+    if (b.dataset.pipe) return goPipe(b.dataset.pipe, { engagement: s.o.round.engagement_id, round: view.round });
+    if (b.dataset.jump) {
+      const target = el.querySelector(`[data-sec="${b.dataset.jump}"]`);
+      target?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+      return target?.focus?.({ preventScroll: true });
+    }
     if (b.dataset.form) {
       s.form = { type: b.dataset.form, id: b.dataset.id, side: b.dataset.side, mode: 'as_counted', reason: '', qty: '' };
       return draw();
@@ -478,6 +531,13 @@ export async function mount(el, { ctx } = {}) {
         return run(() => api.forceSubmit({ assignmentId: s.form.id, mode: s.form.mode, reason }), 'Submitted for them.');
       case 'reopen-yes':
         return run(() => api.reopenAssignment({ assignmentId: s.form.id, reason }), 'Reopened. They can count again.');
+      case 'recompile': {
+        const need = recompileNeeded(s.o);
+        return run(
+          () => api.compileRound({ roundId: view.round, allowMissing: need?.allowMissing ?? false, version: s.o.round.version }),
+          'Compiled again.',
+        );
+      }
       case 'compile':
         return run(() => api.compileRound({ roundId: view.round, allowMissing: s.allowMissing, version: s.o.round.version }), 'Compiled.');
       case 'suggest-yes': {

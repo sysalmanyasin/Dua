@@ -4,9 +4,11 @@ import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView } from '../domain/nav.js';
+import { previousRound } from '../domain/pipeline.js';
 import { SPLITS, planAutoSplit } from '../domain/split.js';
+import { sameTeam } from '../domain/wizard.js';
 import { roundLabel } from './engagement.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { crumbs, errorCard, goPipe, loadingCard, pipelineStrip, toast } from './parts.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ASG = { assigned: 'Not started', counting: 'Counting', submitted: 'Submitted' };
@@ -26,11 +28,39 @@ export async function mount(el, { ctx } = {}) {
       </div>`,
     );
   }
-  const s = { o: null, people: [], picked: new Set(), split: 'company', moveCompany: '', moveTo: '', reason: '', busy: false, error: null };
+  const s = {
+    o: null,
+    prev: null,
+    people: [],
+    picked: new Set(),
+    split: 'company',
+    moveCompany: '',
+    moveTo: '',
+    reason: '',
+    busy: false,
+    error: null,
+  };
 
   async function load() {
     s.o = await api.roundOverview(view.round);
     s.people = canAssign ? await api.listPeopleForAudit() : [];
+    await loadPrevious();
+  }
+
+  // O5: the counters of the round before this one, offered when a new round is being split. Best effort: the split works without it.
+  async function loadPrevious() {
+    s.prev = null;
+    const { round } = s.o;
+    if (round.state !== 'draft' || !canAssign) return;
+    try {
+      const engagement = await api.engagementOverview(round.engagement_id);
+      const before = previousRound(engagement.rounds, round.id);
+      if (!before) return;
+      const team = sameTeam((await api.roundOverview(before.id)).assignments, s.people);
+      if (team.ids.length > 0) s.prev = { label: roundLabel(before), ...team };
+    } catch {
+      s.prev = null;
+    }
   }
 
   function draw() {
@@ -48,12 +78,14 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="aud">
+        ${crumbs([{ label: 'Audits', href: '#/audit/engagements' }, { label: 'This audit', href: '#/audit/engagement' }, { label: roundLabel(round) }])}
         ${hero({
           label: 'Audit',
           title: roundLabel(round),
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items · by ${round.unit}`,
         })}
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
+        ${pipelineStrip({ round, assignments, compilation: null }, perms, 'round')}
         <section class="card aud-card" aria-label="Who counts what">
           <h2>Who counts what</h2>
           ${
@@ -102,7 +134,6 @@ export async function mount(el, { ctx } = {}) {
         </section>
         ${draftOpen ? splitCard(counters, plan) : ''} ${draftOpen && assignments.length > 0 ? moveCard(companies) : ''}
         ${stateCard(round, unassigned, assignments.length)}
-        <p><a href="#/audit/engagement">← This audit</a></p>
       </div>`,
     );
     void nameOf;
@@ -123,6 +154,7 @@ export async function mount(el, { ctx } = {}) {
                     >`,
                 )}
               </fieldset>
+              ${sameTeamButton()}
               <label class="field"
                 ><span>Balance</span
                 ><select data-f="split">
@@ -149,6 +181,17 @@ export async function mount(el, { ctx } = {}) {
               <p class="muted small">Applying replaces any split made before.</p>`
       }
     </section>`;
+
+  const sameTeamButton = () => {
+    const t = s.prev;
+    if (!t) return '';
+    const names = t.ids.map((id) => s.people.find((p) => p.user_id === id)?.full_name ?? 'Someone').join(', ');
+    const already = t.ids.length === s.picked.size && t.ids.every((id) => s.picked.has(id));
+    return html`<div class="aud-block" data-same-team>
+      <button type="button" class="btn btn-sm" data-act="same-team" ${already ? 'disabled' : ''}>Same team as last round</button>
+      <p class="muted small">${t.label}: ${names}.${t.gone.length ? ` ${t.gone.join(', ')} can no longer count.` : ''}</p>
+    </div>`;
+  };
 
   const moveCard = (companies) => {
     const others = s.o.assignments.map((a) => ({ id: a.auditor_id, name: a.name }));
@@ -237,11 +280,16 @@ export async function mount(el, { ctx } = {}) {
     }
   };
   el.onclick = (e) => {
+    const p = e.target.closest('button[data-pipe]');
+    if (p) return goPipe(p.dataset.pipe, { engagement: s.o.round.engagement_id, round: s.o.round.id });
     const b = e.target.closest('button[data-act]');
     if (!b || b.disabled) return;
     const v = s.o.round.version;
     const rid = s.o.round.id;
     switch (b.dataset.act) {
+      case 'same-team':
+        s.picked = new Set(s.prev?.ids ?? []);
+        return draw();
       case 'split':
         return run(() => api.assignAuto({ roundId: rid, auditors: [...s.picked], split: s.split, version: v }), 'Split applied.');
       case 'move':
