@@ -1,10 +1,11 @@
 // Pure helpers for the owner-notification sender (Foundation F4). No network or Deno APIs here, so they are unit tested.
 // The text of a push is generic on purpose: it goes through a public ntfy server, so it never carries amounts or names.
 // The only payload value that may appear is a date shaped YYYY-MM-DD.
-// ONE EXCEPTION, chosen by the owner (D-62, D-63): closing.submitted and closing.corrected carry the closing's figures and staff-entered credit labels
-// (see closingMessage). Keep NTFY_TOPIC secret, and prefer NTFY_TOKEN / a self-hosted NTFY_SERVER, because of it.
+// ONE EXCEPTION, chosen by the owner (D-62): closing.submitted carries the closing's figures and staff-entered credit labels
+// (see closingMessage). The audit.compiled push ("Audit Round Complete", D-64) is the second exception: it lists the round's
+// differing items and their values (see auditRoundMessage). Keep NTFY_TOPIC secret, and prefer NTFY_TOKEN / a self-hosted NTFY_SERVER.
 
-export type PushMessage = { title: string; message: string; priority: 1 | 2 | 3 | 4 | 5; tags: string[] };
+export type PushMessage = { title: string; message: string; priority: 1 | 2 | 3 | 4 | 5; tags: string[]; markdown?: boolean };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const KIND = /^[a-z][a-z0-9_.]{0,59}$/;
@@ -19,7 +20,7 @@ const KNOWN: Record<string, (p: Record<string, unknown>) => PushMessage> = {
   'audit.compiled': () => ({ title: 'Dua: audit compiled', message: 'An audit round was compiled and is ready to review.', priority: 3, tags: ['bar_chart'] }),
   'audit.conflict': () => ({ title: 'Dua: audit conflict', message: 'Two audit rounds disagree on an item. Open Audit to settle it.', priority: 4, tags: ['warning'] }),
   'audit.finalized': () => ({ title: 'Dua: audit final', message: 'An audit round was made final.', priority: 3, tags: ['white_check_mark'] }),
-  'closing.corrected': () => ({ title: 'Dua: closing corrected', message: 'A submitted closing was corrected.', priority: 3, tags: ['memo'] }),
+  'closing.corrected': (p) => ({ title: 'Dua: closing corrected', message: `A closing was corrected${dateOf(p)}.`, priority: 3, tags: ['memo'] }),
   'inventory.sync_stale': () => ({ title: 'Dua: inventory feed is late', message: 'No successful inventory sync for over 3 hours.', priority: 4, tags: ['warning'] }),
   'inventory.sync_failed': () => ({ title: 'Dua: inventory sync failed', message: 'The last inventory sync failed. See Needs attention.', priority: 4, tags: ['warning'] }),
   'backup.failed': (p) => ({ title: 'Dua: BACKUP FAILED', message: `The daily backup did not complete${dateOf(p)}. Check the Tools tab.`, priority: 5, tags: ['rotating_light'] }),
@@ -108,6 +109,74 @@ export function closingMessage(page: unknown): PushMessage | null {
   };
 }
 
+// ---- Audit round complete push --------------------------------------------------------------------------------------
+// Built from the JSON of public.audit_round_alert_json(compilation_id). Markdown, like the old Audit Hub message. Returns null
+// when that JSON is not usable. Long rounds drop their smallest differences until the text fits ntfy's size limit.
+const MAX_BYTES = 3800; // ntfy's limit is 4096 bytes
+const MINUS = '\u2212';
+const byteLen = (t: string): number => new TextEncoder().encode(t).length;
+const grouped = (n: number, dp: number): string => Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: dp });
+const signed = (n: number): string => (Math.round(n * 100) === 0 ? '0' : `${n < 0 ? MINUS : '+'}${grouped(n, 2)}`);
+const signedRs = (n: number): string => (Math.round(n * 100) === 0 ? 'Rs 0' : `${n < 0 ? MINUS : '+'}Rs ${grouped(n, 2)}`);
+const qty = (n: unknown): string => {
+  const v = toNum(n);
+  return `${v < 0 ? '-' : ''}${grouped(v, 3)}`;
+};
+// Names are typed by people: strip control characters and keep Markdown from reading them as formatting.
+const mdText = (s: unknown, max: number): string =>
+  cleanLabel(s, false).slice(0, max).replace(/([\\`*_~[\]<>#|])/g, '\\$1');
+
+type AuditItem = { line: string; abs: number; pos: number };
+type AuditGroup = { head: string; items: AuditItem[] };
+
+export function auditRoundMessage(data: unknown): PushMessage | null {
+  const p = data as Obj | null;
+  if (!p || typeof p.date !== 'string' || !Array.isArray(p.companies)) return null;
+  const round = `${Math.trunc(toNum(p.round))}${typeof p.suffix === 'string' ? p.suffix.replace(/[^A-Z]/g, '').slice(0, 1) : ''}`;
+  const names = (Array.isArray(p.people) ? p.people : []).map((n) => mdText(n, 40)).filter(Boolean);
+  const who = names.length === 0 ? '' : names.length <= 3 ? names.join(' & ') : `${names.slice(0, 2).join(' & ')} +${names.length - 2}`;
+  const head = [
+    `**Round ${round}${who ? ` \u00b7 ${who}` : ''} \u00b7 ${mdText(p.date, 20)}**`,
+    '',
+    `**${toNum(p.variance_count)} / ${toNum(p.item_count)} items differ**  `,
+    `Short **${signed(toNum(p.short))}** \u00b7 Over **${signed(toNum(p.over))}**  `,
+    `Net **${signed(toNum(p.net))}**`,
+  ].join('\n');
+
+  let order = 0;
+  const groups: AuditGroup[] = (p.companies as Obj[]).map((c) => ({
+    head: `\ud83c\udfe2 **${mdText(c.company, 80)} \u00b7 ${signedRs(toNum(c.net))}**`,
+    items: (Array.isArray(c.items) ? (c.items as Obj[]) : []).map((i) => {
+      const value = toNum(i.value);
+      const code = mdText(i.code, 30);
+      return {
+        line: `- ${code ? `${code} \u00b7 ` : ''}${mdText(i.name, 80)}: ${qty(i.system)} \u2192 ${qty(i.counted)} \u00b7 ${signedRs(value)}`,
+        abs: Math.abs(value),
+        pos: order++,
+      };
+    }),
+  }));
+
+  const hidden = new Set<number>();
+  const render = (): string => {
+    const parts = [head];
+    for (const g of groups) parts.push(['', g.head, ...g.items.filter((i) => !hidden.has(i.pos)).map((i) => i.line)].join('\n'));
+    let text = parts.join('\n');
+    if (hidden.size > 0) text += `\n\n_+${hidden.size} smaller difference${hidden.size === 1 ? '' : 's'} not shown. Open the Audit app._`;
+    return text;
+  };
+  const all = groups.flatMap((g) => g.items).sort((a, b) => a.abs - b.abs || b.pos - a.pos);
+  let text = render();
+  for (const it of all) {
+    if (byteLen(text) <= MAX_BYTES) break;
+    hidden.add(it.pos);
+    text = render();
+  }
+  while (byteLen(text) > MAX_BYTES) text = text.slice(0, Math.floor(text.length * 0.9)); // only if the headings alone are too long
+
+  return { title: 'Audit Round Complete', message: text, priority: 5, tags: ['bar_chart'], markdown: true };
+}
+
 // Kinds the backup workflow may enqueue from outside the database. Everything else must come from inside Dua.
 export const ENQUEUE_KINDS = ['backup.failed', 'restore_drill.failed'] as const;
 export const canEnqueue = (kind: unknown): kind is (typeof ENQUEUE_KINDS)[number] =>
@@ -131,7 +200,7 @@ export function buildPublish(server: string, topic: string, token: string | null
   const base = server.replace(/\/+$/, '');
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  return { url: `${base}/`, init: { method: 'POST', headers, body: JSON.stringify({ topic, title: m.title, message: m.message, priority: m.priority, tags: m.tags }) } };
+  return { url: `${base}/`, init: { method: 'POST', headers, body: JSON.stringify({ topic, title: m.title, message: m.message, priority: m.priority, tags: m.tags, ...(m.markdown ? { markdown: true } : {}) }) } };
 }
 
 export const validServer = (s: string): boolean => {

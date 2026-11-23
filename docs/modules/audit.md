@@ -17,7 +17,7 @@ Branch history: `module/audit` · Migration range: `0400–0499` · Prefix: `aud
 - Expiry tracking (racks, monthly rack-to-staff assignment, entries)
 - Barcode Center (register, verify, change, disable, conflicts, scan history) and the camera scanner
 - Reports (final, variance, round and submission history, audit trail) with print / Save as PDF
-- Owner alerts through `notify_owner`
+- Owner alerts through `notify_owner`; a compiled round (individual self-picks too) raises the full "Audit Round Complete" push with its figures (D-64; migration 0413)
 
 **Out of scope:** staff creation, PIN reset, blocking and expiry (Dua's Users & Access does this); the stock feed itself (Inventory); the legacy "Verify Stock" workflow (dropped, AUD-11); Android shell and widget (later, after acceptance); any import of old audit history (AUD-6).
 

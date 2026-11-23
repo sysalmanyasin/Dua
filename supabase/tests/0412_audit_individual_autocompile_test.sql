@@ -84,6 +84,9 @@ insert into sub1 select public.audit_submit((select v from ids where k = 'a1'), 
 reset role;
 select pg_temp.ok((select (j ->> 'compiled')::boolean from sub1), 'submit reports the round was compiled');
 select pg_temp.ok((select state from public.audit_rounds where id = (select v from ids where k = 'r1')) = 'compiled', 'the individual round is compiled at once');
+select pg_temp.ok(exists (select 1 from public.notifications n join public.audit_compilations c on n.payload ->> 'dedupe_key' = 'audit.compiled:' || c.id::text
+  where n.kind = 'audit.compiled' and c.round_id = (select v from ids where k = 'r1')), 'an individual round raises the round-complete alert');
+select pg_temp.ok(not exists (select 1 from public.notifications where kind = 'audit.submitted'), 'and no separate submitted alert for it');
 select pg_temp.ok((select count(*) from public.audit_compilations where round_id = (select v from ids where k = 'r1')) = 1, 'one compilation exists');
 select pg_temp.ok((select variance_count from public.audit_compilations where round_id = (select v from ids where k = 'r1')) = 2, 'variances are computed (A1 is 1 short; untouched B1 reads as 0, 8 short)');
 select pg_temp.ok((select compiled_by from public.audit_compilations where round_id = (select v from ids where k = 'r1')) = '00000000-0000-0000-0000-0000000000c1', 'the compile is attributed to the counter who submitted');
