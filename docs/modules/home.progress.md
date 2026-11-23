@@ -52,3 +52,11 @@ Owner-only additions, shown only when the person holds `ops.view` (admins at the
 - Database: `0219` (Closing-owned read functions), `0700` (rules, categories, permissions), `0701` (the two read functions). Procedure and rollback: `docs/ops/f8-stage2-apply-and-rollback.md`.
 
 Not in 2a (still planned): the Staff dashboard variant, Business Intelligence periods (7/30/90 days), Staff & Team Overview (needs Task Master), the compact Dua AI Assistant, real-time updates for important events, Owner screens to edit the rules, and the "full activity history" link.
+
+## Operations redesign, Stage 2b (22 Nov 2026; migrations applied live and merged 23 Nov 2026)
+
+- **Business Intelligence** (Owner, between Action Centre and Recent Activity): Sales, Transactions, Inventory health (now) and Operations for 7, 30 or 90 days (default 30), compared with the previous period of the same length using the average per entered day. Says "No earlier period to compare with" and "few days recorded" instead of showing a misleading percentage. Trend bars have a text alternative. Figures come from `ops_bi_summary()` (0702); detailed financial analysis stays in Sales and Reports.
+- **Staff sections** (people without `ops.view`): My Payroll (own closed payslips, read only, needs `payroll.view_own`, which the owner grants per person) and My Recent Activity (own closings, through Closing's own `closing_my_recent`). My Work Snapshot, My Tasks, My Attendance and My Reminders arrive with Task Master and the Android app; nothing is shown in their place.
+- **Realtime for important events:** a closing being saved or submitted refreshes the Owner's lists within about 1.5 seconds; the 60-second timer covers everything else; a realtime failure is silent and harmless.
+- **Partial failures:** each list keeps its last good content, marked stale with a warning, when only that list fails to refresh.
+- Database: `0220_closing_ops_period`, `0702_ops_bi_summary`, `0109_mgmt_my_payslips` (applied live 23 Nov 2026: `docs/ops/f9-stage2b-apply-and-rollback.md`). The Manager exposure guard test (`0199`) now lists `mgmt_my_payslips` as an intentionally browser-callable function.

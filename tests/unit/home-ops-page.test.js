@@ -2,7 +2,12 @@
 // The Owner's Action Centre and Recent Activity on Home, with the database mocked.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../js/modules/home/data/api.js', () => ({ opsActionItems: vi.fn(), opsRecentActivity: vi.fn() }));
+vi.mock('../../js/modules/home/data/api.js', () => ({
+  opsActionItems: vi.fn(),
+  opsRecentActivity: vi.fn(),
+  opsBiSummary: vi.fn(),
+  watchClosings: vi.fn(() => () => {}),
+}));
 const api = await import('../../js/modules/home/data/api.js');
 const { startOpsSections } = await import('../../js/modules/home/ui/ops.js');
 
@@ -30,7 +35,7 @@ const event = (o = {}) => ({
 
 let actionHost, activityHost, refresher;
 const flush = async () => {
-  for (let i = 0; i < 6; i++) await Promise.resolve();
+  for (let i = 0; i < 20; i++) await Promise.resolve();
   await vi.advanceTimersByTimeAsync(0);
 };
 const start = async () => {
@@ -45,6 +50,8 @@ beforeEach(() => {
   activityHost = document.getElementById('b');
   api.opsActionItems.mockReset();
   api.opsRecentActivity.mockReset();
+  api.opsBiSummary.mockReset();
+  api.opsBiSummary.mockResolvedValue(null);
 });
 afterEach(() => {
   refresher?.stop();

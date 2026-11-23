@@ -907,3 +907,90 @@
     align-items: start;
   }
 }
+
+/* ───────── Operations: Business intelligence (Owner) and Staff sections ───────── */
+.bi-periods {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.bi-periods .btn {
+  min-height: 44px;
+  min-width: 72px;
+}
+.bi-periods .btn[aria-pressed='true'] {
+  font-weight: 700;
+  outline: 2px solid currentcolor;
+}
+.bi-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px) {
+  .bi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.bi-card {
+  padding: 12px;
+  border: 1px solid var(--border, rgb(127 127 127 / 25%));
+  border-radius: 12px;
+}
+.bi-card h3 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+}
+.bi-card p {
+  margin: 4px 0;
+}
+.bi-big {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.bi-compare {
+  font-size: 0.9rem;
+}
+.bi-small {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.bi-trend {
+  width: 100%;
+  height: 80px;
+  margin-top: 6px;
+}
+.bi-trend rect {
+  fill: currentcolor;
+  opacity: 0.55;
+}
+.staff-slip {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 10px;
+}
+.staff-slip caption {
+  text-align: left;
+  font-weight: 700;
+  padding: 4px 0;
+}
+.staff-slip th,
+.staff-slip td {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border, rgb(127 127 127 / 18%));
+  text-align: left;
+  font-weight: 400;
+}
+.staff-slip td {
+  text-align: right;
+}
+.staff-slip-net th,
+.staff-slip-net td {
+  font-weight: 700;
+}
+.staff-earlier summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}

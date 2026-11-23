@@ -9,6 +9,10 @@ vi.mock('../../js/modules/home/data/api.js', () => ({
   notificationsAttention: vi.fn(async () => null),
   opsActionItems: vi.fn(async () => ({ items: [] })),
   opsRecentActivity: vi.fn(async () => ({ events: [] })),
+  opsBiSummary: vi.fn(async () => null),
+  watchClosings: vi.fn(() => () => {}),
+  myPayslips: vi.fn(async () => ({ payslips: [] })),
+  myRecentClosings: vi.fn(async () => []),
 }));
 const api = await import('../../js/modules/home/data/api.js');
 const { mount } = await import('../../js/modules/home/ui/page.js');
@@ -26,6 +30,7 @@ beforeEach(() => {
   el = document.getElementById('home');
   api.opsActionItems.mockClear();
   api.opsRecentActivity.mockClear();
+  api.myPayslips.mockClear();
 });
 afterEach(() => {
   document.body.innerHTML = '';
@@ -51,5 +56,27 @@ describe('Home: Operations sections are for ops.view only', () => {
     expect(order.indexOf('Action Centre')).toBeGreaterThan(order.indexOf('Business snapshot'));
     expect(order.indexOf('Recent activity')).toBeGreaterThan(order.indexOf('Action Centre'));
     expect(order.indexOf('Favourites')).toBeGreaterThan(order.indexOf('Recent activity'));
+  });
+
+  it('shows the staff sections, not the owner ones, to a person with payroll.view_own', async () => {
+    await open(['payroll.view_own', 'closing.enter_own', 'sales.view_last_day']);
+    expect(el.querySelector('#home-ops-actions')).toBeNull();
+    expect(el.querySelector('#home-staff-pay')).not.toBeNull();
+    expect(api.opsActionItems).not.toHaveBeenCalled();
+    expect(api.myPayslips).toHaveBeenCalledTimes(1);
+  });
+
+  it('never shows the staff payroll section to the Owner view', async () => {
+    await open(['ops.view', 'payroll.view_own']);
+    expect(el.querySelector('#home-staff-pay')).toBeNull();
+    expect(api.myPayslips).not.toHaveBeenCalled();
+  });
+
+  it('puts Business intelligence between the Action Centre and Recent activity for the Owner', async () => {
+    api.opsBiSummary.mockResolvedValueOnce({ days: 30, from: '2026-10-23', to: '2026-11-21', sales: {}, transactions: {}, operations: {} });
+    await open(['ops.view', 'sales.view_last_day']);
+    const order = [...el.querySelectorAll('h2')].map((h) => h.textContent.trim());
+    expect(order.indexOf('Business intelligence')).toBeGreaterThan(order.indexOf('Action Centre'));
+    expect(order.indexOf('Recent activity')).toBeGreaterThan(order.indexOf('Business intelligence'));
   });
 });
