@@ -1,6 +1,6 @@
 /* Home 2.0 — styles are scoped to the Home module. */
 
-/* All-time sales hero: intentionally isolated from the other module cards. */
+/* Shared lifetime-sales hero banner, now displayed on the Sales Dashboard. */
 .home-lifetime-hero {
   position: relative;
   isolation: isolate;
