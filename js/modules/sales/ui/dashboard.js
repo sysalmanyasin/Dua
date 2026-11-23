@@ -4,6 +4,8 @@ import { money, monthLabel, shortDate, signed, todayPkt, weekday } from '../../.
 import { PALETTE, chartTheme, loadChartJs } from '../../../shared/chartjs.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
+import { lifetimeSalesMonths } from '../../home/data/api.js';
+import { buildLifetimeSales } from '../../home/domain/cover.js';
 import {
   PRESETS,
   bestWorst,
@@ -37,25 +39,55 @@ export async function mount(el) {
   let targets;
   let clients;
   let Chart;
+  let lifetimeRows = null;
   try {
-    const [m, d, t, c, lib] = await Promise.all([
+    const [m, d, t, c, lib, lifetime] = await Promise.all([
       api.listMonthlyFull(),
       api.listDailyFull(),
       api.listTargets(),
       api.listClientTotals(),
       loadChartJs().catch(() => null),
+      lifetimeSalesMonths().catch(() => null),
     ]);
     months = normalizeMonths(m);
     days = normalizeDays(d);
     targets = Object.fromEntries(t.map((r) => [String(r.month).slice(0, 7), Number(r.target)]));
     clients = c;
     Chart = lib;
+    lifetimeRows = lifetime;
   } catch {
     return render(el, errorCard('the dashboard'));
   }
 
   const today = todayPkt();
   const kpi = computeKpis(months, days, targets, today);
+  const lifetime = buildLifetimeSales(lifetimeRows, today);
+  const lifetimeHero = lifetime
+    ? html\`<section class="home-lifetime-hero" aria-label="All-time cumulative sales">
+        <div class="home-lifetime-top">
+          <div class="home-lifetime-brand">
+            <span class="home-lifetime-mark" aria-hidden="true">D</span>
+            <span class="home-lifetime-brand-copy">
+              <strong>Fazal Din's Pharma Plus</strong>
+              <small>Bahria Town · SALES INTELLIGENCE</small>
+            </span>
+          </div>
+          <span class="home-lifetime-pill"><i aria-hidden="true"></i> ALL-TIME</span>
+        </div>
+        <div class="home-lifetime-main">
+          <span class="home-lifetime-label">TOTAL CUMULATIVE SALES</span>
+          <h2>Your business at a glance</h2>
+          <strong class="home-lifetime-amount">₨ ${money(lifetime.total)}</strong>
+          <p>Every month. Every sale. One story.</p>
+        </div>
+        <div class="home-lifetime-foot">
+          <span>Since April 2020</span>
+          <span>${lifetime.months} months · ${lifetime.recordedDays.toLocaleString('en-US')} recorded days</span>
+        </div>
+        <span class="home-lifetime-orbit home-lifetime-orbit-one" aria-hidden="true"></span>
+        <span class="home-lifetime-orbit home-lifetime-orbit-two" aria-hidden="true"></span>
+      </section>\`
+    : '';
   const years = yearsOf(months);
   const state = { preset: '12M', compare: false, year: 'all', heatYear: years.at(-1) };
   let charts = [];
