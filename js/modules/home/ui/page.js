@@ -5,6 +5,7 @@ import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/f
 import { BRAND } from '../../../core/config.js';
 import { coverSummary, inventoryCover, lifetimeSalesMonths, notificationsAttention } from '../data/api.js';
 import { startOpsSections } from './ops.js';
+import { startStaffSections } from './staff.js';
 import {
   buildAttention,
   buildDailyProgress,
@@ -153,7 +154,8 @@ export async function mount(el, { ctx, modules = [] }) {
         <span class="home-lifetime-orbit home-lifetime-orbit-two" aria-hidden="true"></span>
       </section>`
     : '';
-  const showOps = perms.includes('ops.view'); // Owner only: Action Centre and Recent Activity
+  const showOps = perms.includes('ops.view'); // Owner only: Action Centre, Business Intelligence and Recent Activity
+  const showStaff = !showOps && (perms.includes('payroll.view_own') || perms.includes('closing.enter_own')); // own payroll and own work, read only
   const kpis = buildKpis(summary, perms);
   const attention = buildAttention(summary, perms, hour, alerts);
   const progress = buildDailyProgress(summary, perms);
@@ -248,7 +250,12 @@ export async function mount(el, { ctx, modules = [] }) {
             </section>`
           : ''
       }
-      ${showOps ? html`<div id="home-ops-actions"></div>` : ''}
+      ${
+        showOps
+          ? html`<div id="home-ops-actions"></div>
+              <div id="home-ops-bi"></div>`
+          : ''
+      }
       ${
         hasAttentionContext
           ? html`<section class="home-section home-attention">
@@ -288,6 +295,12 @@ export async function mount(el, { ctx, modules = [] }) {
           : ''
       }
       ${showOps ? html`<div id="home-ops-activity"></div>` : ''}
+      ${
+        showStaff
+          ? html`<div id="home-staff-pay"></div>
+              <div id="home-staff-activity"></div>`
+          : ''
+      }
       <section class="home-section">
         <div class="home-section-head">
           <div>
@@ -303,7 +316,14 @@ export async function mount(el, { ctx, modules = [] }) {
   renderFavourites();
 
   if (showOps) {
-    startOpsSections({ actionHost: el.querySelector('#home-ops-actions'), activityHost: el.querySelector('#home-ops-activity') });
+    startOpsSections({
+      actionHost: el.querySelector('#home-ops-actions'),
+      biHost: el.querySelector('#home-ops-bi'),
+      activityHost: el.querySelector('#home-ops-activity'),
+    });
+  }
+  if (showStaff) {
+    startStaffSections({ payrollHost: el.querySelector('#home-staff-pay'), activityHost: el.querySelector('#home-staff-activity'), perms });
   }
 
   const syncPins = () => {
