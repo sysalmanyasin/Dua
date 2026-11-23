@@ -294,3 +294,125 @@ describe('review screen', () => {
     expect(root().querySelector('[role="alert"]').textContent.length).toBeGreaterThan(10);
   });
 });
+
+describe('where the person is and what is next (F4)', () => {
+  it('shows the breadcrumb with links up, and no old back link', async () => {
+    await mount(root(), owner);
+    const crumb = root().querySelector('nav[aria-label="Breadcrumb"]');
+    expect([...crumb.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      '#/audit/engagements',
+      '#/audit/engagement',
+      '#/audit/round',
+    ]);
+    expect(crumb.querySelector('[aria-current="page"]').textContent).toBe('Review');
+    expect(root().textContent).not.toContain('Back to the round');
+  });
+
+  it('shows the pipeline with the compile result and no button for a step that is this page', async () => {
+    await mount(root(), owner);
+    const strip = root().querySelector('.aud-pipe');
+    expect(strip.querySelector('[aria-current="step"]').textContent).toContain('Compiled');
+    expect(strip.textContent).toContain('2 differ');
+    expect(strip.querySelector('[data-pipe-next]').textContent).toContain('Review and finish');
+    expect(strip.querySelector('button[data-pipe]')).toBeNull();
+  });
+
+  it('the jump bar has a link for each part with the number that needs a look', async () => {
+    await mount(root(), owner);
+    const bar = root().querySelector('.aud-stepbar');
+    const text = (key) => bar.querySelector(`[data-jump="${key}"]`).textContent.replace(/\s+/g, ' ').trim();
+    expect(text('progress')).toBe('Progress 2/2');
+    expect(text('differences')).toBe('Differences 2');
+    expect(text('corrections')).toBe('Corrections 1');
+    expect(text('conflicts')).toBe('Conflicts 1');
+    expect(bar.querySelector('[data-jump="next"]')).not.toBeNull();
+    const target = root().querySelector('[data-sec="corrections"]');
+    target.scrollIntoView = vi.fn();
+    bar.querySelector('[data-jump="corrections"]').click();
+    expect(target.scrollIntoView).toHaveBeenCalled();
+    expect(document.activeElement).toBe(target);
+  });
+
+  it('leaves out the jump links for parts that are not on the page', async () => {
+    api.compileOverview.mockResolvedValue(overview({ rest: { corrections: [], conflicts: [] } }));
+    await mount(root(), { ctx: { permissions: ['audit.review'] } });
+    const keys = [...root().querySelectorAll('[data-jump]')].map((b) => b.dataset.jump);
+    expect(keys).toEqual(['progress', 'differences']);
+  });
+
+  it('shows no banner when nothing is waiting', async () => {
+    await mount(root(), owner);
+    expect(root().querySelector('[data-recompile]')).toBeNull();
+  });
+
+  it('says how many approved corrections are waiting and recompiles with the version it saw', async () => {
+    api.compileOverview.mockResolvedValue(
+      overview({
+        rest: {
+          corrections: [
+            {
+              id: 'x1',
+              round_item_id: 'i1',
+              code: 'A1',
+              name: 'A',
+              company: 'Acme',
+              system_qty: 1,
+              counted_qty: 2,
+              status: 'approved',
+              reason: 'r',
+              proposed_by: 'D',
+              proposed_at: '2026-11-17T08:30:00Z',
+              decided_by: 'O',
+              decided_at: '2026-11-17T09:00:00Z',
+            },
+            {
+              id: 'x2',
+              round_item_id: 'i2',
+              code: 'A2',
+              name: 'B',
+              company: 'Acme',
+              system_qty: 1,
+              counted_qty: 2,
+              status: 'approved',
+              reason: 'r',
+              proposed_by: 'D',
+              proposed_at: '2026-11-17T08:30:00Z',
+              decided_by: 'O',
+              decided_at: '2026-11-17T09:10:00Z',
+            },
+          ],
+        },
+      }),
+    );
+    await mount(root(), owner);
+    expect(root().querySelector('[data-recompile]').textContent).toContain('2 approved corrections waiting');
+    click('button[data-act="recompile"]');
+    await until(() => api.compileRound.mock.calls.length > 0);
+    expect(api.compileRound).toHaveBeenCalledWith({ roundId: 'r1', allowMissing: false, version: 7 });
+  });
+
+  it('a reopened count that has not been submitted again holds the button back', async () => {
+    const ov = overview();
+    ov.assignments[0].status = 'counting';
+    api.compileOverview.mockResolvedValue(ov);
+    await mount(root(), owner);
+    const banner = root().querySelector('[data-recompile]');
+    expect(banner.textContent).toContain('Count One reopened and not submitted again');
+    expect(banner.querySelector('button')).toBeNull();
+  });
+
+  it('shows the banner only to someone who can compile', async () => {
+    const ov = overview();
+    ov.assignments[0].status = 'counting';
+    api.compileOverview.mockResolvedValue(ov);
+    await mount(root(), { ctx: { permissions: ['audit.review'] } });
+    expect(root().querySelector('[data-recompile]')).toBeNull();
+  });
+
+  it('while counting, the next step is a button that goes to this page and an earlier step is done', async () => {
+    api.compileOverview.mockResolvedValue(overview({ round: { state: 'counting' }, rest: { compilation: null } }));
+    await mount(root(), owner);
+    expect(root().querySelector('.aud-pipe [aria-current="step"]').textContent).toContain('Counting');
+    expect(root().querySelector('[data-pipe-next]').textContent).toContain('Review the counting');
+  });
+});

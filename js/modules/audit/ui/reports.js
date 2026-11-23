@@ -6,7 +6,8 @@ import { rupees, toPaisa } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
 import { getView, setView } from '../domain/nav.js';
 import { actionText } from '../domain/report.js';
-import { errorCard, loadingCard } from './parts.js';
+import { errorCard, loadingCard, toast } from './parts.js';
+import { exportAllRounds, exportRound, exportable } from './exports.js';
 import { printDocument } from './print.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
@@ -63,7 +64,17 @@ export async function mount(el, { ctx } = {}) {
   const can = (k) => perms.includes(k) || perms.includes('audit.manage');
   const canTrail = can('audit.report') || can('audit.review');
   const view = getView();
-  const s = { list: [], id: view?.engagement ?? null, rep: null, trail: [], more: false, busy: false, error: null };
+  const s = {
+    list: [],
+    id: view?.engagement ?? null,
+    rep: null,
+    trail: [],
+    more: false,
+    busy: false,
+    error: null,
+    exportRound: null,
+    note: '',
+  };
 
   async function loadTrail(reset) {
     if (!canTrail) return;
@@ -78,6 +89,7 @@ export async function mount(el, { ctx } = {}) {
     s.more = false;
     if (!s.id) return;
     s.rep = await api.reportEngagement(s.id);
+    s.exportRound = exportable(s.rep.rounds)[0]?.id ?? null;
     await loadTrail(true);
   }
 
@@ -93,6 +105,36 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   }
 
+  // Excel and CSV files of the results; only rounds that have been compiled (or are final) have any
+  function exportCard() {
+    const ready = exportable(s.rep.rounds);
+    if (ready.length === 0) return '';
+    const off = s.busy ? 'disabled' : '';
+    return html`<section class="card aud-card no-print" aria-label="Download">
+      <h2>Download</h2>
+      <p class="muted small">Rounds that are not compiled yet have no results to download.</p>
+      <label class="field"
+        ><span>Round</span>
+        <select data-field="export-round">
+          ${ready.map((r) => html`<option value="${r.id}" ${r.id === s.exportRound ? 'selected' : ''}>Round ${r.label}</option>`)}
+        </select></label
+      >
+      <div class="aud-actions">
+        <button type="button" class="btn btn-sm btn-primary" data-export="xlsx" ${off}>Excel: this round</button>
+        <button type="button" class="btn btn-sm" data-export="variance" ${off}>Variance CSV</button>
+        <button type="button" class="btn btn-sm" data-export="notes" ${off}>Auditor notes CSV</button>
+        <button type="button" class="btn btn-sm" data-export="conflicts" ${off}>Conflicts CSV</button>
+      </div>
+      <h3>All rounds</h3>
+      <div class="aud-actions">
+        <button type="button" class="btn btn-sm btn-primary" data-export-all="xlsx" ${off}>Excel: all rounds</button>
+        <button type="button" class="btn btn-sm" data-export-all="combined" ${off}>Combined CSV</button>
+        <button type="button" class="btn btn-sm" data-export-all="summary" ${off}>Summary CSV</button>
+      </div>
+      <p class="muted small" role="status" data-export-note>${s.note}</p>
+    </section>`;
+  }
+
   function report() {
     if (!s.rep) return '';
     const { engagement: e, rounds, people } = s.rep;
@@ -102,6 +144,7 @@ export async function mount(el, { ctx } = {}) {
         ${rounds.length ? roundsTable(rounds, true) : html`<p class="muted">No rounds yet.</p>`}
         <div class="aud-actions no-print"><button type="button" class="btn btn-sm" data-act="print">Print / Save as PDF</button></div>
       </section>
+      ${exportCard()}
       <section class="card aud-card" aria-label="People">
         <h2>Who counted what</h2>
         ${
@@ -168,14 +211,45 @@ export async function mount(el, { ctx } = {}) {
   }
 
   el.onchange = (e) => {
+    if (e.target.dataset?.field === 'export-round') {
+      s.exportRound = e.target.value;
+      return;
+    }
     if (e.target.dataset?.field !== 'engagement') return;
     s.id = e.target.value || null;
     if (s.id) setView({ ...(getView() ?? {}), engagement: s.id });
     return run(loadReport);
   };
+  async function download(fn) {
+    s.busy = true;
+    s.error = null;
+    s.note = 'Preparing the file…';
+    draw();
+    try {
+      const left = await fn((text) => {
+        const note = el.querySelector('[data-export-note]');
+        if (note) note.textContent = text;
+      });
+      s.note = left
+        ? `Done. ${left} round${left === 1 ? ' was' : 's were'} left out because ${left === 1 ? 'it has' : 'they have'} no results yet.`
+        : 'Done.';
+      toast('File ready.');
+    } catch (e) {
+      s.note = '';
+      s.error = e?.message && !e.code ? e.message : friendlyError(e).message;
+    }
+    s.busy = false;
+    draw();
+  }
   el.onclick = (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
+    if (b.dataset.export) {
+      const round = s.rep.rounds.find((r) => r.id === s.exportRound);
+      return round && download(() => exportRound(s.rep.engagement.name, round, b.dataset.export));
+    }
+    if (b.dataset.exportAll)
+      return download((progress) => exportAllRounds(s.rep.engagement.name, s.rep.rounds, b.dataset.exportAll, progress));
     if (b.dataset.act === 'more') return run(() => loadTrail(false));
     if (b.dataset.act === 'open') {
       setView({ engagement: s.id, round: b.dataset.id });

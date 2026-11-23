@@ -145,7 +145,7 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 **Foundation requests (§3.3), none blocks the start**
 1. Offline outbox (OD-6): small IndexedDB helper plus a sign-out hook that warns about unsent counts (AUD-9). Blocks the counting slice.
 2. Barcode libraries: vendor ZXing and ZXing-C++ WASM with hashes in `tools/check-vendor.mjs`, and add `'wasm-unsafe-eval'` to the content security policy. The browser's native `BarcodeDetector` needs neither, so scanning starts with it. Blocks the barcode slice only.
-3. `.xlsx` export (SheetJS) only if AUD-7 changes.
+3. `.xlsx` export: built in Audit 3.0 F5 (AUD-15), written by the app itself with no vendored library.
 4. Alert wording for `audit.submitted`, `audit.compiled`, `audit.conflict` in `ntfy.ts` and `alerts.js`.
 5. New icons if needed; otherwise reuse an existing one as Closing did.
 
@@ -161,7 +161,7 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 | AUD-4 | **No blind counting.** Counters see the system quantity | Accepted (owner, 16 Nov 2026) |
 | AUD-5 | `price` is the **retail price**; counters see quantities, variance and variance value for their own assignment; `audit.view`, `audit.review`, `audit.report` extend that to all engagements. Cost prices (`inventory.view_cost`) are not used | Accepted (owner, 16 Nov 2026) |
 | AUD-6 | No import of audit history; the old app stays open read-only as an archive. Optional one-time load of verified barcodes, racks and templates as reference data only if the owner asks later | Accepted (default) |
-| AUD-7 | CSV and print / Save as PDF first; vendor SheetJS only if `.xlsx` is needed | Accepted (default) |
+| AUD-7 | CSV and print / Save as PDF first; vendor SheetJS only if `.xlsx` is needed | Accepted (default); changed by AUD-15: Excel files are also wanted, written by the app without a vendored library |
 | AUD-8 | A submitted count changes only after an owner reopen with a reason; the new submission is a revision, original kept | Accepted (default) |
 | AUD-9 | Signing out with unsent counts is blocked until synced; discard allowed after confirmation | Accepted (default) |
 | AUD-10 | Username + 6-digit PIN replaces phone + 4-digit PIN; staff request access again | Accepted (default) |

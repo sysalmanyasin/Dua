@@ -43,3 +43,40 @@ export async function opsRecentActivity(limit = 10) {
   if (error) throw error;
   return data;
 }
+
+// Owner Business Intelligence: sales, transactions, inventory health and operations for 7, 30 or 90 complete days, with the
+// same-length period before it (null without ops.view). Detailed analysis stays in Sales and Reports.
+export async function opsBiSummary(days = 30) {
+  const { data, error } = await db().rpc('ops_bi_summary', { p_days: days });
+  if (error) throw error;
+  return data;
+}
+
+// The caller's OWN closed payslips (Manager's saved values). null unless the owner granted payroll.view_own.
+export async function myPayslips(months = 3) {
+  const { data, error } = await db().rpc('mgmt_my_payslips', { p_months: months });
+  if (error) throw error;
+  return data;
+}
+
+// The caller's own recent closings (Closing's own list for people who enter closings). Throws for people who may not.
+export async function myRecentClosings(limit = 10) {
+  const { data, error } = await db().rpc('closing_my_recent', { p_limit: limit });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// Important events arrive immediately: tell `onChange` whenever any closing is saved or submitted. Returns a function that
+// stops listening. A realtime failure is silent by design; the periodic refresh still keeps the page up to date.
+export function watchClosings(onChange) {
+  try {
+    const client = db();
+    const channel = client
+      .channel('home-closings')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'closings' }, () => onChange())
+      .subscribe();
+    return () => client.removeChannel(channel);
+  } catch {
+    return () => {};
+  }
+}

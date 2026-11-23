@@ -8,7 +8,7 @@ import { friendlyError } from '../domain/errors.js';
 import { getView } from '../domain/nav.js';
 import { finalCsv, safeFileName } from '../domain/report.js';
 import { roundLabel } from './engagement.js';
-import { errorCard, loadingCard, toast } from './parts.js';
+import { crumbs, errorCard, loadingCard, toast } from './parts.js';
 import { downloadText, printDocument } from './print.js';
 
 const PAGE = 50;
@@ -254,6 +254,13 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="aud">
+        ${crumbs([
+          { label: 'Audits', href: '#/audit/engagements' },
+          { label: 'This audit', href: '#/audit/engagement' },
+          { label: roundLabel(round), href: '#/audit/round' },
+          { label: 'Review', href: '#/audit/compile' },
+          { label: s.final ? 'Final' : 'Final snapshot' },
+        ])}
         ${hero({
           label: 'Audit',
           title: `${roundLabel(round)} · ${s.final ? 'final' : 'final snapshot'}`,

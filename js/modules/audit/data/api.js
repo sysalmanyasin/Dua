@@ -134,6 +134,16 @@ export async function compiledRows({ compilationId, mode = 'diff', text = '', fr
   if (error) throw error;
   return { rows: data, total: count ?? data.length };
 }
+/** Every compiled row of the given kind for a file download, page by page. mode: 'all' | 'diff' | 'missing'. */
+export async function compiledRowsAll(compilationId, mode = 'diff') {
+  const PAGE = 500;
+  const out = [];
+  for (;;) {
+    const { rows, total } = await compiledRows({ compilationId, mode, from: out.length, to: out.length + PAGE - 1 });
+    out.push(...rows);
+    if (rows.length < PAGE || out.length >= total) return out;
+  }
+}
 /** The latest compile of a round, as the person who counted it may read it (item, variance and value totals). Null if there is none yet. */
 export const myCompilation = (roundId) =>
   one(
@@ -226,6 +236,16 @@ export const resolveBarcodeConflict = ({ id, decision, reason }) =>
 /** The Center list. Each row carries `total`, the number of rows that match. status: '' for all. */
 export const listBarcodes = ({ status = '', query = '', limit = 50, offset = 0 } = {}) =>
   one(db().rpc('audit_barcode_list', { p_status: status || null, p_query: query, p_limit: limit, p_offset: offset }));
+/** Every barcode in the list for a file download (200 a page, the most the database gives). */
+export async function listBarcodesAll(status = '') {
+  const PAGE = 200;
+  const out = [];
+  for (;;) {
+    const page = await listBarcodes({ status, limit: PAGE, offset: out.length });
+    out.push(...page);
+    if (page.length < PAGE) return out;
+  }
+}
 export const barcodeOverview = () => one(db().rpc('audit_barcode_overview'));
 /** One page of rows changed since a cursor, for the phone's copy of the list. */
 export const barcodeMirrorPage = ({ since = null, after = null, limit = 1000 } = {}) =>
@@ -233,6 +253,16 @@ export const barcodeMirrorPage = ({ since = null, after = null, limit = 1000 } =
 export const barcodeHistory = (id, limit = 100) => one(db().rpc('audit_barcode_history', { p_id: id, p_limit: limit }));
 /** Scan history: everyone's for administrators, the person's own for everyone else. */
 export const scanHistory = ({ limit = 50, offset = 0 } = {}) => one(db().rpc('audit_scan_history', { p_limit: limit, p_offset: offset }));
+/** All the scan history the person may see, for a file download. */
+export async function scanHistoryAll() {
+  const PAGE = 200;
+  const out = [];
+  for (;;) {
+    const page = await scanHistory({ limit: PAGE, offset: out.length });
+    out.push(...page);
+    if (page.length < PAGE) return out;
+  }
+}
 /** Saves scans. Each carries its own id, so sending a batch twice changes nothing. Returns { saved, duplicates, rejected }. */
 export const scanBatch = (events) => one(db().rpc('audit_scan_batch', { p_events: events }));
 /** Owner: how an audit is counted ('manual', 'barcode' or 'hybrid'). */

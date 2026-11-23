@@ -5,6 +5,7 @@ import { html, render } from '../../../shared/html.js';
 import * as api from '../data/api.js';
 import { cleanBarcode, guessType, isValidBarcode } from '../domain/barcode.js';
 import { friendlyError } from '../domain/errors.js';
+import { exportBarcodes } from './exports.js';
 import { toast } from './parts.js';
 
 const PAGE = 50;
@@ -315,6 +316,21 @@ export async function mountAdminTab(tab, ctx) {
       </div>
       ${err()}
       <div id="bc-master">${masterRows()}</div>
+      ${
+        admin
+          ? html`<div class="aud-block no-print" aria-label="Download">
+              <h3>Download</h3>
+              <div class="aud-actions">
+                <button type="button" class="btn btn-sm btn-primary" data-bc-export="xlsx">Excel: all four</button>
+                <button type="button" class="btn btn-sm" data-bc-export="master">Master CSV</button>
+                <button type="button" class="btn btn-sm" data-bc-export="verification">Verification CSV</button>
+                <button type="button" class="btn btn-sm" data-bc-export="conflicts">Conflicts CSV</button>
+                <button type="button" class="btn btn-sm" data-bc-export="history">Scan history CSV</button>
+              </div>
+              <p class="muted small" role="status" data-bc-note></p>
+            </div>`
+          : ''
+      }
     </section>`;
   const masterRows = () =>
     html`${
@@ -435,6 +451,21 @@ export async function mountAdminTab(tab, ctx) {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
     const id = b.dataset.id;
+    if (b.dataset.bcExport) {
+      const note = el.querySelector('[data-bc-note]');
+      const say = (text) => note && (note.textContent = text);
+      const all = [...el.querySelectorAll('button[data-bc-export]')];
+      all.forEach((x) => (x.disabled = true));
+      say('Preparing the file…');
+      try {
+        await exportBarcodes(b.dataset.bcExport, say);
+        say('Done.');
+      } catch (err) {
+        say(err?.message && !err.code ? err.message : friendlyError(err).message);
+      }
+      all.forEach((x) => (x.disabled = false));
+      return;
+    }
     switch (b.dataset.act) {
       case 'scan':
         return void ctx.startScan(({ code, format }) => {

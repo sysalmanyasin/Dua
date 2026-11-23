@@ -13,9 +13,33 @@
 // A missing secret is recorded as a failed notification with a plain reason; it is never silent.
 import { serviceClient } from '../_shared/clients.ts';
 import { json, readJson } from '../_shared/http.ts';
-import { buildPublish, canEnqueue, cleanBackupReport, cleanExternalPayload, messageFor, safeEqual, scrubError, validServer } from '../_shared/ntfy.ts';
+import { buildPublish, canEnqueue, cleanBackupReport, cleanExternalPayload, closingMessage, messageFor, safeEqual, scrubError, validServer, type PushMessage } from '../_shared/ntfy.ts';
 
 type Row = { id: string; kind: string; payload: Record<string, unknown> };
+type Db = ReturnType<typeof serviceClient>;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// closing.submitted carries the closing's figures (owner's choice, D-62). If the closing cannot be read for any reason,
+// fall back to the generic text so the alert is never lost.
+async function buildMessage(db: Db, row: Row): Promise<PushMessage> {
+  if (row.kind === 'closing.submitted') {
+    const id = row.payload?.closing_id;
+    if (typeof id === 'string' && UUID.test(id)) {
+      try {
+        const { data, error } = await db.rpc('closing_page_json', { p_closing: id });
+        if (error) console.error('closing_page_json failed', error.message);
+        else {
+          const m = closingMessage(data);
+          if (m) return m;
+        }
+      } catch (e) {
+        console.error('closing message failed', e instanceof Error ? e.message : String(e));
+      }
+    }
+  }
+  return messageFor(row.kind, row.payload);
+}
 
 async function drain(): Promise<{ sent: number; failed: number }> {
   const db = serviceClient();
@@ -32,12 +56,16 @@ async function drain(): Promise<{ sent: number; failed: number }> {
     else if (!validServer(server)) problem = 'NTFY_SERVER must be an https address';
     else {
       try {
-        const req = buildPublish(server, topic, token, messageFor(row.kind, row.payload));
+        const req = buildPublish(server, topic, token, await buildMessage(db, row));
         const ctl = new AbortController();
         const timer = setTimeout(() => ctl.abort(), 8000);
         const res = await fetch(req.url, { ...req.init, signal: ctl.signal });
         clearTimeout(timer);
-        if (!res.ok) problem = `ntfy answered ${res.status}`;
+        if (!res.ok) {
+          // ntfy explains a refusal in its body (e.g. which rate limit was hit); keep a short, scrubbed copy.
+          const detail = (await res.text().catch(() => '')).replace(/\s+/g, ' ').trim().slice(0, 200);
+          problem = scrubError(`ntfy answered ${res.status}${detail ? `: ${detail}` : ''}`, [topic, token]);
+        }
       } catch (e) {
         problem = scrubError(e, [topic, token]);
       }

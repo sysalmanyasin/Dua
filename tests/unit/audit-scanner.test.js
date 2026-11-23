@@ -171,6 +171,7 @@ describe('the scanner dialog', () => {
     hidden = false;
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
     HTMLMediaElement.prototype.play = vi.fn(async () => {});
+    HTMLCanvasElement.prototype.getContext = () => null; // jsdom has no canvas; the frame check then skips itself
     Object.defineProperty(HTMLMediaElement.prototype, 'readyState', { configurable: true, get: () => 4 });
     document.body.innerHTML = '<button id="opener">Scan</button>';
     document.getElementById('opener').focus();
