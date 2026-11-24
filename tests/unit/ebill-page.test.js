@@ -84,6 +84,16 @@ vi.mock('../../js/modules/ebill/data/device.js', () => ({
 const ctx = { user_id: 'u1', full_name: 'Test Staff', permissions: ['inventory.search'] };
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// Waits until `find()` returns something (not null/false), however long a busy machine takes; returns it.
+const until = (find) =>
+  vi.waitFor(
+    () => {
+      const v = find();
+      if (!v) throw new Error('not there yet');
+      return v;
+    },
+    { timeout: 5000, interval: 10 },
+  );
 const type = (el, v) => {
   el.value = v;
   el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -656,11 +666,10 @@ describe('receipts', () => {
     key(sku, 'Enter'); // 90.00
     type(el.querySelector('#eb-cash'), '100');
     el.querySelector('#eb-save').click();
-    await tick();
+    await until(() => el.querySelector('#eb-dialog [data-f="pin"]')); // wait for the PIN box, not a fixed number of ticks
     el.querySelector('#eb-dialog [data-f="pin"]').value = '482913';
     el.querySelector('#eb-dialog [data-act="yes"]').click();
-    await tick();
-    await tick();
+    await until(() => el.querySelector('[data-act="print-last"]')); // the save finished
   };
   const choose = (id, v) => {
     const c = el.querySelector(id);
@@ -674,8 +683,7 @@ describe('receipts', () => {
     await saveOne();
     expect(window.print).not.toHaveBeenCalled();
     el.querySelector('[data-act="print-last"]').click();
-    await tick();
-    expect(window.print).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1), { timeout: 5000 });
     expect(printed[0]).toContain('Test Pharmacy');
     expect(printed[0]).toContain('Purchase Slip');
     expect(printed[0]).toContain('STN/NTN# 0870213-3');
@@ -693,7 +701,7 @@ describe('receipts', () => {
     choose('#eb-copies', 2);
     choose('#eb-rtype', 'Gift Receipt');
     await saveOne();
-    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1)); // both copies go in one print job, one page each
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1), { timeout: 5000 }); // both copies go in one print job, one page each
     expect(printed[0]).toContain('Gift Slip');
     expect(printed[0]).toContain('Copy 1 of 2');
     expect(printed[0]).toContain('Copy 2 of 2');
@@ -735,24 +743,17 @@ describe('receipts', () => {
       lines: [{ code: 'A100', name: 'Test Tablet', unit: 'unit', qty: '1', rate: '90', line_total: '90' }],
     });
     el.querySelector('#eb-rsearch').click();
-    await tick();
-    await tick();
-    const row = el.querySelector('#eb-dialog [data-print="inv-9"]');
-    expect(row).not.toBeNull();
+    const row = await until(() => el.querySelector('#eb-dialog [data-print="inv-9"]'));
     expect(el.querySelector('#eb-dialog').textContent).toContain('Mr Khan');
     row.click();
-    await tick();
-    await tick();
-    expect(window.print).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(window.print).toHaveBeenCalledTimes(1), { timeout: 5000 });
     expect(printed[0]).toContain('Duplicate');
     expect(printed[0]).toContain('Receipt# EB-261110-00009');
     expect(printed[0]).toContain('Test Tablet');
   });
   it('Search receipt says so when nothing matches, and closes with Escape', async () => {
     el.querySelector('#eb-rsearch').click();
-    await tick();
-    await tick();
-    expect(el.querySelector('#eb-dialog').textContent).toContain('No receipt found');
+    await vi.waitFor(() => expect(el.querySelector('#eb-dialog')?.textContent).toContain('No receipt found'), { timeout: 5000 });
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     expect(el.querySelector('#eb-dialog .eb-modal')).toBeNull();
   });
