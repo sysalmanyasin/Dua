@@ -112,3 +112,18 @@ export const saveField = (code, label, section, sign, show, active) =>
 export const reorderFields = (codes) => db().rpc('payment_methods_reorder', { p_codes: codes });
 export const recentDays = (count = 7) =>
   one(db().from('daily_sales').select('business_date, total, customers').order('business_date', { ascending: false }).limit(count));
+
+// ── Add Entry auto-pull: the two published interfaces (docs/MODULES.md section 8.1) ──
+// Each source is asked on its own, so one that this person may not read does not stop the other. Nothing here writes.
+async function feed(name, date) {
+  try {
+    const { data, error } = await db().rpc(name, { p_date: date });
+    return error ? { data: null, error } : { data: data ?? null, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+export async function autofillSources(date) {
+  const [c, k] = await Promise.all([feed('closing_day_feed', date), feed('candela_day_feed', date)]);
+  return { closing: c.data, candela: k.data, closingError: c.error, candelaError: k.error };
+}
