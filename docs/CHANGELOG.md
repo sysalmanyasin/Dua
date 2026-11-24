@@ -2,11 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
-## 24 Nov — Closing: "Carried CC from Previous" is editable on a Final closing (migration 0223)
-- On a closing whose type is **Final** (a new Final, or a Final reopened for correction), step 8 Card now shows Carried CC from Previous as a normal box. Empty = use the carried figure (shown as the placeholder); a typed value, including 0, replaces it. A Shift closing still shows the carried figure read-only.
-- Database: `closings.ov_prev_cc` (null = carried). `closing_apply_carry` honours it only while `mode = 'final'`, so open, save and the submit-time carry check no longer overwrite it. `closing_apply_payload` / `closing_patch_draft` accept `overrides.prev_cc` (left alone when the key is absent); `closing_reopen` / `closing_correct` copy it to the revision.
+## 24 Nov — Closing: "Carried CC from Previous" is editable on Shift and Final closings (migrations 0223, 0224)
+- On every non-opening closing, Shift or Final (new, or reopened for correction), step 8 Card shows Carried CC from Previous as a normal box. Empty = use the carried figure (shown as the placeholder); a typed value, including 0, replaces it.
+- Database: `closings.ov_prev_cc` (null = carried). `closing_apply_carry` honours it in both modes (0224 lifted the Final-only limit of 0223), so open, save and the submit-time carry check no longer overwrite it. `closing_apply_payload` / `closing_patch_draft` accept `overrides.prev_cc` (left alone when the key is absent); `closing_reopen` / `closing_correct` copy it to the revision.
 - Code: `domain/form.js` (override in form, payload, simple paths, `localTotals` with `carry.final`), `ui/sections-late.js`, `ui/ledger.js`, `data/api.js`. Tests: `closing-form.test.js` (now 19).
-- Migration 0223 was applied with the Supabase connector on 24 Nov 2026 (functions rewritten from their live definitions with asserted string replacements).
+- Migrations 0223 and 0224 were applied with the Supabase connector on 24 Nov 2026 (functions rewritten from their live definitions with asserted string replacements).
 
 ## 24 Nov — Dua is installable on Android, with two long-press shortcuts (Foundation request 6)
 - New `manifest.webmanifest` (name Dua, `start_url` and `scope` `./`, standalone, theme `#142b4a`, background `#f4f7fb` from `css/tokens.css`) and PNG icons made from `assets/icon.svg`: `icon-192.png`, `icon-512.png` and a maskable `icon-maskable-512.png`. Chrome on Android now offers Install, and the installed app opens in its own window.

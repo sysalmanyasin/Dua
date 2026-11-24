@@ -137,9 +137,9 @@ export function lateSections(h) {
   const cc = () =>
     html`<h2>8 · Credit Card Summary (D)</h2>
       ${
-        S.mode === 'final'
+        !S.opening
           ? field('overrides.prev_cc', 'Carried CC from Previous', {
-              note: `Final closing: you can correct it. Leave empty to use the carried figure (${money(S.carry?.cc ?? 0, { decimals: true })}). A typed 0 counts.`,
+              note: `You can correct it. Leave empty to use the carried figure (${money(S.carry?.cc ?? 0, { decimals: true })}). A typed 0 counts.`,
               placeholder: money(S.carry?.cc ?? 0, { decimals: true }),
             })
           : amber('Carried CC from Previous', S.carry?.cc)
