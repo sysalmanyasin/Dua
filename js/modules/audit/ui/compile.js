@@ -9,6 +9,7 @@ import { getView, newKey, setView } from '../domain/nav.js';
 import { roundLabel } from './engagement.js';
 import { recompileNeeded } from '../domain/pipeline.js';
 import { crumbs, errorCard, goPipe, loadingCard, pipelineStrip, toast } from './parts.js';
+import { progressClick, progressPanel, progressState } from './progress.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ASG = { assigned: 'Not started', counting: 'Counting', submitted: 'Submitted' };
@@ -24,6 +25,7 @@ export async function mount(el, { ctx } = {}) {
   const canReview = can('audit.review');
   const canSuggest = can('audit.suggest');
   const canReopen = can('audit.reopen');
+  const canPeek = can('audit.assign') || can('audit.compile') || can('audit.view');
   const view = getView();
   if (!view?.round) {
     return render(
@@ -36,6 +38,7 @@ export async function mount(el, { ctx } = {}) {
     );
   }
   const s = {
+    prog: progressState(),
     o: null,
     rows: [],
     total: 0,
@@ -95,6 +98,13 @@ export async function mount(el, { ctx } = {}) {
               </div>
               <span class="aud-actions">
                 ${
+                  canPeek
+                    ? html`<button type="button" class="btn btn-sm btn-ghost" data-peek="${a.id}" aria-expanded="${s.prog.id === a.id}">
+                        Items
+                      </button>`
+                    : ''
+                }
+                ${
                   round.state === 'counting' && a.status !== 'submitted' && canCompile
                     ? html`<button type="button" class="btn btn-sm" data-form="force" data-id="${a.id}">Force submit</button>`
                     : ''
@@ -106,7 +116,7 @@ export async function mount(el, { ctx } = {}) {
                 }
               </span>
             </div>
-            ${f && f.id === a.id && f.type === 'force' ? forceForm() : ''}
+            ${s.prog.id === a.id ? progressPanel(s.prog) : ''} ${f && f.id === a.id && f.type === 'force' ? forceForm() : ''}
             ${f && f.id === a.id && f.type === 'reopen' ? reasonForm('Reopen this count', 'Reopen', 'reopen-yes') : ''}
           </div>`,
       )}
@@ -499,6 +509,7 @@ export async function mount(el, { ctx } = {}) {
     if (t.dataset?.f === 'sample') s.sample = t.value;
   };
   el.onclick = async (e) => {
+    if (progressClick(s.prog, e, draw)) return;
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
     if (b.dataset.pipe) return goPipe(b.dataset.pipe, { engagement: s.o.round.engagement_id, round: view.round });

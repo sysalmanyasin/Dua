@@ -326,6 +326,8 @@ Android apps (attendance, widgets, mail routine, audit scanner) are **after** th
 | Inventory (feed F3) | `inventory_search(p_text text, p_limit int)` | audit, str, ebill | Product search (permission `inventory.search`) |
 | Inventory (feed F3) | `inventory_products_for_scope(p_scope jsonb)` | audit | Frozen product list for a round |
 | Closing | `closing_credit_feed(p_after timestamptz)` | manager | Read-only list of credit lines from **submitted** closings (date, shift, kind, label, amount, line id). Needs `credit.view`. See §8.2 |
+| Closing | `closing_day_feed(p_date date)` | sales | The saved **evening** closing of one business day as `{ sys_cash, alfalah, keenu, revision, … }`, or null (none, or still a draft). Same read gate as `closing_saved_list`. Feeds Sales' Add Entry auto-pull (migration 0222) |
+| Candela Sales | `candela_day_feed(p_date date)` | sales | One day of Candela figures as `{ payments: { cash_sale, card_sale, credit_sale, total_sale }, credit: [{ name, amount, receipts }] }`, or null. Needs `candela.view` (owner). Feeds Sales' Add Entry auto-pull (migration 0901) |
 | Core | `staff` table, `my_context()` | all | Who is the person, what may they do |
 
 If you need something that is not listed, add a **request** in your brief and agree the interface with the owner before building around it.

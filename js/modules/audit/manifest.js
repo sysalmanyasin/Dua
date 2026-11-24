@@ -45,6 +45,13 @@ export default {
       load: () => import('./ui/engagements.js'),
     },
     {
+      path: '/audit/attention',
+      title: 'Needs attention',
+      desc: 'Rounds ready to compile, open conflicts and corrections waiting',
+      anyOf: ['audit.compile', 'audit.review'],
+      load: () => import('./ui/attention.js'),
+    },
+    {
       path: '/audit/individuals',
       title: 'Individual audits',
       desc: 'Individual audits by person and month',

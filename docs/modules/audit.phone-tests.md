@@ -87,3 +87,11 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 5. Audits › **Individual audits by person**. Look for: this month, people in A–Z order, each with their rounds newest first.
 6. Pick last month in the Month box. Look for: the list changes and nothing from this month stays on screen. Pick a month with no Individual audits. Look for: a plain "Nobody has counted…" line.
 7. Find a person whose Individual audit is still being counted. Look for: "Not compiled yet" for that round, not "0 differences".
+
+## PHONE 10: person panel and attention badges (new, Audit 3.0 F7)
+1. As the owner, open a round that is being counted. On Round or Review, tap **Items** beside a counter. Look for: "X of Y counted", the not-counted items first, with their codes.
+2. Tap **Counted**, then **Assumed to match**, then **With a note**. Look for: the list changes each time and the number in each button matches the list.
+3. On Review, with the panel open, tap **Force submit** for that person. Look for: the form opens and the panel stays readable. Cancel it. Tap **Items** again. Look for: the panel closes.
+4. Have two counters submit everything in a round. Open the Audit overview. Look for: "Needs your attention" with "1 round ready to compile". Tap it. Look for: that round listed. Tap **Open**. Look for: the Review page of that round.
+5. Compile, then make a conflict or a proposed correction (use a second round or a person with the suggest key). Look for: the badge says how many conflicts or corrections are waiting, and the list behind it adds up to the same number.
+6. Sign in as a counter who has no review or compile key. Look for: no "Needs your attention" box and no Items button.

@@ -9,6 +9,7 @@ import { SPLITS, planAutoSplit } from '../domain/split.js';
 import { sameTeam } from '../domain/wizard.js';
 import { roundLabel } from './engagement.js';
 import { crumbs, errorCard, goPipe, loadingCard, pipelineStrip, toast } from './parts.js';
+import { progressClick, progressPanel, progressState } from './progress.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
 const ASG = { assigned: 'Not started', counting: 'Counting', submitted: 'Submitted' };
@@ -17,6 +18,7 @@ export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions ?? [];
   const canAssign = perms.includes('audit.assign') || perms.includes('audit.manage');
   const canManage = perms.includes('audit.manage');
+  const canPeek = canAssign || perms.includes('audit.compile') || perms.includes('audit.view');
   const view = getView();
   if (!view?.round) {
     return render(
@@ -29,6 +31,7 @@ export async function mount(el, { ctx } = {}) {
     );
   }
   const s = {
+    prog: progressState(),
     o: null,
     prev: null,
     people: [],
@@ -94,26 +97,39 @@ export async function mount(el, { ctx } = {}) {
               : assignments.map(
                   (a) =>
                     html`<div class="row">
-                      <div>
-                        <strong>${a.name}</strong><br /><span class="muted small"
-                          >${a.items} items · ${a.companies} ${a.companies === 1 ? 'company' : 'companies'} ·
-                          ${ASG[a.status] ?? a.status}</span
-                        >
+                        <div>
+                          <strong>${a.name}</strong><br /><span class="muted small"
+                            >${a.items} items · ${a.companies} ${a.companies === 1 ? 'company' : 'companies'} ·
+                            ${ASG[a.status] ?? a.status}</span
+                          >
+                        </div>
+                        ${
+                          canPeek && round.state !== 'draft'
+                            ? html`<button
+                                type="button"
+                                class="btn btn-ghost btn-sm"
+                                data-peek="${a.id}"
+                                aria-expanded="${s.prog.id === a.id}"
+                              >
+                                Items
+                              </button>`
+                            : ''
+                        }
+                        ${
+                          canAssign && a.status !== 'submitted' && round.state !== 'final'
+                            ? html`<button
+                                type="button"
+                                class="btn btn-ghost btn-sm"
+                                data-act="revoke"
+                                data-id="${a.id}"
+                                ${s.busy ? 'disabled' : ''}
+                              >
+                                Take back
+                              </button>`
+                            : ''
+                        }
                       </div>
-                      ${
-                        canAssign && a.status !== 'submitted' && round.state !== 'final'
-                          ? html`<button
-                              type="button"
-                              class="btn btn-ghost btn-sm"
-                              data-act="revoke"
-                              data-id="${a.id}"
-                              ${s.busy ? 'disabled' : ''}
-                            >
-                              Take back
-                            </button>`
-                          : ''
-                      }
-                    </div>`,
+                      ${s.prog.id === a.id ? progressPanel(s.prog) : ''}`,
                 )
           }
           ${
@@ -280,6 +296,7 @@ export async function mount(el, { ctx } = {}) {
     }
   };
   el.onclick = (e) => {
+    if (progressClick(s.prog, e, draw)) return;
     const p = e.target.closest('button[data-pipe]');
     if (p) return goPipe(p.dataset.pipe, { engagement: s.o.round.engagement_id, round: s.o.round.id });
     const b = e.target.closest('button[data-act]');
