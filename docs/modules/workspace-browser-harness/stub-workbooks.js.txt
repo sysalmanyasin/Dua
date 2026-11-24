@@ -1,0 +1,58 @@
+
+import { createWorkbook, applyOps, buildOp, findSheet, pull as modelPull, applyRemote } from '/js/modules/workspace/domain/spreadsheet.js';
+let SERVER = null;
+const S1 = '0a000000-0000-4000-8000-0000000000e1', S2 = '0a000000-0000-4000-8000-0000000000e2';
+function build() {
+  const wb = createWorkbook();
+  applyOps(wb, [buildOp('add_sheet', { sheet_id: S1, name: 'Stock' }), buildOp('add_sheet', { sheet_id: S2, name: 'Prices' })]);
+  // grow Stock to 3,100 rows
+  for (let k = 0; k < 3; k += 1) applyOps(wb, [buildOp('insert_rows', { sheet_id: S1, after: null, ids: Array.from({ length: 1000 }, (_, i) => 5000 + k * 1000 + i) })]);
+  const sh = findSheet(wb, S1);
+  applyOps(wb, [buildOp('set_styles', { sheet_id: S1, styles: [
+    { style_id: 1, style: { weight: 'bold', bg: '#1d4ed8', color: '#ffffff', halign: 'center' } },
+    { style_id: 2, style: { numfmt: { type: 'currency', currency: 'PKR', decimals: 0 } } },
+    { style_id: 3, style: { bg: '#fde68a', weight: 'bold', borders: { bottom: 'medium' } } },
+    { style_id: 4, style: { color: '#b42318', numfmt: { type: 'percent', decimals: 1 } } } ] })]);
+  const cells = [];
+  const heads = ['Item', 'Qty', 'Price', 'Margin', 'Batch', 'Expiry', 'Notes'];
+  const top = sh.row_order[0];
+  heads.forEach((h, i) => cells.push({ r: top, c: i + 1, value: h, style_id: 1 }));
+  for (let r = 2; r <= 1500; r += 1) {
+    cells.push({ r: sh.row_order[r - 1] ?? r, c: 1, value: 'Medicine ' + r });
+    cells.push({ r: sh.row_order[r - 1] ?? r, c: 2, value: (r * 7) % 120 });
+    cells.push({ r: sh.row_order[r - 1] ?? r, c: 3, value: r * 13.5, style_id: 2 });
+    cells.push({ r: sh.row_order[r - 1] ?? r, c: 4, value: ((r % 40) - 10) / 100, style_id: 4 });
+    if (r <= 40) cells.push({ r: sh.row_order[r - 1] ?? r, c: 7, value: 'A long note about this medicine that will not fit the column width at all ' + r });
+  }
+  // only the first 100 rows have ids 1..100; the rest use the inserted ids
+  const ids = sh.row_order;
+  const real = cells;
+  for (let i = 0; i < real.length; i += 4000) applyOps(wb, [buildOp('set_cells', { sheet_id: S1, base_seq: wb.head_seq, cells: real.slice(i, i + 4000) })]);
+  applyOps(wb, [buildOp('set_cells', { sheet_id: S1, base_seq: wb.head_seq, cells: [{ r: ids[2], c: 4, formula: '=C3*D3', style_id: 3 }, { r: ids[3], c: 5, value: true }, { r: ids[3], c: 6, value: 46000 }] })]);
+  applyOps(wb, [buildOp('set_cells', { sheet_id: S2, base_seq: wb.head_seq, cells: [{ r: 1, c: 1, value: 'Prices sheet' }] })]);
+  sh.frozen_rows = 1; sh.frozen_cols = 1;
+  return wb;
+}
+export async function openWorkbookFull() {
+  if (!SERVER) { SERVER = build(); window.__stub = { server: SERVER, applyOps, buildOp }; }
+  const wb = structuredClone(SERVER);
+  return { wb, info: { id: 'wb1', title: 'Stock take November', role: 'owner', archived: false, head_version: wb.head_seq } };
+}
+export async function pullAndApply(wb) {
+  let n = 0;
+  for (const e of modelPull(SERVER, wb.head_seq, 500)) { applyRemote(wb, { seq: e.seq, op_type: e.op_type, payload: e.payload }); n += 1; }
+  return { status: 'ok', applied: n };
+}
+export function createOperationSender() {
+  let queue = [];
+  return {
+    enqueue(op) { queue.push(structuredClone(op)); },
+    flush: async () => {
+      if (!queue.length) return { status: 'idle' };
+      const batch = queue; queue = [];
+      const answer = applyOps(SERVER, batch);
+      return { status: 'answered', head_seq: answer.head_seq, results: batch.map((o) => ({ operation: o, result: answer.results.find((r) => r.operation_id === o.operation_id) })) };
+    },
+    takeRefused() { return null; }, discardAll() { const q = queue; queue = []; return q; },
+  };
+}
