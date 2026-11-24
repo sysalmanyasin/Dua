@@ -27,6 +27,9 @@ Raised by the Audit module on 24 Nov 2026. It does not block Audit 3.0, which is
 - `sw.js` (cache `dua-shell-v2`) precaches the app shell from a generated list; run `node tools/sw-precache.mjs` after adding files. The repo root has a `CNAME`, so the app is served from the site root, and `start_url` and `scope` can be `./`.
 - The audit routes that exist are `#/audit/count` and `#/audit/individual`. A shortcut to a screen the person has no key for is refused by the router, as a typed link would be.
 
+## Status
+Built on 24 Nov 2026 on branch `foundation/pwa-manifest` (the owner chose to make Dua installable). See `docs/CHANGELOG.md`.
+
 ## Prompt to build it
 Paste this into a Foundation session on `sysalmanyasin/dua`.
 

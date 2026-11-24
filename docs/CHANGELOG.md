@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 24 Nov — Dua is installable on Android, with two long-press shortcuts (Foundation request 6)
+- New `manifest.webmanifest` (name Dua, `start_url` and `scope` `./`, standalone, theme `#142b4a`, background `#f4f7fb` from `css/tokens.css`) and PNG icons made from `assets/icon.svg`: `icon-192.png`, `icon-512.png` and a maskable `icon-maskable-512.png`. Chrome on Android now offers Install, and the installed app opens in its own window.
+- Long-pressing the icon offers **Counting** (`./#/audit/count`) and **Individual audit** (`./#/audit/individual`). Both are existing routes; the router still refuses a screen the person has no key for, and a signed-out person sees sign-in. iPhones ignore manifest shortcuts and only get the normal home-screen icon.
+- `index.html` links the manifest and the content security policy gains `manifest-src 'self'` (nothing else in it changed). No runtime code, module, sign-in, routing or service worker logic changed.
+- `tools/sw-precache.mjs` now also keeps the icons named in the manifest, so `sw.js` was regenerated (cache list 332 → 335 files). Test: `tests/unit/pwa-manifest.test.js` (9).
+- Not verified: install and the shortcuts on a real Android phone.
+
 ## 23 Nov — Operations Redesign, Stage 3a (Task Master database layer)
 - New migrations `1200_task_core`, `1201_task_lifecycle`, `1202_task_schedules`, `1203_task_reads` (tested locally; not applied yet: `docs/ops/f10-stage3a-apply-and-rollback.md`). Design and rules: `docs/DECISIONS.md` D-65.
 - New security guard `1299_task_exposure_test.sql`. `0001_core_test` now expects a Junior to hold 6 permissions (adds `tasks.view_own`).

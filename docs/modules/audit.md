@@ -148,7 +148,7 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 3. `.xlsx` export: built in Audit 3.0 F5 (AUD-15), written by the app itself with no vendored library.
 4. Alert wording for `audit.submitted`, `audit.compiled`, `audit.conflict` in `ntfy.ts` and `alerts.js`.
 5. New icons if needed; otherwise reuse an existing one as Closing did.
-6. **Phone shortcut links (Audit 3.0 N5), open:** a web app manifest with two shortcuts, Counting and Individual audit. The repository has no manifest today, and the content security policy blocks one until `manifest-src 'self'` is added. Full request and the build prompt: `docs/modules/audit.foundation-request-shortcuts.md`. Does not block anything.
+6. **Phone shortcut links (Audit 3.0 N5), built (24 Nov 2026, branch `foundation/pwa-manifest`):** `manifest.webmanifest` makes Dua installable on Android and adds two long-press shortcuts, Counting (`./#/audit/count`) and Individual audit (`./#/audit/individual`). `index.html` links it and the content security policy gained `manifest-src 'self'`; PNG icons (192, 512 and a 512 maskable) sit in `assets/`; `node tools/sw-precache.mjs` now also keeps the icons the manifest names. The router still refuses a route the person has no key for, and a signed-out person lands on sign-in. iPhones ignore shortcuts and get only the normal home-screen icon. Test: `tests/unit/pwa-manifest.test.js`. Details: `docs/modules/audit.foundation-request-shortcuts.md`.
 
 **One-line edits (§3.2):** add `audit` to `MODULE_IDS`, one CSS link in `index.html`, the function folder (if any) in the CI loop.
 
