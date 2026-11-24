@@ -2,6 +2,10 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 24 Nov — Fix: Sale Report page showed no report (CSS class collision)
+- Cause: `css/ebill.css` defined a bare `.sr` rule (a 1px clipped "screen reader only" box) and, loading after `sales.css`, it overrode the Sale Report container, which also uses `.sr`. The report rendered but collapsed to an invisible 1px box; Copy, Print data and Gmail still worked because they are built from the data, not the screen.
+- Fix: Emergency Billing's helper is now `.eb-sr-only` (one use, the Delete column header in `ebill/ui/pos.js`). Test: `css-class-collisions.test.js` fails if any other stylesheet defines a bare `.sr`.
+
 ## 24 Nov — Closing: "Carried CC from Previous" is editable on Shift and Final closings (migrations 0223, 0224)
 - On every non-opening closing, Shift or Final (new, or reopened for correction), step 8 Card shows Carried CC from Previous as a normal box. Empty = use the carried figure (shown as the placeholder); a typed value, including 0, replaces it.
 - Database: `closings.ov_prev_cc` (null = carried). `closing_apply_carry` honours it in both modes (0224 lifted the Final-only limit of 0223), so open, save and the submit-time carry check no longer overwrite it. `closing_apply_payload` / `closing_patch_draft` accept `overrides.prev_cc` (left alone when the key is absent); `closing_reopen` / `closing_correct` copy it to the revision.
