@@ -64,7 +64,7 @@ export function emptyForm(catalogue = [], accounts = []) {
     prev_mediq: '',
     mediq: [],
     book: ['', ''],
-    overrides: { shift_sale: '', customers: '', curr_cc: '', prev_cash: '' },
+    overrides: { shift_sale: '', customers: '', curr_cc: '', prev_cash: '', prev_cc: '' },
     hs: [],
     strips: catalogue.map((s) => stripLine(s)),
     responsible_staff_id: '',
@@ -106,6 +106,7 @@ export function formFromRow(row, catalogue = [], accounts = []) {
     customers: overrideText(row.ov_customers),
     curr_cc: overrideText(row.ov_curr_cc),
     prev_cash: overrideText(row.ov_prev_cash),
+    prev_cc: overrideText(row.ov_prev_cc),
   };
   f.responsible_staff_id = row.responsible_staff_id ?? '';
   f.opening = {
@@ -234,12 +235,13 @@ export function payloadFromForm(form, { isOpening = false } = {}) {
     prev_mediq: n('prev_mediq'),
     book_bill_1: num(form.book[0], invalid, 'book.0'),
     book_bill_2: num(form.book[1], invalid, 'book.1'),
-    // all four are always sent: the database sets each one from this object, and a missing key would clear it
+    // all five are always sent: the database sets each one from this object, and a missing key would clear it
     overrides: {
       shift_sale: overrideNum(form.overrides.shift_sale, invalid, 'overrides.shift_sale'),
       customers: overrideNum(form.overrides.customers, invalid, 'overrides.customers'),
       curr_cc: overrideNum(form.overrides.curr_cc, invalid, 'overrides.curr_cc'),
       prev_cash: overrideNum(form.overrides.prev_cash, invalid, 'overrides.prev_cash'),
+      prev_cc: overrideNum(form.overrides.prev_cc, invalid, 'overrides.prev_cc'),
     },
     mediq: form.mediq
       .map((r, i) => ({ r, i }))
@@ -347,6 +349,7 @@ export const SIMPLE_PATHS = [
   'overrides.customers',
   'overrides.curr_cc',
   'overrides.prev_cash',
+  'overrides.prev_cc',
   'extra_cash',
   'final_sys_returns',
   'credit_adj',
@@ -407,6 +410,7 @@ export function simpleTexts(row) {
     'overrides.customers': overrideText(row.ov_customers),
     'overrides.curr_cc': overrideText(row.ov_curr_cc),
     'overrides.prev_cash': overrideText(row.ov_prev_cash),
+    'overrides.prev_cc': overrideText(row.ov_prev_cc),
     extra_cash: amountText(row.extra_cash),
     final_sys_returns: amountText(row.final_sys_returns),
     credit_adj: amountText(row.credit_adj),
@@ -474,6 +478,9 @@ export function localTotals(form, carry = {}) {
   const misc = live(form.misc).reduce((t, r) => t + p(r.amount), 0);
   const ov = parseAmount(form.overrides.curr_cc);
   const ccCurr = ov !== null && !Number.isNaN(ov) ? toPaisa(ov) : p(form.alfalah) + p(form.keenu) - p(form.comp_sale);
+  // a Final closing may type its own carried CC; empty means use the carried figure (a typed 0 counts)
+  const ovCarried = parseAmount(form.overrides.prev_cc);
+  const carriedCc = carry.final && ovCarried !== null && !Number.isNaN(ovCarried) ? toPaisa(ovCarried) : toPaisa(carry.cc);
   const debt =
     toPaisa(carry.credit) +
     live(form.credit.named).reduce((t, r) => t + p(r.amount), 0) +
@@ -489,7 +496,7 @@ export function localTotals(form, carry = {}) {
     returns,
     misc,
     ccCurr,
-    ccTotal: toPaisa(carry.cc) + ccCurr,
+    ccTotal: carriedCc + ccCurr,
     till: cash(form.till),
     vault: cash(form.vault),
     debt,

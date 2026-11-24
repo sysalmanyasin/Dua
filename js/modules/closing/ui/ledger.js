@@ -1085,7 +1085,7 @@ export async function mount(el, { ctx } = {}) {
   };
 
   function viewAll() {
-    const t = localTotals(S.form, S.carry ?? {});
+    const t = localTotals(S.form, { ...(S.carry ?? {}), final: S.mode === 'final' });
     const dlg = openDialog(
       html`<h2>All sections</h2>
         <p class="cls-meta">Typed so far. Tap a section to go to it.</p>
@@ -1332,7 +1332,7 @@ export async function mount(el, { ctx } = {}) {
   }
 
   function paintTotals() {
-    const t = localTotals(S.form, S.carry ?? {});
+    const t = localTotals(S.form, { ...(S.carry ?? {}), final: S.mode === 'final' });
     const set = (k, text, neg = false) => {
       // a figure can appear twice on one page (the Final section repeats Net Final Sale): fill every one
       el.querySelectorAll(`[data-total="${k}"]`).forEach((n) => {
