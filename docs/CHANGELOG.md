@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 24 Nov — Operations Redesign, Stage 3b (Task Master screens) — built and tested, not yet applied or merged
+- New module `tasks` (`js/modules/tasks`: manifest, `domain/`, `data/`, `ui/`). Pages: **My Tasks** (`/tasks`; overdue, urgent, due within two days, other pending, returned, awaiting verification; accept, start, hand in with a note or a tick, ask for a new deadline or another person, comments, history), **To Verify** (`/tasks/verify`; approve, or send back with a reason), **All Tasks** (`/tasks/manage`; create, assign, re-date, cancel, filter), **Requests**, **Schedules** (including Generate now) and **Team** (`/tasks/requests`, `/tasks/schedules`, `/tasks/team`). All data comes from the existing Task Master database functions; no new function was needed.
+- Home: staff get **My Work Snapshot** and **My Tasks**; the Owner gets **Staff & Team**. Styles in `css/tasks.css`; `sw.js` regenerated.
+- Migration `0703_ops_task_rules` (range 0700–0749): adds the category `tasks`, the rules `task_overdue` and `task_verification_waiting` (both on, no settings) and replaces `ops_action_items()` with the 0701 body plus two task checks. Test `0703_ops_task_rules_test.sql`; `0700_ops_rules_test.sql` now expects seven rules. Apply and rollback: `docs/ops/f11-stage3b-apply-and-rollback.md`. Decision D-67.
+- Tests: 61 new unit tests (`tasks-domain`, `tasks-pages`, `tasks-manifest`, `home-tasks-sections`, three more in `home-ops-gating`). No attendance and no notifications (D-51, D-58).
+- Verified locally: lint, format, secrets and vendor checks, the full unit suite, and every non-eBill database test against a local Postgres 16 replay. Not verified: the screens on a real phone, and 0703 on the live database.
+
 ## 24 Nov — Dua is installable on Android, with two long-press shortcuts (Foundation request 6)
 - New `manifest.webmanifest` (name Dua, `start_url` and `scope` `./`, standalone, theme `#142b4a`, background `#f4f7fb` from `css/tokens.css`) and PNG icons made from `assets/icon.svg`: `icon-192.png`, `icon-512.png` and a maskable `icon-maskable-512.png`. Chrome on Android now offers Install, and the installed app opens in its own window.
 - Long-pressing the icon offers **Counting** (`./#/audit/count`) and **Individual audit** (`./#/audit/individual`). Both are existing routes; the router still refuses a screen the person has no key for, and a signed-out person sees sign-in. iPhones ignore manifest shortcuts and only get the normal home-screen icon.
