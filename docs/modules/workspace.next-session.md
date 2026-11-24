@@ -56,7 +56,7 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 - `createSnapshot`, `listSnapshots`, `restoreSnapshot` need a request key (a uuid made once per user action, like notes). After a restore the local copy must be opened again.
 - The caller builds the operations (`buildOp`, `newIds`) and sets `base_seq` from `wb.head_seq`. The person's own changes are not applied locally here: after an answer, call `pullAndApply` and they come back like anyone else's (optimistic local editing is Phase 8).
 
-## 3d. Phase 5 increment 4: the read-only grid (23 Nov 2026, branch `module/workspace-sheets-grid`)
+## 3d. Phase 5 increment 4: the read-only grid (23 Nov 2026, merged as PR #77)
 
 - **Files:** `ui/sheet.js` (the screen), `ui/gridView.js` (the grid), `domain/grid.js` (pure: `axisLayout`, `visibleRange`, `scrollToShow`, `displayCell`, `cellCss`, `describeCell`), route `/workspace/sheet` in `manifest.js`, "New workbook" and workbook opening in `ui/home.js`, a Sheets block at the end of `css/workspace.css`, `sw.js` regenerated. Tests: `workspace-grid.test.js`, `workspace-sheet-ui.test.js`.
 - **How the grid works:** a scroll container with an invisible sizer as big as the sheet (native scrolling) and a sticky "stage" redrawn on every scroll with only the visible rows and columns plus 3 spare on each edge. Frozen rows and columns and the headers are drawn at fixed positions in layers above. Selection is by row and column **id**, so it survives a refresh.
@@ -122,6 +122,7 @@ Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (
 
 ## 8. Needs the owner
 
+- `tests/unit/cover.test.js` fails on `main` and `main`'s CI is red (not Workspace; owner of the Cover page to fix). Do not mistake it for a Workspace failure.
 - Revoke the GitHub token(s) shared in chat (one on 18 Nov, one on 22 Nov earlier, and the one pasted on 22 Nov in the data-layer session). Use a new one only for the push and revoke it afterwards.
 - Try Notes on a real phone and a desktop: create, edit, share with a second account (give that account `workspace.use`; give the creator `workspace.use` + `workspace.create`), edit from both, force a conflict (edit the same note on two devices), history and restore, archive, delete and trash. Report what feels wrong.
 - Say "go" for Phase 5, and answer the open questions in `workspace.design.md` §12.
