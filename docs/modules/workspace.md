@@ -87,10 +87,11 @@ Per-document rights (owner / editor / viewer) are in the matrix in the plan and 
 
 ## 6. Screens (layout)
 
-Two routes (`js/modules/workspace/manifest.js`), both needing `workspace.use`:
+Three routes (`js/modules/workspace/manifest.js`), all needing `workspace.use`:
 
 - `/workspace` — **home**: New note, New folder, search (titles and note text), tabs All / Mine / Shared with me / Archived / Trash, personal folder chips, one row per document (title, kind, owner, last edited, your role, a "move to folder" box). "New workbook" is shown disabled with a note: Sheets arrive later.
 - `/workspace/note` — **one note**: back link, title (owner edits it), a status pill (Saved / Unsaved changes / Saving / Offline / Needs your attention), Share (or "Who has access"), History, Save version, Archive and Delete (owner), a formatting toolbar (H1 to H3, bold, italic, underline, bulleted, numbered and checklists, link, undo, redo) and the editor. Viewers and archived notes get no toolbar and a read-only editor.
+- `/workspace/sheet` — **one workbook, read-only for now**: back link, title, role pill, Refresh, a bar showing what the tapped cell holds (formulas as written: they are not calculated until Phase 6), the grid, sheet tabs. A workbook with no sheet offers the owner and editors "Add a sheet". Home has **New workbook** (creates the workbook, then its first sheet) and opens workbooks here. The open workbook id is kept in session storage like the open note.
 - Dialogs (`ui/panel.js`): sharing, history with preview and restore, confirmations. On a phone they are bottom sheets; the toolbar scrolls sideways; all inputs are 16 px so iOS does not zoom.
 
 **Deviation from the plan (router):** the router only accepts exact paths made of letters, digits, `/`, `_` and `-` and carries no ids, so `/workspace/note?id=…` is impossible. The open note's id is kept in session storage (`dua.workspace.open`, cleared at sign-out with the other `dua.` keys). Consequences: reloading the tab reopens the same note; there are no shareable deep links yet. A small router change (a route with an id segment) would fix that; it is a Foundation file and is **not** requested yet.

@@ -4,6 +4,7 @@ import {
   cleanBackupReport,
   canEnqueue,
   cleanExternalPayload,
+  auditRoundMessage,
   closingMessage,
   messageFor,
   rs,
@@ -210,5 +211,140 @@ describe('closing summary push', () => {
   });
   it('leaves the generic closing text alone for the fallback', () => {
     expect(messageFor('closing.submitted', { closing_id: 'abc' }).message).toBe('A closing was submitted.');
+  });
+});
+
+describe('closing correction push', () => {
+  const page = {
+    kind: 'night',
+    mode: 'shift',
+    business_date: '2026-11-22',
+    credit: [],
+    inputs: {
+      revision: 2,
+      correction_reason: 'cashier typed the system cash wrong',
+      prev_cc: 0,
+      credit_adj: 0,
+      book_bill_1: 0,
+      book_bill_2: 0,
+      ret_manual_1: 0,
+      ret_manual_2: 0,
+      ret_manual_3: 0,
+      prev_credit: 100,
+    },
+    results: { net_cash: 500, net_sale: 480, shift_variance: 20, deposits_f: 0, debt_e: 100 },
+  };
+  it('says it is a correction and why', () => {
+    const m = closingMessage(page);
+    expect(m.title).toBe('Closing Corrected - Night 2026-11-22');
+    expect(m.message.split('\n')[0]).toBe('Revision 2: cashier typed the system cash wrong');
+    expect(m.message).toContain('Variance: Rs. 20 (Excess:)');
+    expect(m.tags).toContain('memo');
+  });
+  it('a first submission has no revision line', () => {
+    const m = closingMessage({ ...page, inputs: { ...page.inputs, revision: 1, correction_reason: null } });
+    expect(m.title).toBe('Closing - Night 2026-11-22');
+    expect(m.message.startsWith('Net cash')).toBe(true);
+  });
+  it('has a generic fallback that carries only the date', () => {
+    expect(messageFor('closing.corrected', { date: '2026-11-22' }).message).toBe('A closing was corrected (2026-11-22).');
+  });
+});
+
+describe('audit round complete push', () => {
+  const data = {
+    round: 20,
+    suffix: null,
+    people: ['Ali Husnain'],
+    date: '19 Nov 2026',
+    item_count: 84,
+    variance_count: 20,
+    short: -15240,
+    over: 10715,
+    net: -4525,
+    companies: [
+      {
+        company: 'HAYAT KIMYA PAKISTAN PRIVATE LIMITED',
+        net: -4525,
+        items: [
+          { code: '891640', name: 'Close Molped Aloevera thick long trio 30s 1s', system: 0, counted: 2, value: 1920 },
+          { code: '891639', name: 'Close Molped Alovera thick long 18s1s', system: -1, counted: 1, value: 1260 },
+          { code: '893536', name: 'Good Care Diaper XX Large 56pcs 1s', system: 2, counted: 1, value: -2470 },
+        ],
+      },
+    ],
+  };
+  it("matches the owner's format", () => {
+    const m = auditRoundMessage(data);
+    expect(m.title).toBe('Audit Round Complete');
+    expect(m.markdown).toBe(true);
+    expect(m.message).toBe(
+      [
+        '**Round 20 \u00b7 Ali Husnain \u00b7 19 Nov 2026**',
+        '',
+        '**20 / 84 items differ**  ',
+        'Short **\u221215,240** \u00b7 Over **+10,715**  ',
+        'Net **\u22124,525**',
+        '',
+        '\ud83c\udfe2 **HAYAT KIMYA PAKISTAN PRIVATE LIMITED \u00b7 \u2212Rs 4,525**',
+        '- 891640 \u00b7 Close Molped Aloevera thick long trio 30s 1s: 0 \u2192 2 \u00b7 +Rs 1,920',
+        '- 891639 \u00b7 Close Molped Alovera thick long 18s1s: -1 \u2192 1 \u00b7 +Rs 1,260',
+        '- 893536 \u00b7 Good Care Diaper XX Large 56pcs 1s: 2 \u2192 1 \u00b7 \u2212Rs 2,470',
+      ].join('\n'),
+    );
+  });
+  it('names several counters, a sub-round letter and a clean round', () => {
+    const m = auditRoundMessage({
+      ...data,
+      round: 3,
+      suffix: 'B',
+      people: ['A', 'B', 'C', 'D'],
+      variance_count: 0,
+      short: 0,
+      over: 0,
+      net: 0,
+      companies: [],
+    });
+    expect(m.message.split('\n')[0]).toBe('**Round 3B \u00b7 A & B +2 \u00b7 19 Nov 2026**');
+    expect(m.message).toContain('Short **0** \u00b7 Over **0**');
+    expect(m.message).toContain('Net **0**');
+  });
+  it('keeps staff-typed names from becoming Markdown', () => {
+    const m = auditRoundMessage({
+      ...data,
+      companies: [{ company: 'A*B', net: 1, items: [{ code: 'x', name: 'Cream _50g_ [new]', system: 1, counted: 2, value: 5 }] }],
+    });
+    expect(m.message).toContain('A\\*B');
+    expect(m.message).toContain('Cream \\_50g\\_ \\[new\\]');
+  });
+  it('drops the smallest differences when the round is too long, and says so', () => {
+    const items = Array.from({ length: 200 }, (_, i) => ({
+      code: String(100000 + i),
+      name: `Product number ${i} with a fairly long name for the test`,
+      system: 1,
+      counted: 2,
+      value: i + 1,
+    }));
+    const m = auditRoundMessage({ ...data, companies: [{ company: 'BIG', net: 20100, items }] });
+    expect(new TextEncoder().encode(m.message).length).toBeLessThanOrEqual(3800);
+    expect(m.message).toMatch(/_\+\d+ smaller differences not shown\. Open the Audit app\._/);
+    expect(m.message).toContain('Product number 199 '); // the biggest stays
+    expect(m.message).not.toContain('Product number 0 ');
+  });
+  it('returns null when the data is unusable', () => {
+    for (const bad of [null, {}, { ...data, date: 5 }, { ...data, companies: 'x' }]) expect(auditRoundMessage(bad)).toBeNull();
+  });
+  it('asks ntfy to render Markdown only for messages that say so', () => {
+    const on = JSON.parse(buildPublish('https://ntfy.sh', 't', null, auditRoundMessage(data)).init.body);
+    expect(on.markdown).toBe(true);
+    const off = JSON.parse(
+      buildPublish(
+        'https://ntfy.sh',
+        't',
+        null,
+        closingMessage({ kind: 'night', mode: 'shift', business_date: '2026-11-22', credit: [], inputs: {}, results: {} }),
+      ).init.body,
+    );
+    expect('markdown' in off).toBe(false);
   });
 });

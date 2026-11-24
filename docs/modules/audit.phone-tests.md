@@ -68,3 +68,22 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 5. Turn off the signal just as you tap **Lock and start**. Look for: a message naming the step that stopped. Turn the signal on and tap the button again. Look for: no second round or second audit appears in the list.
 6. Let a counter submit, compile, approve a correction, then look at the Review page. Look for: "Out of date" with "1 approved correction waiting" and a **Recompile now** button. Tap it. Look for: the banner disappears.
 7. On the next round's page (draft), tap **Same team as last round**. Look for: last round's counters are ticked and the preview shows, and nothing is given out until you tap Apply.
+
+## PHONE 8: report files (new, Audit 3.0 F5)
+1. Reports › choose an audit with a compiled round › Download › **Excel: this round**. Open the file in the phone's spreadsheet app. Look for: three sheets named Variance, Auditor Notes and Conflicts; columns line up; amounts show two decimals; the header row stays in view as you scroll.
+2. Add up the Variance value column. Look for: it equals the net figure on the Review screen, to the paisa.
+3. Tap **Variance CSV**, **Auditor notes CSV** and **Conflicts CSV** one at a time. Look for: each opens as a table with its own header row, and Urdu or accented names are not garbled.
+4. Make a product name start with `=` (or look for one). Look for: in Excel it shows as text; in the CSV it starts with an apostrophe.
+5. Tap **Excel: all rounds**. Look for: Summary first, then Combined, then one sheet per round; the Summary's last row says All rounds. On an audit with many rounds, look for the tab names to be unique and readable.
+6. Tap **Summary CSV** and **Combined CSV**. Look for: the Round column on every line of the combined file.
+7. Barcode Center › All barcodes (as an administrator) › **Excel: all four**. Look for: Master, Verification, Conflicts and Scan history sheets.
+8. Turn the signal off and tap a download. Look for: a plain message, not a blank screen, and the buttons work again afterwards.
+
+## PHONE 9: find a product and Individual audits by person (new, Audit 3.0 F6)
+1. Audits › **Find a product**. Type part of a product name you know was counted and tap **Search**. Look for: the product listed with each compiled or final round it was in, newest first, with System, Counted and the difference.
+2. Type the start of its code. Look for: the same product. Type `%`. Look for: nothing found, not everything.
+3. Tap **Open** on a final round and on a compiled round. Look for: the Final page and the Review page of that round.
+4. Sign in as someone who only views one audit and search for a product that is only in another audit. Look for: nothing found.
+5. Audits › **Individual audits by person**. Look for: this month, people in A–Z order, each with their rounds newest first.
+6. Pick last month in the Month box. Look for: the list changes and nothing from this month stays on screen. Pick a month with no Individual audits. Look for: a plain "Nobody has counted…" line.
+7. Find a person whose Individual audit is still being counted. Look for: "Not compiled yet" for that round, not "0 differences".

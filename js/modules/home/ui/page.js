@@ -6,15 +6,7 @@ import { BRAND } from '../../../core/config.js';
 import { coverSummary, inventoryCover, notificationsAttention } from '../data/api.js';
 import { startOpsSections } from './ops.js';
 import { startStaffSections } from './staff.js';
-import {
-  buildAttention,
-  buildDailyProgress,
-  buildKpis,
-  buildStockCards,
-  buildTiles,
-  greeting,
-  hourInPkt,
-} from '../domain/cover.js';
+import { buildAttention, buildDailyProgress, buildKpis, buildStockCards, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
 
 const arrow = (value) => (value === null ? '' : `${value >= 0 ? '▲' : '▼'} ${Math.abs(value).toFixed(1)}%`);
 const tone = (value) => (value > 0 ? 'pos' : value < 0 ? 'neg' : '');

@@ -214,8 +214,7 @@ export async function mount(el) {
     render(
       el,
       html` ${hero({ label: 'Sales dashboard', title: 'Branch Overview', sub: kpi ? (kpi.isLive ? `${MONTH_WORD(kpi.lat.key)} is running: days 1–${kpi.D} have sales.` : `Latest month on record: ${MONTH_WORD(kpi.lat.key)}.`) : 'Not enough history yet.' })}
-        ${lifetimeHero}
-        ${kpiRow()}${insightsBlock()} ${chartCard('ch-total', 'Monthly total', rangeBar)}
+        ${lifetimeHero} ${kpiRow()}${insightsBlock()} ${chartCard('ch-total', 'Monthly total', rangeBar)}
         <div class="dgrid2">
           ${chartCard('ch-cashbank', 'Cash vs banks', yearOpts)}${chartCard('ch-clients', 'Top credit clients (all time)')}
         </div>

@@ -47,7 +47,7 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 - Parity: `tests/fixtures/workspace-sheet-cases.json` holds 10 operation sequences with expected answers. `node tools/workspace-sheet-cases.mjs --record` runs them through the model, stores the answers and rewrites `supabase/tests/1102_workspace_sheet_parity_test.sql`. The **database** is the oracle: that SQL file must pass on PostgreSQL (85 checks, run on 22 Nov 2026), so a wrong model cannot be recorded into a passing test. Mutation check: changing one expected answer makes the SQL test fail. After editing the fixture by hand, run the tool without `--record` to regenerate only the SQL; a unit test fails if the committed SQL is stale.
 - **Not in this increment:** applying the person's own pending operations locally (optimistic edits, offline queue: Phase 8), formulas (Phase 6), any screen, any data-layer call. `sw.js` was not regenerated because nothing imports the model yet; run `npm run build:sw` when the first screen or data-layer file does.
 
-## 3c. Phase 5 increment 3: the data layer (22 Nov 2026, branch `module/workspace-sheets-data`, not merged)
+## 3c. Phase 5 increment 3: the data layer (22 Nov 2026, merged as PR #70 on 23 Nov)
 
 - `js/modules/workspace/data/workbooks.js` (the only new file; plus eight messages in `data/api.js`). **Nothing imports it yet**, so `sw.js` was not regenerated: run `npm run build:sw` when the first screen imports it.
 - `openWorkbookFull(docId)` → `{ wb, info, applied }`: opens, loads each sheet's styles and cells in pages (5,000), builds the copy with `loadWorkbook`/`addLoadedCells`/`addLoadedStyles`, then **pulls from the `head_version` it opened at** and applies with `applyRemote`, so a write that landed between pages is not missed. If the copy cannot absorb the pulled operations (a restore, drift) it opens again, up to three times. `pullAndApply(wb, docId)` → `{ status: 'ok', applied }` or `{ status: 'reload', reason }` (discard the copy and open again).
@@ -56,14 +56,30 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 - `createSnapshot`, `listSnapshots`, `restoreSnapshot` need a request key (a uuid made once per user action, like notes). After a restore the local copy must be opened again.
 - The caller builds the operations (`buildOp`, `newIds`) and sets `base_seq` from `wb.head_seq`. The person's own changes are not applied locally here: after an answer, call `pullAndApply` and they come back like anyone else's (optimistic local editing is Phase 8).
 
+## 3d. Phase 5 increment 4: the read-only grid (23 Nov 2026, branch `module/workspace-sheets-grid`)
+
+- **Files:** `ui/sheet.js` (the screen), `ui/gridView.js` (the grid), `domain/grid.js` (pure: `axisLayout`, `visibleRange`, `scrollToShow`, `displayCell`, `cellCss`, `describeCell`), route `/workspace/sheet` in `manifest.js`, "New workbook" and workbook opening in `ui/home.js`, a Sheets block at the end of `css/workspace.css`, `sw.js` regenerated. Tests: `workspace-grid.test.js`, `workspace-sheet-ui.test.js`.
+- **How the grid works:** a scroll container with an invisible sizer as big as the sheet (native scrolling) and a sticky "stage" redrawn on every scroll with only the visible rows and columns plus 3 spare on each edge. Frozen rows and columns and the headers are drawn at fixed positions in layers above. Selection is by row and column **id**, so it survives a refresh.
+- **Rules that bit (keep):**
+  1. The CSP is `style-src 'self'`: **no inline `style` attributes**. Positions and cell styles are set with the DOM style API (`el.style.x = ...`) and cell text with `textContent`; never build cell HTML from strings. A test reads the source and fails on `innerHTML`, `cssText` or a style attribute.
+  2. Cell styles always pass `sanitizeStyle` (the database can still hold older, looser styles).
+  3. The grid sits on a fixed light canvas, so author colours stay readable in dark mode. Page chrome follows the theme.
+  4. Prettier reformats the inside of `html` templates and adds whitespace; text that must be exact (tab labels) is built with `createElement`.
+  5. In jsdom, assigning `location.hash` fires a `hashchange` a moment later, which the screen treats as "left the page". Let it pass (`await`) before mounting in a test.
+  6. Paint order: later siblings paint on top, so scrolled headers must be added before frozen ones.
+  7. Whole numbers are displayed exactly (13-digit barcodes); other numbers keep 15 significant digits.
+- **Verifying in a real browser here:** jsdom has no layout. A throwaway harness (outside the repo) worked: `npm install puppeteer-core @sparticuz/chromium` in a temp folder (the npm package bundles Chromium), a tiny static server mapping `/` to the repo and serving a page with the app's CSP and stylesheets, and the data layer module replaced by a stub that builds a workbook with the model. Use `--no-sandbox`, `headless: 'shell'`.
+- **Still not covered:** a real phone; a screen reader (the grid has `role=grid`, `aria-rowcount`, `aria-colcount`, `aria-selected` and per-cell indexes, but cells are not wrapped in `role=row` elements: do this before editing); long-press and double-tap; pinch zoom of the page; very wide cells; right-to-left text.
+- **Next (increment 5, editing):** an edit bar for the active cell (the fallback the design names), then `set_cells` through `createOperationSender` with optimistic local apply (this is where Phase 8's local-first begins), then structure operations. Selection and the cell bar in `sheet.js` are the place to start.
+
 ## 4. What to do next
 
 **Phase 5 — workbooks and grid** (full design in `workspace.design.md` §3, §4, §7, §9). Suggested increments, each its own reviewable change:
 
 1. ~~**Database only:** `1102_workspace_sheets.sql`~~ — **built** (see 3a). Still to add: a parity fixture of operation sequences shared by the SQL tests and the JS reference model; and the operations not yet implemented (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`), which are answered `rejected` today.
 2. ~~**Domain model** (`domain/spreadsheet.js`) with a JS reference model that runs the same operation sequences as the SQL~~ — **built 22 Nov 2026** (see 3b). The parity fixture covers every implemented operation; `move_rows`, `move_cols`, `duplicate_sheet`, `sort_range` are still unbuilt in the database, so are only checked as "rejected".
-3. ~~Data layer (`data/workbooks.js`)~~ — **built 22 Nov 2026** (see 3c). **Next:** a read-only grid (needs the owner's go, rule N-17), then editing, then structure operations, then formats.
-4. Enable "New workbook" on the home page and add the route `/workspace/sheet` (remember routes carry no ids: use the session-storage pattern in `domain/documents.js`, or ask Foundation for the router change).
+3. ~~Data layer (`data/workbooks.js`)~~ — **built 22 Nov 2026** (see 3c). ~~Read-only grid~~ — **built 23 Nov 2026** (see 3d; waiting for the owner's try-out on a real phone). **Next:** editing, then structure operations, then formats.
+4. ~~Enable "New workbook" and add the route `/workspace/sheet`~~ — **done 23 Nov 2026** (session-storage pattern, no Foundation change).
 
 Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (not the repo): grid scrolling on a real phone, and whether `wss://*.supabase.co` needs a CSP change.
 

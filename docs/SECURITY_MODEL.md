@@ -44,7 +44,7 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 |---|---|
 | **Automatic backups** | **Live since 13 Nov 2026**; first good encrypted Drive backup recorded and checksum verified. Passphrase mode (D-38a). **Still unproven:** restore from an actual Drive backup into a separate real Supabase project (RUNBOOK §6). Local 39/39 restore is not a substitute. |
 | Backup credential | The database password is a GitHub environment secret limited to `main`. A leak would allow reading the database. Rotate it by resetting the database password and updating the secret. |
-| Public ntfy topic | Anyone who learns the topic can read the pushes (generic text only, except the closing push, which carries the closing's figures, D-62) or post fake ones. Rotate by changing `NTFY_TOPIC` and re-subscribing. |
+| Public ntfy topic | Anyone who learns the topic can read the pushes (generic text only, except the closing push, which carries the closing's figures, D-62, the closing-correction push, D-63, and the audit-round push, D-64) or post fake ones. Rotate by changing `NTFY_TOPIC` and re-subscribing. |
 | `public.rls_auto_enable()` | **Hardened 13 Nov 2026.** Execute revoked from `PUBLIC` and `anon`; automatic RLS behaviour was checked. `authenticated` still holds execute because of the platform event-trigger constraint; re-check the advisor and platform behaviour before changing it. |
 | Leaked-password protection | Off in Supabase Auth (advisor). Dashboard toggle; staff sign in with PINs so exposure is low. |
 | Separate production project | Not yet; staging and live share one project. |
