@@ -248,6 +248,7 @@ const PRECACHE = [
   "js/modules/manager/ui/tally.js",
   "js/modules/sales/data/api.js",
   "js/modules/sales/data/checklistApi.js",
+  "js/modules/sales/domain/autofill.js",
   "js/modules/sales/domain/checklist.js",
   "js/modules/sales/domain/dashboard.js",
   "js/modules/sales/domain/deposit.js",
