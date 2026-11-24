@@ -1179,3 +1179,31 @@
 .aud [data-hist-form] .btn {
   min-height: 44px;
 }
+
+/* Per-person progress panel and attention badges (F7) */
+.aud .aud-prog {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--border);
+}
+.aud .aud-prog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.4rem 0;
+}
+.aud .aud-prog-filters .btn,
+.aud [data-peek] {
+  min-height: 44px;
+}
+.aud .aud-attn-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.aud .aud-attn-list .btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}

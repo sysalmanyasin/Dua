@@ -274,3 +274,9 @@ export const setCountingMethod = (engagementId, method) =>
 export const productHistory = (query, limit = 50) => one(db().rpc('audit_product_history', { p_query: query, p_limit: limit }));
 /** Individual audits of one month ('YYYY-MM'; empty is this month), grouped by the database A–Z by person. */
 export const individualOverview = (month = null) => one(db().rpc('audit_individual_overview', { p_month: month }));
+
+// ── per-person progress and attention badges (0416, 0417) ──
+/** The items one person was given, with their latest count, note and the assumed flag. */
+export const assignmentProgress = (assignmentId) => one(db().rpc('audit_assignment_progress', { p_assignment: assignmentId }));
+/** Rounds ready to compile, open conflicts and corrections waiting, each only for what the person may act on. */
+export const attentionSummary = () => one(db().rpc('audit_attention_summary'));

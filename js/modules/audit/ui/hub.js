@@ -5,6 +5,7 @@ import { shortDate } from '../../../shared/format.js';
 import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
+import { attentionBadges } from '../domain/progress.js';
 import { getLastView, setView } from '../domain/nav.js';
 import manifest from '../manifest.js';
 import { loadingCard } from './parts.js';
@@ -253,6 +254,18 @@ function myWorkSection(assignments, pendingAssignments, error, perms) {
   </section>`;
 }
 
+// Three exact counts, each linking to the list it counts. Shown only for what the person can act on; nothing waiting shows nothing.
+function attentionSection(badges) {
+  if (!badges.length) return '';
+  // prettier-ignore
+  return html`<section class="card aud-card aud-attn" aria-label="Needs your attention">
+    <h2>Needs your attention</h2>
+    <div class="aud-attn-list">
+      ${badges.map((b) => html`<a class="btn" href="#/audit/attention" data-attn="${b.key}"><strong>${b.count}</strong> ${b.text.replace(/^\d+ /, '')}</a>`)}
+    </div>
+  </section>`;
+}
+
 function individualSection() {
   // prettier-ignore
   return html`<section class="card aud-card">
@@ -359,6 +372,18 @@ export async function mount(el, { ctx } = {}) {
         }),
     );
   }
+  let badges = [];
+  if (perms.has('audit.compile') || perms.has('audit.review')) {
+    // a badge is a convenience: if it cannot be loaded the hub still opens
+    tasks.push(
+      api
+        .attentionSummary()
+        .then((res) => {
+          badges = attentionBadges(res);
+        })
+        .catch(() => {}),
+    );
+  }
   await Promise.all(tasks);
 
   const groups = navigationGroups(perms);
@@ -421,6 +446,7 @@ export async function mount(el, { ctx } = {}) {
         <button type="button" class="aud-refresh" data-refresh aria-label="Refresh dashboard">Refresh ↻</button>
       </section>
       ${resumeContent}
+      ${attentionSection(badges)}
       ${personalContent}
       ${managementContent}
       ${accessNotice}
