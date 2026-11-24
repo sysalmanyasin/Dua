@@ -298,7 +298,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `str` | Stock transfer requests (BT-Sale-Data2 `js/str`) | `str_` | `str.` | `/str` | 60 | 0500–0599 | core, inventory interface | Building |
 | `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Built (Phases 1–5); acceptance pending |
 | `reports` | Unified Reports: cross-module reports, Herald | `reports_` | `reports.` | `/reports` | 80 | 0750–0799 | other modules' interfaces | Planned |
-| `tasks` | **Task Master**: independent operational task system (create, assign, accept, submit, verify), change requests, history, schedules; works without AI | `task_` | `tasks.` | `/tasks` | 25 | 1200–1299 | core | Database layer built and tested (1200–1203); screens next |
+| `tasks` | **Task Master**: independent operational task system (create, assign, accept, submit, verify), change requests, history, schedules; works without AI | `task_` | `tasks.` | `/tasks` | 25 | 1200–1299 | core | Database layer applied live (1200–1203); screens next |
 | `inbox` | Per-person in-app notifications, reminders, announcements with acknowledgement; push delivery through the existing ntfy sender | `ntf_` | `ntf.` (new) | `/inbox` | 26 | 1300–1399 | core | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
 | `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |
