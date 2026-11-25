@@ -363,7 +363,7 @@
   background: var(--danger);
   color: #fff;
 }
-.sr {
+.eb-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;

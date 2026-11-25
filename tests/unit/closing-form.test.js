@@ -66,10 +66,26 @@ describe('closing form', () => {
     expect(payload.strips[0]).toEqual({ strip_id: 's1', label: 'Panadol', price: 120, qty: 3, deleted: false });
   });
 
-  it('always sends all four overrides, so one cannot be cleared by accident', () => {
+  it('always sends all five overrides, so one cannot be cleared by accident', () => {
     const { payload } = payloadFromForm(emptyForm());
-    expect(Object.keys(payload.overrides).sort()).toEqual(['curr_cc', 'customers', 'prev_cash', 'shift_sale']);
-    expect(Object.values(payload.overrides)).toEqual([null, null, null, null]);
+    expect(Object.keys(payload.overrides).sort()).toEqual(['curr_cc', 'customers', 'prev_cash', 'prev_cc', 'shift_sale']);
+    expect(Object.values(payload.overrides)).toEqual([null, null, null, null, null]);
+  });
+
+  it('carried CC: a typed override replaces the carried figure', () => {
+    const f = emptyForm();
+    f.overrides.prev_cc = '-1,000';
+    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(-100000);
+    f.overrides.prev_cc = '0';
+    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(0);
+    f.overrides.prev_cc = '';
+    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(-856000);
+  });
+
+  it('carried CC override round-trips through the saved row and the payload', () => {
+    const f = formFromRow({ ov_prev_cc: '250.00' }, [], []);
+    expect(f.overrides.prev_cc).not.toBe('');
+    expect(payloadFromForm(f).payload.overrides.prev_cc).toBe(250);
   });
 
   it('never turns a typo into a saved zero: junk is reported and nothing is guessed', () => {

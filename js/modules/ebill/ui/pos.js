@@ -345,7 +345,7 @@ export async function mount(el, { ctx }) {
             <th class="num">U.Dist</th>
             <th>Discount</th>
             <th class="num">Total</th>
-            <th><span class="sr">Delete</span></th>
+            <th><span class="eb-sr-only">Delete</span></th>
           </tr>
         </thead>
         <tbody>
