@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Closing workflow audit (open to submit): four fixes
+- **Net Cash Available (Shift):** the Final Audit banner and the Submit review showed net cash + net sale (e.g. Target 100, Available 190, Less 10). A Shift now shows net cash, so target, cash available and Plus/Less add up (BUSINESS_RULES 14–15). Both screens use one helper, `reconciliation()` in `ui/sections-late.js`. Final mode was already right.
+- **Submit review** always reads the figures again before it opens (it could show the figures from before the last autosave), says so when they cannot be read, and opens only once if Submit is tapped twice.
+- **Back to days / Save as Draft** wait for a save already in flight instead of reporting a failed save or showing no confirmation.
+- **After submit** the open-closing target and the conflict backup copy are cleared, so browser Back no longer lands on "Could not load this closing".
+- Tests: 7 new ledger page tests (`closing-pages`) and `closing-reconcile` (fixture-driven). No database change. Verified: `npm run verify` (2,653 tests) and all 102 database test files on a local Postgres 16.
+
 ## 24 Nov — Operations Redesign, Stage 3b (Task Master screens) — migration 0703 applied live 25 Nov
 - New module `tasks` (`js/modules/tasks`: manifest, `domain/`, `data/`, `ui/`). Pages: **My Tasks** (`/tasks`; overdue, urgent, due within two days, other pending, returned, awaiting verification; accept, start, hand in with a note or a tick, ask for a new deadline or another person, comments, history), **To Verify** (`/tasks/verify`; approve, or send back with a reason), **All Tasks** (`/tasks/manage`; create, assign, re-date, cancel, filter), **Requests**, **Schedules** (including Generate now) and **Team** (`/tasks/requests`, `/tasks/schedules`, `/tasks/team`). All data comes from the existing Task Master database functions; no new function was needed.
 - Home: staff get **My Work Snapshot** and **My Tasks**; the Owner gets **Staff & Team**. Styles in `css/tasks.css`; `sw.js` regenerated.

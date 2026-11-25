@@ -332,6 +332,18 @@ const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const m = (v) => money(v, { decimals: true });
 
 /**
+ * The three lines of the reconciliation, shared by the Final Audit banner and the Submit review so they can never disagree:
+ * the target (Net Sale), the cash available against it, and the signed difference (Plus / Less).
+ * Shift: net_cash is the cash available and the difference is net_cash − net_sale (BUSINESS_RULES 14–15).
+ * Final: the server's final_net_cash already is the difference (cash left after the target), so the cash available is
+ * final_net_cash + final_net_sale. Money in rupees, as the server sends it.
+ */
+export function reconciliation(p, mode) {
+  if (mode === 'final') return { target: p.final_net_sale, cash: p.final_net_cash + p.final_net_sale, diff: p.final_net_cash };
+  return { target: p.net_sale, cash: p.net_cash, diff: p.shift_variance };
+}
+
+/**
  * Display figures from the server's preview `p` (closing_compute, rupees) and `period` (closing_period), plus the typed form.
  * Two plain identities are used, both documented in docs/BUSINESS_RULES.md: reserve = grand − liquid, and
  * pre-date total = liquid − final cash − period extra cash − final sale (rearranging final_net_cash).
@@ -358,9 +370,10 @@ export function previewFigures(p, period, form, mode) {
     out[`${prefix}VarLabel`] = { text: diff === 0 ? '✓ Variance' : diff > 0 ? '▲ Plus' : '▼ Less', neg: false };
     out[`${prefix}Var`] = { text: m(Math.abs(diff)), neg: diff < 0 };
   };
-  if (mode === 'final') variance('b', p.final_net_sale, p.final_net_cash + p.final_net_sale, p.final_net_cash);
-  else variance('b', p.net_sale, p.net_cash + p.net_sale, p.shift_variance);
-  variance('f', p.final_net_sale, p.final_net_cash + p.final_net_sale, p.final_net_cash);
+  const rec = reconciliation(p, mode);
+  variance('b', rec.target, rec.cash, rec.diff);
+  const fin = reconciliation(p, 'final');
+  variance('f', fin.target, fin.cash, fin.diff);
 
   out.shifts = { text: mode === 'final' ? '—' : String(num(a.closings_in_period) + 1), neg: false };
   put('pSale', num(a.same_date_shift_sale) + num(a.lf_same_date_sale) + p.shift_sale);

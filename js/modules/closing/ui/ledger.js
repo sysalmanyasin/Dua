@@ -31,10 +31,10 @@ import { overviewValue, prevTitle, snapshotRows } from '../domain/snapshot.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { SECTIONS, clampSection, sectionIndex } from '../domain/sections.js';
 import { kindLabel, slotLabel, suggestNext } from '../domain/slots.js';
-import { clearLocal, getOpen, loadLocal, saveLocal } from '../domain/store.js';
+import { clearLocal, clearOpen, getOpen, loadLocal, saveLocal } from '../domain/store.js';
 import { errorCard, focusHeading, keepFocus, loadingCard, openDialog, toast } from './parts.js';
 import { saveBlob } from './book.js';
-import { lateSections, previewFigures } from './sections-late.js';
+import { lateSections, previewFigures, reconciliation } from './sections-late.js';
 
 const SAVE_DELAY = 2500;
 // a single box is saved sooner, so what one person types shows up on the other device within a second or two
@@ -93,6 +93,7 @@ export async function mount(el, { ctx } = {}) {
     auditRequired,
     staff, // active staff on the payroll list: the Name choices under every staff-credit group
     submitting: false,
+    reviewing: false,
     done: null,
     seen: new Set([0]),
     prev: null,
@@ -462,18 +463,21 @@ export async function mount(el, { ctx } = {}) {
   }
 
   let previewSeq = 0;
+  // Returns the figures it just read, or null when they could not be read (the Submit review must not show older ones as current).
   async function refreshPreview() {
     const mine = ++previewSeq;
+    let preview;
     try {
-      const preview = await api.computePreview(S.id);
+      preview = await api.computePreview(S.id);
       const period = await api.periodFor(S.id).catch(() => S.period);
-      if (mine !== previewSeq) return; // a newer request is on its way; never let an older answer overwrite it
+      if (mine !== previewSeq) return preview; // a newer request is on its way; never let an older answer overwrite it
       S.preview = preview;
       S.period = period;
     } catch {
-      return; // the preview is a convenience; typing and saving carry on without it
+      return null; // the preview is a convenience; typing and saving carry on without it
     }
     paintTotals();
+    return preview;
   }
 
   // ── live sync (migration 0217) ──
@@ -538,6 +542,7 @@ export async function mount(el, { ctx } = {}) {
     if (S.submitting || S.done) return;
     stopSync();
     clearLocal(S.key);
+    clearOpen(); // Back must not return to a closing that is already submitted
     toast('This closing was submitted on another device.');
     location.hash = '#/closing';
   }
@@ -682,7 +687,17 @@ export async function mount(el, { ctx } = {}) {
   function auditBlocks() {
     return !S.opening && S.auditRequired === true && !S.audit.snap;
   }
+  // One review at a time: the figures are read again before it opens, so a second tap in that moment must not open a second one.
   async function askSubmit() {
+    if (S.submitting || S.reviewing) return;
+    S.reviewing = true;
+    try {
+      await reviewBeforeSubmit();
+    } finally {
+      S.reviewing = false;
+    }
+  }
+  async function reviewBeforeSubmit() {
     if (S.submitting) return;
     if (auditBlocks()) {
       toast('Inventory Audit is not done. Tap Sync & audit, then Verify & confirm.', 'error');
@@ -703,11 +718,12 @@ export async function mount(el, { ctx } = {}) {
           'error',
         );
       }
-      await refreshPreview();
     }
-    const p = S.preview;
-    const final = S.mode === 'final';
-    const v = p ? Number(final ? p.final_net_cash : p.shift_variance) : null;
+    // Always read them again: an autosave may have just finished, and the figures on screen can still be those from before it.
+    const fresh = await refreshPreview();
+    const rec = fresh ? reconciliation(fresh, S.mode) : null;
+    const p = rec && [rec.target, rec.cash, rec.diff].every(Number.isFinite) ? rec : null;
+    const v = p ? Number(p.diff) : null;
     const tone = v === null ? 'ok' : varianceTone(v);
     const who = staff.find((x) => x.id === S.form.responsible_staff_id)?.name;
     const skipped = unopened();
@@ -717,13 +733,8 @@ export async function mount(el, { ctx } = {}) {
         ${
           p
             ? html`<div class="cls-review">
-                <div class="cls-review-row">
-                  <span>Target Net Sales</span><strong>${money(final ? p.final_net_sale : p.net_sale, { decimals: true })}</strong>
-                </div>
-                <div class="cls-review-row">
-                  <span>Net Cash Available</span
-                  ><strong>${money(final ? p.final_net_cash + p.final_net_sale : p.net_cash + p.net_sale, { decimals: true })}</strong>
-                </div>
+                <div class="cls-review-row"><span>Target Net Sales</span><strong>${money(p.target, { decimals: true })}</strong></div>
+                <div class="cls-review-row"><span>Net Cash Available</span><strong>${money(p.cash, { decimals: true })}</strong></div>
                 <div class="cls-review-row cls-var-${tone}">
                   <span>${v === 0 ? '✓ Variance' : v > 0 ? '▲ Plus' : '▼ Less'}</span
                   ><strong>${money(Math.abs(v), { decimals: true })}</strong>
@@ -769,6 +780,8 @@ export async function mount(el, { ctx } = {}) {
       }
       const res = await api.submit(S.key);
       clearLocal(S.key);
+      clearLocal(`${S.key}.mine`); // the backup kept after a conflict is of no use once the closing is locked
+      clearOpen(); // Back after submitting must not return to a locked closing
       S.done = { already: Boolean(res?.already), preview: S.preview };
       S.submitting = false;
       draw();
@@ -1462,13 +1475,13 @@ export async function mount(el, { ctx } = {}) {
     if (act === 'viewall') return viewAll();
     if (act === 'pdf' || act === 'pdf-open') return sheetPdf(act === 'pdf-open');
     if (act === 'leave') {
-      return (S.status === 'saved' ? Promise.resolve() : doSave()).then(() => {
+      return settle().then(() => {
         const kept = S.status === 'saved' || S.status === 'offline';
         if (kept || globalThis.confirm('Your latest changes could not be saved. Leave anyway?')) location.hash = '#/closing';
       });
     }
     if (act === 'draft') {
-      return doSave().then(() => {
+      return settle().then(() => {
         if (S.status === 'saved') toast('Draft saved ✓');
         else if (S.status === 'invalid') toast('Fix the marked fields first.', 'error');
       });
