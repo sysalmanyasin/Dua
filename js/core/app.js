@@ -1,4 +1,5 @@
 import { loadContext } from './auth.js';
+import { startNative } from './native.js';
 import { loadOfflineContext } from './offlineContext.js';
 import { getConfig } from './config.js';
 import { installGlobalHandlers, log } from './logger.js';
@@ -29,6 +30,7 @@ async function route() {
   await registerManifestOutboxes(manifests); // unsent work on this device blocks signing out (OD-6)
   installSignOutGuard();
   stopRouter = startShell(root, ctx, manifests);
+  if (!away) startNative(ctx); // Android app only: push registration and the Today's Sale widget (never throws, not awaited)
 }
 
 async function boot() {

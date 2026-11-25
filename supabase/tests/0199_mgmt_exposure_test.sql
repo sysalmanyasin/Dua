@@ -19,7 +19,11 @@ do $t$ declare bad text; n int;
     'mgmt_tally_list','mgmt_tally_save',
     'mgmt_inbox_lines','mgmt_inbox_count','mgmt_inbox_file','mgmt_inbox_dismiss','mgmt_inbox_reopen',
     -- 0109: a person's own closed payslips; takes no person, needs payroll.view_own (granted per person), see 0109_mgmt_my_payslips_test
-    'mgmt_my_payslips'];
+    'mgmt_my_payslips',
+    -- 0110: geo-fenced attendance; own record via attendance.check_in, owner views/settings via attendance.view_all / attendance.manage,
+    -- see 0110_mgmt_attendance_test. The distance helper is internal and NOT listed (clients cannot call it).
+    'mgmt_attendance_check_in','mgmt_attendance_today','mgmt_attendance_list','mgmt_attendance_setup',
+    'mgmt_attendance_site_save','mgmt_attendance_config_set'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

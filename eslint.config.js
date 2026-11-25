@@ -9,7 +9,7 @@ const unsafeDom = [
 ];
 
 export default [
-  { ignores: ['node_modules/**', 'vendor/**', 'coverage/**'] },
+  { ignores: ['node_modules/**', 'vendor/**', 'coverage/**', 'android-app/**'] },
   js.configs.recommended,
   {
     files: ['js/**/*.js'],

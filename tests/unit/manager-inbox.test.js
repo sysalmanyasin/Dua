@@ -391,7 +391,15 @@ describe('Credit Inbox page', () => {
       expect(api.inboxFile).toHaveBeenLastCalledWith(
         'l1',
         'ledger',
-        { staffId: null, ledgerId: 'ex', categoryId: 'c-ho', shift: null, description: 'Test Customer X', date: '2026-11-10', amount: 1500 },
+        {
+          staffId: null,
+          ledgerId: 'ex',
+          categoryId: 'c-ho',
+          shift: null,
+          description: 'Test Customer X',
+          date: '2026-11-10',
+          amount: 1500,
+        },
         expect.any(String),
       );
       document.querySelectorAll('dialog').forEach((d) => d.remove());

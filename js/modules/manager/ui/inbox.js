@@ -141,8 +141,8 @@ export async function mount(el, { ctx }) {
         body(),
         html`<h2>File this line</h2>
           <p class="small muted">
-            From Closing: ${m(line.amount)} · ${shortDate(line.business_date)} · ${slotLabel(line.slot_kind, line.slot_seq)}. Pick where it goes;
-            everything else is already filled in and editable.
+            From Closing: ${m(line.amount)} · ${shortDate(line.business_date)} · ${slotLabel(line.slot_kind, line.slot_seq)}. Pick where it
+            goes; everything else is already filled in and editable.
           </p>
           ${errors.line ? html`<small class="err">${errors.line}</small>` : ''}
           ${
@@ -185,7 +185,8 @@ export async function mount(el, { ctx }) {
           }
           <div class="mg-date-shift">
             <label class="field ${errors.date ? 'bad' : ''}"
-              ><span>Date</span><input type="date" data-f="date" value="${form.date}" max="${todayIso()}" />
+              ><span>Date</span
+              ><input type="date" data-f="date" value="${form.date}" max="${todayIso()}" />
               ${errors.date ? html`<small class="err">${errors.date}</small>` : ''}</label
             >
             ${
@@ -200,7 +201,8 @@ export async function mount(el, { ctx }) {
             }
           </div>
           <label class="field ${errors.amount ? 'bad' : ''}"
-            ><span>Amount</span><input type="number" inputmode="decimal" step="any" data-f="amount" value="${form.amount}" />
+            ><span>Amount</span
+            ><input type="number" inputmode="decimal" step="any" data-f="amount" value="${form.amount}" />
             ${errors.amount ? html`<small class="err">${errors.amount}</small>` : ''}</label
           >
           <label class="field"

@@ -18,3 +18,9 @@ verify_jwt = false
 # sync-inventory-from-dropbox accepts a scheduler secret OR a user JWT with inventory.sync, and checks both itself.
 [functions.sync-inventory-from-dropbox]
 verify_jwt = false
+# notify-push is called by pg_cron and the backup workflow with a shared secret header (no user JWT).
+[functions.notify-push]
+verify_jwt = false
+# widget-today is called by the Android widget with a per-device secret (no user JWT); the database checks it.
+[functions.widget-today]
+verify_jwt = false
