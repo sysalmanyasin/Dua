@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Closing start page and saved-closing view (owner review of the audit)
+- **Start page:** the Opening closing card is hidden as soon as an opening exists (any saved closing, or an opening draft). The day panel shows only the draft to *Continue* for the chosen day, or, when there is none, the slot to start; saved closings are no longer repeated there (they are listed once, under Saved records). Every record shows **Responsible: name** and, once saved, its **Variance** in words (a Final shows its Final variance, any other closing its own shift variance).
+- **Saved closing (view):** ends with the **Aggregated Final Closing** card (target, net cash available, Plus/Less for the full period since the last Final), as on the ledger's last section. Not shown for the opening closing.
+- **Migration `0225_closing_list_variance`** (range 0200–0299): additive, read-only. `closing_saved_list` and `closing_my_recent` keep their names, arguments and grants and gain `shift_variance` / `final_variance`. **Needs applying to the live project and registering by repo number.** Until then the page works and simply shows no variance. Test: `supabase/tests/0225_closing_list_variance_test.sql`.
+- **Fragile code fixed:** a real code error (`TypeError`) is no longer reported as "No connection" (only a network message, or the browser being offline, is); the restore-after-crash check compares times as times, not as text; a missing opening closing is never re-created as an ordinary closing from the ledger; the `online` listener of a left ledger is removed; the conflict backup is cleared once the typing is saved. `reconciliation()` moved to `domain/compute.js` (shared by the banner, Submit review and saved view).
+- Tests: 19 new (`closing-records`, start-page and ledger tests). Verified locally: `npm run verify` and all database tests (migrations replayed on a local Postgres 16).
+
 ## 25 Nov — Closing workflow audit (open to submit): four fixes
 - **Net Cash Available (Shift):** the Final Audit banner and the Submit review showed net cash + net sale (e.g. Target 100, Available 190, Less 10). A Shift now shows net cash, so target, cash available and Plus/Less add up (BUSINESS_RULES 14–15). Both screens use one helper, `reconciliation()` in `ui/sections-late.js`. Final mode was already right.
 - **Submit review** always reads the figures again before it opens (it could show the figures from before the last autosave), says so when they cannot be read, and opens only once if Submit is tapped twice.

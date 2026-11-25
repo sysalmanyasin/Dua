@@ -1,7 +1,7 @@
 // The "Previous closing" card under each section: what the closing before this one entered for that section, as read-only rows.
 // Pure functions over one book page (closing_book_own / closing_prev_page). Every figure is one the database stored or the
 // cashier typed; nothing is calculated here except showing signs and labels.
-import { DENOMINATIONS } from './compute.js';
+import { DENOMINATIONS, reconciliation } from './compute.js';
 import { fmt } from './sheet.js';
 import { slotLabel } from './slots.js';
 
@@ -129,6 +129,20 @@ export function snapshotRows(key, page) {
     default:
       return [];
   }
+}
+
+/**
+ * The "Aggregated Final Closing" card of a saved closing: the full period since the last Final, as the ledger's last section showed it
+ * when the closing was typed: { target, cash, diff } in rupees, or null when there is nothing to show (the opening closing, or a page
+ * without stored results).
+ */
+export function finalAggregate(page) {
+  const r = page?.results;
+  if (!page || page.is_opening || !r) return null;
+  const sale = Number(r.final_net_sale);
+  const cash = Number(r.final_net_cash);
+  if (r.final_net_sale === null || r.final_net_cash === null || !Number.isFinite(sale) || !Number.isFinite(cash)) return null; // Number(undefined) is NaN
+  return reconciliation({ final_net_sale: sale, final_net_cash: cash }, 'final');
 }
 
 /** Value shown beside each section in "View all", from the quick totals of the form (see localTotals). Sections without a total give ''. */

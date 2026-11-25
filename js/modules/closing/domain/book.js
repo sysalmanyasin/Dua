@@ -51,6 +51,17 @@ export const variance = (v) => {
   return n === 0 ? M(0) : `${M(Math.abs(n))} (${n > 0 ? 'Plus' : 'Less'})`;
 };
 
+/**
+ * The variance to show beside a record in a list, or null when there is none to show (a draft has no stored result yet, and a list
+ * from a database without migration 0225 carries no variance). A Final closing shows its Final variance, as its Submit review did;
+ * any other closing shows its own shift variance (C7, C14).
+ */
+export function listVariance(r) {
+  if (!r || r.status === 'draft') return null;
+  const v = r.mode === 'final' && has(r.final_variance) ? r.final_variance : r.shift_variance;
+  return has(v) && Number.isFinite(Number(v)) ? Number(v) : null;
+}
+
 const pick = (source, spec, keep) =>
   spec
     .filter(([k, , , always]) => has(source?.[k]) && (always || keep(source[k])))

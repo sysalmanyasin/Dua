@@ -138,6 +138,81 @@ describe('Closing start page', () => {
     await start(['closing.enter_own', 'closing.settings']);
     expect(el.querySelector('#cls-open')).not.toBeNull();
   });
+  const rec = (o) => ({
+    business_date: '2026-11-08',
+    kind: 'evening',
+    seq: 9999,
+    mode: 'shift',
+    status: 'submitted',
+    is_opening: false,
+    ...o,
+  });
+  it('hides the opening card once an opening closing exists', async () => {
+    api.myRecent.mockImplementationOnce(async () => [rec({ closing_id: 'o', is_opening: true, mode: 'final', kind: 'night', seq: 10 })]);
+    await start(['closing.enter_own', 'closing.settings']);
+    expect(el.querySelector('#cls-open')).toBeNull();
+    expect(el.textContent).not.toContain('Opening closing');
+  });
+  it('hides the opening card as soon as any closing has been saved', async () => {
+    api.savedList.mockImplementationOnce(async () => [rec({ closing_id: 'c1' })]);
+    await start(['closing.enter_own', 'closing.settings']);
+    expect(el.querySelector('#cls-open')).toBeNull();
+  });
+  it('shows only the draft to continue for the chosen day, with no start form and no saved closings', async () => {
+    api.myRecent.mockImplementationOnce(async () => [
+      rec({ key: 'kd', closing_id: 'd1', business_date: '2026-11-09', kind: 'night', seq: 10, status: 'draft' }),
+      rec({ closing_id: 's1' }),
+    ]);
+    await start();
+    const day = el.querySelector('#cls-day');
+    expect(day.querySelector('[data-act="continue"][data-key="kd"]')).not.toBeNull();
+    expect(day.querySelector('#cls-new')).toBeNull();
+    expect(day.querySelector('[data-act="view"]')).toBeNull();
+  });
+  it('offers the next slot to start when the day has no draft, and does not list its saved closings again', async () => {
+    api.myRecent.mockImplementationOnce(async () => [
+      rec({ closing_id: 'n1', business_date: '2026-11-09', kind: 'night', seq: 10 }),
+      rec({ closing_id: 'e1' }),
+    ]);
+    await start();
+    const day = el.querySelector('#cls-day');
+    expect(day.querySelector('#cls-new')).not.toBeNull();
+    expect(day.querySelector('#cls-kind').value).toBe('morning');
+    expect(day.querySelector('[data-act="view"]')).toBeNull();
+    expect(day.querySelector('[data-act="pdf"]')).toBeNull();
+    // the saved closings are listed once, under Saved records
+    expect(el.querySelectorAll('[data-act="view"][data-id="n1"]').length).toBe(1);
+  });
+  it('shows who is responsible and the variance with each record, in words', async () => {
+    api.myRecent.mockImplementationOnce(async () => [
+      rec({ closing_id: 'a', business_date: '2026-11-09', kind: 'night', seq: 10, staff: 'Ali Raza', shift_variance: -250 }),
+      rec({
+        closing_id: 'b',
+        business_date: '2026-11-08',
+        kind: 'morning',
+        seq: 20,
+        mode: 'final',
+        staff: 'Sana',
+        shift_variance: -999,
+        final_variance: 40,
+      }),
+      rec({ closing_id: 'c', business_date: '2026-11-07', staff: 'Omar', shift_variance: 0 }),
+      rec({ closing_id: 'd', business_date: '2026-11-06', staff: 'Old Row' }), // a database without migration 0225 sends no variance
+      rec({ key: 'kd', closing_id: 'e', business_date: '2026-11-05', status: 'draft', staff: 'Draft Person', shift_variance: null }),
+    ]);
+    await start();
+    const text = (id) => el.querySelector(`[data-act="view"][data-id="${id}"]`).closest('li').textContent.replace(/\s+/g, ' ');
+    expect(text('a')).toContain('Responsible: Ali Raza');
+    expect(text('a')).toContain('Variance 250.00 (Less)');
+    expect(text('b')).toContain('Variance 40.00 (Plus)'); // a Final shows its Final variance
+    expect(text('b')).not.toContain('999');
+    expect(text('c')).toContain('Variance 0.00');
+    expect(text('d')).toContain('Responsible: Old Row');
+    expect(text('d')).not.toContain('Variance');
+    const draft = el.querySelector('[data-act="continue"][data-key="kd"]').closest('li').textContent;
+    expect(draft).toContain('Responsible: Draft Person');
+    expect(draft).not.toContain('Variance');
+  });
   it('shows the database refusal in plain words and stays on the page', async () => {
     api.startOpening.mockImplementationOnce(async () => {
       throw Object.assign(new Error('x'), { hint: 'opening_exists' });
@@ -644,9 +719,29 @@ describe('Closing ledger', () => {
     }
   });
 
+  it('does not restore old typing when the server saved later by a fraction of a millisecond (times are compared as times, not as text)', async () => {
+    api.loadByKey.mockImplementationOnce(async () => ({ ...ROW, updated_at: '2026-11-10T08:05:00.123456+00:00' }));
+    localStorage.setItem(
+      'dua.closing.draft.k1',
+      JSON.stringify({ form: {}, version: 1, dirty: true, savedAt: '2026-11-10T08:05:00.123Z' }),
+    );
+    openTarget();
+    await ledger();
+    expect(document.getElementById('toasts')?.textContent ?? '').not.toContain('Restored');
+    expect(el.querySelector('#cls-chip').textContent).toContain('Saved');
+  });
+
+  it('never re-creates a missing opening closing as an ordinary closing', async () => {
+    openTarget({ opening: true, mode: 'final' });
+    await ledger();
+    expect(api.saveDraft).not.toHaveBeenCalled();
+    expect(el.textContent).toContain('Go back to Closing and start the opening closing again');
+  });
+
   it('shows the opening figures only on the opening closing', async () => {
     openTarget({ opening: true, mode: 'final' });
-    api.loadById.mockImplementationOnce(async () => ({
+    // the opening closing is made on the start page, so by the time the ledger opens it exists
+    api.loadByKey.mockImplementationOnce(async () => ({
       ...ROW,
       is_opening: true,
       mode: 'final',

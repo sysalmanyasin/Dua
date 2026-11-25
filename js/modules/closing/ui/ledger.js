@@ -43,6 +43,13 @@ const SYNC_POLL_MS = 3000; // the safety-net check; with the live connection up 
 const SYNC_SLOW_EVERY = 5;
 let mountSeq = 0; // only the newest ledger screen keeps listening
 const bad = (invalid, path) => (invalid.includes(path) ? 'true' : 'false');
+// "2026-11-10T08:05:00.123Z" (this device) and "2026-11-10T08:05:00.123456+00:00" (the server) are different texts for times that can be
+// compared only as times. Unreadable times fall back to text order.
+const isLater = (a, b) => {
+  const x = Date.parse(a);
+  const y = Date.parse(b);
+  return Number.isNaN(x) || Number.isNaN(y) ? String(a) > String(b) : x > y;
+};
 
 export async function mount(el, { ctx } = {}) {
   const target = getOpen();
@@ -150,7 +157,7 @@ export async function mount(el, { ctx } = {}) {
     adopt(row);
     // Typing that never reached the server (connection dropped) comes back if it is newer
     // than the saved draft. Merge in any newly carried misc rows from the refreshed server row.
-    if (local?.dirty && local.version === S.version && local.form && local.savedAt > savedDraftUpdatedAt) {
+    if (local?.dirty && local.version === S.version && local.form && isLater(local.savedAt, savedDraftUpdatedAt)) {
       const localForm = local.form;
       const serverForm = S.form;
       const localMisc = Array.isArray(localForm.misc) ? localForm.misc : [];
@@ -163,6 +170,9 @@ export async function mount(el, { ctx } = {}) {
       S.status = 'dirty';
       toast('Restored your unsent typing and refreshed carried charges.');
     }
+  } else if (S.opening) {
+    // the opening closing is made on the start page (admin only); never re-create it here as an ordinary closing
+    return render(el, errorCard('the opening closing', 'It was not found. Go back to Closing and start the opening closing again.'));
   } else {
     // a new draft is created at once so the slot rules and the carried figures are checked before anything is typed
     try {
@@ -393,6 +403,7 @@ export async function mount(el, { ctx } = {}) {
           S.form = { ...base, misc: [...(mine.misc ?? []), ...S.form.misc.filter((r) => r.charge_id && !have.has(r.charge_id))] };
           S.listDirty = true;
           S.status = 'dirty';
+          clearLocal(`${S.key}.mine`); // their typing is carried on in the draft itself
           keepLocal();
           queueSave(0);
         } else {
@@ -1541,9 +1552,11 @@ export async function mount(el, { ctx } = {}) {
       draw();
     }
   });
-  window.addEventListener('online', () => {
-    if (el.isConnected && S.status === 'offline') doSave();
-  });
+  const onOnlineSave = () => {
+    if (!el.isConnected) return window.removeEventListener('online', onOnlineSave); // this page was left
+    if (S.status === 'offline') doSave();
+  };
+  window.addEventListener('online', onOnlineSave);
 
   draw();
   window.requestAnimationFrame?.(scrollToCards);
