@@ -2,12 +2,12 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
-## 24 Nov — Operations Redesign, Stage 3b (Task Master screens) — built and tested, not yet applied or merged
+## 24 Nov — Operations Redesign, Stage 3b (Task Master screens) — migration 0703 applied live 25 Nov
 - New module `tasks` (`js/modules/tasks`: manifest, `domain/`, `data/`, `ui/`). Pages: **My Tasks** (`/tasks`; overdue, urgent, due within two days, other pending, returned, awaiting verification; accept, start, hand in with a note or a tick, ask for a new deadline or another person, comments, history), **To Verify** (`/tasks/verify`; approve, or send back with a reason), **All Tasks** (`/tasks/manage`; create, assign, re-date, cancel, filter), **Requests**, **Schedules** (including Generate now) and **Team** (`/tasks/requests`, `/tasks/schedules`, `/tasks/team`). All data comes from the existing Task Master database functions; no new function was needed.
 - Home: staff get **My Work Snapshot** and **My Tasks**; the Owner gets **Staff & Team**. Styles in `css/tasks.css`; `sw.js` regenerated.
 - Migration `0703_ops_task_rules` (range 0700–0749): adds the category `tasks`, the rules `task_overdue` and `task_verification_waiting` (both on, no settings) and replaces `ops_action_items()` with the 0701 body plus two task checks. Test `0703_ops_task_rules_test.sql`; `0700_ops_rules_test.sql` now expects seven rules. Apply and rollback: `docs/ops/f11-stage3b-apply-and-rollback.md`. Decision D-67.
 - Tests: 61 new unit tests (`tasks-domain`, `tasks-pages`, `tasks-manifest`, `home-tasks-sections`, three more in `home-ops-gating`). No attendance and no notifications (D-51, D-58).
-- Verified locally: lint, format, secrets and vendor checks, the full unit suite, and every non-eBill database test against a local Postgres 16 replay. Not verified: the screens on a real phone, and 0703 on the live database.
+- Verified locally: lint, format, secrets and vendor checks, the full unit suite, and every non-eBill database test against a local Postgres 16 replay. 0703 was applied by hand on 25 Nov 2026 (backup `schema_migrations_backup_20261125_pretask_rules`, 115 rows; hash matches a local replay; live Owner and Junior checks pass). Not verified: the screens on a real phone.
 
 ## 24 Nov — Fix: Sale Report page showed no report (CSS class collision)
 - Cause: `css/ebill.css` defined a bare `.sr` rule (a 1px clipped "screen reader only" box) and, loading after `sales.css`, it overrode the Sale Report container, which also uses `.sr`. The report rendered but collapsed to an invisible 1px box; Copy, Print data and Gmail still worked because they are built from the data, not the screen.
