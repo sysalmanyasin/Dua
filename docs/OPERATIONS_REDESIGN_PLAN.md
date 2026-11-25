@@ -90,6 +90,8 @@ Rate = tasks completed and verified on or before their deadline ÷ tasks whose d
 No files or photos. The task creator chooses `none`, `note` (written text) or `tick` (a confirmation tick). The submit RPC refuses a submission that does not meet the rule. The note is stored on the submission event, so there is no evidence table and no Storage.
 
 ## 6. Notifications and reminders (Stage 4)
+**Status (25 Nov 2026):** built, tested and applied live on 25 Nov 2026 (1300, 1301, 1204); merge pending. The owner's answers are D-68. Where the sketch below differs, D-68 and the migrations win: one row per person per message (`ntf_messages`) instead of `ntf_recipients`, a closed table read through functions instead of RLS reads, and announcements are deferred.
+
 - New `ntf_recipients` (notification, user, created, delivered, read, acknowledged) so history is per person. The existing owner `notifications` table and `notify_owner()` keep working unchanged; new code calls a new `notify_users(kind, payload, recipients)` that writes the same kind of row and never raises.
 - In-app inbox read through RLS (a person sees only their own rows); push through the existing `notify-ntfy` pattern.
 - **Privacy:** push payloads carry ids and generic wording only. Salary, amounts and names never appear in a push or lock-screen text. This extends the rule already stated in `0012`.

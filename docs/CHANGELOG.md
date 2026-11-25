@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Operations Redesign, Stage 4 (Inbox and reminders) — built, tested and applied live (1300, 1301, 1204); merge pending
+- New module `inbox` (`/inbox`, permission `ntf.view_own`): a person's own messages with Open, Mark as read, Mark all as read and a New filter. Home gets a **Messages** section (count and the newest three). Staff messages: task assigned to you, sent back for correction, your request decided, deadline changed or task cancelled. Verifiers and the Owner: work handed in. Owner: new change requests. Overdue reminders: one each morning at 08:00 Pakistan time while a task stays overdue. In-app only (D-58). Decision D-68.
+- Migrations `1300_ntf_core` (closed table, server-only `ntf_send`, daily prune), `1301_ntf_reads` (four browser functions), `1204_task_notices` (trigger on the task history table plus the reminder job, in the Task Master range; no lifecycle function changed). Tests `1300`, `1301`, `1204`, and the new guard `1399_ntf_exposure_test.sql`; `0001_core_test.sql` now expects a Junior to hold 7 permissions. Apply and rollback: `docs/ops/f12-stage4-apply-and-rollback.md`.
+- Verified locally: all database tests that can run without pgcrypto, and the unit suite. Not verified: anything on the live database, and the screens on a real phone.
+
 ## 25 Nov — Audit: four-tab layout (UI and navigation only; no database change)
 - Four persistent tabs (Overview, Team Audit, Individual Audit, Tools) on every Audit page except counting. Spec: `docs/modules/audit-tabs.md`.
 - Overview rewritten to exactly five sections (Quick actions, Product search, Pending actions, Individual audit, Active team audit). Pending actions include approved corrections not yet recompiled and Team rounds ready to finalize. The `/audit/attention` page is removed; product search no longer repeats on the Team audits page.
