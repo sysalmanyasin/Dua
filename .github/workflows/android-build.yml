@@ -66,13 +66,17 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           if [ "$EVENT" = "pull_request" ]; then
-            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
-            echo "apk=android-app/android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
-            echo "release=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "task=assembleDebug"
+              echo "apk=android-app/android/app/build/outputs/apk/debug/app-debug.apk"
+              echo "release=false"
+            } >> "$GITHUB_OUTPUT"
           else
-            echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
-            echo "apk=android-app/android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
-            echo "release=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "task=assembleRelease"
+              echo "apk=android-app/android/app/build/outputs/apk/release/app-release.apk"
+              echo "release=true"
+            } >> "$GITHUB_OUTPUT"
           fi
           if [ "$REF_TYPE" = "tag" ]; then
             name="${REF_NAME#android-v}"
