@@ -1,0 +1,25 @@
+const { chromium } = require('playwright'); const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' }); await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/tmp/chromium', args: ['--no-sandbox', '--disable-gpu'] });
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 })).newPage();
+  await page.goto('http://localhost:8765/'); await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
+  const out = {};
+  const sel = '.ws-cell[data-row="5"][data-col="1"]'; // B6
+  const box = await page.locator(sel).boundingBox();
+  await page.touchscreen.tap(box.x + 8, box.y + 8);
+  await page.locator('.ws-edit-input').fill('MINE');
+  // another person changes B6 on the server after our copy was made
+  await page.evaluate(() => { const { server, applyOps, buildOp } = window.__stub; const sh = server.sheets[0]; applyOps(server, [buildOp('set_cells', { sheet_id: sh.id, base_seq: server.head_seq, cells: [{ r: sh.row_order[5], c: sh.col_order[1], value: 'THEIRS' }] })]); });
+  await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  const visibleButtons = () => page.evaluate(() => [...document.querySelectorAll('#ws-formula button')].filter((b) => b.offsetParent !== null).map((b) => b.textContent));
+  out.conflictButtons = await visibleButtons();
+  out.conflictText = await page.evaluate(() => document.querySelector('#ws-formula').innerText.replace(/\s+/g, ' ').trim());
+  out.serverStillTheirs = await page.evaluate(() => { const sh = window.__stub.server.sheets[0]; return sh.cells.get(sh.row_order[5] + ':' + sh.col_order[1]).value; });
+  await page.screenshot({ path: '/tmp/shots/06-conflict.png' });
+  await page.getByRole('button', { name: 'Keep theirs' }).click(); await page.waitForTimeout(500);
+  out.afterKeepTheirs = { cell: await page.evaluate((s) => document.querySelector(s).textContent, sel), buttons: await visibleButtons() };
+  out.errors = await page.evaluate(() => window.__errors);
+  console.log(JSON.stringify(out, null, 1));
+  await browser.close(); srv.kill();
+})().catch((e) => { console.error('FAIL', e.message); process.exit(1); });

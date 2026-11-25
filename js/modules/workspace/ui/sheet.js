@@ -1,13 +1,14 @@
-// One open workbook, read-only for now: sheet tabs, the grid, the content of the selected cell, refresh.
+// One open workbook: sheet tabs, the grid, the edit bar for the selected cell, refresh.
 // Which workbook is open comes from session storage (the router carries no ids); home.js sets it.
-// Editing, formulas and structure changes arrive in later increments. The one write here is "Add the first sheet" for a
-// workbook that has none (a new workbook starts empty).
+// Cell text can be edited (ui/cellEditor.js). Formulas, formatting and structure changes arrive in later increments.
 import { html, render } from '../../../shared/html.js';
 import { newId, OPEN_KEY, relativeWhen } from '../domain/documents.js';
 import { can, roleLabel } from '../domain/permissions.js';
 import { buildOp, findLiveSheet, liveSheets } from '../domain/spreadsheet.js';
 import { createOperationSender, openWorkbookFull, pullAndApply } from '../data/workbooks.js';
+import { createCellEditor } from './cellEditor.js';
 import { createGridView } from './gridView.js';
+import { confirmAction } from './panel.js';
 
 const STALE_MS = 60000; // coming back to the page after this long refreshes it quietly
 
@@ -38,7 +39,7 @@ export async function mount(el, { measure = null } = {}) {
     return message(el, 'This workbook could not be opened', e.message);
   }
 
-  const s = { wb: opened.wb, info: opened.info, sheetId: null, error: '', notice: '', busy: false, syncedAt: Date.now(), selection: null };
+  const s = { wb: opened.wb, info: opened.info, sheetId: null, error: '', notice: '', busy: false, syncedAt: Date.now() };
   const canEdit = () => can(s.info.role, 'edit', { archived: !!s.info.archived });
 
   render(
@@ -60,14 +61,6 @@ export async function mount(el, { measure = null } = {}) {
   const $ = (sel) => el.querySelector(sel);
   document.title = `${s.info.title} · Dua`;
 
-  const grid = createGridView($('#ws-grid'), {
-    measure,
-    onSelect(info) {
-      s.selection = info;
-      drawFormula();
-    },
-  });
-
   const activeSheet = () => {
     const live = liveSheets(s.wb);
     const sheet = (s.sheetId && findLiveSheet(s.wb, s.sheetId)) || live[0] || null;
@@ -75,11 +68,41 @@ export async function mount(el, { measure = null } = {}) {
     return sheet;
   };
 
+  const sender = createOperationSender({ docId: id });
+  const editor = createCellEditor($('#ws-formula'), {
+    getSheet: activeSheet,
+    getHeadSeq: () => s.wb.head_seq,
+    sender,
+    canEdit,
+    refresh: () => sync(),
+    notify(text) {
+      s.notice = text;
+      drawBanner();
+    },
+  });
+
+  const grid = createGridView($('#ws-grid'), {
+    measure,
+    onSelect(info) {
+      if (!editor.select(info)) {
+        // unsaved text on another cell: stay there, and say why
+        const c = editor.cell();
+        s.notice = `Save or cancel your change to ${c.label} first.`;
+        drawBanner();
+        grid.select(c.rowId, c.colId, { reveal: false });
+      }
+    },
+  });
+
   function drawHead() {
     $('#ws-sheet-title').textContent = s.info.title;
     $('#ws-role').textContent = roleLabel(s.info.role);
-    $('#ws-foot').textContent =
-      `Read-only for now: editing arrives in a later update. Updated ${relativeWhen(new Date(s.syncedAt).toISOString())}.`;
+    const when = `Updated ${relativeWhen(new Date(s.syncedAt).toISOString())}.`;
+    $('#ws-foot').textContent = s.info.archived
+      ? `Archived, so it cannot be changed. ${when}`
+      : canEdit()
+        ? `Tap a cell, type, then Save. Formulas and formatting arrive in later updates. ${when}`
+        : `You can view this workbook but not change it. ${when}`;
     const refresh = $('[data-act="refresh"]');
     refresh.disabled = s.busy;
     refresh.textContent = s.busy ? 'Refreshing…' : 'Refresh';
@@ -123,26 +146,15 @@ export async function mount(el, { measure = null } = {}) {
     );
   }
 
-  function drawFormula() {
-    const sel = s.selection;
-    render(
-      $('#ws-formula'),
-      html`<span class="ws-formula-label">${sel ? sel.label : '—'}</span
-        ><span class="ws-formula-text${sel ? '' : ' muted'}">${sel ? (sel.formula ?? sel.text) : 'Tap a cell to see what it holds'}</span>`,
-    );
-  }
-
   function drawAll() {
     drawHead();
     drawBanner();
     drawTabs();
     grid.setSheet(activeSheet());
     $('#ws-grid').hidden = !activeSheet();
-    drawFormula();
   }
 
-  async function sync({ silent = false } = {}) {
-    if (s.busy) return;
+  async function runSync({ silent = false } = {}) {
     s.busy = true;
     s.notice = '';
     drawHead();
@@ -164,6 +176,15 @@ export async function mount(el, { measure = null } = {}) {
     s.busy = false;
     drawAll();
   }
+
+  // Refreshes run one after another, so a pull that a save depends on is never skipped because another one was running.
+  let chain = Promise.resolve();
+  const sync = (options) => {
+    s.busy = true; // the button shows it at once
+    drawHead();
+    chain = chain.then(() => runSync(options));
+    return chain;
+  };
 
   async function addFirstSheet() {
     if (s.busy || !canEdit()) return;
@@ -190,29 +211,50 @@ export async function mount(el, { measure = null } = {}) {
     else drawAll(); // keep the message on screen
   }
 
-  el.addEventListener('click', (e) => {
+  el.addEventListener('click', async (e) => {
+    const link = e.target.closest('a[href="#/workspace"]');
+    if (link && editor.hasUnsaved()) {
+      e.preventDefault();
+      const leave = await confirmAction({
+        title: 'Leave without saving?',
+        message: `Your change to ${editor.where()} is not saved.`,
+        confirmLabel: 'Leave',
+        danger: true,
+      });
+      if (leave) location.hash = '#/workspace';
+      return;
+    }
     const b = e.target.closest('button');
     if (!b || !el.contains(b)) return;
     if (b.dataset.act === 'refresh') sync();
     else if (b.dataset.act === 'add-sheet') addFirstSheet();
     else if (b.dataset.sheet) {
+      if (editor.hasUnsaved()) {
+        s.notice = `Save or cancel your change to ${editor.where()} before switching sheets.`;
+        drawBanner();
+        return;
+      }
       s.sheetId = b.dataset.sheet;
-      s.selection = null;
       drawTabs();
       grid.setSheet(activeSheet());
     }
   });
 
+  const guard = (e) => {
+    if (editor.hasUnsaved()) e.preventDefault(); // closing the tab or reloading asks first
+  };
   const onVisible = () => {
     if (document.visibilityState === 'visible' && Date.now() - s.syncedAt > STALE_MS) sync({ silent: true });
   };
   const onHash = () => {
     removeEventListener('hashchange', onHash);
     document.removeEventListener('visibilitychange', onVisible);
+    removeEventListener('beforeunload', guard);
     grid.destroy();
   };
   addEventListener('hashchange', onHash);
   document.addEventListener('visibilitychange', onVisible);
+  addEventListener('beforeunload', guard);
 
   drawAll();
   return undefined;

@@ -1,0 +1,18 @@
+const { chromium } = require('playwright'); const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' }); await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/tmp/chromium', args: ['--no-sandbox', '--disable-gpu'] });
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  await page.goto('http://localhost:8765/'); await page.waitForFunction(() => window.__ready === true);
+  const label = () => page.evaluate(() => document.querySelector('.ws-formula-label').textContent);
+  await page.locator('.ws-grid').focus();
+  const seen = [];
+  for (const k of ['ArrowDown', 'ArrowDown', 'ArrowRight', 'ArrowRight']) { await page.keyboard.press(k); seen.push(await label()); }
+  for (let i = 0; i < 30; i += 1) await page.keyboard.press('PageDown');
+  seen.push(await label()); seen.push(await page.evaluate(() => document.querySelector('.ws-grid-scroll').scrollTop > 0));
+  const visible = await page.evaluate(() => { const c = document.querySelector('.ws-cell.is-selected'); if (!c) return 'no selected cell in DOM'; const g = document.querySelector('.ws-grid').getBoundingClientRect(); const r = c.getBoundingClientRect(); return r.top >= g.top && r.bottom <= g.bottom + 1; });
+  seen.push('selected cell fully inside the grid: ' + visible);
+  await page.keyboard.press('End'); seen.push(await label());
+  console.log(JSON.stringify(seen)); console.log('errors', JSON.stringify(await page.evaluate(() => window.__errors)));
+  await browser.close(); srv.kill();
+})();

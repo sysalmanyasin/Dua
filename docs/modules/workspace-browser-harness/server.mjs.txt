@@ -1,0 +1,14 @@
+
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+const H = path.dirname(new URL(import.meta.url).pathname); // the folder holding this file and its siblings
+const ROOT = process.env.DUA_ROOT || process.cwd(); // the repo root
+const types={'.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.html':'text/html','.json':'application/json','.woff2':'font/woff2','.svg':'image/svg+xml'};
+http.createServer((req,res)=>{
+  let p=decodeURIComponent(new URL(req.url,'http://x').pathname);
+  let file;
+  if (p==='/'||p==='/index.html') file=H+'/index.html';
+  else if (p.startsWith('/__h/')) file=H+'/'+p.slice(5);
+  else if (p==='/js/modules/workspace/data/workbooks.js') file=H+'/stub-workbooks.js';
+  else file=path.join(ROOT,p);
+  fs.readFile(file,(e,d)=>{ if(e){res.writeHead(404);res.end('nf');return;} res.writeHead(200,{'content-type':types[path.extname(file)]||'application/octet-stream'}); res.end(d); });
+}).listen(8765,()=>console.log('up'));

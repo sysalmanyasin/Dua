@@ -1,0 +1,40 @@
+const { chromium } = require('playwright'); const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' }); await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/tmp/chromium', args: ['--no-sandbox', '--disable-gpu'] });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto('http://localhost:8765/'); await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
+  const out = {};
+  const bar = () => page.evaluate(() => document.querySelector('#ws-formula').innerText.replace(/\s+/g, ' ').trim());
+  // 1. tap a styled price cell (row 4 = index 3, col C = index 2) and look at the bar
+  let box = await page.locator('.ws-cell[data-row="3"][data-col="2"]').boundingBox();
+  const before = await page.evaluate(() => document.querySelector('.ws-cell[data-row="3"][data-col="2"]').textContent);
+  await page.touchscreen.tap(box.x + 8, box.y + 8);
+  out.before = before; out.barAfterTap = await bar();
+  out.hasInput = await page.evaluate(() => !!document.querySelector('.ws-edit-input'));
+  const style0 = await page.evaluate(() => { const c = document.querySelector('.ws-cell[data-row="3"][data-col="2"]'); return { fw: c.style.fontWeight, jc: c.style.justifyContent }; });
+  // 2. type a new number and save with Enter
+  await page.locator('.ws-edit-input').fill('777');
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(400);
+  const cell = () => page.evaluate(() => { const c = document.querySelector('.ws-cell[data-row="3"][data-col="2"]'); return { text: c.textContent, fw: c.style.fontWeight, jc: c.style.justifyContent }; });
+  out.afterSave = await cell(); out.styleBefore = style0;
+  out.serverCell = await page.evaluate(() => { const sh = window.__stub.server.sheets[0]; const rid = sh.row_order[3], cid = sh.col_order[2]; const c = sh.cells.get(rid + ':' + cid); return c && { value: c.value, style_id: c.style_id, last_seq: c.last_seq }; });
+  // 3. a formula is refused and nothing is sent
+  const headBefore = await page.evaluate(() => window.__stub.server.head_seq);
+  await page.locator('.ws-edit-input').fill('=A1+1');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+  out.formulaMsg = await page.evaluate(() => document.querySelector('#ws-banner').innerText.replace(/\s+/g, ' ').trim() + ' | ' + document.querySelector('#ws-formula').innerText.replace(/\s+/g, ' ').trim());
+  out.headUnchangedAfterFormula = (await page.evaluate(() => window.__stub.server.head_seq)) === headBefore;
+  // 4. unsaved draft blocks moving to another cell
+  await page.locator('.ws-edit-input').fill('draft text');
+  box = await page.locator('.ws-cell[data-row="5"][data-col="1"]').boundingBox();
+  await page.touchscreen.tap(box.x + 8, box.y + 8); await page.waitForTimeout(200);
+  out.draftKept = await page.evaluate(() => document.querySelector('.ws-edit-input').value);
+  out.msgOnMove = await page.evaluate(() => (document.querySelector('#ws-banner').innerText || '').replace(/\s+/g, ' ').trim());
+  out.errors = await page.evaluate(() => window.__errors);
+  await page.screenshot({ path: '/tmp/shots/05-edit.png' });
+  console.log(JSON.stringify(out, null, 1));
+  await browser.close(); srv.kill();
+})().catch((e) => { console.error('FAIL', e.message); process.exit(1); });
