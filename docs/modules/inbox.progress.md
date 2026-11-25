@@ -1,6 +1,6 @@
 # Inbox (Stage 4) — progress
 
-Built 25 Nov 2026 on `ops-redesign-stage4` (D-68). Not applied live, not merged.
+Built 25 Nov 2026 on `ops-redesign-stage4` (D-68). Applied live 25 Nov 2026 (1300, 1301, 1204; backup `schema_migrations_backup_20261125_prentf`). Merge pending.
 
 Done and tested: database (1300, 1301, 1204, guard 1399), Inbox page, Home Messages section, unit and jsdom tests.
 
