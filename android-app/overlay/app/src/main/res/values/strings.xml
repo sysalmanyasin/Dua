@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dua</string>
+    <string name="title_activity_main">Dua</string>
+    <string name="package_name">com.duapharma.dua</string>
+    <string name="custom_url_scheme">com.duapharma.dua</string>
+    <string name="widget_title">Today\'s sale</string>
+    <string name="widget_description">Today\'s sale total from Candela</string>
+    <string name="widget_sign_in">Open Dua and sign in</string>
+    <string name="widget_no_figure">No figure yet today</string>
+    <string name="widget_updated">Updated %1$s</string>
+    <string name="widget_offline">Offline · last update %1$s</string>
+</resources>

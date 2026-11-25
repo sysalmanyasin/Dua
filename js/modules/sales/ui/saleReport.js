@@ -3,6 +3,7 @@ import { html, render } from '../../../shared/html.js';
 import { monthLabel, money, todayPkt } from '../../../shared/format.js';
 import { BRAND } from '../../../core/config.js';
 import { hero } from '../../../shared/ui.js';
+import { gmailAvailable } from '../../../core/gmail.js';
 import { openMailDialog } from '../../../shared/mailDialog.js';
 import * as api from '../data/api.js';
 import { parseAmount } from '../../../shared/format.js';
@@ -102,7 +103,7 @@ export async function mount(el, { ctx }) {
               <div class="sr-buttons">
                 <button class="btn btn-primary" data-act="print" ${have ? '' : 'disabled'}>🖶 Print Report</button>
                 <button class="btn" data-act="copy" ${have ? '' : 'disabled'}>⧉ Copy</button>
-                <button class="btn" data-act="gmail" ${have ? '' : 'disabled'}>✉ Send via Gmail</button>
+                ${gmailAvailable() ? html`<button class="btn" data-act="gmail" ${have ? '' : 'disabled'}>✉ Send via Gmail</button>` : ''}
                 <button class="btn" data-act="rows">⚙ Customize Rows</button>
               </div>
             </section>

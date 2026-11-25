@@ -1,0 +1,155 @@
+name: Android APK
+
+# Builds the Dua Android shell (android-app/). The web app is NOT built here: the APK loads the live site, so web changes never need
+# a new APK. Run this only when the native part changes (plugin, widget, permissions, icon, Capacitor/Firebase versions).
+#   * pull request touching android-app/  -> debug build, to prove it still compiles (no secrets needed)
+#   * push a tag android-v1.2.3           -> signed release APK attached to a GitHub Release
+#   * "Run workflow" button               -> signed release APK as a downloadable build artifact
+# Secrets (Settings -> Secrets and variables -> Actions): FIREBASE_GOOGLE_SERVICES_JSON_B64, ANDROID_KEYSTORE_B64,
+# ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD. See docs/ANDROID_ARCHITECTURE.md.
+on:
+  pull_request:
+    paths: ['android-app/**', '.github/workflows/android-build.yml']
+  push:
+    tags: ['android-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write # only used to attach the APK to a release created from an android-v* tag
+    env:
+      SHELL_DIR: android-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: android-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install the shell's packages
+        working-directory: android-app
+        run: npm ci
+
+      - name: Check the shell is consistent with the web app
+        working-directory: android-app
+        run: node scripts/check-shell.mjs
+
+      - name: Generate the Android project (Capacitor template + our overlay + icons)
+        working-directory: android-app
+        run: |
+          pip install --quiet pillow
+          bash scripts/setup.sh
+
+      - name: Decide what to build
+        id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
+            echo "apk=android-app/android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
+            echo "apk=android-app/android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$REF_TYPE" = "tag" ]; then
+            name="${REF_NAME#android-v}"
+          else
+            name="0.0.0-run${RUN_NUMBER}"
+          fi
+          case "$name" in
+            *[!0-9A-Za-z.-]*|"") echo "bad version name" >&2; exit 1 ;;
+          esac
+          echo "version_name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Firebase config (push notifications)
+        env:
+          GOOGLE_SERVICES_B64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_B64 }}
+          IS_RELEASE: ${{ steps.mode.outputs.release }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_B64" ]; then
+            echo "$GOOGLE_SERVICES_B64" | base64 -d > android-app/android/app/google-services.json
+          elif [ "$IS_RELEASE" = "true" ]; then
+            echo "FIREBASE_GOOGLE_SERVICES_JSON_B64 is not set: a release APK without it cannot receive push notifications." >&2
+            exit 1
+          else
+            echo "No Firebase secret: building without push (fine for a compile check)."
+          fi
+
+      - name: Signing key
+        if: steps.mode.outputs.release == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo "The signing secrets are not all set (ANDROID_KEYSTORE_B64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD)." >&2
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/dua.keystore"
+          {
+            echo "DUA_KEYSTORE_PATH=$RUNNER_TEMP/dua.keystore"
+            echo "DUA_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "DUA_KEY_ALIAS=$KEY_ALIAS"
+            echo "DUA_KEY_PASSWORD=$KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Build
+        working-directory: android-app/android
+        env:
+          TASK: ${{ steps.mode.outputs.task }}
+          VERSION_NAME: ${{ steps.mode.outputs.version_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: ./gradlew "$TASK" --no-daemon "-Pdua.versionCode=$RUN_NUMBER" "-Pdua.versionName=$VERSION_NAME"
+
+      - name: Name the file and record its checksum
+        id: pack
+        env:
+          APK: ${{ steps.mode.outputs.apk }}
+          VERSION_NAME: ${{ steps.mode.outputs.version_name }}
+        run: |
+          out="dua-${VERSION_NAME}.apk"
+          cp "$APK" "$out"
+          sha256sum "$out" | tee "$out.sha256"
+          echo "file=$out" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dua-apk
+          path: |
+            ${{ steps.pack.outputs.file }}
+            ${{ steps.pack.outputs.file }}.sha256
+          retention-days: 30
+
+      - name: Attach to the GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          FILE: ${{ steps.pack.outputs.file }}
+        run: |
+          gh release create "$TAG" "$FILE" "$FILE.sha256" --title "Dua Android $TAG" --notes "Signed APK. Install it over the previous version; Android asks you to confirm. Check the SHA-256 in the .sha256 file if you want to verify the download." --repo "$GITHUB_REPOSITORY"

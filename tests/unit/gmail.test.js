@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { b64url, buildMime, encodeHeader, forgetToken, parseRecipients, sendGmail, toBase64 } from '../../js/core/gmail.js';
+import { b64url, buildMime, encodeHeader, forgetToken, gmailAvailable, parseRecipients, sendGmail, toBase64 } from '../../js/core/gmail.js';
 
 const decode = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s+/g, '')), (c) => c.charCodeAt(0)));
 const fromRaw = (raw) => decode(raw.replace(/-/g, '+').replace(/_/g, '/'));
@@ -130,5 +130,18 @@ describe('sending', () => {
       requestAccessToken: () => cfg.error_callback({ type: 'popup_closed' }),
     });
     expect((await sendGmail(mail)).message).toMatch(/window was closed/);
+  });
+});
+
+describe('inside the Android app', () => {
+  it('is available in a normal browser', () => {
+    expect(gmailAvailable({ navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120' } })).toBe(true);
+    expect(gmailAvailable({})).toBe(true);
+  });
+  it('is hidden when Capacitor says it is native', () => {
+    expect(gmailAvailable({ Capacitor: { isNativePlatform: () => true } })).toBe(false);
+  });
+  it('is hidden when the app marker is in the user agent', () => {
+    expect(gmailAvailable({ navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/120 DuaAndroid/1' } })).toBe(false);
   });
 });

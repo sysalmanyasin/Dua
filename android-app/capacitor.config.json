@@ -1,0 +1,18 @@
+{
+  "appId": "com.duapharma.dua",
+  "appName": "Dua",
+  "webDir": "www",
+  "server": {
+    "url": "https://dua.duapharma.com",
+    "cleartext": false,
+    "allowNavigation": ["dua.duapharma.com"]
+  },
+  "android": {
+    "appendUserAgent": "DuaAndroid/1",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] }
+  }
+}

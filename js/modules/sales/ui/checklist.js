@@ -3,6 +3,7 @@
 import { html, render } from '../../../shared/html.js';
 import { money, todayPkt } from '../../../shared/format.js';
 import { hero } from '../../../shared/ui.js';
+import { gmailAvailable } from '../../../core/gmail.js';
 import { openMailDialog } from '../../../shared/mailDialog.js';
 import * as api from '../data/checklistApi.js';
 import {
@@ -358,7 +359,7 @@ ${state.fields.notes ?? ''}</textarea>`;
             ${canFill ? html`<button class="btn" data-act="reset">↺ Reset day</button>` : ''}
             <button class="btn" data-act="preview">👁 Preview</button><button class="btn" data-act="copy">⧉ Copy</button>
             <button class="btn" data-act="print">🖶 Print</button><button class="btn" data-act="email">✉ Email</button>
-            <button class="btn btn-primary" data-act="gmail">✉ Send via Gmail</button>
+            ${gmailAvailable() ? html`<button class="btn btn-primary" data-act="gmail">✉ Send via Gmail</button>` : ''}
           </div>
         </div>
         <p class="note note-error" id="cl-conflict" role="alert" hidden>

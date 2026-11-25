@@ -82,6 +82,13 @@ export default {
       load: () => import('./ui/jazzcash.js'),
     },
     {
+      path: '/manager/attendance',
+      title: 'Attendance',
+      desc: 'Check in at the pharmacy; the owner sees the records',
+      anyOf: ['attendance.check_in', 'attendance.view_all', 'attendance.manage'],
+      load: () => import('./ui/attendance.js'),
+    },
+    {
       path: '/manager/inbox',
       title: 'Credit Inbox',
       desc: 'Credit recorded in Closing, filed by hand',
