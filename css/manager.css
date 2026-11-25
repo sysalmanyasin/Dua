@@ -283,3 +283,10 @@
   text-align: left;
   cursor: pointer;
 }
+
+/* Credit Inbox filing dialog: date and shift side by side */
+.mg-date-shift {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-3);
+}
