@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Operations Redesign, Stage 4 (Inbox and reminders) — built and tested, not yet applied or merged
+- New module `inbox` (`/inbox`, permission `ntf.view_own`): a person's own messages with Open, Mark as read, Mark all as read and a New filter. Home gets a **Messages** section (count and the newest three). Staff messages: task assigned to you, sent back for correction, your request decided, deadline changed or task cancelled. Verifiers and the Owner: work handed in. Owner: new change requests. Overdue reminders: one each morning at 08:00 Pakistan time while a task stays overdue. In-app only (D-58). Decision D-68.
+- Migrations `1300_ntf_core` (closed table, server-only `ntf_send`, daily prune), `1301_ntf_reads` (four browser functions), `1204_task_notices` (trigger on the task history table plus the reminder job, in the Task Master range; no lifecycle function changed). Tests `1300`, `1301`, `1204`, and the new guard `1399_ntf_exposure_test.sql`; `0001_core_test.sql` now expects a Junior to hold 7 permissions. Apply and rollback: `docs/ops/f12-stage4-apply-and-rollback.md`.
+- Verified locally: all database tests that can run without pgcrypto, and the unit suite. Not verified: anything on the live database, and the screens on a real phone.
+
 ## 24 Nov — Operations Redesign, Stage 3b (Task Master screens) — migration 0703 applied live 25 Nov
 - New module `tasks` (`js/modules/tasks`: manifest, `domain/`, `data/`, `ui/`). Pages: **My Tasks** (`/tasks`; overdue, urgent, due within two days, other pending, returned, awaiting verification; accept, start, hand in with a note or a tick, ask for a new deadline or another person, comments, history), **To Verify** (`/tasks/verify`; approve, or send back with a reason), **All Tasks** (`/tasks/manage`; create, assign, re-date, cancel, filter), **Requests**, **Schedules** (including Generate now) and **Team** (`/tasks/requests`, `/tasks/schedules`, `/tasks/team`). All data comes from the existing Task Master database functions; no new function was needed.
 - Home: staff get **My Work Snapshot** and **My Tasks**; the Owner gets **Staff & Team**. Styles in `css/tasks.css`; `sw.js` regenerated.
