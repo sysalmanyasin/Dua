@@ -4,7 +4,7 @@
 import { qtyText, whenKarachi } from '../domain/audit.js';
 import { html } from '../../../shared/html.js';
 import { money } from '../../../shared/format.js';
-import { DENOMINATIONS } from '../domain/compute.js';
+import { DENOMINATIONS, reconciliation } from '../domain/compute.js';
 import { CREDIT_GROUPS, namedShown } from '../domain/form.js';
 
 const DENOM_LABELS = [
@@ -331,6 +331,8 @@ export function lateSections(h) {
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const m = (v) => money(v, { decimals: true });
 
+export { reconciliation };
+
 /**
  * Display figures from the server's preview `p` (closing_compute, rupees) and `period` (closing_period), plus the typed form.
  * Two plain identities are used, both documented in docs/BUSINESS_RULES.md: reserve = grand − liquid, and
@@ -358,9 +360,10 @@ export function previewFigures(p, period, form, mode) {
     out[`${prefix}VarLabel`] = { text: diff === 0 ? '✓ Variance' : diff > 0 ? '▲ Plus' : '▼ Less', neg: false };
     out[`${prefix}Var`] = { text: m(Math.abs(diff)), neg: diff < 0 };
   };
-  if (mode === 'final') variance('b', p.final_net_sale, p.final_net_cash + p.final_net_sale, p.final_net_cash);
-  else variance('b', p.net_sale, p.net_cash + p.net_sale, p.shift_variance);
-  variance('f', p.final_net_sale, p.final_net_cash + p.final_net_sale, p.final_net_cash);
+  const rec = reconciliation(p, mode);
+  variance('b', rec.target, rec.cash, rec.diff);
+  const fin = reconciliation(p, 'final');
+  variance('f', fin.target, fin.cash, fin.diff);
 
   out.shifts = { text: mode === 'final' ? '—' : String(num(a.closings_in_period) + 1), neg: false };
   put('pSale', num(a.same_date_shift_sale) + num(a.lf_same_date_sale) + p.shift_sale);
