@@ -4,6 +4,7 @@ import { html, render } from '../../../shared/html.js';
 import { longDate, shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { MONTHS, WEEKDAYS, dotsByDate, monthCells, suggestForDate } from '../domain/calendar.js';
+import { listVariance, variance } from '../domain/book.js';
 import { friendlyError } from '../domain/errors.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { KINDS, kindLabel, slotLabel, suggestNext } from '../domain/slots.js';
@@ -38,6 +39,8 @@ export async function mount(el, { ctx } = {}) {
     return render(el, errorCard('your closings', friendlyError(e).message));
   }
   const drafts = recent.filter((r) => r.status === 'draft');
+  // Nothing can be entered before the opening closing exists, so any saved closing (or an opening draft) means it is done: the card goes.
+  const hasOpening = recent.some((r) => r.is_opening || r.status === 'submitted');
   const submitted = recent.filter((r) => r.status === 'submitted');
   const today = todayPkt();
   const next = suggestNext(submitted[0]) ?? { date: today, kind: 'night' };
@@ -63,14 +66,26 @@ export async function mount(el, { ctx } = {}) {
 
   const badges = (r) =>
     html`${r.status === 'draft' ? html`<span class="cls-badge cls-badge-draft">${r.supersedes_id ? 'Correction' : r.is_opening ? 'Opening' : 'Draft'}</span>` : ''}
-    ${r.status === 'draft' && r.mine === false ? html`<span class="cls-meta">shared${r.staff ? ` · ${r.staff}` : ''}</span>` : ''}
+    ${r.status === 'draft' && r.mine === false ? html`<span class="cls-meta">shared</span>` : ''}
     ${r.mode === 'final' ? html`<span class="cls-badge cls-badge-final">Final</span>` : ''}
     ${r.status === 'submitted' && r.is_opening ? html`<span class="cls-badge">Opening</span>` : ''}`;
+
+  // who is responsible for the closing and, once it is saved, how much the cash was out by (in words, never by colour alone)
+  const details = (r) => {
+    const v = listVariance(r);
+    if (!r.staff && v === null) return '';
+    return html`<span class="cls-meta cls-rec-sub"
+      >${r.staff ? html`Responsible: ${r.staff}` : ''}${r.staff && v !== null ? ' · ' : ''}${v !== null ? html`<span class="${v < 0 ? 'cls-neg' : ''}">Variance ${variance(v)}</span>` : ''}</span
+    >`;
+  };
 
   const recordRow = (r) => {
     const what = `${slotLabel(r.kind, r.seq)} closing, ${shortDate(r.business_date)}`;
     return html`<li>
-      <span>${dot(r.kind)}<strong>${slotLabel(r.kind, r.seq)}</strong> · ${shortDate(r.business_date)} ${badges(r)}</span>
+      <span class="cls-rec"
+        ><span>${dot(r.kind)}<strong>${slotLabel(r.kind, r.seq)}</strong> · ${shortDate(r.business_date)} ${badges(r)}</span
+        >${details(r)}</span
+      >
       <span class="cls-actions-inline">
         ${
           r.status === 'draft'
@@ -128,18 +143,19 @@ export async function mount(el, { ctx } = {}) {
       </p>
     </section>`;
 
+  // The day: the draft to carry on with, if there is one; otherwise the slot to start. Saved closings are listed once, under Saved records.
   const dayPanel = () => {
-    const todays = recent.filter((r) => r.business_date === sel);
+    const open = drafts.filter((r) => r.business_date === sel);
+    if (open.length)
+      return html`<section class="card" id="cls-day">
+        <h2>${longDate(sel)}</h2>
+        <ul class="cls-list">
+          ${open.map(recordRow)}
+        </ul>
+      </section>`;
     const suggested = suggestForDate(sel, recent);
     return html`<section class="card" id="cls-day">
       <h2>${longDate(sel)}</h2>
-      ${
-        todays.length
-          ? html`<ul class="cls-list">
-              ${todays.map(recordRow)}
-            </ul>`
-          : html`<p class="cls-meta">Nothing saved for this day yet.</p>`
-      }
       ${
         suggested
           ? ''
@@ -209,7 +225,7 @@ export async function mount(el, { ctx } = {}) {
         <div class="cls-grid">
           ${calendar()} ${dayPanel()} ${records()}
           ${
-            canOpen
+            canOpen && !hasOpening
               ? html`<section class="card">
                   <h2>Opening closing</h2>
                   <p class="cls-meta">
@@ -270,6 +286,7 @@ export async function mount(el, { ctx } = {}) {
     });
     on('[data-act="continue"]', (b) => {
       const d = drafts.find((x) => x.key === b.dataset.key);
+      if (!d) return toast('That draft is no longer available. Reload the page.', 'error');
       setOpen({
         key: d.key,
         date: d.business_date,

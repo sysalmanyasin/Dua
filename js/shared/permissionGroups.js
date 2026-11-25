@@ -116,3 +116,62 @@ export function applyOverride(overrides, key, effect) {
   const rest = overrides.filter((o) => o.perm_key !== key);
   return effect === null ? rest : [...rest, { perm_key: key, effect }];
 }
+
+// ───────── "By permission" view (Users & Access): for each permission, who holds it ─────────
+// people: profiles [{ user_id, username, role_template, disabled_at, staff?: { full_name } }]
+// allOverrides: every personal setting [{ user_id, perm_key, effect }]
+// The owner (role "admin") always has everything, so is left out of the lists.
+export function buildPermissionRows(permissions, people, rolePerms, allOverrides) {
+  const byUser = new Map();
+  for (const o of allOverrides) {
+    if (!byUser.has(o.user_id)) byUser.set(o.user_id, []);
+    byUser.get(o.user_id).push(o);
+  }
+  const staff = people.filter((p) => p.role_template !== 'admin');
+  const byId = new Map();
+  for (const perm of permissions) {
+    const id = groupId(perm.key);
+    if (!byId.has(id)) byId.set(id, { id, label: groupLabel(id), items: [] });
+    const who = staff.map((p) => ({
+      user_id: p.user_id,
+      name: p.staff?.full_name ?? p.username,
+      role: p.role_template,
+      disabled: Boolean(p.disabled_at),
+      ...accessFor(p.role_template, rolePerms, byUser.get(p.user_id) ?? [], perm.key),
+    }));
+    // Allowed people first, then A-Z by name.
+    who.sort((a, b) => Number(b.allowed) - Number(a.allowed) || a.name.localeCompare(b.name));
+    byId.get(id).items.push({
+      key: perm.key,
+      name: perm.label ?? shortName(perm.key),
+      description: perm.description ?? '',
+      people: who,
+      allowedCount: who.filter((w) => w.allowed).length,
+      customCount: who.filter((w) => w.override !== null).length,
+      total: who.length,
+    });
+  }
+  const groups = [...byId.values()];
+  for (const g of groups) {
+    g.items.sort((x, y) => x.key.localeCompare(y.key));
+    g.total = g.items.length;
+  }
+  return groups.sort((x, y) => x.label.localeCompare(y.label));
+}
+
+// filter: 'all' | 'allowed' (someone has it) | 'nobody' (no one has it) | 'custom' (someone has a personal setting)
+export function filterPermissionRows(groups, { query = '', filter = 'all' } = {}) {
+  const q = query.trim().toLowerCase();
+  const out = [];
+  for (const g of groups) {
+    const items = g.items.filter((i) => {
+      if (filter === 'allowed' && i.allowedCount === 0) return false;
+      if (filter === 'nobody' && i.allowedCount > 0) return false;
+      if (filter === 'custom' && i.customCount === 0) return false;
+      if (!q) return true;
+      return `${g.label} ${i.key} ${i.name} ${i.description}`.toLowerCase().includes(q);
+    });
+    if (items.length) out.push({ ...g, items });
+  }
+  return out;
+}

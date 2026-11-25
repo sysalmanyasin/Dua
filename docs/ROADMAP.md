@@ -41,7 +41,7 @@
 - **Done 22 Nov 2026 (merged, PR #66):** Phase 5 increment 2, the JS reference model with a parity test against the database.
 - **Done 22 Nov 2026 (merged 23 Nov as PR #70):** Phase 5 increment 3, the data layer `data/workbooks.js` (no screens).
 - **Done 23 Nov 2026 (merged as PR #77):** Phase 5 increment 4, the read-only grid screen and New workbook.
-- **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Next is Sheets Phase 5 increment 5, editing (after the owner has tried the read-only grid on a real phone), then structure operations and formats. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
+- **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Cell editing (Phase 5 increment 5) is built; next is Sheets Phase 5 increment 6 (sheet management), then row and column structure operations and formats. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
 - **Next (Phase 5):** workbooks and the spreadsheet grid. `1102` (sheets, cells with stable row/column ids, styles, operation log, snapshots) is on `main` and applied live (21 Nov 2026); the Sheets UI is not built; next are the JS domain model with a parity fixture, then the grid.
 - **Then:** formula engine (6), formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
 

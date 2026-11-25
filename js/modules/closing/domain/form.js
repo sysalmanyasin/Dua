@@ -478,9 +478,9 @@ export function localTotals(form, carry = {}) {
   const misc = live(form.misc).reduce((t, r) => t + p(r.amount), 0);
   const ov = parseAmount(form.overrides.curr_cc);
   const ccCurr = ov !== null && !Number.isNaN(ov) ? toPaisa(ov) : p(form.alfalah) + p(form.keenu) - p(form.comp_sale);
-  // a Final closing may type its own carried CC; empty means use the carried figure (a typed 0 counts)
+  // a closing may type its own carried CC; empty means use the carried figure (a typed 0 counts)
   const ovCarried = parseAmount(form.overrides.prev_cc);
-  const carriedCc = carry.final && ovCarried !== null && !Number.isNaN(ovCarried) ? toPaisa(ovCarried) : toPaisa(carry.cc);
+  const carriedCc = ovCarried !== null && !Number.isNaN(ovCarried) ? toPaisa(ovCarried) : toPaisa(carry.cc);
   const debt =
     toPaisa(carry.credit) +
     live(form.credit.named).reduce((t, r) => t + p(r.amount), 0) +

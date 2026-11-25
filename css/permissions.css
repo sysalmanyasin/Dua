@@ -238,3 +238,71 @@
   min-height: 40px;
   margin-left: auto;
 }
+
+/* "By permission" view on Users & Access (js/modules/access/ui/page.js): who holds each permission. */
+.pm {
+  display: grid;
+  gap: var(--space-2);
+}
+.pm-chips {
+  display: block;
+}
+.pm-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pm-who {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.pm-who.pm-none {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.pm-count {
+  flex: none;
+  min-width: 3ch;
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+.pm-people {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+.pm-person {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.pm-person.pm-yes {
+  color: var(--text);
+}
+.pm-pname {
+  flex: 1 1 8rem;
+}
+.pm-state {
+  font-size: 0.85rem;
+  font-weight: 600;
+}

@@ -22,14 +22,14 @@ insert into public.profiles(user_id, staff_id, username, role_template) values
 do $t$ declare v jsonb; failed boolean; n int; code text; begin
   perform pg_temp.ok((select count(*) from public.permissions where key in ('ops.view','ops.manage_rules')) = 2, 'both ops permissions exist');
   perform pg_temp.ok(not exists (select 1 from public.role_permissions where perm_key in ('ops.view','ops.manage_rules')), 'no role preset carries an ops permission');
-  perform pg_temp.ok((select count(*) from public.ops_rules) = 5 and (select count(*) from public.ops_activity_categories) = 2, 'the default rules and categories are seeded');
+  perform pg_temp.ok((select count(*) from public.ops_rules) = 7 and (select count(*) from public.ops_activity_categories) = 2, 'the default rules and categories are seeded');
   perform pg_temp.ok((select enabled from public.ops_rules where rule_key = 'deposit_vs_cash') = false, 'the deposit rule starts off');
   perform pg_temp.ok((select count(*) from public.ops_rules where not public.ops_params_ok(rule_key, params)) = 0, 'every seeded rule passes its own parameter check');
 
   -- the owner
   perform pg_temp.as_user('00000000-0000-0000-0000-0000000000a1', 'aal2');
   v := public.ops_rules_list();
-  perform pg_temp.ok(jsonb_array_length(v -> 'rules') = 5 and jsonb_array_length(v -> 'activity_categories') = 2, 'the owner sees the rules and categories');
+  perform pg_temp.ok(jsonb_array_length(v -> 'rules') = 7 and jsonb_array_length(v -> 'activity_categories') = 2, 'the owner sees the rules and categories');
   perform public.ops_rule_set('closing_draft_open', null, 'critical', '{"hours": 6}', 'tighter');
   perform pg_temp.ok((select r.severity = 'critical' and r.params = '{"hours": 6}' and r.enabled from pg_temp.rule('closing_draft_open') r), 'the owner can change severity and settings');
   perform public.ops_rule_set('closing_draft_open', false, null, null, null);

@@ -78,3 +78,16 @@ export function goPipe(page, { engagement, round }) {
   setView({ ...view, engagement: engagement ?? view.engagement, round: round ?? view.round });
   location.hash = `#/audit/${page}`;
 }
+
+/** CSP forbids inline style attributes, so each bar's width is set as a DOM property after the escaped markup is rendered. */
+export function applyProgressBars(root) {
+  root.querySelectorAll('[data-progress]').forEach((b) => {
+    b.style.width = `${Math.max(0, Math.min(100, Number(b.dataset.progress) || 0))}%`;
+  });
+}
+
+/** A thin progress bar (percent 0 to 100). Call applyProgressBars on the page after rendering. */
+export const progressBar = (percent) =>
+  html`<div class="aud-progress" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
+    <span data-progress="${percent}"></span>
+  </div>`;

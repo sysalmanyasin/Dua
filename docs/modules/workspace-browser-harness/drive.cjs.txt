@@ -1,0 +1,79 @@
+const { chromium } = require('playwright');
+const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' });
+  await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/tmp/chromium', args: ['--no-sandbox', '--disable-gpu'] });
+  const out = {};
+  async function open(opts) {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2, ...opts });
+    const page = await ctx.newPage();
+    await page.goto('http://localhost:8765/');
+    await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
+    return { ctx, page };
+  }
+  const lum = (rgb) => { const [r,g,b] = rgb.match(/\d+(\.\d+)?/g).slice(0,3).map(Number).map((v)=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4)}); return 0.2126*r+0.7152*g+0.0722*b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return +((x + 0.05) / (y + 0.05)).toFixed(2); };
+
+  // ---- light, portrait phone
+  let { ctx, page } = await open({});
+  out.errors = await page.evaluate(() => window.__errors);
+  out.cellsInDom = await page.evaluate(() => document.querySelectorAll('.ws-cell').length);
+  out.rowCount = await page.evaluate(() => document.querySelector('.ws-grid').getAttribute('aria-rowcount'));
+  const pill = await page.evaluate(() => { const e = document.querySelector('#ws-role'); const cs = getComputedStyle(e); return { color: cs.color, bg: cs.backgroundColor, text: e.textContent }; });
+  out.pill = { ...pill, ratio: ratio(pill.color, pill.bg) };
+  await page.screenshot({ path: '/tmp/shots/01-top.png' });
+
+  // tap a cell with a finger
+  const box = await page.locator('.ws-cell[data-row="3"][data-col="2"]').boundingBox();
+  await page.touchscreen.tap(box.x + 8, box.y + 8);
+  out.afterTap = await page.evaluate(() => document.querySelector('#ws-formula').textContent.replace(/\s+/g, ' ').trim());
+
+  // scroll body down and right, then check paint order with elementFromPoint
+  await page.evaluate(() => { const s = document.querySelector('.ws-grid-scroll'); s.scrollTop = 28 * 1200; s.scrollLeft = 96 * 3; });
+  await page.waitForTimeout(300);
+  out.scrolledRows = await page.evaluate(() => [...document.querySelectorAll('.ws-head-row')].map((h) => h.textContent).slice(0, 3).concat(['...']).concat([...document.querySelectorAll('.ws-head-row')].map((h) => h.textContent).slice(-2)));
+  out.cellsAfterScroll = await page.evaluate(() => document.querySelectorAll('.ws-cell').length);
+  out.paint = await page.evaluate(() => {
+    const g = document.querySelector('.ws-grid').getBoundingClientRect();
+    const at = (x, y) => { const e = document.elementFromPoint(g.left + x, g.top + y); return e ? e.className + ':' + e.textContent.slice(0, 12) : null; };
+    return {
+      colHeaderOverBody: at(200, 10), // inside the column-header strip
+      rowHeaderOverBody: at(10, 100), // inside the row-header strip
+      corner: at(10, 10),
+      frozenRowStrip: at(200, 28 + 10), // frozen first row, scrolled columns
+      frozenColStrip: at(44 + 10, 100), // frozen first column, scrolled rows
+    };
+  });
+  await page.screenshot({ path: '/tmp/shots/02-scrolled.png' });
+
+  // frame cost: 60 scroll steps, time until next frame each
+  out.frames = await page.evaluate(async () => {
+    const s = document.querySelector('.ws-grid-scroll'); const times = [];
+    for (let i = 0; i < 60; i += 1) {
+      const t0 = performance.now(); s.scrollTop = 28 * (100 + i * 7);
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      times.push(performance.now() - t0);
+    }
+    times.sort((a, b) => a - b);
+    return { median_ms: +times[30].toFixed(1), p95_ms: +times[56].toFixed(1), max_ms: +times[59].toFixed(1) };
+  });
+  out.errorsAfter = await page.evaluate(() => window.__errors);
+  await ctx.close();
+
+  // ---- dark mode
+  ({ ctx, page } = await open({ colorScheme: 'dark' }));
+  out.dark = await page.evaluate(() => { const cell = document.querySelector('.ws-cell[data-row="1"][data-col="0"]'); const cs = getComputedStyle(cell); const pill = getComputedStyle(document.querySelector('#ws-role')); const bar = getComputedStyle(document.querySelector('#ws-formula')); return { cellColor: cs.color, cellBg: cs.backgroundColor, pillColor: pill.color, pillBg: pill.backgroundColor, barColor: bar.color, barBg: bar.backgroundColor }; });
+  out.dark.cellRatio = ratio(out.dark.cellColor, out.dark.cellBg);
+  out.dark.pillRatio = ratio(out.dark.pillColor, out.dark.pillBg);
+  await page.screenshot({ path: '/tmp/shots/03-dark.png' });
+  await ctx.close();
+
+  // ---- landscape
+  ({ ctx, page } = await open({ viewport: { width: 844, height: 390 } }));
+  out.landscape = await page.evaluate(() => { const g = document.querySelector('.ws-grid').getBoundingClientRect(); return { gridH: Math.round(g.height), gridW: Math.round(g.width), cells: document.querySelectorAll('.ws-cell').length, pageScrollsSideways: document.documentElement.scrollWidth > document.documentElement.clientWidth }; });
+  await page.screenshot({ path: '/tmp/shots/04-landscape.png' });
+  await ctx.close();
+  console.log(JSON.stringify(out, null, 1));
+  await browser.close(); srv.kill();
+})().catch((e) => { console.error('DRIVER FAIL', e); process.exit(1); });

@@ -1,6 +1,6 @@
 // Pure Credit Inbox rules for the screen. The database (0108_mgmt_inbox.sql) decides everything and checks it again;
 // this file only words things and repeats the checks so the screen can explain a problem before the owner presses File.
-// The amount and the date of a line are locked to what Closing recorded: nothing here can change them.
+// The date and amount of the entry start as what Closing recorded and the owner may correct them while filing.
 import { SHIFTS } from './ledger.js';
 
 export const INBOX_TABS = [
@@ -12,7 +12,10 @@ export const INBOX_TABS = [
 const KIND_WORDS = { named: 'Named customer', tier: 'Credit tier', free: 'Other credit', adjustment: 'Adjustment' };
 export const kindLabel = (kind) => KIND_WORDS[kind] ?? 'Credit';
 
-const SLOT_WORDS = { day: 'Day shift', night: 'Night shift' };
+const SLOT_WORDS = { day: 'Day shift', night: 'Night shift', morning: 'Morning shift', evening: 'Evening shift' };
+// The shift a ledger entry starts with, taken from the Closing slot (the owner can change it).
+export const defaultShift = (slotKind) => ({ morning: 'Morning', evening: 'Evening', night: 'Night' })[slotKind] ?? SHIFTS[0];
+
 export const slotLabel = (kind, seq) => `${SLOT_WORDS[kind] ?? kind ?? 'Shift'}${Number(seq) > 1 ? ` ${seq}` : ''}`;
 
 // Where this person may file to. Seeing the inbox is not enough: the target's own key is needed as well.
@@ -36,18 +39,21 @@ export function filingSummary(line, { target, person = null, ledger = null, cate
 // Mirrors the checks in mgmt_inbox_file. Returns { field: message }; empty means "looks fine".
 export function validateFiling(line, form, { ledgers = [], people = [] } = {}) {
   const errors = {};
+  const amount = form.amount === undefined || form.amount === '' ? Number(line.amount) : Number(form.amount);
+  const date = form.date || line.business_date;
+  if (!Number.isFinite(amount) || amount === 0) errors.amount = 'Enter an amount.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.date = 'Pick a date.';
   if (line.removed) errors.line = 'Closing has removed this line. Dismiss it instead.';
   if (form.target === 'credit') {
     const person = people.find((p) => p.staff_id === form.staffId);
     if (!person) errors.staff = 'Pick a person.';
-    else if (person.opening_month && line.business_date < person.opening_month)
-      errors.staff = 'This line is dated before that person’s opening balance month.';
+    else if (person.opening_month && date < person.opening_month) errors.staff = 'This date is before that person’s opening balance month.';
   } else if (form.target === 'ledger') {
     const ledger = ledgers.find((l) => l.ledger_id === form.ledgerId);
     const category = ledger?.categories.find((c) => c.id === form.categoryId);
     if (!ledger) errors.ledger = 'Pick a ledger.';
     else if (!category) errors.category = 'Pick a category.';
-    if (Number(line.amount) < 0) errors.line = 'A negative line can only go to staff credit, or be dismissed.';
+    if (amount < 0) errors.line = 'A negative line can only go to staff credit, or be dismissed.';
     if (ledger?.has_shift && !SHIFTS.includes(form.shift)) errors.shift = 'Pick a shift.';
   } else {
     errors.target = 'Pick where this line goes.';

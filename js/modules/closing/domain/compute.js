@@ -136,6 +136,18 @@ export function computeClosing(input) {
   };
 }
 
+/**
+ * The three lines of the reconciliation, shared by the Final Audit banner, the Submit review and the saved-closing view so they can
+ * never disagree: the target (Net Sale), the cash available against it, and the signed difference (Plus / Less).
+ * Shift: net_cash is the cash available and the difference is net_cash − net_sale (BUSINESS_RULES 14–15).
+ * Final: the server's final_net_cash already is the difference (cash left after the target), so the cash available is
+ * final_net_cash + final_net_sale. Works on figures in any one unit (rupees from the server, paisa from computeClosing).
+ */
+export function reconciliation(p, mode) {
+  if (mode === 'final') return { target: p.final_net_sale, cash: p.final_net_cash + p.final_net_sale, diff: p.final_net_cash };
+  return { target: p.net_sale, cash: p.net_cash, diff: p.shift_variance };
+}
+
 // Plus / Less / Even label and arrow for the screens (status is never colour-only).
 export function varianceLabel(paisa) {
   if (paisa === null || paisa === undefined) return { word: '', arrow: '' };

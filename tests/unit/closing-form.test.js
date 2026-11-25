@@ -72,15 +72,14 @@ describe('closing form', () => {
     expect(Object.values(payload.overrides)).toEqual([null, null, null, null, null]);
   });
 
-  it('carried CC: a typed override replaces the carried figure on a Final closing only', () => {
+  it('carried CC: a typed override replaces the carried figure', () => {
     const f = emptyForm();
     f.overrides.prev_cc = '-1,000';
-    expect(localTotals(f, { cc: -8560, final: true }).ccTotal).toBe(-100000);
-    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(-856000);
+    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(-100000);
     f.overrides.prev_cc = '0';
-    expect(localTotals(f, { cc: -8560, final: true }).ccTotal).toBe(0);
+    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(0);
     f.overrides.prev_cc = '';
-    expect(localTotals(f, { cc: -8560, final: true }).ccTotal).toBe(-856000);
+    expect(localTotals(f, { cc: -8560 }).ccTotal).toBe(-856000);
   });
 
   it('carried CC override round-trips through the saved row and the payload', () => {

@@ -13,6 +13,13 @@ vi.mock('../../js/modules/home/data/api.js', () => ({
   watchClosings: vi.fn(() => () => {}),
   myPayslips: vi.fn(async () => ({ payslips: [] })),
   myRecentClosings: vi.fn(async () => []),
+  myInboxList: vi.fn(async () => []),
+  myInboxUnread: vi.fn(async () => 0),
+  myTaskSnapshot: vi.fn(async () => null),
+  myTaskList: vi.fn(async () => null),
+  taskVerificationQueue: vi.fn(async () => null),
+  taskTeamOverview: vi.fn(async () => null),
+  taskPendingRequests: vi.fn(async () => null),
 }));
 const api = await import('../../js/modules/home/data/api.js');
 const { mount } = await import('../../js/modules/home/ui/page.js');
@@ -31,6 +38,7 @@ beforeEach(() => {
   api.opsActionItems.mockClear();
   api.opsRecentActivity.mockClear();
   api.myPayslips.mockClear();
+  for (const f of ['myTaskSnapshot', 'myTaskList', 'taskVerificationQueue', 'taskTeamOverview', 'taskPendingRequests']) api[f].mockClear();
 });
 afterEach(() => {
   document.body.innerHTML = '';
@@ -78,5 +86,29 @@ describe('Home: Operations sections are for ops.view only', () => {
     const order = [...el.querySelectorAll('h2')].map((h) => h.textContent.trim());
     expect(order.indexOf('Business intelligence')).toBeGreaterThan(order.indexOf('Action Centre'));
     expect(order.indexOf('Recent activity')).toBeGreaterThan(order.indexOf('Business intelligence'));
+  });
+});
+
+describe('Home: Task Master sections follow the task permissions', () => {
+  it('gives staff with tasks.view_own the work sections, and never the team overview', async () => {
+    await open(['tasks.view_own']);
+    expect(el.querySelector('#home-staff-work')).not.toBeNull();
+    expect(el.querySelector('#home-team')).toBeNull();
+    expect(api.myTaskSnapshot).toHaveBeenCalled();
+    expect(api.taskTeamOverview).not.toHaveBeenCalled();
+  });
+  it('gives the Owner Staff & Team between the Business Intelligence and Recent Activity, and no personal task list', async () => {
+    await open(['ops.view', 'tasks.manage', 'tasks.view_own']);
+    const order = [...el.querySelectorAll('#home-ops-actions, #home-ops-bi, #home-team, #home-ops-activity')].map((n) => n.id);
+    expect(order).toEqual(['home-ops-actions', 'home-ops-bi', 'home-team', 'home-ops-activity']);
+    expect(el.querySelector('#home-staff-work')).toBeNull();
+    expect(api.taskTeamOverview).toHaveBeenCalled();
+    expect(api.myTaskSnapshot).not.toHaveBeenCalled();
+  });
+  it('asks the database for no task data without a task permission', async () => {
+    await open(['sales.view_last_day']);
+    expect(el.querySelector('#home-team')).toBeNull();
+    expect(el.querySelector('#home-staff-work')).toBeNull();
+    expect(api.myTaskSnapshot).not.toHaveBeenCalled();
   });
 });

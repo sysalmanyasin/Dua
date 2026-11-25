@@ -80,7 +80,7 @@ do $t$ declare n int; c jsonb; begin
   select count(*) into n from public.profiles; perform pg_temp.ok(n = 1, 'junior sees only own profile');
   select count(*) into n from public.staff; perform pg_temp.ok(n = 1, 'junior sees only own staff record');
   select count(*) into n from public.settings where key = 'till_float'; perform pg_temp.ok(n = 0, 'junior cannot read till_float');
-  c := public.my_context(); perform pg_temp.ok(c ->> 'role' = 'junior' and jsonb_array_length(c -> 'permissions') = 6 and c -> 'permissions' ? 'tasks.view_own', 'junior context lists exactly 6 permissions (5 from Foundation + tasks.view_own from Task Master, 1200)');
+  c := public.my_context(); perform pg_temp.ok(c ->> 'role' = 'junior' and jsonb_array_length(c -> 'permissions') = 7 and c -> 'permissions' ? 'tasks.view_own' and c -> 'permissions' ? 'ntf.view_own', 'junior context lists exactly 7 permissions (5 from Foundation + tasks.view_own from Task Master, 1200 + ntf.view_own from the inbox, 1300)');
   perform pg_temp.denied($$update public.profiles set role_template = 'admin' where username = 'junior1'$$, 'junior cannot promote self');
   perform pg_temp.denied($$insert into public.user_permissions(user_id, perm_key, effect) values ('00000000-0000-0000-0000-0000000000b1','users.manage','grant')$$, 'junior cannot grant self permissions');
   perform pg_temp.denied($$update public.settings set value = '0'$$, 'junior cannot edit settings');

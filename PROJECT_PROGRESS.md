@@ -41,3 +41,4 @@ Current corrections:
 - Closing has a partial guided ledger UI; it is not complete.
 - Inventory 0301–0306 and the Edge Function are live, and the module (all screens) is merged into `main` (17 Nov 2026). Do not reapply live migrations. Hourly sync schedule moved to minute 7 on 17 Nov (see docs/modules/inventory.progress.md).
 - The latest main progress entry reports 357 unit/jsdom tests. Module-specific counts are snapshots and must not be summed.
+| 2026-11-23 | Security: `rls_auto_enable()` execute revoked from signed-in users (migration 0017, applied live); Workspace Sheets data layer and read-only grid merged (PRs #70, #77) | yes | 11 new DB checks (3,870 in the suite) + mutation check; PostgreSQL 16 experiment on the event trigger; live probe table still got RLS | — | owner: turn on leaked-password protection in the Auth dashboard; review of the 231 SECURITY DEFINER functions stays open (ROADMAP) |

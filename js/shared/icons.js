@@ -14,5 +14,7 @@ export const ICONS = {
   shield: svg('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>'),
   chart: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
   menu: svg('<path d="M4 6h16M4 12h16M4 18h16"/>'),
+  bell: svg('<path d="M6 16v-5a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21a2 2 0 004 0"/>'),
+  tasks: svg('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1.2 1.2L7.2 5M4 12l1.2 1.2L7.2 11M4 18l1.2 1.2L7.2 17"/>'),
 };
 export const icon = (name) => ICONS[name] ?? ICONS.shield;

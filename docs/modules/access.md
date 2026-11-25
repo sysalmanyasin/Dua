@@ -6,6 +6,7 @@
 
 - Registered module id: `access`; route: `/access`; manifest permission: `users.manage`.
 - The Users & Access page lists profiles linked to Staff Registry people, role templates and disabled/locked state.
+- A **By person | By permission** toggle switches the page between each person's permissions and, for every permission, who holds it (read-only; role preset plus personal override, owner left out). The By permission view reads all `user_permissions` rows, which RLS allows for `users.manage`.
 - Owner actions include changing a staff role, setting a new 4-digit PIN, unlocking a PIN lockout, enabling/disabling a login, and setting per-person permission overrides.
 - Effective access is role preset plus personal override; an explicit deny wins over the role default. Admin access remains governed by the database MFA/aal2 rule.
 - Login creation is owner-managed from the Staff Registry; self-sign-up and public access-request onboarding have been removed.
@@ -16,7 +17,7 @@
 - `js/modules/access/manifest.js`: route and permission metadata.
 - `js/modules/access/domain/permissions.js`: pure effective-access calculation.
 - `js/modules/access/data/api.js`: profile, permission catalog and override reads; RPC/Edge Function actions.
-- `js/modules/access/ui/page.js`: Users & Access page.
+- `js/modules/access/ui/page.js`: Users & Access page, including the By permission view (`buildPermissionRows` / `filterPermissionRows` in `permissionGroups.js`).
 - `js/shared/permissionPanel.js` + `permissionGroups.js` + `css/permissions.css`: the grouped checkbox list (also used by Audit team access). A checkbox shows the final result; the stored value is the smallest change (nothing when it matches the role preset, else a personal Allow or Deny). One logged `set_user_permission` call per change; the list updates in place and a failed save puts the row back.
 - `supabase/functions/staff-login/` and `admin-users/`: staff authentication and owner-managed account operations.
 - `tests/unit/access-domain.test.js`: domain permission tests. `tests/unit/permission-groups.test.js`, `permission-panel.test.js`: grouping, checkbox rules and the panel in a DOM.

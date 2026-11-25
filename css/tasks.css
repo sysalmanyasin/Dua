@@ -1,0 +1,297 @@
+/* Task Master — My Tasks, To Verify, All Tasks, Requests, Schedules, Team, and the Home task sections.
+   Mobile first: one column, 44px tap targets, status shown in words as well as colour. */
+.tk-page {
+  display: grid;
+  gap: var(--space-3);
+}
+.tk-counts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+.tk-count {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.tk-count strong {
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+.tk-count span {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.tk-count.tk-bad {
+  border-color: var(--danger);
+}
+.tk-count.tk-bad strong {
+  color: var(--danger);
+}
+.tk-count.tk-warn {
+  border-color: #b7791f;
+}
+.tk-count.tk-ok strong {
+  color: var(--ok);
+}
+.tk-tabs,
+.tk-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.tk-tabs .btn,
+.tk-buttons .btn,
+.tk-form .btn {
+  min-height: 44px;
+}
+.tk-h {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 1rem;
+}
+.tk-h span {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.tk-h.tk-bad {
+  color: var(--danger);
+}
+.tk-h2 {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 0.95rem;
+}
+.tk-cards {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tk-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.tk-card.tk-overdue {
+  border-left: 4px solid var(--danger);
+}
+.tk-card.tk-paused {
+  opacity: 0.7;
+}
+.tk-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.tk-main {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.tk-title {
+  overflow-wrap: anywhere;
+}
+.tk-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.tk-urgent {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--danger);
+}
+.tk-chip {
+  flex: none;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  background: var(--surface-2);
+}
+.tk-chip.tk-ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.tk-chip.tk-bad {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.tk-chip.tk-warn {
+  border-color: #b7791f;
+}
+.tk-quote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.tk-detail {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.tk-detail h4 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.tk-instructions {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.tk-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.tk-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+}
+.tk-list li {
+  overflow-wrap: anywhere;
+}
+.tk-form {
+  display: grid;
+  gap: var(--space-2);
+}
+.tk-form textarea,
+.tk-form input[type='text'],
+.tk-form input[type='date'],
+.tk-form input[type='number'],
+.tk-form select,
+.tk-filters select {
+  width: 100%;
+  min-height: 44px;
+  font: inherit;
+}
+.tk-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+.tk-check input {
+  width: 22px;
+  height: 22px;
+}
+.tk-weekdays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.tk-more > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 600;
+}
+.tk-more[open] > summary {
+  margin-bottom: var(--space-2);
+}
+.tk-new {
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.tk-filters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  align-items: end;
+}
+.tk-filters .btn {
+  grid-column: 1 / -1;
+  min-height: 44px;
+}
+.tk-table-wrap {
+  overflow-x: auto;
+}
+.tk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.tk-table th,
+.tk-table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.tk-table td.tk-bad {
+  color: var(--danger);
+  font-weight: 700;
+}
+.tk-caption {
+  margin: 0 0 var(--space-2);
+  text-align: left;
+  color: var(--text-muted);
+}
+.tk-compact .tk-card {
+  padding: var(--space-2) var(--space-3);
+}
+.tk-card:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (min-width: 640px) {
+  .tk-counts {
+    grid-template-columns: repeat(6, 1fr);
+  }
+  .tk-filters {
+    grid-template-columns: 1fr 1fr auto;
+  }
+  .tk-filters .btn {
+    grid-column: auto;
+  }
+}
+
+/* Inbox (Stage 4) and the Home Messages section */
+.ib-unread {
+  border-left: 4px solid var(--accent, var(--focus));
+}
+.ib-new {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent, #1f5fa8);
+}
+.ib-body {
+  overflow-wrap: anywhere;
+}

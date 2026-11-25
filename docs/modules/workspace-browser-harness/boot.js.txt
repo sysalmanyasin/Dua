@@ -1,0 +1,10 @@
+
+import { OPEN_KEY } from '/js/modules/workspace/domain/documents.js';
+sessionStorage.setItem(OPEN_KEY, 'wb1');
+window.__errors = [];
+addEventListener('securitypolicyviolation', (e) => window.__errors.push('CSP ' + e.violatedDirective + ' ' + e.blockedURI));
+addEventListener('error', (e) => window.__errors.push('ERR ' + e.message));
+addEventListener('unhandledrejection', (e) => window.__errors.push('REJ ' + e.reason));
+const { mount } = await import('/js/modules/workspace/ui/sheet.js');
+await mount(document.getElementById('app'));
+window.__ready = true;

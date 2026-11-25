@@ -114,3 +114,58 @@ describe('applyOverride', () => {
     expect(applyOverride(list, 'a.b', null)).toEqual([]);
   });
 });
+
+import { buildPermissionRows, filterPermissionRows } from '../../js/shared/permissionGroups.js';
+
+describe('buildPermissionRows (By permission view)', () => {
+  const people = [
+    { user_id: 'o', username: 'owner', role_template: 'admin', staff: { full_name: 'Owner' } },
+    { user_id: 'a', username: 'ann', role_template: 'junior', staff: { full_name: 'Ann' } },
+    { user_id: 'b', username: 'bob', role_template: 'senior', staff: null, disabled_at: '2026-01-01' },
+  ];
+  const overrides = [
+    { user_id: 'a', perm_key: 'audit.assign', effect: 'grant' },
+    { user_id: 'b', perm_key: 'audit.count', effect: 'deny' },
+  ];
+  const groups = buildPermissionRows(permissions, people, rolePerms, overrides);
+  const item = (key) => groups.flatMap((g) => g.items).find((i) => i.key === key);
+
+  it('leaves the owner out and lists everyone else for every permission', () => {
+    expect(item('audit.count').total).toBe(2);
+    expect(
+      item('audit.count')
+        .people.map((p) => p.user_id)
+        .sort(),
+    ).toEqual(['a', 'b']);
+  });
+  it('uses role preset plus personal settings, deny wins', () => {
+    expect(
+      item('audit.count')
+        .people.filter((p) => p.allowed)
+        .map((p) => p.user_id),
+    ).toEqual(['a']);
+    expect(
+      item('audit.assign')
+        .people.filter((p) => p.allowed)
+        .map((p) => p.user_id),
+    ).toEqual(['a']);
+    expect(item('mgmt.salary').allowedCount).toBe(0);
+  });
+  it('counts custom settings, falls back to username, and flags disabled logins', () => {
+    expect(item('audit.count').customCount).toBe(1);
+    const bob = item('audit.count').people.find((p) => p.user_id === 'b');
+    expect(bob.name).toBe('bob');
+    expect(bob.disabled).toBe(true);
+  });
+  it('puts allowed people first', () => {
+    expect(item('audit.count').people[0].user_id).toBe('a');
+  });
+  it('filters by someone/nobody/custom and by search text', () => {
+    const keys = (f) => filterPermissionRows(groups, f).flatMap((g) => g.items.map((i) => i.key));
+    expect(keys({ filter: 'nobody' })).toContain('mgmt.salary');
+    expect(keys({ filter: 'nobody' })).not.toContain('audit.count');
+    expect(keys({ filter: 'allowed' })).toContain('closing.enter_own');
+    expect(keys({ filter: 'custom' }).sort()).toEqual(['audit.assign', 'audit.count']);
+    expect(keys({ query: 'salary' })).toEqual(['mgmt.salary']);
+  });
+});

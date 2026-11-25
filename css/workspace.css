@@ -443,26 +443,66 @@ input.ws-title:focus {
 }
 .ws-formula {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  align-items: baseline;
+  align-items: center;
   margin-bottom: var(--space-2);
   padding: var(--space-1) var(--space-2);
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
-  min-height: 2rem;
+  min-height: 2.75rem;
 }
 .ws-formula-label {
   min-width: 3rem;
   font-weight: 700;
   color: var(--text-muted);
 }
-.ws-formula-text {
-  flex: 1;
+.ws-edit-input {
+  flex: 1 1 8rem;
   min-width: 0;
+  min-height: 2.25rem;
+  max-height: 7rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16 px or more, or iOS zooms the page when the box is focused */
+  line-height: 1.35;
+  resize: none;
+}
+.ws-edit-input:read-only {
+  background: var(--surface-2);
+}
+.ws-edit-input:focus-visible {
+  outline: 2px solid var(--blue-400);
+  outline-offset: 1px;
+}
+/* An element hidden with the hidden attribute must stay hidden even though the classes below set display: flex. */
+.ws-formula [hidden] {
+  display: none !important;
+}
+.ws-edit-actions,
+.ws-edit-choice {
+  display: flex;
+  gap: var(--space-2);
+}
+.ws-edit-actions .btn,
+.ws-edit-choice .btn {
+  min-height: 44px; /* a comfortable touch target */
+  min-width: 44px;
+}
+.ws-edit-msg {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
   overflow-wrap: anywhere;
-  max-height: 4.5rem;
-  overflow: auto;
+}
+.ws-edit-choice {
+  flex: 1 1 100%;
 }
 
 /* The grid always draws on a light sheet, so a cell colour the author chose is readable in dark mode too. */

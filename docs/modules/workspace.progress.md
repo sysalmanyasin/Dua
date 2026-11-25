@@ -52,7 +52,8 @@ Updated: 2026-11-23 (Phase 5 increment 4: read-only grid; increments 2 and 3 mer
 
 ## Not yet done
 
-- [ ] **Phase 5, increment 5 onwards — Sheets UI:** the domain model, parity fixture, data layer and read-only grid are done (increments 2 to 4); still to do: the New workbook flow, and the operations the database answers "not available yet" (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`).
+- [x] **Phase 5, increment 5 (24 Nov 2026): cell editing.** `domain/cellInput.js`, `ui/cellEditor.js`, edit bar in `ui/sheet.js`; 79 tests across three files; checked in a real Chromium (edit, formula refusal, draft guard, real conflict); the real browser found one bug jsdom could not (conflict buttons always visible), now fixed and guarded. Not verified on a real phone, with a screen reader, or against the real database. See `workspace.next-session.md` §3e.
+- [ ] **Phase 5, increment 6 onwards — still to do:** sheet management (add, rename, delete, reorder), row and column insert, delete and resize, formats (style editing), range selection with copy and paste, the ARIA row structure of the grid, and the operations the database answers "not available yet" (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`). See `workspace.next-session.md` §4.
 - [x] Style validator fix written (owner said fix it, 22 Nov): `supabase/migrations/1111_workspace_style_validator_fix.sql` and `1111_workspace_style_validator_fix_test.sql` (20 checks). Whole database suite passes. **Applied live by hand and registered as `1111` (verified 22 Nov 2026; confirmed again read-only in increment 3).**
 - [ ] **Phase 5 onward:** formula engine; formatting, sort/filter and CSV.
 - [ ] **Phase 8:** IndexedDB offline queue, retry/sync and sign-out cleanup (requires the Foundation sign-out hook).

@@ -1,6 +1,6 @@
 # Operations Redesign — audit, gap analysis and implementation plan
 
-Status: **Stage 1 done (21 Nov 2026) and Stage 2a (Owner Action Centre and Recent Activity) applied live and merged on 22 Nov 2026, Stage 2b (Business Intelligence, Staff sections, realtime) applied live and merged on 23 Nov 2026, Stage 3a (Task Master database layer) applied live and merged on 24 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-51 to D-55).** Nothing in this plan is built yet except the two hygiene fixes in §9.
+Status: **Stage 1 done (21 Nov 2026) and Stage 2a (Owner Action Centre and Recent Activity) applied live and merged on 22 Nov 2026, Stage 2b (Business Intelligence, Staff sections, realtime) applied live and merged on 23 Nov 2026, Stage 3a (Task Master database layer) applied live and merged on 24 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-51 to D-55).** Stage 3b (Task Master screens and the two Action Centre task rules) is built and tested on branch `ops-redesign-stage3b`, and migration 0703 was applied live on 25 Nov 2026 (see `docs/ops/f11-stage3b-apply-and-rollback.md`).
 Source brief: "DUA — Complete Operations Redesign & Implementation". Where the brief leaves a policy open, this plan lists it in §8 as a **decision for the owner** and does not assume an answer.
 
 ## 1. Method and limits
@@ -90,6 +90,8 @@ Rate = tasks completed and verified on or before their deadline ÷ tasks whose d
 No files or photos. The task creator chooses `none`, `note` (written text) or `tick` (a confirmation tick). The submit RPC refuses a submission that does not meet the rule. The note is stored on the submission event, so there is no evidence table and no Storage.
 
 ## 6. Notifications and reminders (Stage 4)
+**Status (25 Nov 2026):** built, tested and applied live on 25 Nov 2026 (1300, 1301, 1204); merge pending. The owner's answers are D-68. Where the sketch below differs, D-68 and the migrations win: one row per person per message (`ntf_messages`) instead of `ntf_recipients`, a closed table read through functions instead of RLS reads, and announcements are deferred.
+
 - New `ntf_recipients` (notification, user, created, delivered, read, acknowledged) so history is per person. The existing owner `notifications` table and `notify_owner()` keep working unchanged; new code calls a new `notify_users(kind, payload, recipients)` that writes the same kind of row and never raises.
 - In-app inbox read through RLS (a person sees only their own rows); push through the existing `notify-ntfy` pattern.
 - **Privacy:** push payloads carry ids and generic wording only. Salary, amounts and names never appear in a push or lock-screen text. This extends the rule already stated in `0012`.

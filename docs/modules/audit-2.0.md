@@ -1,6 +1,6 @@
 # Dua Audit 2.0 — landing page and navigation specification
 
-Status: Approved direction; implementation branch `feature/audit-2.0`
+Status: Approved direction; implementation branch `feature/audit-2.0`. **The navigation and landing page are superseded by `audit-tabs.md` (four tabs: Overview, Team Audit, Individual Audit, Tools).**
 Owner decisions: role-based dashboard, grouped navigation, complete UI/UX redesign.
 Scope: presentation and navigation redesign only. Existing audit business rules and database contracts remain authoritative.
 

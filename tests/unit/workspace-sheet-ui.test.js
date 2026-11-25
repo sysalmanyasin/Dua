@@ -377,20 +377,24 @@ describe('the workbook screen', () => {
     expect([...host.querySelectorAll('.ws-tab')].map(text)).toEqual(['Stock', 'Prices']);
     expect(host.querySelector('.ws-tab.is-active').textContent).toBe('Stock');
     expect(text(at(host, 0, 0))).toBe('Item');
-    expect(host.textContent).toContain('Read-only for now');
+    expect(host.textContent).toContain('Tap a cell, type, then Save');
     expect(host.querySelector('[data-act="add-sheet"]')).toBeNull();
   });
 
-  it('shows the content of the tapped cell above the grid, formulas as written', async () => {
+  it('shows the content of the tapped cell above the grid, formulas as written and not editable yet', async () => {
     open();
     await go();
-    expect(host.querySelector('#ws-formula').textContent).toContain('Tap a cell');
+    const box = () => host.querySelector('.ws-edit-input');
+    expect(box().placeholder).toContain('Tap a cell');
+    expect(box().disabled).toBe(true);
     at(host, 1, 0).click();
     expect(text(host.querySelector('.ws-formula-label'))).toBe('A2');
-    expect(text(host.querySelector('.ws-formula-text'))).toBe('Panadol');
+    expect(box().value).toBe('Panadol');
     at(host, 2, 1).click();
     expect(text(host.querySelector('.ws-formula-label'))).toBe('B3');
-    expect(text(host.querySelector('.ws-formula-text'))).toBe('=B2*2');
+    expect(box().value).toBe('=B2*2');
+    expect(box().readOnly).toBe(true);
+    expect(host.querySelector('.ws-edit-msg').textContent).toContain('later update');
   });
 
   it('switches sheets from the tabs', async () => {

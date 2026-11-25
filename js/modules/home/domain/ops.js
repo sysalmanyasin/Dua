@@ -6,7 +6,7 @@ export const PRIORITIES = {
   warning: { label: 'Needs attention', rank: 1, mark: '▲' },
   info: { label: 'For information', rank: 2, mark: 'i' },
 };
-export const CATEGORY_LABELS = { closing: 'Closing', sales: 'Sales', inventory: 'Stock', cash: 'Cash', system: 'System' };
+export const CATEGORY_LABELS = { closing: 'Closing', sales: 'Sales', inventory: 'Stock', cash: 'Cash', tasks: 'Tasks', system: 'System' };
 
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 // Links come from the database but are only ever followed inside the app: a plain "/page" path, never a web address.

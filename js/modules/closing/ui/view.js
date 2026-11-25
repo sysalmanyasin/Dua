@@ -2,11 +2,11 @@
 // (the old app opened a saved closing view-only); people with view-all can open any.
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
-import { longDate } from '../../../shared/format.js';
+import { longDate, money } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import { SECTIONS } from '../domain/sections.js';
-import { snapshotRows } from '../domain/snapshot.js';
+import { finalAggregate, snapshotRows } from '../domain/snapshot.js';
 import { buildClosingBookPdf, pdfFileName } from '../domain/sheet.js';
 import { slotLabel } from '../domain/slots.js';
 import { getView } from '../domain/store.js';
@@ -38,6 +38,24 @@ export async function mount(el) {
     const name = pdfFileName([page]);
     return { name, blob: buildClosingBookPdf([page], { title: name.replace(/\.pdf$/, '') }).toBlob() };
   };
+  // the last card, as on the ledger's Final section: the whole period since the last Final, with Plus / Less written out
+  const finalCard = () => {
+    const f = finalAggregate(page);
+    if (!f) return '';
+    const m = (v) => money(v, { decimals: true });
+    return html`<section class="card" aria-label="Aggregated Final Closing">
+      <div class="cls-banner">
+        <div class="cls-banner-title">Aggregated Final Closing</div>
+        <div class="cls-meta">Always the full period since the last Final Closing</div>
+        <div class="cls-banner-row"><span>Target Net Sales</span><strong>${m(f.target)}</strong></div>
+        <div class="cls-banner-row"><span>Net Cash Available</span><strong>${m(f.cash)}</strong></div>
+        <div class="cls-banner-row">
+          <span>${f.diff === 0 ? '✓ Variance' : f.diff > 0 ? '▲ Plus' : '▼ Less'}</span
+          ><strong class="${f.diff < 0 ? 'cls-neg' : ''}">${m(Math.abs(f.diff))}</strong>
+        </div>
+      </div>
+    </section>`;
+  };
   render(
     el,
     html`<div class="cls">
@@ -66,6 +84,7 @@ export async function mount(el) {
                 ${rows.map(([l, v]) => html`<div class="cls-prev-row"><span>${l}</span><span>${v}</span></div>`)}
               </section>`,
           )}
+        ${finalCard()}
       </div>
     </div>`,
   );

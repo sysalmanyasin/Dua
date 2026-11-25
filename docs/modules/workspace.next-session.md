@@ -1,6 +1,6 @@
 # Dua Workspace — start here (handover for the next session)
 
-> **Updated 22 Nov 2026:** this handover was originally written 19 Nov and its Phase 5 status is stale. Phase 5 increment 2 (browser reference model, shared fixtures, generator, parity SQL and 47 unit tests) is merged to `main` via PR #66. The Sheets database is live; the model/tests are in main; a workbook/grid UI and complete Sheets data layer are still not built. Continue from current `main`, not commit `468873a`. See [workspace.progress.md](workspace.progress.md) and [the 22 Nov audit](../PROJECT_AUDIT_2026-11-22.md).
+> **Updated 24 Nov 2026 (read this first).** Workspace Notes are live and accepted. Sheets Phase 5 increments 1 to 5 are built: database (`1102`, `1110`, `1111` live), reference model, data layer, read-only grid with "New workbook", and cell editing. Everything up to increment 4 is merged (PRs #66, #70, #77, #78); increment 5 (editing) is in the PR that carries this text. **Start at section 10 (a prompt you can paste) and sections 3e and 4.** Sections 1 to 3 and the first "4. Original file map" are the 19 Nov history. Continue from current `main`, never from commit `468873a`.
 
 Written 19 Nov 2026 at the end of the session that built Phases 2–4. Sessions have no memory (`docs/MODULES.md` §0.3): this file, the brief and the design record are what you have.
 
@@ -72,16 +72,45 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 - **Still not covered:** a real phone; a screen reader (the grid has `role=grid`, `aria-rowcount`, `aria-colcount`, `aria-selected` and per-cell indexes, but cells are not wrapped in `role=row` elements: do this before editing); long-press and double-tap; pinch zoom of the page; very wide cells; right-to-left text.
 - **Next (increment 5, editing):** an edit bar for the active cell (the fallback the design names), then `set_cells` through `createOperationSender` with optimistic local apply (this is where Phase 8's local-first begins), then structure operations. Selection and the cell bar in `sheet.js` are the place to start.
 
-## 4. What to do next
+## 3e. Phase 5 increment 5: cell editing (24 Nov 2026)
 
-**Phase 5 — workbooks and grid** (full design in `workspace.design.md` §3, §4, §7, §9). Suggested increments, each its own reviewable change:
+- **Files:** `domain/cellInput.js` (pure: `parseCellInput`, `editState`, `buildCellEdit`), `ui/cellEditor.js` (the edit bar), wiring in `ui/sheet.js` (it now owns the operation sender), edit-bar rules in `css/workspace.css`. Tests: `workspace-cellinput.test.js` (17), `workspace-sheet-edit.test.js` (27), `workspace-sheet-ui.test.js` (35).
+- **What a person can do:** tap a cell, change its text in the bar, Save (or Enter; Shift+Enter adds a line; Escape restores). A viewer, an archived workbook, formulas and numbers too large or precise to type are shown but not editable, with the reason.
+- **Rules that bit (keep every one):**
+  1. **A cell write replaces the cell's whole state.** `buildCellEdit` resends the existing `style_id`; leaving it out would strip the formatting. Clearing removes content only. Any new write path must do the same.
+  2. **The base of a save is the version the edit started from** (`baseSeq` captured in `begin()`), not the newest. A change that arrives while typing is then met as a conflict instead of being overwritten.
+  3. **Typed text becomes a number only if it is a plain number** (`00123`, `1e5`, `1,200`, Arabic digits stay text, at most 15 digits). `TRUE`/`FALSE` become booleans. A leading apostrophe forces text. `editState` shows stored text so that parsing it gives back the same cell.
+  4. **Formulas are refused for now** (`=...`): "Formulas can be entered in a later update", with the apostrophe hint. Phase 6 must replace this message and `editState`'s non-editable formula case together.
+  5. **An unanswered save is kept and resent with the SAME operation id**, and the box is locked until answered (D-45). "Discard" is explicit and says what it does. A lost reply after the server applied the change comes back as `duplicate`, never as a conflict with oneself.
+  6. **A draft is never dropped silently:** moving cell, switching sheet, leaving the page (hash change) and closing the tab with unsaved text are refused or asked about.
+  7. **Conflicts show both versions** with "Use mine" (sent again from a current copy) and "Keep theirs". A deleted row or column keeps the typed text in a message.
+  8. **A `hidden` element inside the bar must stay hidden:** `.ws-formula [hidden] { display: none !important }`. Classes that set `display: flex` override the attribute otherwise. A test guards the rule in the stylesheet text.
+  9. **jsdom cannot test layout or CSS cascade** (it applies rules in source order, ignores specificity and `!important`). Anything about visibility, paint order, scrolling or the CSP needs the real-browser harness (below).
+- **Checked in a real Chromium 153 (harness, reference model as server):** edit saved with style kept, formula refused with nothing sent, draft blocks moving, a real conflict leaves the server value alone and "Keep theirs" resolves it, arrow keys and Page Down keep the selected cell in view, no CSP or script errors. Found and fixed: the conflict buttons were always visible.
+- **Browser harness:** `docs/modules/workspace-browser-harness/` (README explains how to run it; the files are `.txt` so lint ignores them). Playwright is installed globally in this environment (`/opt/npm-tools`).
+- **Not verified, and by whom it must be done:** a real phone (soft keyboard covering the bar, tap targets, IME, long text) - the owner; a screen reader and the grid's ARIA structure - see debt below; two real accounts editing at once - the owner; the edit flow against the real database - the data layer is proven live only by "New workbook" creating the first sheet (two live workbooks, each with `add_sheet` applied at version 1), and the reference model is tied to the database by the parity test.
+- **Known debt carried forward (do these, do not forget them):**
+  1. **Grid ARIA:** cells have `role=gridcell` and indexes but are not wrapped in `role=row` elements, and the edit box needs an accessible name tied to the selected cell. The 3d note said to fix this before editing; it was not done. Do it in increment 6 or 7 and test with a screen reader (owner) before Phase 11.
+  2. **No offline queue.** The sender is in memory. A reload with an unsent change loses it (the box warns before leaving). Phase 8 builds the outbox on `createOperationSender`.
+  3. **Optimistic local apply:** after a save the screen pulls and redraws; it does not apply the person's own change locally first. Fine online; Phase 8 revisits it.
+  4. **Dates in the grid are provisional:** a number with a date format is read as days since 1899-12-30. Settle with CSV import (Phase 7).
 
-1. ~~**Database only:** `1102_workspace_sheets.sql`~~ — **built** (see 3a). Still to add: a parity fixture of operation sequences shared by the SQL tests and the JS reference model; and the operations not yet implemented (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`), which are answered `rejected` today.
-2. ~~**Domain model** (`domain/spreadsheet.js`) with a JS reference model that runs the same operation sequences as the SQL~~ — **built 22 Nov 2026** (see 3b). The parity fixture covers every implemented operation; `move_rows`, `move_cols`, `duplicate_sheet`, `sort_range` are still unbuilt in the database, so are only checked as "rejected".
-3. ~~Data layer (`data/workbooks.js`)~~ — **built 22 Nov 2026** (see 3c). ~~Read-only grid~~ — **built 23 Nov 2026** (see 3d; waiting for the owner's try-out on a real phone). **Next:** editing, then structure operations, then formats.
-4. ~~Enable "New workbook" and add the route `/workspace/sheet`~~ — **done 23 Nov 2026** (session-storage pattern, no Foundation change).
+## 4. What to do next (the road to completion)
 
-Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (not the repo): grid scrolling on a real phone, and whether `wss://*.supabase.co` needs a CSP change.
+The owner gave "go" for Phase 5 on 23 and 24 Nov 2026 ("go ahead", "Continue"). **Phase 6 and later each need a new, separate "go" (rule N-17).** Phase numbers and gates are in `workspace.design.md` §9. Each increment below is its own reviewable PR; keep the same method as increments 3 to 5: pure domain code first with exact tests, then data, then screen, then a real-browser check, then mutations, then docs.
+
+**Phase 5 still to build (suggested order):**
+
+6. **Sheet management:** add, rename, delete (with confirmation) and reorder sheets from the tabs; operations `add_sheet`, `rename_sheet`, `delete_sheet`, `reorder_sheets` already exist in the database and the model (20 sheets at most, never delete the last one). Uses `createOperationSender`.
+7. **Row and column structure:** insert above or below, delete (with confirmation and a count), resize by dragging or a size field. Operations `insert_rows`, `insert_cols`, `delete_rows`, `delete_cols`, `resize` exist. (Freeze panes is NOT here: see item 10.) New ids come from `newIds` (>= 1000, integer range). Deleting rows and columns turns other people's edits to them into `target_deleted` conflicts: show them.
+8. **Formats:** a style editor (bold, size, text and background colour, borders, alignment, number format) using `set_styles` and the style id of each cell. Styles are stored once per sheet (at most 500). Always `sanitizeStyle`; the database validator is `1111`.
+9. **Range selection, copy and paste** (tab and newline text), fill and clear a range; large pastes are split into operations of at most 5,000 cells.
+10. **The four operations the database answers "not available yet"** (`move_rows`, `move_cols`, `duplicate_sheet`, `sort_range`) **and freeze panes.** `frozen_rows` and `frozen_cols` are columns of `workspace_sheets` (0 to 100) but **no operation changes them** (only a restore does), so freezing needs a new operation type (add it to the operation-type check, the apply function, `OPERATION_TYPES` and the model); the screen already draws frozen rows and columns. All of this needs a new migration (next free number is **1112**; fix-forward, never edit an applied one; mirror in `domain/spreadsheet.js`; extend the parity fixture with `node tools/workspace-sheet-cases.mjs --record`, which must pass on PostgreSQL as the oracle; apply live only with the owner's explicit OK, by hand, one batch ending with the `schema_migrations` insert, D-35, verify the function-body md5).
+11. **Accessibility and phone pass:** ARIA rows, screen reader (owner), low-end phone scrolling (owner), the soft keyboard over the edit bar.
+
+**Then the rest of the programme** (each phase, its own go): 6 formula engine (pure code, no `eval`, fixtures and fuzz), 7 formatting extras, sort/filter and CSV, 8 offline (IndexedDB, outbox, kill-tab test, aeroplane-mode phone test), 9 synchronisation and conflict screens (migration `1103`), 10 attachments (migration `1104`, Storage policies, Edge Function), 11 integration, security review of every policy and function, full regression, owner acceptance. Open owner questions are in `workspace.design.md` §12.
+
+Before Phase 9, run the Phase 1 prototype for `wss://*.supabase.co` (whether the CSP needs a change) in a throwaway copy.
 
 ## 5. How to work here (what worked)
 
@@ -114,21 +143,72 @@ Before Phase 5 and Phase 9, run the **Phase 1 prototypes** in a throwaway copy (
 
 ## 7. Known problems that are not from Workspace
 
-**Update 21 Nov 2026:** the two problems below no longer apply; the full suite, `prettier --check`, lint and the other checks pass on current `main`. The `ai` nav-order note still stands.
-
-- `tests/unit/ebill-page.test.js` ("can disable cash received entry without blocking PIN-authorized saving") fails on clean `main` (Emergency Billing work), so `npm test` is red until its owner fixes it.
-- `css/ebill.css` fails `prettier --check` on `main` itself, so `format:check` is red until it is formatted (`npx prettier --write css/ebill.css`). Left alone because another session is working in that module.
+- 24 Nov 2026: the full suite, lint, prettier and the other checks pass on the working tree; the earlier red `cover.test.js` was fixed on `main`. Re-check `main`'s CI at the start of a session before blaming a failure on your own change.
 - `docs/MODULES.md` still lists the planned `ai` module at nav order 85, the same number Invoice Desk uses; Workspace uses 86.
+- Security advisor, not Workspace: 255 warnings (24 Nov; it grows as other modules add functions) that signed-in users can call `SECURITY DEFINER` functions (how every screen reaches the database; each function checks permissions inside; the review is an open Foundation item), 23 notices for tables with row level security and no policy (reached only through functions), and **leaked-password protection is off** (a Supabase Auth dashboard switch only the owner can turn on). `rls_auto_enable()` was revoked from signed-in users by Foundation migration `0017` (applied live by hand, registered as `0017`; the repo copy arrived with the editing PR).
 
 ## 8. Needs the owner
 
-- `tests/unit/cover.test.js` fails on `main` and `main`'s CI is red (not Workspace; owner of the Cover page to fix). Do not mistake it for a Workspace failure.
-- Revoke the GitHub token(s) shared in chat (one on 18 Nov, one on 22 Nov earlier, and the one pasted on 22 Nov in the data-layer session). Use a new one only for the push and revoke it afterwards.
-- Try Notes on a real phone and a desktop: create, edit, share with a second account (give that account `workspace.use`; give the creator `workspace.use` + `workspace.create`), edit from both, force a conflict (edit the same note on two devices), history and restore, archive, delete and trash. Report what feels wrong.
-- Say "go" for Phase 5, and answer the open questions in `workspace.design.md` §12.
+- **Revoke every GitHub token ever pasted in chat** (18 Nov, 22 Nov, and the one used for the 22-24 Nov pushes: it still worked on 24 Nov). Give a new one only for a push and revoke it afterwards. Never store a token in the repo or git config.
+- Try **editing** on a real phone: tap a cell, type, save, the soft keyboard over the bar, a long text, a draft and "Save or cancel first", then edit the same cell from two devices to see the conflict choice. Report what felt wrong.
+- Say **"go"** for increment 6 onwards (Phase 5 go is on record), and a separate "go" before Phase 6 (formulas).
+- Answer the open questions in `workspace.design.md` §12.
+- Turn on **leaked-password protection** in the Supabase Auth dashboard (check the username/PIN staff login still works with it).
 
 ## 9. Rules for the next session
 
 - Follow `docs/MODULES.md`. Stay inside `js/modules/workspace/`, `css/workspace.css`, `vendor/workspace/`, `tests/…/workspace-*`, `supabase/migrations/11xx_*`, and the Workspace docs. Foundation-owned files only through the approved requests in `workspace.design.md` §10, and say which one you used.
 - One phase at a time; stop for the owner's "go" between phases (N-17). Keep each change small enough to review.
 - Never claim a check passed unless you ran it. State what you could not verify (real browser, real phone, CI).
+
+## 10. Prompt to start the next session (paste this)
+
+```
+You are continuing the Dua Workspace module (Sheets) for sysalmanyasin/Dua (GitHub) and Supabase project
+sdsynzsflubdxnelgthh. Sessions have no memory: the repo docs are your memory.
+
+FIRST, READ (in order)
+1. docs/modules/workspace.next-session.md: the banner, section 3e, section 4 (the road to completion), 6 (pitfalls), 8, 9
+2. docs/modules/workspace.md (brief, owner decisions N-1..N-17)
+3. docs/modules/workspace.design.md sections 3, 4, 4a, 7, 9 (and 12 for open questions)
+4. docs/MODULES.md, docs/DECISIONS.md D-41..D-47, docs/SECURITY_MODEL.md (Workspace)
+5. js/modules/workspace/domain/spreadsheet.js, domain/cellInput.js, data/workbooks.js, ui/sheet.js, ui/cellEditor.js
+   (patterns to copy); docs/modules/workspace-browser-harness/README.md (real-browser checks)
+
+CURRENT STATE (24 Nov 2026)
+- Live DB: Workspace migrations 1100, 1101, 1102, 1110, 1111 applied and registered; Foundation 0017 applied. Two live
+  workbooks exist (created with New workbook). Check the live state yourself, read-only, before you start.
+- Built and merged: database for Sheets, JS reference model with parity test, data layer (data/workbooks.js), read-only
+  grid and New workbook, cell editing (increment 5, merged with this handover; confirm on main).
+- Not built: sheet management, row/column structure, formats, range select and copy/paste, the four unbuilt operations,
+  grid ARIA rows, formulas (Phase 6), CSV (7), offline (8), sync and conflict screens (9), attachments (10), final review (11).
+
+YOUR TASK: Phase 5, increment 6 (sheet management: add, rename, delete, reorder sheets), then increment 7 (row and column
+structure) if the owner says go. Same method as before: pure domain code first, data, screen, real-browser check with the
+harness, mutation checks, docs.
+
+RULES
+- Phase 5 go is on record. Phase 6 and later need a new go from the owner (rule N-17). Do not build formulas, offline or CSV.
+- Work only in js/modules/workspace/, css/workspace.css, vendor/workspace/, tests/**/workspace-*, supabase/migrations/11xx_*,
+  docs/modules/workspace*, docs/modules/workspace-browser-harness/. Say which approved Foundation request you use if you need
+  one. Changing anything else (for example the shared docs and sw.js) is limited to the status lines and `npm run build:sw`.
+- Live database: READ-ONLY unless the owner says otherwise in this session. A migration is a NEW file (fix-forward, next free
+  number 1112), tested on PostgreSQL 16, applied only with the owner's explicit OK, by hand, as one execute_sql batch ending
+  with the schema_migrations insert (never apply_migration, D-35), then verify the function-body md5 against the repo file.
+- Never claim a check passed unless you ran it. Run: npm ci, npm run lint, npx prettier --check ., npx vitest run,
+  npm run check:secrets, npm run check:vendor, npm run build:sw (when a screen file is added), and bash supabase/tests/run.sh
+  (needs PostgreSQL 16: apt-get update && apt-get install -y postgresql, start it, PGHOST=localhost PGUSER=postgres).
+  Check in a real browser with the harness. Say what you could not verify (real phone, screen reader, two accounts).
+- jsdom cannot test CSS or layout; do not trust it for visibility, paint order, scrolling or the CSP.
+- Secrets: never store a token in the repo or git config. Ask the owner for a token only when you must push; push with a
+  one-time URL, open a PR, and remind the owner to revoke the token. Do not merge a user-facing change unless the owner says so.
+
+VERIFY AGAINST THE LIVE PROJECT (read-only) BEFORE AND AFTER YOU FINISH
+- registry: select version from supabase_migrations.schema_migrations where version >= '1100'
+- all workspace_* functions: search_path pinned, anon cannot execute, internal helpers not callable by authenticated
+- get_advisors (security). Known, not Workspace: see section 7. Report, do not change.
+
+END WITH
+A short report: what you built, what you ran and its result, what you could not verify, the next increment, and what you
+need from the owner.
+```

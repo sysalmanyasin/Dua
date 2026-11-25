@@ -13,4 +13,6 @@ export const MODULE_IDS = [
   'audit',
   'invoice-desk',
   'workspace',
+  'tasks',
+  'inbox',
 ];
