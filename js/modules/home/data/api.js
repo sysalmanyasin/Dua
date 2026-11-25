@@ -80,3 +80,33 @@ export function watchClosings(onChange) {
     return () => {};
   }
 }
+
+// ── Task Master on Home (each is one of Task Master's own database functions; null means "not for you") ──
+// The caller's own tasks and counts (people with tasks.view_own).
+export async function myTaskSnapshot() {
+  const { data, error } = await db().rpc('task_snapshot_mine');
+  if (error) throw error;
+  return data;
+}
+export async function myTaskList() {
+  const { data, error } = await db().rpc('task_list_mine', { p_scope: 'open' });
+  if (error) throw error;
+  return data;
+}
+// Work waiting for this person to check (null unless they are the Owner or a named verifier).
+export async function taskVerificationQueue() {
+  const { data, error } = await db().rpc('task_verification_queue');
+  if (error) throw error;
+  return data;
+}
+// Owner only (tasks.manage): each person's workload and completion rate, and the change requests waiting for a decision.
+export async function taskTeamOverview(days = 30) {
+  const { data, error } = await db().rpc('task_team_overview', { p_days: days });
+  if (error) throw error;
+  return data;
+}
+export async function taskPendingRequests() {
+  const { data, error } = await db().rpc('task_change_requests_pending');
+  if (error) throw error;
+  return data;
+}
