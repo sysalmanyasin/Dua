@@ -57,7 +57,9 @@ export async function mount(el, { ctx } = {}) {
         <div id="ws-tabs" class="tabs-seg" role="tablist" aria-label="Which documents"></div>
         <div id="ws-folders" class="ws-chips" aria-label="Folders"></div>
         <div id="ws-list" aria-live="polite"></div>
-        <p class="muted ws-sheets-note">Workbooks open as a read-only grid for now. Editing and formulas are coming in later updates.</p>
+        <p class="muted ws-sheets-note">
+          Workbooks open as a grid where you can edit cell text. Formulas and formatting are coming in later updates.
+        </p>
       </section>`,
   );
   const $ = (sel) => el.querySelector(sel);

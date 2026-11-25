@@ -40,7 +40,7 @@ This register describes what is present in the source tree, what the live databa
 
 | Workstream | Actual state | Next |
 |---|---|---|
-| Workspace Sheets | Database migrations 1102, 1110 and 1111 are live. Reference model and parity test are merged (PR #66). Data layer `data/workbooks.js` (open, paged load, pull, resend-until-answered sender, restore points) is built with 41 tests (merged, PR #70). The read-only grid screen (`/workspace/sheet`, virtualised grid, sheet tabs, cell bar, refresh) and "New workbook" are built on branch `module/workspace-sheets-grid` (23 Nov, not merged; checked in a real Chromium, not yet on a real phone). | Owner: try the grid on a real phone, then merge. Next: editing (increment 5). |
+| Workspace Sheets | Database migrations 1102, 1110 and 1111 are live. Reference model and parity test (PR #66), data layer `data/workbooks.js` (PR #70), the read-only grid, sheet tabs, refresh and "New workbook" (PR #77) are merged. Cell editing (edit bar, draft guard, conflict choice, resend-until-answered) is built in increment 5 (24 Nov) with 79 tests and a real-Chromium check; not yet tried on a real phone. | Owner: try editing on a real phone. Next: increment 6, sheet management and row/column structure (see `docs/modules/workspace.next-session.md` §4). |
 | Unified Reports | Planned, not registered. | Define permission-safe source contracts after modules are accepted. |
 | Assistant / AI | Planned, not registered. | Build only over deterministic, permission-safe interfaces. |
 | Android shell/widgets | Later phase. | Plan after web workflows and device acceptance. |
@@ -84,7 +84,7 @@ The GitHub branch list contained `main`, `audit/actual-module-status-2026-11-21`
 3. **P0 — Backup recovery:** perform a real encrypted Drive backup restore into a separate empty Supabase project.
 4. **P1 — Operational performance:** review 124 unindexed foreign keys, five RLS initplan warnings, one duplicate permissive policy and 28 unused indexes using workload evidence.
 5. **P1 — Owner acceptance:** complete phone/printer/Gmail acceptance across Sales, Home, Manager, Closing, Inventory, STR, Candela, Audit, Emergency Billing and Invoice Desk.
-6. **P1 — Workspace Sheets:** the reference model, data layer and read-only grid are built; next is editing (increment 5) after the owner has tried the grid on a phone.
+6. **P1 — Workspace Sheets:** the reference model, data layer, grid and cell editing are built; next is increment 6 (sheet management, row and column structure), then formats, then formulas (Phase 6).
 7. **P2 — Architecture/operations:** separate production and staging projects; add Playwright E2E, Sentry, accessibility and low-end Android checks.
 8. **P3 — Future modules:** Unified Reports, assistant/AI, Android widgets and Attendance only after current workflows are accepted.
 

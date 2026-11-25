@@ -39,7 +39,7 @@ This is the concise operational snapshot. For per-module evidence, migration not
 
 ## Not yet an application module
 
-**Workspace Sheets** (workbooks, grid, formulas, CSV), Workspace offline editing and synchronisation, and attachments are designed (`docs/modules/workspace.design.md`) but not built.
+**Workspace Sheets** has workbooks, a virtualised grid, cell editing with conflict handling (Phase 5, increments 1 to 5). Formulas, formats, row and column structure, sheet management, CSV, offline editing, synchronisation and attachments are designed (`docs/modules/workspace.design.md`) but not built.
 
 **Unified Reports, assistant/AI and Android widgets** remain planned, not registered application modules.
 
@@ -66,7 +66,7 @@ The branch list currently contains `main` plus two maintenance refs: `audit/actu
 1. Registry reconciled (22 Nov 2026). Remaining: put `0015_core_trigger_search_path.sql` on `main`, and drop the remaining registry backup tables (`..._20261121`, `..._20261122`) after review; the 12 Nov one was dropped on 22 Nov 2026. Keep applying migrations by hand under the repo number.
 2. Run and inspect a fresh full GitHub Actions run on current `main`.
 3. Complete real-device/owner acceptance across existing modules, plus Gmail send verification.
-4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; Workspace Notes accepted by the owner (21 Nov 2026); continue Workspace Phase 5 (Sheets editing; the model, data layer and read-only grid are built).
+4. Emergency Billing: grant `ebill.*` rights and run the real-device/printer checklist; Workspace Notes accepted by the owner (21 Nov 2026); continue Workspace Phase 5 (increment 6: sheet management and row/column structure; the model, data layer, grid and cell editing are built).
 5. Perform the real encrypted Drive restore drill and plan a separate production Supabase project.
 6. Expand into Reports, assistant and Android only after the above acceptance gates.
 
