@@ -14,4 +14,5 @@ export const MODULE_IDS = [
   'invoice-desk',
   'workspace',
   'tasks',
+  'inbox',
 ];

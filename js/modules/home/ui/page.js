@@ -6,6 +6,7 @@ import { BRAND } from '../../../core/config.js';
 import { coverSummary, inventoryCover, notificationsAttention } from '../data/api.js';
 import { startOpsSections } from './ops.js';
 import { startStaffSections } from './staff.js';
+import { startMessages } from './messages.js';
 import { startTaskSections } from './tasks.js';
 import { buildAttention, buildDailyProgress, buildKpis, buildStockCards, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
 
@@ -120,6 +121,7 @@ export async function mount(el, { ctx, modules = [] }) {
   const showOps = perms.includes('ops.view'); // Owner only: Action Centre, Business Intelligence and Recent Activity
   const showStaff = !showOps && (perms.includes('payroll.view_own') || perms.includes('closing.enter_own')); // own payroll and own work, read only
   const showMyTasks = !showOps && perms.includes('tasks.view_own'); // My Work Snapshot and My Tasks (Task Master)
+  const showMessages = perms.includes('ntf.view_own'); // Inbox (Stage 4)
   const showTeam = showOps && perms.includes('tasks.manage'); // Owner: Staff & Team
   const kpis = buildKpis(summary, perms);
   const attention = buildAttention(summary, perms, hour, alerts);
@@ -259,8 +261,8 @@ export async function mount(el, { ctx, modules = [] }) {
             </section>`
           : ''
       }
-      ${showTeam ? html`<div id="home-team"></div>` : ''} ${showOps ? html`<div id="home-ops-activity"></div>` : ''}
-      ${showMyTasks ? html`<div id="home-staff-work"></div>` : ''}
+      ${showMessages ? html`<div id="home-messages"></div>` : ''} ${showTeam ? html`<div id="home-team"></div>` : ''}
+      ${showOps ? html`<div id="home-ops-activity"></div>` : ''} ${showMyTasks ? html`<div id="home-staff-work"></div>` : ''}
       ${
         showStaff
           ? html`<div id="home-staff-pay"></div>
@@ -288,6 +290,7 @@ export async function mount(el, { ctx, modules = [] }) {
       activityHost: el.querySelector('#home-ops-activity'),
     });
   }
+  if (showMessages) startMessages({ host: el.querySelector('#home-messages'), perms });
   if (showMyTasks || showTeam) {
     startTaskSections({ workHost: el.querySelector('#home-staff-work'), teamHost: el.querySelector('#home-team'), perms });
   }

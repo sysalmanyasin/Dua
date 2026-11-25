@@ -13,6 +13,8 @@ vi.mock('../../js/modules/home/data/api.js', () => ({
   watchClosings: vi.fn(() => () => {}),
   myPayslips: vi.fn(async () => ({ payslips: [] })),
   myRecentClosings: vi.fn(async () => []),
+  myInboxList: vi.fn(async () => []),
+  myInboxUnread: vi.fn(async () => 0),
   myTaskSnapshot: vi.fn(async () => null),
   myTaskList: vi.fn(async () => null),
   taskVerificationQueue: vi.fn(async () => null),
