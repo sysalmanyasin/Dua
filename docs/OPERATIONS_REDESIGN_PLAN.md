@@ -1,6 +1,6 @@
 # Operations Redesign — audit, gap analysis and implementation plan
 
-Status: **Stage 1 done (21 Nov 2026) and Stage 2a (Owner Action Centre and Recent Activity) applied live and merged on 22 Nov 2026, Stage 2b (Business Intelligence, Staff sections, realtime) applied live and merged on 23 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-51 to D-55).** Nothing in this plan is built yet except the two hygiene fixes in §9.
+Status: **Stage 1 done (21 Nov 2026) and Stage 2a (Owner Action Centre and Recent Activity) applied live and merged on 22 Nov 2026, Stage 2b (Business Intelligence, Staff sections, realtime) applied live and merged on 23 Nov 2026, Stage 3a (Task Master database layer) applied live and merged on 24 Nov 2026; owner decisions D1, D2, D3, D5 and D6 recorded the same day (see §8 and `docs/DECISIONS.md` D-51 to D-55).** Nothing in this plan is built yet except the two hygiene fixes in §9.
 Source brief: "DUA — Complete Operations Redesign & Implementation". Where the brief leaves a policy open, this plan lists it in §8 as a **decision for the owner** and does not assume an answer.
 
 ## 1. Method and limits

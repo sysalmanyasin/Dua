@@ -33,6 +33,12 @@ export function computePrecache(root = ROOT) {
   const html = readFileSync(join(root, 'index.html'), 'utf8');
   add(join(root, 'index.html'));
   for (const m of html.matchAll(/(?:href|src)="([^"#:]+\.[a-z0-9]+)"/g)) add(join(root, m[1]));
+  // The web app manifest is linked from index.html (picked up above); keep the icons it names so an installed app has them offline.
+  if (existsSync(join(root, 'manifest.webmanifest'))) {
+    const manifest = JSON.parse(readFileSync(join(root, 'manifest.webmanifest'), 'utf8'));
+    const icons = [...(manifest.icons ?? []), ...(manifest.shortcuts ?? []).flatMap((s) => s.icons ?? [])];
+    for (const icon of icons) add(resolve(root, icon.src));
+  }
   add(join(root, 'js/core/app.js'));
   add(join(root, 'js/modules/index.js'));
   for (const d of readdirSync(join(root, 'js/modules'))) add(join(root, 'js/modules', d, 'manifest.js'));

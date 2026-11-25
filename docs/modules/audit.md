@@ -1,6 +1,6 @@
 # Audit — brief
 
-Status: **Integrated; Audit 2.0, expiry/racks and Barcode are built and live; real-device acceptance pending** · Owner approval: yes (16 Nov 2026, "go")
+Status: **Integrated; Audit 2.0, expiry/racks, Barcode and Audit 3.0 are built and live; Audit 3.0 phone tests PHONE 5 to 10 passed and the owner accepted it on 24 Nov 2026** · Owner approval: yes (16 Nov 2026, "go")
 Branch history: `module/audit` · Migration range: `0400–0499` · Prefix: `audit_` · Permissions: `audit.*` · Route prefix: `/audit` · Nav order: 50
 
 > Read `docs/MODULES.md` first. This brief follows its Appendix A template. It is the plan agreed with the owner on 15–16 Nov 2026; the long-form reasoning (old app vs new core, row by row) lives in the owner's plan document "Audit Module Plan for Dua".
@@ -148,6 +148,7 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 3. `.xlsx` export: built in Audit 3.0 F5 (AUD-15), written by the app itself with no vendored library.
 4. Alert wording for `audit.submitted`, `audit.compiled`, `audit.conflict` in `ntfy.ts` and `alerts.js`.
 5. New icons if needed; otherwise reuse an existing one as Closing did.
+6. **Phone shortcut links (Audit 3.0 N5), built (24 Nov 2026, branch `foundation/pwa-manifest`):** `manifest.webmanifest` makes Dua installable on Android and adds two long-press shortcuts, Counting (`./#/audit/count`) and Individual audit (`./#/audit/individual`). `index.html` links it and the content security policy gained `manifest-src 'self'`; PNG icons (192, 512 and a 512 maskable) sit in `assets/`; `node tools/sw-precache.mjs` now also keeps the icons the manifest names. The router still refuses a route the person has no key for, and a signed-out person lands on sign-in. iPhones ignore shortcuts and get only the normal home-screen icon. Test: `tests/unit/pwa-manifest.test.js`. Details: `docs/modules/audit.foundation-request-shortcuts.md`.
 
 **One-line edits (§3.2):** add `audit` to `MODULE_IDS`, one CSS link in `index.html`, the function folder (if any) in the CI loop.
 
@@ -169,6 +170,11 @@ Phone first; touch targets ≥ 44 px, text ≥ 0.8 rem, status never colour-only
 | AUD-12 | Keep the old layout and crimson accent, scoped in `css/audit.css` (as CLS-15 for Closing) | Accepted (default) |
 | AUD-13 | Start the brief and the database and domain slices now; real round creation waits for `inventory_products_for_scope` | Accepted (default) |
 | AUD-14 | Individual Audit rounds compile automatically on submit so the person can start the next without waiting for the main auditor; no cross-round conflicts are raised between individual rounds (same product on another day or by another person is a normal difference). Other rounds keep manual compile and conflicts. The `audit.compiled` owner alert is not sent for individual rounds | Accepted (owner, 22 Nov 2026) |
+| AUD-15 | Exports: both CSV and Excel files | Accepted (owner, 22 Nov 2026, "Excel reports too needed"); Excel written by the app itself, no library |
+| AUD-16 | No deleting or renumbering rounds | Accepted (default); nothing built |
+| AUD-17 | Attention badges: ready to compile, open conflicts, corrections waiting | Accepted (default); built in F7 |
+| AUD-18 | "Lock and start" is one tap with a preview and a confirm | Accepted (default); built in F4 |
+| AUD-19 | No warning for the same product in another open round | Accepted (default) |
 
 ## 9. Slices (build order)
 

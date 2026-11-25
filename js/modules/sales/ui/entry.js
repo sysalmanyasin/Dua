@@ -3,6 +3,7 @@ import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import { longDate, money, signed, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
+import { applyAutofill, buildAutofill, isNotAllowed } from '../domain/autofill.js';
 import { HEADER_FIELDS, emptyForm, formFromDay, friendlyError, parseForm, preview } from '../domain/entry.js';
 import { diffClass, errorCard, loadingCard, toast } from './parts.js';
 
@@ -42,6 +43,7 @@ export async function mount(el, { ctx }) {
     key: crypto.randomUUID(),
     busy: false,
     errors: {},
+    pull: { status: 'idle', result: null, hidden: false },
   };
 
   async function loadDay() {
@@ -60,7 +62,71 @@ export async function mount(el, { ctx }) {
       }
     }
     state.key = crypto.randomUUID();
+    state.pull = { status: 'idle', result: null, hidden: state.pull.hidden };
     draw();
+    // A day with no record yet fills itself from the evening closing and Candela. A saved day is only pulled on request.
+    // It runs in the background so the form is usable at once.
+    if (!state.existing && canSave()) {
+      pull({ auto: true }).catch(() => {
+        state.pull = { ...state.pull, status: 'idle' };
+        draw();
+      });
+    }
+  }
+
+  // Reads the evening closing and Candela for the open day and fills what they know. Never saves anything.
+  async function pull({ auto }) {
+    const date = state.date;
+    state.pull = { ...state.pull, status: 'busy' };
+    if (!auto) draw();
+    let src;
+    try {
+      src = await api.autofillSources(date);
+    } catch {
+      src = { closing: null, candela: null, closingError: new Error('failed'), candelaError: new Error('failed') };
+    }
+    if (date !== state.date) return; // the person moved to another day while this was loading
+    const denied = isNotAllowed(src.closingError) && isNotAllowed(src.candelaError);
+    if (denied) {
+      state.pull = { status: 'idle', result: null, hidden: true };
+      return draw();
+    }
+    const why = (err, who) =>
+      err ? (isNotAllowed(err) ? `You do not have access to ${who}.` : `Could not read ${who}. Try again.`) : undefined;
+    const result = buildAutofill(src, methods, {
+      closing: why(src.closingError, 'the closing'),
+      candela: why(src.candelaError, 'Candela figures'),
+    });
+    const filled = applyAutofill(state.form, result, { overwrite: !auto });
+    if (filled) state.key = crypto.randomUUID(); // changed data is a new save, not a retry
+    state.pull = { status: 'done', result, hidden: false, filled };
+    draw();
+    if (!auto)
+      toast(
+        filled ? `Filled ${filled} field${filled > 1 ? 's' : ''}. Check them, then save.` : 'Nothing to fill for this day.',
+        filled ? 'ok' : 'error',
+      );
+  }
+
+  function pullCard() {
+    const { status, result, hidden } = state.pull;
+    if (hidden) return '';
+    const busy = status === 'busy';
+    return html`<section class="card" id="pull-card">
+      <div class="row">
+        <div><strong>Auto-pull</strong><br /><span class="muted small">Evening closing + Candela for ${longDate(state.date)}</span></div>
+        <button class="btn btn-sm" data-act="pull" ${busy ? 'disabled' : ''}>${busy ? 'Pulling…' : result ? 'Pull again' : 'Pull'}</button>
+      </div>
+      ${
+        result?.rows.length
+          ? html`<ul class="pull-rows">
+              ${result.rows.map((r) => html`<li><span>${r.label}</span> <strong>${money(r.value, { decimals: !Number.isInteger(r.value) })}</strong> <span class="muted small">· ${r.from}</span></li>`)}
+            </ul>`
+          : ''
+      }
+      ${result?.unmatched.map((u) => html`<p class="note note-error">No field for ${u.name}: ${money(u.amount, { decimals: true })}</p>`) ?? ''}
+      ${result?.notes.map((n) => html`<p class="note">${n}</p>`) ?? ''}
+    </section>`;
   }
 
   const visible = (m) => state.showAll || m.show_in_entry || state.form.values[m.code];
@@ -94,6 +160,7 @@ export async function mount(el, { ctx }) {
           </p>
           ${ex && !perms.has('sales.edit') ? html`<p class="note note-error">This day is already saved. You do not have permission to correct it.</p>` : ''}
         </section>
+        ${pullCard()}
         <section class="card total-card" aria-live="polite">
           <div><span class="label">TOTAL SALE</span><strong id="pv-total">${money(p.total)}</strong></div>
           <div>
@@ -206,6 +273,7 @@ export async function mount(el, { ctx }) {
       state.date = b.dataset.date;
       return loadDay();
     }
+    if (b.dataset.act === 'pull') return pull({ auto: false });
     if (b.dataset.act === 'showall') {
       state.showAll = true;
       return draw();

@@ -602,3 +602,44 @@ describe('templates page', () => {
     api.saveTemplate.mockResolvedValue('tpl-1');
   });
 });
+
+describe('offline end to end (calculator, sticky bar, replay)', () => {
+  it('counts with no signal, survives reopening the screen, and sends each event once after reconnecting', async () => {
+    api.countBatch.mockRejectedValue(new TypeError('Failed to fetch'));
+    await mountCount(root(), { ctx: {} });
+    // a sum from the calculator and a typed count, both while offline
+    const box = root().querySelector('input[data-qty="i1"]');
+    box.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    box.blur();
+    click('button[data-act="calc"]');
+    for (const k of ['6', '×', '1', '0', '+', '4']) document.querySelector(`.aud-calc button[data-k="${k}"]`).click();
+    document.querySelector('.aud-calc [data-s="insert"]').click();
+    type('i2', '4');
+    await until(() => root().textContent.includes('No connection'));
+    expect(root().querySelector('#aud-sticky-text').textContent).toBe('1 left');
+    expect(await store.count('asg1')).toBe(2);
+    // the person leaves and comes back: nothing is lost and the bar is right
+    document.body.innerHTML = '<div id="root"></div>';
+    await mountCount(root(), { ctx: {} });
+    expect(root().querySelector('input[data-qty="i1"]').value).toBe('64');
+    expect(root().querySelector('input[data-qty="i2"]').value).toBe('4');
+    expect(root().querySelector('#aud-sticky-text').textContent).toBe('1 left');
+    expect(await store.count('asg1')).toBe(2);
+    // signal returns: each event goes out once, with its own id
+    const seen = [];
+    api.countBatch.mockImplementation(async (_a, events) => {
+      seen.push(...events);
+      return { accepted: events.length, duplicates: 0 };
+    });
+    await until(() => root().querySelector('button[data-act="send"]:not([disabled])')); // the automatic try on opening has failed
+    click('button[data-act="send"]');
+    await until(() => root().textContent.includes('Everything is sent'));
+    expect(await store.count('asg1')).toBe(0);
+    expect(seen.map((e) => e.item).sort()).toEqual(['i1', 'i2']);
+    expect(seen.find((e) => e.item === 'i1').qty).toBe(64);
+    expect(new Set(seen.map((e) => e.event_id)).size).toBe(2);
+    const sent = api.countBatch.mock.calls.length;
+    await tick(100);
+    expect(api.countBatch.mock.calls.length).toBe(sent); // nothing is sent again
+  });
+});
