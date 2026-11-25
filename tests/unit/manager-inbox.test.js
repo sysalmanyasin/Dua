@@ -301,11 +301,36 @@ describe('Credit Inbox page', () => {
       await tick();
     };
 
-    it('shows the amount and date as locked text, never as something to type', async () => {
+    it('shows the date, amount and description pre-filled from Closing, all editable', async () => {
       await openFile();
-      expect(dlg().textContent).toContain('1,500');
-      expect(dlg().textContent).toContain('stay exactly as Closing recorded them');
-      expect(dlg().querySelector('input[type="number"], input[data-f="amount"], input[type="date"]')).toBeNull();
+      expect(dlg().querySelector('[data-f="date"]').value).toBe('2026-11-10');
+      expect(dlg().querySelector('[data-f="amount"]').value).toBe('1500');
+      expect(dlg().querySelector('[data-f="description"]').value).toBe('Test Customer X');
+    });
+
+    it('lets the owner change the date and amount, and sends them', async () => {
+      await openFile();
+      pick(dlg(), '[data-f="staffId"]', 'p2');
+      type(dlg().querySelector('[data-f="amount"]'), '1200');
+      type(dlg().querySelector('[data-f="date"]'), '2026-11-09');
+      dlg().querySelector('[data-ok]').click();
+      await tick();
+      expect(api.inboxFile).toHaveBeenCalledWith(
+        'l1',
+        'credit',
+        expect.objectContaining({ staffId: 'p2', date: '2026-11-09', amount: 1200 }),
+        expect.any(String),
+      );
+    });
+
+    it('will not send a zero or empty amount', async () => {
+      await openFile();
+      pick(dlg(), '[data-f="staffId"]', 'p2');
+      type(dlg().querySelector('[data-f="amount"]'), '0');
+      dlg().querySelector('[data-ok]').click();
+      await tick();
+      expect(api.inboxFile).not.toHaveBeenCalled();
+      expect(dlg().textContent).toContain('Enter an amount');
     });
 
     it('loads the people for the line’s own month', async () => {
@@ -330,7 +355,7 @@ describe('Credit Inbox page', () => {
       expect(api.inboxFile).toHaveBeenCalledWith(
         'l1',
         'credit',
-        { staffId: 'p2', ledgerId: null, categoryId: null, shift: null, description: 'Edited note' },
+        { staffId: 'p2', ledgerId: null, categoryId: null, shift: null, description: 'Edited note', date: '2026-11-10', amount: 1500 },
         expect.any(String),
       );
       expect(api.inboxLines).toHaveBeenCalledTimes(2);
@@ -358,13 +383,15 @@ describe('Credit Inbox page', () => {
     it('files into a ledger with its category; Jazz Cash also sends the shift', async () => {
       await openFile();
       dlg().querySelector('[data-target="ledger"]').click();
+      expect(dlg().querySelector('[data-f="categoryId"]').textContent).toContain('Choose ledger first');
+      pick(dlg(), '[data-f="ledgerId"]', 'ex');
       pick(dlg(), '[data-f="categoryId"]', 'c-ho');
       dlg().querySelector('[data-ok]').click();
       await tick();
       expect(api.inboxFile).toHaveBeenLastCalledWith(
         'l1',
         'ledger',
-        { staffId: null, ledgerId: 'ex', categoryId: 'c-ho', shift: null, description: 'Test Customer X' },
+        { staffId: null, ledgerId: 'ex', categoryId: 'c-ho', shift: null, description: 'Test Customer X', date: '2026-11-10', amount: 1500 },
         expect.any(String),
       );
       document.querySelectorAll('dialog').forEach((d) => d.remove());
@@ -372,6 +399,7 @@ describe('Credit Inbox page', () => {
       await tick();
       dlg().querySelector('[data-target="ledger"]').click();
       pick(dlg(), '[data-f="ledgerId"]', 'jz');
+      pick(dlg(), '[data-f="categoryId"]', 'c-recv');
       pick(dlg(), '[data-f="shift"]', 'Night');
       dlg().querySelector('[data-ok]').click();
       await tick();
@@ -388,6 +416,8 @@ describe('Credit Inbox page', () => {
       el.querySelectorAll('[data-act="file"]')[1].click(); // the -300 adjustment
       await tick();
       dlg().querySelector('[data-target="ledger"]').click();
+      pick(dlg(), '[data-f="ledgerId"]', 'ex');
+      pick(dlg(), '[data-f="categoryId"]', 'c-ho');
       dlg().querySelector('[data-ok]').click();
       await tick();
       expect(api.inboxFile).not.toHaveBeenCalled();
