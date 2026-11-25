@@ -1,11 +1,23 @@
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
 import { mountPermissionPanel } from '../../../shared/permissionPanel.js';
+import { buildPermissionRows, filterPermissionRows } from '../../../shared/permissionGroups.js';
 import * as api from '../data/api.js';
 
 export async function mount(el, { ctx }) {
-  const state = { editing: null, notice: null, error: null, pinFor: null };
+  const state = {
+    editing: null,
+    notice: null,
+    error: null,
+    pinFor: null,
+    view: 'person', // 'person' = people with their permissions, 'permission' = permissions with their people
+    pq: '', // search in the By permission view
+    pfilter: 'all',
+    popen: new Set(), // open groups
+    pexp: new Set(), // permissions showing their full people list
+  };
   let panel = null;
+  let matrix = []; // By permission data, rebuilt on every full draw
 
   async function draw() {
     const [people, catalog, locked] = await Promise.all([
@@ -15,8 +27,12 @@ export async function mount(el, { ctx }) {
     ]);
     const isLocked = (p) => locked.includes(p.username);
     const pinTarget = state.pinFor ? people.find((p) => p.user_id === state.pinFor) : null;
-    const editing = state.editing ? people.find((p) => p.user_id === state.editing) : null;
-    const overrides = editing ? await api.listUserPermissions(editing.user_id) : [];
+    const editing = state.editing && state.view === 'person' ? people.find((p) => p.user_id === state.editing) : null;
+    const overrides = editing && state.view === 'person' ? await api.listUserPermissions(editing.user_id) : [];
+    matrix =
+      state.view === 'permission'
+        ? buildPermissionRows(catalog.permissions, people, catalog.rolePerms, await api.listAllUserPermissions())
+        : [];
 
     render(
       el,
@@ -31,29 +47,56 @@ export async function mount(el, { ctx }) {
             : ''
         }
         <section class="card">
-          <h2>People</h2>
-          ${people.map(
-            (p) =>
-              html`<div class="row">
-                <div>
-                  <strong>${p.staff?.full_name ?? p.username}</strong> <br /><span class="muted small"
-                    >${p.username} · ${p.role_template}${p.disabled_at ? ' · disabled' : ''}${isLocked(p) ? ' · locked' : ''}</span
-                  >
-                </div>
-                <div class="actions">
-                  ${
-                    p.role_template === 'admin'
-                      ? html`<span class="muted small">Owner account</span>`
-                      : html` <button class="btn" data-act="perms" data-id="${p.user_id}">Permissions</button>
-                          <button class="btn" data-act="setpin" data-id="${p.user_id}">Set PIN</button>
-                          ${isLocked(p) ? html`<button class="btn btn-primary" data-act="unlock" data-id="${p.user_id}">Unlock</button>` : ''}
-                          <button class="btn btn-ghost" data-act="${p.disabled_at ? 'enable' : 'disable'}" data-id="${p.user_id}">
-                            ${p.disabled_at ? 'Enable' : 'Disable'}
-                          </button>`
-                  }
-                </div>
-              </div>`,
-          )}
+          <h2>${state.view === 'person' ? 'People' : 'Permissions'}</h2>
+          <div class="tabs-seg" role="tablist" aria-label="View">
+            ${[
+              ['person', 'By person'],
+              ['permission', 'By permission'],
+            ].map(
+              ([id, label]) =>
+                html`<button type="button" class="tab" role="tab" data-pm="view" data-view="${id}" aria-selected="${state.view === id}">
+                  ${label}
+                </button>`,
+            )}
+          </div>
+          ${
+            state.view === 'permission'
+              ? html`<div class="pm">
+                  <input
+                    class="pg-search"
+                    type="search"
+                    placeholder="Search permissions"
+                    aria-label="Search permissions"
+                    autocomplete="off"
+                    data-pm="search"
+                    value="${state.pq}"
+                  />
+                  <div class="pm-chips" data-pm-chips></div>
+                  <div data-pm-list></div>
+                </div>`
+              : people.map(
+                  (p) =>
+                    html`<div class="row">
+                      <div>
+                        <strong>${p.staff?.full_name ?? p.username}</strong> <br /><span class="muted small"
+                          >${p.username} · ${p.role_template}${p.disabled_at ? ' · disabled' : ''}${isLocked(p) ? ' · locked' : ''}</span
+                        >
+                      </div>
+                      <div class="actions">
+                        ${
+                          p.role_template === 'admin'
+                            ? html`<span class="muted small">Owner account</span>`
+                            : html` <button class="btn" data-act="perms" data-id="${p.user_id}">Permissions</button>
+                                <button class="btn" data-act="setpin" data-id="${p.user_id}">Set PIN</button>
+                                ${isLocked(p) ? html`<button class="btn btn-primary" data-act="unlock" data-id="${p.user_id}">Unlock</button>` : ''}
+                                <button class="btn btn-ghost" data-act="${p.disabled_at ? 'enable' : 'disable'}" data-id="${p.user_id}">
+                                  ${p.disabled_at ? 'Enable' : 'Disable'}
+                                </button>`
+                        }
+                      </div>
+                    </div>`,
+                )
+          }
         </section>
         ${
           pinTarget
@@ -98,6 +141,7 @@ export async function mount(el, { ctx }) {
             : ''
         }`,
     );
+    drawMatrix();
     panel?.destroy();
     panel = null;
     const mountEl = el.querySelector('[data-pg-mount]');
@@ -119,6 +163,92 @@ export async function mount(el, { ctx }) {
     }
   }
 
+  // The By permission list. Redraws only itself from the data already loaded, so typing in the search box keeps focus.
+  function drawMatrix() {
+    const chipsEl = el.querySelector('[data-pm-chips]');
+    const listEl = el.querySelector('[data-pm-list]');
+    if (!chipsEl || !listEl) return;
+    const items = matrix.flatMap((g) => g.items);
+    const counts = {
+      all: items.length,
+      allowed: items.filter((i) => i.allowedCount > 0).length,
+      nobody: items.filter((i) => i.allowedCount === 0).length,
+      custom: items.filter((i) => i.customCount > 0).length,
+    };
+    render(
+      chipsEl,
+      html`<div class="pg-chips" role="group" aria-label="Show">
+        ${[
+          ['all', 'All'],
+          ['allowed', 'Someone has it'],
+          ['nobody', 'Nobody'],
+          ['custom', 'Custom'],
+        ].map(
+          ([id, label]) =>
+            html`<button type="button" class="pg-chip" data-pm="filter" data-filter="${id}" aria-pressed="${state.pfilter === id}">
+              ${label} <span class="pg-chip-n">${counts[id]}</span>
+            </button>`,
+        )}
+      </div>`,
+    );
+    const searching = state.pq.trim() !== '' || state.pfilter !== 'all';
+    const shown = filterPermissionRows(matrix, { query: state.pq, filter: state.pfilter });
+    if (shown.length === 0) return render(listEl, html`<p class="muted pg-empty">No permissions match.</p>`);
+    render(
+      listEl,
+      html`${shown.map((g) => {
+        const open = searching || state.popen.has(g.id);
+        return html`<section class="pg-group">
+          <div class="pg-ghead">
+            <button type="button" class="pg-toggle" data-pm="group" data-group="${g.id}" aria-expanded="${open}">
+              <span class="pg-caret" aria-hidden="true">${open ? '▾' : '▸'}</span>
+              <span class="pg-gname">${g.label}</span>
+              <span class="pg-count">${g.total} permissions</span>
+            </button>
+          </div>
+          ${
+            open
+              ? html`<ul class="pg-rows">
+                  ${g.items.map((i) => {
+                    const expanded = state.pexp.has(i.key);
+                    const names = i.people.filter((w) => w.allowed).map((w) => w.name);
+                    return html`<li class="pg-row">
+                      <button type="button" class="pm-item" data-pm="perm" data-key="${i.key}" aria-expanded="${expanded}">
+                        <span class="pg-text">
+                          <span class="pg-name"
+                            >${i.name}${i.customCount > 0 ? html` <span class="pg-tag" title="Someone's access differs from their role preset">${i.customCount} custom</span>` : ''}</span
+                          >
+                          <span class="pg-desc">${i.description}</span>
+                          <span class="pm-who${names.length === 0 ? ' pm-none' : ''}">${names.length ? names.join(', ') : 'Nobody'}</span>
+                        </span>
+                        <span class="pm-count" aria-label="${i.allowedCount} of ${i.total} allowed">${i.allowedCount}/${i.total}</span>
+                      </button>
+                      ${
+                        expanded
+                          ? html`<ul class="pm-people">
+                              ${i.people.map(
+                                (w) =>
+                                  html`<li class="pm-person${w.allowed ? ' pm-yes' : ''}">
+                                    <span class="pm-pname"
+                                      >${w.name} <span class="muted small">${w.role}${w.disabled ? ' · disabled' : ''}</span></span
+                                    >
+                                    ${w.override ? html`<span class="pg-tag pg-tag-${w.override}">${w.override === 'grant' ? 'Custom: allowed' : 'Custom: blocked'}</span>` : ''}
+                                    <span class="pm-state">${w.allowed ? '✓ Allowed' : 'Not allowed'}</span>
+                                  </li>`,
+                              )}
+                            </ul>`
+                          : ''
+                      }
+                    </li>`;
+                  })}
+                </ul>`
+              : ''
+          }
+        </section>`;
+      })}`,
+    );
+  }
+
   async function run(fn) {
     state.error = null;
     try {
@@ -136,6 +266,19 @@ export async function mount(el, { ctx }) {
   };
 
   el.onclick = (e) => {
+    const m = e.target.closest('[data-pm]');
+    if (m && el.contains(m) && m.dataset.pm !== 'search') {
+      const { pm, view, filter, group, key } = m.dataset;
+      if (pm === 'view') {
+        if (state.view === view) return;
+        return run(async () => (state.view = view));
+      }
+      const flip = (set, v) => (set.has(v) ? set.delete(v) : set.add(v));
+      if (pm === 'filter') state.pfilter = filter;
+      if (pm === 'group') flip(state.popen, group);
+      if (pm === 'perm') flip(state.pexp, key);
+      return drawMatrix();
+    }
     const b = e.target.closest('[data-act]');
     if (!b || b.tagName === 'SELECT') return;
     const { act, id } = b.dataset;
@@ -163,6 +306,12 @@ export async function mount(el, { ctx }) {
       state.pinFor = null;
       state.notice = 'New PIN saved. The old one no longer works.';
     });
+  };
+  el.oninput = (e) => {
+    if (e.target.closest('[data-pm="search"]')) {
+      state.pq = e.target.value;
+      drawMatrix();
+    }
   };
   el.onchange = (e) => {
     const s = e.target.closest('select[data-act]');
