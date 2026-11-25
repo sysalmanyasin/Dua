@@ -1,8 +1,8 @@
 export default {
   id: 'tasks',
   title: 'Tasks',
-  icon: 'menu', // a tasks icon needs a Foundation request (js/shared/icons.js is Foundation)
-  nav: { order: 25 },
+  icon: 'tasks',
+  nav: { order: 25, links: [{ id: 'team', title: 'Team', path: '/tasks/team', icon: 'users', order: 25.5 }] }, // Team shows for the Owner only (the page needs tasks.manage)
   permission: null, // each page below says who may open it (the database checks again)
   routes: [
     {

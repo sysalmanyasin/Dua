@@ -3,7 +3,8 @@ import { html, render } from '../shared/html.js';
 import { icon } from '../shared/icons.js';
 import { BRAND } from './config.js';
 import { log } from './logger.js';
-import { isUsable, routesFor, resolveModules } from './registry.js';
+import { isUsable, routesFor, resolveModules, navLinks } from './registry.js';
+import { startBell } from './bell.js';
 import { startRouter } from './router.js';
 import { startStatusBar } from './statusbar.js';
 import { signOut } from './auth.js';
@@ -13,9 +14,12 @@ const moduleIcon = (m) =>
   m.icon ??
   { home: 'home', sales: 'chart', manager: 'users', inventory: 'shield', closing: 'chart', access: 'shield', tools: 'menu' }[m.id] ??
   'shield';
-function navigation(modules, activeId) {
+function navigation(modules, activeId, activePath = '') {
+  const links = navLinks(modules);
+  const own = links.find((l) => l.extra && l.moduleId === activeId && l.path === activePath); // an extra link owns its own page
+  const isActive = (l) => l.moduleId === activeId && (l.extra ? l === own : !own);
   return html`<div class="side-nav-heading">WORKSPACE</div>
-    ${modules.map((m) => html`<a class="side-link ${m.id === activeId ? 'is-active' : ''}" href="#${titled(m)[0]?.path ?? '/home'}" data-module="${m.id}" ${m.id === activeId ? 'aria-current="page"' : ''}><span class="side-icon">${icon(moduleIcon(m))}</span><span class="side-label">${m.title}</span><span class="side-chevron">›</span></a>`)}
+    ${links.map((l) => html`<a class="side-link ${isActive(l) ? 'is-active' : ''}" href="#${l.path}" data-module="${l.moduleId}" data-link="${l.key}" ${isActive(l) ? 'aria-current="page"' : ''}><span class="side-icon">${icon(l.icon ?? moduleIcon(modules.find((m) => m.id === l.moduleId)))}</span><span class="side-label">${l.title}</span><span class="side-chevron">›</span></a>`)}
     <div class="side-nav-footer"><span class="side-footer-mark"></span><span>Business workspace</span></div>`;
 }
 export function startShell(root, ctx, manifests) {
@@ -45,6 +49,7 @@ export function startShell(root, ctx, manifests) {
         >
         <div class="header-context"><span class="context-dot"></span><span id="hdr-sub">${BRAND.title}</span></div>
         <div class="hdr-right">
+          <span class="bell-slot" id="bell-slot" hidden></span>
           <div class="who"><strong>${ctx.full_name}</strong><span>${ROLE_LABEL[ctx.role] ?? ctx.role}</span></div>
           <button class="btn btn-ghost btn-sm" data-action="signout">${icon('logout')}<span>Sign out</span></button>
         </div>
@@ -86,6 +91,8 @@ export function startShell(root, ctx, manifests) {
   });
   const off = new Set(ctx.modules_disabled ?? []);
   const pillOwners = manifests.filter((m) => m.status && isUsable(m, new Set(ctx.permissions), off));
+  const bellOwner = modules.find((m) => m.bell);
+  const bell = startBell(root.querySelector('#bell-slot'), bellOwner);
   const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, pillOwners);
   let token = 0;
   const stopRouter = startRouter(
@@ -102,7 +109,7 @@ export function startShell(root, ctx, manifests) {
         html`<span>Workspace</span><span>/</span><strong>${route.title ?? mod.title}</strong>`,
       );
       root.querySelector('#status-bar').hidden = mod.id !== 'home';
-      render(root.querySelector('#global-nav'), navigation(modules, mod.id));
+      render(root.querySelector('#global-nav'), navigation(modules, mod.id, route.path));
       const pages = titled(mod),
         onHome = mod.id === 'home';
       const homeLink = home && !onHome ? html`<a class="nav-sub nav-home" href="#/home">‹ Home</a>` : '';
@@ -120,6 +127,8 @@ export function startShell(root, ctx, manifests) {
           .forEach((l) => l.setAttribute('aria-current', String(l.dataset.path === route.path)));
       }
       document.title = `${route.title ?? mod.title} · Dua`;
+      bell.retitle();
+      bell.refresh();
       render(content, html`<p class="muted">Loading…</p>`);
       try {
         const page = await route.load();
@@ -153,5 +162,6 @@ export function startShell(root, ctx, manifests) {
   return () => {
     stopRouter();
     stopStatus();
+    bell.stop();
   };
 }
