@@ -55,7 +55,6 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
 }));
 const { mountProductSearch } = await import('../../js/modules/audit/ui/productSearch.js');
 const { mount: mountIndividuals } = await import('../../js/modules/audit/ui/individuals.js');
-const { mount: mountAttention } = await import('../../js/modules/audit/ui/attention.js');
 const { progressPanel, progressState, openProgress } = await import('../../js/modules/audit/ui/progress.js');
 const { render, html } = await import('../../js/shared/html.js');
 
@@ -108,11 +107,6 @@ describe('Audit 3.0 screens: names, tab order, announcements', () => {
     checkBasics(el);
     expect(el.querySelector('select[data-s="month"]').closest('label').textContent).toContain('Month');
     expect(el.querySelectorAll('section[aria-label]').length).toBeGreaterThan(0);
-  });
-  it('Needs attention', async () => {
-    await mountAttention(el);
-    checkBasics(el);
-    expect(el.querySelector('section[aria-label]')).not.toBeNull();
   });
   it('the person panel: pressed state on filters, and a name for each', async () => {
     const p = progressState();

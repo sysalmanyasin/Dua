@@ -17,8 +17,7 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
 const api = await import('../../js/modules/audit/data/api.js');
 const compile = await import('../../js/modules/audit/ui/compile.js');
 const round = await import('../../js/modules/audit/ui/round.js');
-const attention = await import('../../js/modules/audit/ui/attention.js');
-const { setView, getView } = await import('../../js/modules/audit/domain/nav.js');
+const { setView } = await import('../../js/modules/audit/domain/nav.js');
 
 const flush = async () => {
   for (let i = 0; i < 4; i++) await new Promise((r) => setTimeout(r, 0));
@@ -105,43 +104,5 @@ describe('person panel on the Round page', () => {
     el.querySelector('button[data-peek="a1"]').click();
     await flush();
     expect(el.querySelector('[data-prog]').textContent).toContain('Alpha two');
-  });
-});
-
-describe('the attention page', () => {
-  const summary = {
-    ready: [{ engagement_id: 'e1', engagement_name: 'Annual', round_id: 'r1', round_label: '1', n: 1 }],
-    conflicts: [{ engagement_id: 'e1', engagement_name: 'Annual', round_id: 'r2', round_label: '2', n: 2 }],
-    corrections: [],
-  };
-  beforeEach(() => {
-    vi.clearAllMocks();
-    sessionStorage.clear();
-    location.hash = '';
-  });
-
-  it('lists exactly what each badge counts and opens the round', async () => {
-    api.attentionSummary.mockResolvedValue(summary);
-    const el = document.createElement('div');
-    document.body.replaceChildren(el);
-    await attention.mount(el);
-    expect(el.querySelector('[data-attn-list="ready"] li').textContent.replace(/\s+/g, ' ')).toContain('Annual · Round 1');
-    expect(el.querySelector('[data-attn-list="conflicts"] li').textContent.replace(/\s+/g, ' ')).toContain('2 conflicts');
-    expect(el.querySelector('[data-attn-list="corrections"]')).toBeNull();
-    el.querySelector('[data-attn-list="conflicts"] button[data-open]').click();
-    expect(location.hash).toBe('#/audit/compile');
-    expect(getView()).toEqual({ engagement: 'e1', round: 'r2' });
-  });
-  it('says so when nothing waits, and shows an error when the call fails', async () => {
-    api.attentionSummary.mockResolvedValue({ ready: [], conflicts: [], corrections: [] });
-    let el = document.createElement('div');
-    document.body.replaceChildren(el);
-    await attention.mount(el);
-    expect(el.querySelector('[data-empty]')).not.toBeNull();
-    api.attentionSummary.mockRejectedValue({ hint: 'not_allowed', message: 'not allowed' });
-    el = document.createElement('div');
-    document.body.replaceChildren(el);
-    await attention.mount(el);
-    expect(el.textContent).toContain('Could not load');
   });
 });

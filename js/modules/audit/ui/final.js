@@ -5,6 +5,7 @@ import { hero } from '../../../shared/ui.js';
 import * as api from '../data/api.js';
 import { rupees, toPaisa } from '../domain/count.js';
 import { friendlyError } from '../domain/errors.js';
+import { finalBlocked, finalChecks } from '../domain/finalChecks.js';
 import { getView } from '../domain/nav.js';
 import { finalCsv, safeFileName } from '../domain/report.js';
 import { roundLabel } from './engagement.js';
@@ -141,9 +142,9 @@ export async function mount(el, { ctx } = {}) {
   }
 
   function finalizeCard() {
-    const { round, compilation: c, conflicts, corrections } = s.r;
-    const open = conflicts.filter((k) => !k.resolved_side).length;
-    const waiting = corrections.filter((k) => k.status === 'proposed').length;
+    const { round, compilation: c } = s.r;
+    const checks = finalChecks(s.r);
+    const blocked = finalBlocked(checks);
     if (round.state !== 'compiled' || !c) {
       return html`<section class="card aud-card">
         <h2>Not final yet</h2>
@@ -157,9 +158,20 @@ export async function mount(el, { ctx } = {}) {
         Revision ${c.revision}: <strong>${c.variance_count}</strong> of ${c.item_count} items differ, net
         <strong>${money(c.variance_value)}</strong>.
       </p>
-      ${c.with_missing ? html`<p class="note" role="status">Incomplete: some people had not submitted when this was compiled.</p>` : ''}
-      ${open ? html`<p class="note note-error" role="alert">${open} conflict${open === 1 ? ' is' : 's are'} not settled yet.</p>` : ''}
-      ${waiting ? html`<p class="note note-error" role="alert">${waiting} correction${waiting === 1 ? ' is' : 's are'} waiting for a decision.</p>` : ''}
+      <ul class="aud-checks" data-checks aria-label="Checks before the final">
+        ${checks.map(
+          (k) =>
+            html`<li
+              data-check="${k.key}"
+              data-ok="${k.ok}"
+              class="${k.ok ? 'aud-check-ok' : k.blocking ? 'aud-check-blocked' : 'aud-check-warn'}"
+            >
+              <span aria-hidden="true">${k.ok ? '✓' : k.blocking ? '✗' : '!'}</span>
+              <span role="${k.ok ? 'presentation' : k.blocking ? 'alert' : 'status'}">${k.text}</span>
+              ${k.fix ? html`<a class="btn btn-sm" href="${'#' + k.fix.path}">${k.fix.label}</a>` : ''}
+            </li>`,
+        )}
+      </ul>
       <p class="muted small">The snapshot is kept as it is. The round cannot be counted, compiled or corrected afterwards.</p>
       ${
         canFinalize
@@ -175,7 +187,7 @@ export async function mount(el, { ctx } = {}) {
                         </button>
                         <button type="button" class="btn btn-ghost" data-act="cancel">Cancel</button>
                       </div>`
-                  : html`<button type="button" class="btn btn-primary" data-act="finalize" ${open || waiting ? 'disabled' : ''}>
+                  : html`<button type="button" class="btn btn-primary" data-act="finalize" ${blocked ? 'disabled' : ''}>
                       Make it final
                     </button>`
               }`

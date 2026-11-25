@@ -7,7 +7,8 @@ import { friendlyError } from '../domain/errors.js';
 import { getView, setView } from '../domain/nav.js';
 import { actionText } from '../domain/report.js';
 import { errorCard, loadingCard, toast } from './parts.js';
-import { exportAllRounds, exportRound, exportable } from './exports.js';
+import { mountCombinedReport } from './combinedReport.js';
+import { exportRound, exportable } from './exports.js';
 import { printDocument } from './print.js';
 
 const STATE = { draft: 'Being set up', locked: 'Locked', counting: 'Counting', compiled: 'Compiled', final: 'Final' };
@@ -74,6 +75,7 @@ export async function mount(el, { ctx } = {}) {
     error: null,
     exportRound: null,
     note: '',
+    combined: null, // the combined variance report; built once per audit so its picks survive a redraw
   };
 
   async function loadTrail(reset) {
@@ -90,6 +92,11 @@ export async function mount(el, { ctx } = {}) {
     if (!s.id) return;
     s.rep = await api.reportEngagement(s.id);
     s.exportRound = exportable(s.rep.rounds)[0]?.id ?? null;
+    s.combined = null;
+    if (exportable(s.rep.rounds).length) {
+      s.combined = document.createElement('div');
+      mountCombinedReport(s.combined, { auditName: s.rep.engagement.name, rounds: s.rep.rounds });
+    }
     await loadTrail(true);
   }
 
@@ -111,7 +118,7 @@ export async function mount(el, { ctx } = {}) {
     if (ready.length === 0) return '';
     const off = s.busy ? 'disabled' : '';
     return html`<section class="card aud-card no-print" aria-label="Download">
-      <h2>Download</h2>
+      <h2>One round</h2>
       <p class="muted small">Rounds that are not compiled yet have no results to download.</p>
       <label class="field"
         ><span>Round</span>
@@ -122,14 +129,9 @@ export async function mount(el, { ctx } = {}) {
       <div class="aud-actions">
         <button type="button" class="btn btn-sm btn-primary" data-export="xlsx" ${off}>Excel: this round</button>
         <button type="button" class="btn btn-sm" data-export="variance" ${off}>Variance CSV</button>
+        <button type="button" class="btn btn-sm" data-export="missing" ${off}>Missing counts CSV</button>
         <button type="button" class="btn btn-sm" data-export="notes" ${off}>Auditor notes CSV</button>
         <button type="button" class="btn btn-sm" data-export="conflicts" ${off}>Conflicts CSV</button>
-      </div>
-      <h3>All rounds</h3>
-      <div class="aud-actions">
-        <button type="button" class="btn btn-sm btn-primary" data-export-all="xlsx" ${off}>Excel: all rounds</button>
-        <button type="button" class="btn btn-sm" data-export-all="combined" ${off}>Combined CSV</button>
-        <button type="button" class="btn btn-sm" data-export-all="summary" ${off}>Summary CSV</button>
       </div>
       <p class="muted small" role="status" data-export-note>${s.note}</p>
     </section>`;
@@ -144,7 +146,7 @@ export async function mount(el, { ctx } = {}) {
         ${rounds.length ? roundsTable(rounds, true) : html`<p class="muted">No rounds yet.</p>`}
         <div class="aud-actions no-print"><button type="button" class="btn btn-sm" data-act="print">Print / Save as PDF</button></div>
       </section>
-      ${exportCard()}
+      ${exportCard()} ${s.combined ? html`<div data-combined-host></div>` : ''}
       <section class="card aud-card" aria-label="People">
         <h2>Who counted what</h2>
         ${
@@ -195,6 +197,8 @@ export async function mount(el, { ctx } = {}) {
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''} ${picker()} ${report()}
       </div>`,
     );
+    const host = el.querySelector('[data-combined-host]');
+    if (host && s.combined) host.replaceWith(s.combined);
   }
 
   async function run(fn) {
@@ -248,8 +252,6 @@ export async function mount(el, { ctx } = {}) {
       const round = s.rep.rounds.find((r) => r.id === s.exportRound);
       return round && download(() => exportRound(s.rep.engagement.name, round, b.dataset.export));
     }
-    if (b.dataset.exportAll)
-      return download((progress) => exportAllRounds(s.rep.engagement.name, s.rep.rounds, b.dataset.exportAll, progress));
     if (b.dataset.act === 'more') return run(() => loadTrail(false));
     if (b.dataset.act === 'open') {
       setView({ engagement: s.id, round: b.dataset.id });
