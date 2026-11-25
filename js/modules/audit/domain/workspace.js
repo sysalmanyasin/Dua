@@ -11,7 +11,6 @@ export const TABS = [
 // Every Audit page belongs to one tab (and, inside Team Audit, to one screen). Pages that are not listed (counting) have no tab bar.
 const PLACES = {
   '/audit': { tab: 'overview' },
-  '/audit/attention': { tab: 'overview' },
   '/audit/engagements': { tab: 'team', screen: 'progress' },
   '/audit/engagement': { tab: 'team', screen: 'progress' },
   '/audit/round': { tab: 'team', screen: 'progress' },

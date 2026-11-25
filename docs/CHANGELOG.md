@@ -2,6 +2,14 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Audit: four-tab layout (UI and navigation only; no database change)
+- Four persistent tabs (Overview, Team Audit, Individual Audit, Tools) on every Audit page except counting. Spec: `docs/modules/audit-tabs.md`.
+- Overview rewritten to exactly five sections (Quick actions, Product search, Pending actions, Individual audit, Active team audit). Pending actions include approved corrections not yet recompiled and Team rounds ready to finalize. The `/audit/attention` page is removed; product search no longer repeats on the Team audits page.
+- Team Audit: Compile & Review and Corrections are separate screens (`/audit/corrections` is new); the audit and round are shown on every Team screen. Finalization shows a checklist that mirrors the database's refusals and blocks the button before the click. Reports gained the round-wise combined variance report (any or all compiled rounds, each with its own totals) and a Missing counts CSV.
+- Individual Audit: Monthly Overview, Rounds & Progress, Review & Corrections (no compile button, conflicts, next round or final), Reports (per round, per person, combined month). The month picked is kept across the screens.
+- Variance is never added across rounds: the summary export no longer has an "All rounds" row.
+- Tests: hub-layout tests replaced; new `audit-overview`, `audit-workspace`, `audit-reports-combined`, `audit-final-checks`. `npm run verify`: 171 files / 2,647 tests pass. Database tests were not run (no database change). Not yet run on a real phone (PHONE 5 to 7 in `audit.phone-tests.md`) and the Team screens have not been exercised on real Team audit data (the live database held only Individual audits).
+
 ## 24 Nov — Operations Redesign, Stage 3b (Task Master screens) — migration 0703 applied live 25 Nov
 - New module `tasks` (`js/modules/tasks`: manifest, `domain/`, `data/`, `ui/`). Pages: **My Tasks** (`/tasks`; overdue, urgent, due within two days, other pending, returned, awaiting verification; accept, start, hand in with a note or a tick, ask for a new deadline or another person, comments, history), **To Verify** (`/tasks/verify`; approve, or send back with a reason), **All Tasks** (`/tasks/manage`; create, assign, re-date, cancel, filter), **Requests**, **Schedules** (including Generate now) and **Team** (`/tasks/requests`, `/tasks/schedules`, `/tasks/team`). All data comes from the existing Task Master database functions; no new function was needed.
 - Home: staff get **My Work Snapshot** and **My Tasks**; the Owner gets **Staff & Team**. Styles in `css/tasks.css`; `sw.js` regenerated.

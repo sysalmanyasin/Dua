@@ -95,3 +95,23 @@ Needs: a person with `audit.barcode_scan`, one with `audit.barcode_register`, on
 4. Have two counters submit everything in a round. Open the Audit overview. Look for: "Needs your attention" with "1 round ready to compile". Tap it. Look for: that round listed. Tap **Open**. Look for: the Review page of that round.
 5. Compile, then make a conflict or a proposed correction (use a second round or a person with the suggest key). Look for: the badge says how many conflicts or corrections are waiting, and the list behind it adds up to the same number.
 6. Sign in as a counter who has no review or compile key. Look for: no "Needs your attention" box and no Items button.
+
+## PHONE 5: the four tabs and the Overview (new, 25 Nov 2026)
+Nothing below has been run on a real phone.
+1. Sign in as the owner. Open Audit. Look for: four tabs (Overview, Team Audit, Individual Audit, Tools) that scroll sideways if they do not fit, each at least a thumb tall; exactly five sections on the Overview (Quick actions, Product search, Pending actions, Individual audit, Active team audit); no Recent activity.
+2. Type a product in Product search. Look for: its history across rounds, with variance, for Team and Individual audits.
+3. Approve a correction on a compiled round and do not recompile. Look for: Pending actions shows "Needs a recompile" for that round; tapping Open lands on the Corrections screen (Team) or Individual review (Individual).
+4. Sign in as a counter (counting only). Look for: only Overview with Quick actions and your own assignment; no Team Audit or Tools tab; Continue counting opens the focused counting page with no tab bar.
+5. Sign in as a sub-auditor (`audit.individual`). Look for: Overview, Individual Audit and Tools; the Individual card says Start, or Continue if a round is open.
+
+## PHONE 6: Team Audit screens
+1. Open Team Audit > an audit. Look for: the audit name and round above the screens, and a tappable way back to the audit; Compile & Review, Corrections and Finalization greyed out until a round is chosen.
+2. On Compile & Review propose a correction. Look for: a note linking to Corrections. On Corrections approve it. Look for: the Recompile alert; on Compile & Review recompile; the alert disappears.
+3. Reports > Combined variance report. Pick two rounds (a repeated round such as 1 and 1A), tap Show report. Look for: each round on its own with its own totals and no total across rounds; the CSV has a Round column; the Summary CSV has no "All rounds" row.
+4. Finalization with a correction waiting. Look for: a red check with a Decide link and a disabled button; after deciding, the checklist turns green. Approve one more correction without recompiling: the first check blocks with a Recompile link.
+
+## PHONE 7: Individual Audit screens
+1. Open Individual Audit > Monthly Overview. Look for: people, rounds, done and still counting for the month; the month you pick stays when you open Rounds & Progress and Reports.
+2. Rounds & Progress with a round still being counted. Look for: "n of m counted"; your own open round shows Continue counting.
+3. Review & Corrections on a compiled round. Look for: no compile button, no conflicts, no Final link; a correction can be proposed and approved; the Recompile alert appears after approval.
+4. Reports. Look for: each round's CSV, each person's rounds, and the combined month report with round labels and the person's name.
