@@ -142,7 +142,7 @@ describe('all rounds', () => {
     await exportAllRounds('Annual audit', rounds, 'xlsx');
     const sheets = readWorkbook(files.list[0].bytes);
     expect(sheets.map((s) => s.name)).toEqual(['Summary', 'Combined', 'Round 1', 'Round 1A']);
-    expect(sheets[0].rows.at(-1)[0]).toBe('All rounds');
+    expect(sheets[0].rows.map((r) => r[0])).toEqual(['Round', '1', '1A']); // one row per round, no total across rounds
   });
 
   it('says so when no round has results', async () => {

@@ -1207,3 +1207,111 @@
   align-items: center;
   gap: 0.4rem;
 }
+
+/* Audit tab frame: four primary tabs, and the five Team Audit screens under them */
+.aud.aud-frame {
+  margin-bottom: 0.5rem;
+}
+.aud .aud-tabs,
+.aud .aud-screens {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.aud .aud-tabs {
+  padding: 0.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+.aud .aud-tab,
+.aud .aud-screen {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border-radius: 0.4rem;
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.aud .aud-tab {
+  font-weight: 600;
+}
+.aud .aud-tab[aria-current='page'] {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+.aud .aud-screens {
+  margin-top: 0.4rem;
+  padding: 0 0.25rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.aud .aud-screen {
+  min-height: 40px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+.aud .aud-screen[aria-current='page'] {
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: inset 0 -3px 0 var(--primary);
+  border-radius: 0;
+}
+.aud .aud-screen-waiting {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.aud .aud-tab:focus-visible,
+.aud .aud-screen:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Overview: five compact sections */
+.aud .aud-overview-head,
+.aud .aud-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.aud .aud-overview-head h1 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+.aud .aud-refresh {
+  min-height: 44px;
+  padding: 0 0.75rem;
+  background: none;
+  border: 0;
+  color: var(--primary);
+  cursor: pointer;
+}
+.aud .aud-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.aud .aud-chip {
+  min-height: 40px;
+  border-radius: 999px;
+}
+.aud .aud-pending li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.aud .aud-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
+.aud .aud-table-wrap {
+  overflow-x: auto;
+}
