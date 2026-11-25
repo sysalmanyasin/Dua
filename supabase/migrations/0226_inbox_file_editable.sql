@@ -24,7 +24,6 @@ begin
   if ln.state = 'dismissed' then raise exception 'this line was dismissed: reopen it first'; end if;
   if ln.removed then raise exception 'Closing has since removed this line: dismiss it instead'; end if;
   if ln.amount = 0 then raise exception 'this line has no amount'; end if;
-  if ln.business_date > today or ln.business_date < date '2000-01-01' then raise exception 'the line''s date is out of range'; end if;
   -- The owner may correct the date and the amount of the entry that is made. The filing itself still records what Closing said
   -- (ln.business_date / ln.amount), so "changed after filing" keeps comparing Closing with Closing.
   v_date := coalesce(p_date, ln.business_date);
