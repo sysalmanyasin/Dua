@@ -6,7 +6,7 @@ import { getView } from '../domain/nav.js';
 import { individualScreens, placeOf, teamScreens, visibleTabs } from '../domain/workspace.js';
 
 const tabLink = (tab, active) =>
-  html`<a class="aud-tab" href="#${tab.path}" data-tab="${tab.key}" aria-current="${active ? 'page' : 'false'}">${tab.label}</a>`;
+  html`<a class="aud-wtab" href="#${tab.path}" data-tab="${tab.key}" aria-current="${active ? 'page' : 'false'}">${tab.label}</a>`;
 
 const screenLink = (screen, active) =>
   screen.waiting
@@ -62,7 +62,7 @@ export function frameBar({ path, routes, permissions, view }) {
         : [];
   const name = place.tab === 'team' ? 'Team Audit' : 'Individual Audit';
   return html`<div class="aud aud-frame">
-    <nav class="aud-tabs" aria-label="Audit sections">${tabs.map((t) => tabLink(t, t.key === place.tab))}</nav>
+    <nav class="aud-wtabs" aria-label="Audit sections">${tabs.map((t) => tabLink(t, t.key === place.tab))}</nav>
     ${place.tab === 'team' && view?.engagement ? html`<p class="aud-context" data-context></p>` : ''}
     ${
       screens.length > 1
@@ -90,6 +90,8 @@ export async function framed(loader, options = {}) {
       const view = getView();
       render(bar, frameBar({ path, routes: manifest.routes, permissions: new Set(args.ctx?.permissions ?? []), view }));
       void fillContext(bar, view);
+      // on a narrow screen the bars scroll sideways: bring the current tab and screen into view
+      bar.querySelectorAll('[aria-current="page"]').forEach((a) => a.scrollIntoView?.({ inline: 'center', block: 'nearest' }));
       return inner.mount(body, { ...args, ...options });
     },
   };

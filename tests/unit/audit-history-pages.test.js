@@ -12,7 +12,7 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
 const api = await import('../../js/modules/audit/data/api.js');
 const { mountProductSearch } = await import('../../js/modules/audit/ui/productSearch.js');
 const { mount: mountIndividuals } = await import('../../js/modules/audit/ui/individuals.js');
-const { getView, getMonth } = await import('../../js/modules/audit/domain/nav.js');
+const { getView, getMonth, getGroup, setGroup } = await import('../../js/modules/audit/domain/nav.js');
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const hist = (o = {}) => ({
@@ -134,13 +134,119 @@ describe('Individual audits by person', () => {
       o({ round_id: 'r2', state: 'counting', item_count: null, variance_count: null, variance_value: null }),
       o({ person_id: 'p2', person_name: 'Count Two', round_id: 'r3' }),
     ]);
+    setGroup(true);
     await mountIndividuals(el);
-    expect(el.querySelectorAll('[data-person]')).toHaveLength(2);
+    expect(el.querySelectorAll('section[data-person]')).toHaveLength(2);
     expect(el.textContent).toContain('Not compiled yet');
     expect(el.textContent).toContain('1 not finished');
     expect(el.textContent).toContain('2 items · 2 differences');
     // each round on its own: nothing is added across a person's rounds
     expect(el.textContent).not.toMatch(/\d+ audits? · .*· \d+ differences?$/m);
+  });
+  describe('Rounds & Progress: one list or grouped by people', () => {
+    const row = (x) => ({
+      person_id: 'p1',
+      person_name: 'Count One',
+      engagement_id: 'e1',
+      round_id: 'r1',
+      round_label: '1',
+      state: 'compiled',
+      started_at: '2026-11-02T05:00:00Z',
+      item_count: 2,
+      variance_count: 0,
+      variance_value: 0,
+      template_name: null,
+      companies: ['Acme'],
+      ...x,
+    });
+    const rows = [
+      row({ round_id: 'r1', round_label: '1', started_at: '2026-11-02T05:00:00Z' }),
+      row({
+        round_id: 'r4',
+        round_label: '4',
+        person_id: 'p2',
+        person_name: 'Count Two',
+        started_at: '2026-11-23T09:00:00Z',
+        companies: ['Acme', 'Beta', 'Cura', 'Delta'],
+      }),
+      row({
+        round_id: 'r3',
+        round_label: '3',
+        person_id: 'p3',
+        person_name: 'Count Three',
+        started_at: '2026-11-22T09:00:00Z',
+        template_name: 'Morning shelf',
+        companies: ['Cura'],
+      }),
+      row({ round_id: 'r2', round_label: '2', started_at: '2026-11-21T09:00:00Z', companies: [] }),
+    ];
+    const opts = { ctx: { permissions: ['audit.view'] }, screen: 'rounds' };
+    const labels = () => [...el.querySelectorAll('[data-round] strong')].map((x) => x.textContent);
+
+    it('starts as one list, newest round first, each row naming its person', async () => {
+      api.individualOverview.mockResolvedValue(rows);
+      await mountIndividuals(el, opts);
+      expect(el.querySelector('input[data-group]').checked).toBe(false);
+      expect(el.querySelectorAll('section[data-person]')).toHaveLength(0);
+      expect(labels()).toEqual(['Round 4', 'Round 3', 'Round 2', 'Round 1']);
+      expect([...el.querySelectorAll('[data-round-person]')].map((x) => x.textContent)).toEqual([
+        '· Count Two',
+        '· Count Three',
+        '· Count One',
+        '· Count One',
+      ]);
+    });
+
+    it('shows the template, or the companies, each round was started from', async () => {
+      api.individualOverview.mockResolvedValue(rows);
+      await mountIndividuals(el, opts);
+      expect([...el.querySelectorAll('[data-round-scope]')].map((x) => x.textContent)).toEqual([
+        'Acme, Beta +2 more',
+        'Template: Morning shelf',
+        'Acme',
+      ]);
+      // a round with no companies says nothing rather than something wrong
+      expect(el.querySelectorAll('[data-round]')[2].querySelector('[data-round-scope]')).toBeNull();
+    });
+
+    it('groups by people when switched on, and remembers it', async () => {
+      api.individualOverview.mockResolvedValue(rows);
+      await mountIndividuals(el, opts);
+      const box = el.querySelector('input[data-group]');
+      box.checked = true;
+      box.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(el.querySelectorAll('section[data-person]')).toHaveLength(3);
+      expect(el.querySelectorAll('[data-round-person]')).toHaveLength(0);
+      expect(getGroup()).toBe(true);
+      // each person's own rounds stay newest first, with the template or companies shown
+      const one = [...el.querySelectorAll('section[data-person]')].find((x) => x.textContent.includes('Count One'));
+      expect([...one.querySelectorAll('[data-round] strong')].map((x) => x.textContent)).toEqual(['Round 2', 'Round 1']);
+      document.body.replaceChildren((el = document.createElement('div')));
+      await mountIndividuals(el, opts);
+      expect(el.querySelector('input[data-group]').checked).toBe(true);
+      box.checked = false;
+      el.querySelector('input[data-group]').checked = false;
+      el.querySelector('input[data-group]').dispatchEvent(new Event('change', { bubbles: true }));
+      expect(getGroup()).toBe(false);
+      expect(el.querySelectorAll('section[data-person]')).toHaveLength(0);
+    });
+
+    it('keeps the toggle across a change of month', async () => {
+      api.individualOverview.mockResolvedValue(rows);
+      await mountIndividuals(el, opts);
+      const sel = el.querySelector('select[data-s="month"]');
+      sel.value = sel.options[1].value;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await flush();
+      expect(el.querySelector('input[data-group]').checked).toBe(false);
+      expect(labels()).toEqual(['Round 4', 'Round 3', 'Round 2', 'Round 1']);
+    });
+
+    it('has no toggle on the Monthly Overview', async () => {
+      api.individualOverview.mockResolvedValue(rows);
+      await mountIndividuals(el, { ...opts, screen: 'overview' });
+      expect(el.querySelector('input[data-group]')).toBeNull();
+    });
   });
   it('says so when the month is empty', async () => {
     api.individualOverview.mockResolvedValue([]);
