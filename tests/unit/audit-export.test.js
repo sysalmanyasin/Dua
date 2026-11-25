@@ -151,8 +151,9 @@ describe('the tables and their files', () => {
     expect(s.rows).toEqual([
       ['1', 'final', 6, 1, -2, -111, 0, 0, 0],
       ['1A', 'compiled', 2, 1, 3, 166.5, 0, 1, 0],
-      ['All rounds', '', 8, 2, 1, 55.5, 0, 1, 0],
     ]);
+    // rounds are never added up: a repeated round counts the same item again
+    expect(s.rows.some((r) => r[0] === 'All rounds')).toBe(false);
   });
 
   it('adds money in whole paisa, so 0.1 + 0.2 is 0.3 and a total matches the Review screen', () => {

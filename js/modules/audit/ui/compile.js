@@ -18,7 +18,17 @@ const q = (n) => String(Number(n));
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const money = (v) => rupees(toPaisa(v));
 
-export async function mount(el, { ctx } = {}) {
+// The review page serves three ways: the whole page (no `screen`, as before), the Compile & Review screen, or the Corrections screen.
+const PARTS = {
+  review: ['progress', 'compile', 'differences', 'conflicts'],
+  corrections: ['corrections', 'next'],
+  // an Individual round compiles itself on submit: no progress, no compile button, no cross-round conflicts, no final snapshot, no next round
+  individual: ['differences', 'corrections'],
+};
+
+export async function mount(el, { ctx, screen = null } = {}) {
+  const individual = screen === 'individual';
+  const shows = (part) => !screen || (PARTS[screen] ?? []).includes(part);
   const perms = ctx?.permissions ?? [];
   const can = (k) => perms.includes(k) || perms.includes('audit.manage');
   const canCompile = can('audit.compile');
@@ -283,10 +293,37 @@ export async function mount(el, { ctx } = {}) {
   }
 
   function correctionsCard() {
-    const { round, corrections } = s.o;
-    if (corrections.length === 0) return '';
+    const { round, corrections: all } = s.o;
+    if (all.length === 0) {
+      if (screen !== 'corrections' && !individual) return '';
+      return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
+        <h2>Corrections</h2>
+        ${
+          individual
+            ? html`<p class="muted" data-empty>
+                No corrections have been proposed for this round. Propose one from an item in the list above.
+              </p>`
+            : html`<p class="muted" data-empty>
+                No corrections have been proposed for this round. A correction is proposed from the items on the
+                <a href="#/audit/compile">Compile &amp; Review</a> screen.
+              </p>`
+        }
+      </section>`;
+    }
+    // on the Corrections screen: waiting first, then approved (applied at the next compile), then rejected
+    const rank = { proposed: 0, approved: 1, rejected: 2 };
+    const grouped = screen === 'corrections' || individual;
+    const corrections = grouped ? [...all].sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3)) : all;
+    const count = (status) => all.filter((c) => c.status === status).length;
     return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
       <h2>Corrections</h2>
+      ${
+        screen === 'corrections'
+          ? html`<p class="muted small" data-correction-counts>
+              ${count('proposed')} waiting · ${count('approved')} approved · ${count('rejected')} rejected
+            </p>`
+          : ''
+      }
       ${corrections.map((c) => {
         const open = s.form && s.form.type === 'reject' && s.form.id === c.id;
         return html`<div class="aud-block">
@@ -381,6 +418,17 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   }
 
+  // on the Compile & Review screen: corrections waiting for a decision live on their own screen
+  function correctionsHint() {
+    if (screen !== 'review') return '';
+    const waiting = s.o.corrections.filter((x) => x.status === 'proposed').length;
+    if (waiting === 0) return '';
+    return html`<p class="note" role="status" data-corrections-hint>
+      ${waiting} ${waiting === 1 ? 'correction is' : 'corrections are'} waiting for a decision.
+      <a href="#/audit/corrections">Open Corrections</a>
+    </p>`;
+  }
+
   // O4: the result on screen is older than something that was decided after it
   function recompileBanner() {
     const need = recompileNeeded(s.o);
@@ -410,7 +458,10 @@ export async function mount(el, { ctx } = {}) {
       corrections.length > 0 && ['corrections', 'Corrections', waiting ? String(waiting) : ''],
       conflicts.length > 0 && ['conflicts', 'Conflicts', open ? String(open) : ''],
       canCompile && s.o.round.state === 'compiled' && c && ['next', 'Next round', ''],
-    ].filter(Boolean);
+    ]
+      .filter(Boolean)
+      .filter(([key]) => shows(key));
+    if (steps.length < 2) return '';
     return html`<nav class="aud-stepbar" aria-label="Parts of this page">
       ${steps.map(
         ([key, label, badge]) =>
@@ -426,24 +477,31 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="aud">
-        ${crumbs([
-          { label: 'Audits', href: '#/audit/engagements' },
-          { label: 'This audit', href: '#/audit/engagement' },
-          { label: roundLabel(round), href: '#/audit/round' },
-          { label: 'Review' },
-        ])}
+        ${crumbs(
+          individual
+            ? [{ label: 'Individual audits', href: '#/audit/individuals' }, { label: roundLabel(round) }, { label: 'Review & corrections' }]
+            : [
+                { label: 'Audits', href: '#/audit/engagements' },
+                { label: 'This audit', href: '#/audit/engagement' },
+                { label: roundLabel(round), href: '#/audit/round' },
+                { label: screen === 'corrections' ? 'Corrections' : 'Review' },
+              ],
+        )}
         ${hero({
           label: 'Audit',
-          title: `${roundLabel(round)} · review`,
+          title: `${roundLabel(round)} · ${individual ? 'review & corrections' : screen === 'corrections' ? 'corrections' : 'review'}`,
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items`,
           actions: html`${
-            round.state === 'compiled' || round.state === 'final'
+            !individual && (round.state === 'compiled' || round.state === 'final')
               ? html`<a class="btn btn-sm" href="#/audit/final">${round.state === 'final' ? 'Final' : 'Final snapshot'}</a> `
               : ''
           }`,
         })}
-        ${pipelineStrip(s.o, perms, 'compile')} ${stepBar()} ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
-        ${recompileBanner()} ${progress()} ${compileCard()} ${results()} ${rowsCard()} ${correctionsCard()} ${conflictsCard()} ${nextCard()}
+        ${screen === 'corrections' || individual ? '' : pipelineStrip(s.o, perms, 'compile')} ${stepBar()}
+        ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''} ${correctionsHint()} ${recompileBanner()}
+        ${shows('progress') ? progress() : ''} ${shows('compile') ? compileCard() : ''}
+        ${shows('differences') ? html`${results()} ${rowsCard()}` : ''} ${shows('corrections') ? correctionsCard() : ''}
+        ${shows('conflicts') ? conflictsCard() : ''} ${shows('next') ? nextCard() : ''}
       </div>`,
     );
   }

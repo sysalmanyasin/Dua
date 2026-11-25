@@ -26,3 +26,12 @@ export const getLastView = () => {
     : null;
 };
 export const newKey = () => crypto.randomUUID();
+
+// The month the Individual Audit screens are showing, kept for the tab so Monthly Overview, Rounds and Reports agree.
+const MONTH = 'dua.audit.month';
+const VALID_MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+export const getMonth = () => {
+  const m = safe(() => sessionStorage.getItem(MONTH));
+  return VALID_MONTH.test(m ?? '') ? m : null;
+};
+export const setMonth = (month) => (VALID_MONTH.test(month ?? '') ? safe(() => sessionStorage.setItem(MONTH, month)) : null);
