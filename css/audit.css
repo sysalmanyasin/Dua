@@ -1315,3 +1315,32 @@
 .aud .aud-table-wrap {
   overflow-x: auto;
 }
+
+/* Which audit and round a Team screen is on, and the way back to it */
+.aud .aud-context {
+  margin: 0.4rem 0.25rem 0;
+  font-size: 0.9rem;
+}
+.aud .aud-context-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.aud .aud-check-ok {
+  color: var(--text);
+}
+.aud .aud-check-blocked {
+  color: var(--danger, #b42318);
+}
+.aud .aud-check-warn {
+  color: var(--text-muted);
+}
+.aud .aud-checks li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}

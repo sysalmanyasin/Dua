@@ -2,6 +2,14 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Audit: four-tab layout (UI and navigation only; no database change)
+- Four persistent tabs (Overview, Team Audit, Individual Audit, Tools) on every Audit page except counting. Spec: `docs/modules/audit-tabs.md`.
+- Overview rewritten to exactly five sections (Quick actions, Product search, Pending actions, Individual audit, Active team audit). Pending actions include approved corrections not yet recompiled and Team rounds ready to finalize. The `/audit/attention` page is removed; product search no longer repeats on the Team audits page.
+- Team Audit: Compile & Review and Corrections are separate screens (`/audit/corrections` is new); the audit and round are shown on every Team screen. Finalization shows a checklist that mirrors the database's refusals and blocks the button before the click. Reports gained the round-wise combined variance report (any or all compiled rounds, each with its own totals) and a Missing counts CSV.
+- Individual Audit: Monthly Overview, Rounds & Progress, Review & Corrections (no compile button, conflicts, next round or final), Reports (per round, per person, combined month). The month picked is kept across the screens.
+- Variance is never added across rounds: the summary export no longer has an "All rounds" row.
+- Tests: hub-layout tests replaced; new `audit-overview`, `audit-workspace`, `audit-reports-combined`, `audit-final-checks`. `npm run verify`: 171 files / 2,647 tests pass. Database tests were not run (no database change). Not yet run on a real phone (PHONE 5 to 7 in `audit.phone-tests.md`) and the Team screens have not been exercised on real Team audit data (the live database held only Individual audits).
+
 ## 25 Nov — Closing start page and saved-closing view (owner review of the audit)
 - **Start page:** the Opening closing card is hidden as soon as an opening exists (any saved closing, or an opening draft). The day panel shows only the draft to *Continue* for the chosen day, or, when there is none, the slot to start; saved closings are no longer repeated there (they are listed once, under Saved records). Every record shows **Responsible: name** and, once saved, its **Variance** in words (a Final shows its Final variance, any other closing its own shift variance).
 - **Saved closing (view):** ends with the **Aggregated Final Closing** card (target, net cash available, Plus/Less for the full period since the last Final), as on the ledger's last section. Not shown for the opening closing.

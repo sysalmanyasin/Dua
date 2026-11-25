@@ -3,6 +3,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../js/modules/audit/data/api.js', () => ({
+  engagementOverview: vi.fn(),
   compileOverview: vi.fn(),
   compiledRows: vi.fn(),
   compileRound: vi.fn(async () => ({})),
@@ -441,5 +442,53 @@ describe('Individual review & corrections screen', () => {
     await mount(root(), { ...owner, screen: 'individual' });
     await until(() => root().querySelector('[data-empty]'));
     expect(root().querySelector('[data-empty] a')).toBeNull();
+  });
+});
+
+describe('audit context on the Team screens', () => {
+  const inner = async () => ({ mount: async () => {} });
+  const wait = async () => {
+    for (let i = 0; i < 6; i++) await new Promise((r) => setTimeout(r, 0));
+  };
+  const open = async (path, view) => {
+    setView(view);
+    const page = await framed(inner);
+    const host = document.createElement('div');
+    await page.mount(host, { ctx: { permissions: owner_perms }, route: { path } });
+    await wait();
+    return host;
+  };
+
+  it('names the audit and round, and links back to the audit', async () => {
+    api.engagementOverview.mockResolvedValue({
+      engagement: { id: 'ctx1', name: 'Annual audit' },
+      rounds: [{ id: 'r1', round_number: 1, round_suffix: 'A' }],
+    });
+    const host = await open('/audit/compile', { engagement: 'ctx1', round: 'r1' });
+    const link = host.querySelector('[data-context] a');
+    expect(link.textContent).toBe('Annual audit · Round 1A');
+    expect(link.getAttribute('href')).toBe('#/audit/engagement');
+  });
+
+  it('reads an audit once, but again when the round is one it has not seen', async () => {
+    api.engagementOverview.mockClear();
+    api.engagementOverview.mockResolvedValue({
+      engagement: { name: 'Cached' },
+      rounds: [{ id: 'r1', round_number: 1, round_suffix: null }],
+    });
+    await open('/audit/compile', { engagement: 'ctx2', round: 'r1' });
+    await open('/audit/final', { engagement: 'ctx2', round: 'r1' });
+    expect(api.engagementOverview).toHaveBeenCalledTimes(1);
+    await open('/audit/final', { engagement: 'ctx2', round: 'r-new' });
+    expect(api.engagementOverview).toHaveBeenCalledTimes(2);
+  });
+
+  it('leaves the line out when the audit cannot be read, and on pages that are not Team screens', async () => {
+    api.engagementOverview.mockRejectedValue(new Error('boom'));
+    const failed = await open('/audit/compile', { engagement: 'ctx3', round: 'r1' });
+    expect(failed.querySelector('[data-context] a')).toBeNull();
+    api.engagementOverview.mockResolvedValue({ engagement: { name: 'X' }, rounds: [] });
+    const tools = await open('/audit/tools', { engagement: 'ctx4' });
+    expect(tools.querySelector('[data-context]')).toBeNull();
   });
 });
