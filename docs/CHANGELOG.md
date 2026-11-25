@@ -9,6 +9,16 @@ Dates are 2026. Counts are as of the end of each step.
 - Tests: 61 new unit tests (`tasks-domain`, `tasks-pages`, `tasks-manifest`, `home-tasks-sections`, three more in `home-ops-gating`). No attendance and no notifications (D-51, D-58).
 - Verified locally: lint, format, secrets and vendor checks, the full unit suite, and every non-eBill database test against a local Postgres 16 replay. Not verified: the screens on a real phone, and 0703 on the live database.
 
+## 24 Nov — Fix: Sale Report page showed no report (CSS class collision)
+- Cause: `css/ebill.css` defined a bare `.sr` rule (a 1px clipped "screen reader only" box) and, loading after `sales.css`, it overrode the Sale Report container, which also uses `.sr`. The report rendered but collapsed to an invisible 1px box; Copy, Print data and Gmail still worked because they are built from the data, not the screen.
+- Fix: Emergency Billing's helper is now `.eb-sr-only` (one use, the Delete column header in `ebill/ui/pos.js`). Test: `css-class-collisions.test.js` fails if any other stylesheet defines a bare `.sr`.
+
+## 24 Nov — Closing: "Carried CC from Previous" is editable on Shift and Final closings (migrations 0223, 0224)
+- On every non-opening closing, Shift or Final (new, or reopened for correction), step 8 Card shows Carried CC from Previous as a normal box. Empty = use the carried figure (shown as the placeholder); a typed value, including 0, replaces it.
+- Database: `closings.ov_prev_cc` (null = carried). `closing_apply_carry` honours it in both modes (0224 lifted the Final-only limit of 0223), so open, save and the submit-time carry check no longer overwrite it. `closing_apply_payload` / `closing_patch_draft` accept `overrides.prev_cc` (left alone when the key is absent); `closing_reopen` / `closing_correct` copy it to the revision.
+- Code: `domain/form.js` (override in form, payload, simple paths, `localTotals` with `carry.final`), `ui/sections-late.js`, `ui/ledger.js`, `data/api.js`. Tests: `closing-form.test.js` (now 19).
+- Migrations 0223 and 0224 were applied with the Supabase connector on 24 Nov 2026 (functions rewritten from their live definitions with asserted string replacements).
+
 ## 24 Nov — Dua is installable on Android, with two long-press shortcuts (Foundation request 6)
 - New `manifest.webmanifest` (name Dua, `start_url` and `scope` `./`, standalone, theme `#142b4a`, background `#f4f7fb` from `css/tokens.css`) and PNG icons made from `assets/icon.svg`: `icon-192.png`, `icon-512.png` and a maskable `icon-maskable-512.png`. Chrome on Android now offers Install, and the installed app opens in its own window.
 - Long-pressing the icon offers **Counting** (`./#/audit/count`) and **Individual audit** (`./#/audit/individual`). Both are existing routes; the router still refuses a screen the person has no key for, and a signed-out person sees sign-in. iPhones ignore manifest shortcuts and only get the normal home-screen icon.
