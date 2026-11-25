@@ -69,6 +69,17 @@ the chosen audit, round and month are kept for the tab as before.
   The database remains the authority.
 - Team Reports gained a **Missing counts CSV** (the variance lines nobody counted), derived from data the variance report already reads.
 
+## Individual rounds list (Rounds & Progress and Reports)
+
+- One list for the month, **newest round first**, each row naming its person and **what the round was started from**: the template's
+  name (`Template: …`), else its companies (two shown, the rest counted, e.g. `Acme, Beta +2 more`).
+- A **Group by people** switch (off by default) groups the same rounds under each person, still newest first. The choice is kept
+  for the tab and shared by Rounds & Progress and Reports.
+- On Reports the **Combined variance report** card comes first, then the rounds. It is built once per month, so the rounds picked and
+  the report shown survive the page redrawing (for example while a file is being prepared).
+- Needs **migration 0418** (`audit_individual_overview` gains `template_name` and `companies`; nothing else about it changes). Applied to
+  the live project on 25 Nov 2026 after the local database tests passed (0415 and 0418 tests).
+
 ## Things to know
 
 - The Overview makes several reads (my assignments, engagements, attention summary, individual month, each open audit's rounds,

@@ -35,3 +35,8 @@ export const getMonth = () => {
   return VALID_MONTH.test(m ?? '') ? m : null;
 };
 export const setMonth = (month) => (VALID_MONTH.test(month ?? '') ? safe(() => sessionStorage.setItem(MONTH, month)) : null);
+
+// Whether Rounds & Progress groups the rounds by person (off unless the person turns it on; kept for the tab).
+const GROUP = 'dua.audit.group';
+export const getGroup = () => safe(() => sessionStorage.getItem(GROUP)) === '1';
+export const setGroup = (on) => safe(() => sessionStorage.setItem(GROUP, on ? '1' : '0'));

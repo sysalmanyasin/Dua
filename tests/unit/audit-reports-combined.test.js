@@ -16,7 +16,7 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
 const api = await import('../../js/modules/audit/data/api.js');
 const { mountCombinedReport } = await import('../../js/modules/audit/ui/combinedReport.js');
 const { mount: mountReports } = await import('../../js/modules/audit/ui/individualReports.js');
-const { getView } = await import('../../js/modules/audit/domain/nav.js');
+const { getView, getGroup, setGroup } = await import('../../js/modules/audit/domain/nav.js');
 
 const flush = async () => {
   for (let i = 0; i < 8; i++) await new Promise((r) => setTimeout(r, 0));
@@ -167,11 +167,70 @@ describe('Individual reports screen', () => {
   });
 
   it('shows each person with their rounds, round by round, and the combined month report', async () => {
+    setGroup(true);
     await mountReports(el);
     expect(el.querySelectorAll('[data-person]')).toHaveLength(2);
     expect(el.querySelector('[data-sec="combined"]')).not.toBeNull();
     expect([...el.querySelectorAll('[data-sec="combined"] input[data-pick]')].map((b) => b.disabled)).toEqual([false, false, true]);
     expect(text(el)).toContain('Not compiled yet');
+  });
+
+  it('starts as one list, newest first, each row naming its person and what it was started from', async () => {
+    api.individualOverview.mockResolvedValue([
+      o({ started_at: '2026-11-02T05:00:00Z', companies: ['Acme'] }),
+      o({ round_id: 'r2', round_label: '2', started_at: '2026-11-21T05:00:00Z', template_name: 'Morning shelf', companies: ['Cura'] }),
+      o({
+        person_id: 'p2',
+        person_name: 'Count Two',
+        round_id: 'r3',
+        round_label: '3',
+        started_at: '2026-11-23T05:00:00Z',
+        companies: ['Acme', 'Beta', 'Cura'],
+      }),
+    ]);
+    await mountReports(el);
+    expect(el.querySelector('input[data-group]').checked).toBe(false);
+    expect(el.querySelectorAll('section[data-person]')).toHaveLength(0);
+    expect([...el.querySelectorAll('[data-sec="rounds-flat"] [data-round] strong')].map((x) => x.textContent)).toEqual([
+      'Round 3',
+      'Round 2',
+      'Round 1',
+    ]);
+    expect([...el.querySelectorAll('[data-sec="rounds-flat"] [data-round-person]')].map((x) => x.textContent)).toEqual([
+      '· Count Two',
+      '· Count One',
+      '· Count One',
+    ]);
+    expect([...el.querySelectorAll('[data-sec="rounds-flat"] [data-round-scope]')].map((x) => x.textContent)).toEqual([
+      'Acme, Beta +1 more',
+      'Template: Morning shelf',
+      'Acme',
+    ]);
+  });
+
+  it('puts the combined variance report first, ahead of the rounds', async () => {
+    await mountReports(el);
+    const order = [...el.querySelectorAll('[data-sec="combined"], [data-sec="rounds-flat"]')].map((x) => x.dataset.sec);
+    expect(order).toEqual(['combined', 'rounds-flat']);
+    const names = [...el.querySelectorAll('[data-sec="combined"] .aud-check span')].map((x) => x.textContent);
+    expect(names[0]).toContain('Round 1');
+    expect(names[0]).toContain('Count One');
+  });
+
+  it('keeps what was picked in the combined report when the page redraws, and when the grouping changes', async () => {
+    await mountReports(el);
+    const box = el.querySelector('[data-sec="combined"] input[data-pick="r1"]');
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    el.querySelector('button[data-round-file="r2"]').click(); // a download redraws the page
+    await flush();
+    expect(el.querySelector('[data-sec="combined"] input[data-pick="r1"]').checked).toBe(false);
+    const toggle = el.querySelector('input[data-group]');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(el.querySelectorAll('section[data-person]')).toHaveLength(2);
+    expect(el.querySelector('[data-sec="combined"] input[data-pick="r1"]').checked).toBe(false);
+    expect(getGroup()).toBe(true);
   });
 
   it('downloads one round’s variance report', async () => {
@@ -183,6 +242,7 @@ describe('Individual reports screen', () => {
   });
 
   it('downloads one person’s rounds, round-labelled', async () => {
+    setGroup(true);
     await mountReports(el);
     el.querySelector('button[data-person-file="p1"]').click();
     await flush();
@@ -191,6 +251,7 @@ describe('Individual reports screen', () => {
   });
 
   it('offers no download for a person with nothing compiled', async () => {
+    setGroup(true);
     await mountReports(el);
     const two = [...el.querySelectorAll('[data-person]')].find((s) => s.textContent.includes('Count Two'));
     expect(two.querySelector('[data-person-file]')).toBeNull();

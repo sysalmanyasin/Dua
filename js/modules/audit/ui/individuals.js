@@ -6,8 +6,8 @@ import { hero } from '../../../shared/ui.js';
 import { money } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
-import { currentMonth, monthChoices, overviewGroups } from '../domain/history.js';
-import { getMonth, setMonth, setView } from '../domain/nav.js';
+import { currentMonth, flatRounds, monthChoices, overviewGroups } from '../domain/history.js';
+import { getGroup, getMonth, setGroup, setMonth, setView } from '../domain/nav.js';
 import { applyProgressBars, crumbs, errorCard, loadingCard, progressBar } from './parts.js';
 
 const MAX_PROGRESS_READS = 20; // rounds still counting whose progress is read
@@ -22,6 +22,7 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
     error: '',
     progress: {}, // round id -> { counted, items } for rounds still counting
     mine: null, // the person's own open Individual round, if any
+    grouped: getGroup(), // Rounds & Progress: one list, newest first (default), or grouped by person
   };
   const perms = new Set(ctx?.permissions ?? []);
 
@@ -78,7 +79,7 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
       </section>`;
   };
 
-  const roundRow = (r) => {
+  const roundRow = (r, showPerson = false) => {
     const p = s.progress[r.roundId];
     let line;
     if (r.done)
@@ -89,8 +90,9 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
     const isMine = s.mine && s.mine.roundId === r.roundId;
     return html`<li data-round>
       <span>
-        <strong>Round ${r.label}</strong>
+        <strong>Round ${r.label}</strong>${showPerson ? html` <span data-round-person>· ${r.personName}</span>` : ''}
         <span class="muted small">${r.stateLabel}${r.day ? ` · ${r.day}` : ''}</span>
+        ${r.scope ? html`<span class="small" data-round-scope>${r.scope}</span>` : ''}
         <span class="small">${line}</span>
         ${percent !== null ? progressBar(percent) : ''}
       </span>
@@ -113,14 +115,26 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
     </li>`;
   };
 
-  const roundsBody = () =>
+  const roundsBody = () => (s.grouped ? groupedRounds() : flatList());
+
+  // one list for the month, the newest round first, each row naming its person
+  const flatList = () =>
+    html`<section class="card aud-card" aria-label="Rounds" data-sec="rounds-flat">
+      <h2>Rounds</h2>
+      <p class="muted small">${s.groups.reduce((n, g) => n + g.total, 0)} in this month, newest first</p>
+      <ul class="aud-list">
+        ${flatRounds(s.groups).map((r) => roundRow(r, true))}
+      </ul>
+    </section>`;
+
+  const groupedRounds = () =>
     s.groups.map(
       (p) =>
         html`<section class="card aud-card" aria-label="${p.name}" data-person>
           <h2>${p.name}</h2>
           <p class="muted small">${p.total} ${p.total === 1 ? 'audit' : 'audits'}${p.waiting ? ` · ${p.waiting} not finished` : ''}</p>
           <ul class="aud-list">
-            ${p.rounds.map(roundRow)}
+            ${flatRounds([p]).map((r) => roundRow(r))}
           </ul>
         </section>`,
     );
@@ -148,6 +162,13 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
               ${months.map((m) => html`<option value="${m.value}" ${m.value === s.month ? 'selected' : ''}>${m.label}</option>`)}
             </select>
           </label>
+          ${
+            overview
+              ? ''
+              : html`<label class="aud-check"
+                  ><input type="checkbox" role="switch" data-group ${s.grouped ? 'checked' : ''} /> <span>Group by people</span></label
+                >`
+          }
           ${
             !overview && s.mine
               ? html`<p data-own-open>
@@ -215,6 +236,12 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
   };
 
   el.onchange = (e) => {
+    const box = e.target.closest('input[data-group]');
+    if (box) {
+      s.grouped = box.checked;
+      setGroup(s.grouped);
+      return draw();
+    }
     const sel = e.target.closest('select[data-s="month"]');
     if (!sel) return;
     s.month = sel.value;

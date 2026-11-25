@@ -210,9 +210,9 @@ describe('tab frame', () => {
     const host = document.createElement('div');
     const html = frameBar({ path: '/audit/engagements', routes, permissions: new Set(owner_perms), view: null }).toString();
     host.innerHTML = html;
-    const current = host.querySelector('.aud-tab[aria-current="page"]');
+    const current = host.querySelector('.aud-wtab[aria-current="page"]');
     expect(current.textContent).toBe('Team Audit');
-    expect([...host.querySelectorAll('.aud-tab')].map((a) => a.getAttribute('href'))).toEqual([
+    expect([...host.querySelectorAll('.aud-wtab')].map((a) => a.getAttribute('href'))).toEqual([
       '#/audit',
       '#/audit/engagements',
       '#/audit/individuals',
@@ -251,7 +251,7 @@ describe('tab frame', () => {
     const page = await framed(async () => ({ mount: async (el, args) => seen.push([el, args]) }), { screen: 'review' });
     const host = document.createElement('div');
     await page.mount(host, { ctx: { permissions: owner_perms }, route: { path: '/audit/compile' } });
-    expect(host.querySelector('.aud-tab[aria-current="page"]').textContent).toBe('Team Audit');
+    expect(host.querySelector('.aud-wtab[aria-current="page"]').textContent).toBe('Team Audit');
     expect(seen).toHaveLength(1);
     expect(seen[0][0].parentElement).toBe(host);
     expect(seen[0][1].screen).toBe('review');
@@ -262,8 +262,8 @@ describe('tab frame', () => {
     const page = await routes.find((r) => r.path === '/audit/tools').load();
     const host = document.createElement('div');
     await page.mount(host, { ctx: { permissions: ['audit.manage'] }, route: { path: '/audit/tools' } });
-    expect(host.querySelector('.aud-tabs')).toBeTruthy();
-    expect(host.querySelector('.aud-tab[aria-current="page"]').textContent).toBe('Tools');
+    expect(host.querySelector('.aud-wtabs')).toBeTruthy();
+    expect(host.querySelector('.aud-wtab[aria-current="page"]').textContent).toBe('Tools');
     expect(host.querySelector('[data-tool-group="expiry"]')).toBeTruthy();
   });
 });
@@ -381,7 +381,7 @@ describe('Individual Audit workspace', () => {
     expect(individualScreens(routes, ['audit.count', 'audit.individual'], null)).toEqual([]);
     const host = document.createElement('div');
     host.innerHTML = frameBar({ path: '/audit/individual', routes, permissions: new Set(['audit.individual']), view: null }).toString();
-    expect(host.querySelector('.aud-tab[aria-current="page"]').textContent).toBe('Individual Audit');
+    expect(host.querySelector('.aud-wtab[aria-current="page"]').textContent).toBe('Individual Audit');
     expect(host.querySelector('.aud-screens')).toBeNull();
   });
 
@@ -490,5 +490,30 @@ describe('audit context on the Team screens', () => {
     api.engagementOverview.mockResolvedValue({ engagement: { name: 'X' }, rounds: [] });
     const tools = await open('/audit/tools', { engagement: 'ctx4' });
     expect(tools.querySelector('[data-context]')).toBeNull();
+  });
+});
+
+describe('tab bar on a narrow screen', () => {
+  it('brings the current tab and screen into view', async () => {
+    const scrolled = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function () {
+      scrolled.push(this.textContent);
+    };
+    try {
+      const page = await framed(async () => ({ mount: async () => {} }));
+      const host = document.createElement('div');
+      await page.mount(host, { ctx: { permissions: owner_perms }, route: { path: '/audit/individual-reports' } });
+      expect(scrolled).toEqual(['Individual Audit', 'Reports']);
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
+  it('does not collide with the Expiry and Barcode tab style', () => {
+    const host = document.createElement('div');
+    host.innerHTML = frameBar({ path: '/audit/tools', routes, permissions: new Set(owner_perms), view: null }).toString();
+    expect(host.querySelector('.aud-tabs')).toBeNull();
+    expect(host.querySelector('.aud-wtabs')).not.toBeNull();
   });
 });

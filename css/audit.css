@@ -1212,21 +1212,22 @@
 .aud.aud-frame {
   margin-bottom: 0.5rem;
 }
-.aud .aud-tabs,
+.aud .aud-wtabs,
 .aud .aud-screens {
   display: flex;
+  flex-wrap: nowrap;
   gap: 0.25rem;
   overflow-x: auto;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
-.aud .aud-tabs {
+.aud .aud-wtabs {
   padding: 0.25rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
 }
-.aud .aud-tab,
+.aud .aud-wtab,
 .aud .aud-screen {
   flex: none;
   display: inline-flex;
@@ -1238,10 +1239,10 @@
   text-decoration: none;
   white-space: nowrap;
 }
-.aud .aud-tab {
+.aud .aud-wtab {
   font-weight: 600;
 }
-.aud .aud-tab[aria-current='page'] {
+.aud .aud-wtab[aria-current='page'] {
   background: var(--primary);
   color: var(--primary-text);
 }
@@ -1265,7 +1266,7 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
-.aud .aud-tab:focus-visible,
+.aud .aud-wtab:focus-visible,
 .aud .aud-screen:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;

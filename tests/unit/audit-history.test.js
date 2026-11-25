@@ -98,10 +98,46 @@ describe('history helpers', () => {
     expect(g.map((p) => p.name)).toEqual(['Count One', 'Count Two']);
     expect(g[0].total).toBe(2);
     expect(g[0].waiting).toBe(1);
-    expect(g[0].differences).toBe(2);
+    expect(g[0].differences).toBeUndefined(); // never added across rounds
     expect(g[0].rounds[1].differences).toBeNull();
     expect(g[1].rounds[0].differences).toBe(0);
     expect(g[1].waiting).toBe(0);
     expect(overviewGroups(null)).toEqual([]);
+  });
+});
+
+describe('what a round was started from, and the flat list', async () => {
+  const { scopeLabel, flatRounds, overviewGroups } = await import('../../js/modules/audit/domain/history.js');
+  it('names the template when there is one, whatever the companies are', () => {
+    expect(scopeLabel('Morning shelf', ['Acme'])).toBe('Template: Morning shelf');
+    expect(scopeLabel('  ', ['Acme'])).toBe('Acme');
+  });
+  it('lists up to two companies and counts the rest', () => {
+    expect(scopeLabel(null, ['Acme'])).toBe('Acme');
+    expect(scopeLabel(null, ['Acme', 'Beta'])).toBe('Acme, Beta');
+    expect(scopeLabel(null, ['Acme', 'Beta', 'Cura'])).toBe('Acme, Beta +1 more');
+  });
+  it('says nothing when it is unknown', () => {
+    expect(scopeLabel(null, [])).toBe('');
+    expect(scopeLabel(undefined, undefined)).toBe('');
+    expect(scopeLabel(null, ['', null])).toBe('');
+  });
+  it('puts every round newest first across people, and a round with no start last', () => {
+    const base = {
+      person_id: 'p',
+      person_name: 'P',
+      engagement_id: 'e',
+      state: 'compiled',
+      item_count: 1,
+      variance_count: 0,
+      variance_value: 0,
+    };
+    const rows = [
+      { ...base, round_id: 'a', round_label: '1', started_at: '2026-11-02T05:00:00Z' },
+      { ...base, person_id: 'q', person_name: 'Q', round_id: 'b', round_label: '2', started_at: '2026-11-09T05:00:00Z' },
+      { ...base, round_id: 'c', round_label: '3', started_at: null },
+    ];
+    expect(flatRounds(overviewGroups(rows)).map((r) => r.roundId)).toEqual(['b', 'a', 'c']);
+    expect(flatRounds(null)).toEqual([]);
   });
 });
