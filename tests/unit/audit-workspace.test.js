@@ -125,7 +125,8 @@ beforeEach(() => {
   api.compiledRows.mockResolvedValue(rows());
 });
 
-const { TABS, placeOf, screenPath, teamScreens, visibleTabs } = await import('../../js/modules/audit/domain/workspace.js');
+const { TABS, individualScreens, placeOf, screenPath, teamScreens, visibleTabs } =
+  await import('../../js/modules/audit/domain/workspace.js');
 const { toolGroups } = await import('../../js/modules/audit/domain/tools.js');
 const { frameBar, framed } = await import('../../js/modules/audit/ui/frame.js');
 const { default: manifest } = await import('../../js/modules/audit/manifest.js');
@@ -351,5 +352,94 @@ describe('Compile & Review and Corrections screens', () => {
     await until(() => root().querySelector('.aud-crumbs'));
     expect(root().querySelector('.aud-crumbs li[aria-current="page"]').textContent).toBe('Corrections');
     expect(getView().round).toBe('r1');
+  });
+});
+
+describe('Individual Audit workspace', () => {
+  it('has the four screens in order, with review waiting for a round', () => {
+    const screens = individualScreens(routes, owner_perms, null);
+    expect(screens.map((x) => x.label)).toEqual(['Monthly Overview', 'Rounds & Progress', 'Review & Corrections', 'Reports']);
+    expect(screens.filter((x) => x.waiting).map((x) => x.key)).toEqual(['review']);
+    expect(individualScreens(routes, owner_perms, { round: 'r1' }).some((x) => x.waiting)).toBe(false);
+  });
+
+  it('places the four screens, and the person’s own start page, in the Individual tab', () => {
+    for (const path of [
+      '/audit/individuals',
+      '/audit/individual-rounds',
+      '/audit/individual-review',
+      '/audit/individual-reports',
+      '/audit/individual',
+    ]) {
+      expect(placeOf(path).tab).toBe('individual');
+    }
+    expect(placeOf('/audit/individual').screen).toBe('rounds');
+  });
+
+  it('shows no screens bar to a person who only starts and counts their own audits', () => {
+    expect(individualScreens(routes, ['audit.count', 'audit.individual'], null)).toEqual([]);
+    const host = document.createElement('div');
+    host.innerHTML = frameBar({ path: '/audit/individual', routes, permissions: new Set(['audit.individual']), view: null }).toString();
+    expect(host.querySelector('.aud-tab[aria-current="page"]').textContent).toBe('Individual Audit');
+    expect(host.querySelector('.aud-screens')).toBeNull();
+  });
+
+  it('the frame shows the four screens inside the Individual tab, named for it', () => {
+    const host = document.createElement('div');
+    host.innerHTML = frameBar({
+      path: '/audit/individual-rounds',
+      routes,
+      permissions: new Set(owner_perms),
+      view: { round: 'r1' },
+    }).toString();
+    expect(host.querySelectorAll('.aud-screen')).toHaveLength(4);
+    expect(host.querySelector('.aud-screens').getAttribute('aria-label')).toBe('Individual Audit screens');
+    expect(host.querySelector('.aud-screen[aria-current="page"]').textContent).toBe('Rounds & Progress');
+  });
+});
+
+describe('Individual review & corrections screen', () => {
+  it('shows the differences and corrections, with no progress, compile button, conflicts, next round or final snapshot', async () => {
+    await mount(root(), { ...owner, screen: 'individual' });
+    await until(() => root().querySelector('[data-sec="corrections"]'));
+    expect(root().querySelector('[data-sec="differences"], [data-sec="rows"]') || root().textContent.includes('Alpha one')).toBeTruthy();
+    // control: the whole page does have these, so their absence here is the screen, not the fixture
+    document.body.innerHTML = '<div id="root"></div>';
+    await mount(root(), owner);
+    await until(() => root().querySelector('[data-sec="corrections"]'));
+    expect(root().querySelector('[data-act="compile"]')).not.toBeNull();
+    document.body.innerHTML = '<div id="root"></div>';
+    await mount(root(), { ...owner, screen: 'individual' });
+    await until(() => root().querySelector('[data-sec="corrections"]'));
+    for (const sec of ['progress', 'compile', 'conflicts', 'next']) expect(root().querySelector(`[data-sec="${sec}"]`)).toBeNull();
+    expect(root().querySelector('.aud-pipe')).toBeNull();
+    expect(root().querySelector('a[href="#/audit/final"]')).toBeNull();
+    expect(root().querySelector('[data-act="compile"]')).toBeNull();
+  });
+
+  it('keeps the recompile alert and its button, because approved corrections apply at the next compile', async () => {
+    const o = overview();
+    o.corrections = [{ ...o.corrections[0], status: 'approved', decided_at: '2026-11-17T09:00:00Z', decided_by: 'Boss' }];
+    api.compileOverview.mockResolvedValue(o);
+    await mount(root(), { ...owner, screen: 'individual' });
+    await until(() => root().querySelector('[data-recompile]'));
+    expect(root().querySelector('[data-recompile]').textContent).toContain('1 approved correction waiting');
+  });
+
+  it('names itself in the breadcrumb and heading', async () => {
+    await mount(root(), { ...owner, screen: 'individual' });
+    await until(() => root().querySelector('.aud-crumbs'));
+    expect(root().querySelector('.aud-crumbs li[aria-current="page"]').textContent).toBe('Review & corrections');
+    expect(root().querySelector('.aud-crumbs a').getAttribute('href')).toBe('#/audit/individuals');
+    expect(root().querySelector('h1').textContent).toContain('review & corrections');
+  });
+
+  it('explains an empty corrections list without pointing to the Team screen', async () => {
+    const o = overview();
+    o.corrections = [];
+    api.compileOverview.mockResolvedValue(o);
+    await mount(root(), { ...owner, screen: 'individual' });
+    await until(() => root().querySelector('[data-empty]'));
+    expect(root().querySelector('[data-empty] a')).toBeNull();
   });
 });

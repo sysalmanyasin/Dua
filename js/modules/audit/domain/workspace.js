@@ -19,8 +19,11 @@ const PLACES = {
   '/audit/corrections': { tab: 'team', screen: 'corrections' },
   '/audit/reports': { tab: 'team', screen: 'reports' },
   '/audit/final': { tab: 'team', screen: 'final' },
-  '/audit/individuals': { tab: 'individual' },
-  '/audit/individual': { tab: 'individual' },
+  '/audit/individuals': { tab: 'individual', screen: 'overview' },
+  '/audit/individual-rounds': { tab: 'individual', screen: 'rounds' },
+  '/audit/individual': { tab: 'individual', screen: 'rounds' },
+  '/audit/individual-review': { tab: 'individual', screen: 'review' },
+  '/audit/individual-reports': { tab: 'individual', screen: 'reports' },
   '/audit/tools': { tab: 'tools' },
   '/audit/expiry': { tab: 'tools' },
   '/audit/expiry/racks': { tab: 'tools' },
@@ -44,6 +47,14 @@ export const TEAM_SCREENS = [
   { key: 'corrections', label: 'Corrections', needsRound: true },
   { key: 'reports', label: 'Reports', needsRound: false },
   { key: 'final', label: 'Finalization', needsRound: true },
+];
+
+/** The four Individual Audit screens, in order. Counting itself is not a screen: it opens in its own focused page. */
+export const INDIVIDUAL_SCREENS = [
+  { key: 'overview', label: 'Monthly Overview', needsRound: false, path: '/audit/individuals' },
+  { key: 'rounds', label: 'Rounds & Progress', needsRound: false, path: '/audit/individual-rounds' },
+  { key: 'review', label: 'Review & Corrections', needsRound: true, path: '/audit/individual-review' },
+  { key: 'reports', label: 'Reports', needsRound: false, path: '/audit/individual-reports' },
 ];
 
 export const placeOf = (path) => PLACES[path] ?? null;
@@ -89,4 +100,12 @@ export function teamScreens(routes, permissions, view) {
     if (!allowed(routeAt(routes, path), perms)) return [];
     return [{ ...screen, path, waiting: screen.needsRound && !view?.round }];
   });
+}
+
+/** The Individual Audit screens this person may open. A person who only counts their own audits has no screens, just their own page. */
+export function individualScreens(routes, permissions, view) {
+  const perms = permissions instanceof Set ? permissions : new Set(permissions ?? []);
+  return INDIVIDUAL_SCREENS.flatMap((screen) =>
+    allowed(routeAt(routes, screen.path), perms) ? [{ ...screen, waiting: screen.needsRound && !view?.round }] : [],
+  );
 }

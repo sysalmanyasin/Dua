@@ -4,11 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../js/modules/audit/data/api.js', () => ({
   productHistory: vi.fn(),
   individualOverview: vi.fn(),
+  compileOverview: vi.fn(async () => {
+    throw new Error('not needed');
+  }),
+  myAssignments: vi.fn(async () => []),
 }));
 const api = await import('../../js/modules/audit/data/api.js');
 const { mountProductSearch } = await import('../../js/modules/audit/ui/productSearch.js');
 const { mount: mountIndividuals } = await import('../../js/modules/audit/ui/individuals.js');
-const { getView } = await import('../../js/modules/audit/domain/nav.js');
+const { getView, getMonth } = await import('../../js/modules/audit/domain/nav.js');
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const hist = (o = {}) => ({
@@ -135,6 +139,8 @@ describe('Individual audits by person', () => {
     expect(el.textContent).toContain('Not compiled yet');
     expect(el.textContent).toContain('1 not finished');
     expect(el.textContent).toContain('2 items · 2 differences');
+    // each round on its own: nothing is added across a person's rounds
+    expect(el.textContent).not.toMatch(/\d+ audits? · .*· \d+ differences?$/m);
   });
   it('says so when the month is empty', async () => {
     api.individualOverview.mockResolvedValue([]);
@@ -170,7 +176,56 @@ describe('Individual audits by person', () => {
     api.individualOverview.mockResolvedValue([o({})]);
     await mountIndividuals(el);
     el.querySelector('button[data-open]').click();
-    expect(location.hash).toBe('#/audit/compile');
+    expect(location.hash).toBe('#/audit/individual-review');
     expect(getView()).toEqual({ engagement: 'e1', round: 'r1' });
+  });
+
+  it('rounds screen shows how far counting has got for a round still counting, and the person’s own way back to it', async () => {
+    api.individualOverview.mockResolvedValue([
+      o({ round_id: 'r2', state: 'counting', item_count: null, variance_count: null, variance_value: null }),
+    ]);
+    api.compileOverview.mockResolvedValue({
+      assignments: [
+        { status: 'assigned', counted: 12, items: 40 },
+        { status: 'revoked', counted: 5, items: 9 },
+      ],
+    });
+    api.myAssignments.mockResolvedValue([{ round_id: 'r2', method: 'individual-self-pick', status: 'assigned' }]);
+    await mountIndividuals(el, { ctx: { permissions: ['audit.view', 'audit.individual'] }, screen: 'rounds' });
+    expect(el.textContent).toContain('Counting: 12 of 40 counted');
+    expect(el.querySelector('[data-continue]').getAttribute('href')).toBe('#/audit/individual');
+    expect(el.querySelector('[data-own-open]')).not.toBeNull();
+  });
+  it('monthly overview shows who took part and what is outstanding, with no variance added up', async () => {
+    api.individualOverview.mockResolvedValue([
+      o({}),
+      o({ round_id: 'r2', state: 'counting', item_count: null, variance_count: null, variance_value: null }),
+      o({ person_id: 'p2', person_name: 'Count Two', round_id: 'r3' }),
+    ]);
+    await mountIndividuals(el, { ctx: { permissions: ['audit.view'] }, screen: 'overview' });
+    expect(el.querySelector('[data-month-summary]').textContent.replace(/\s+/g, ' ')).toContain(
+      '2 people · 3 rounds · 2 done · 1 still counting',
+    );
+    expect(el.querySelectorAll('[data-sec="staff"] [data-person]')).toHaveLength(2);
+    expect(el.querySelectorAll('[data-outstanding]')).toHaveLength(1);
+    expect(el.textContent).not.toContain('difference');
+  });
+  it('says nothing is outstanding when every round is finished', async () => {
+    api.individualOverview.mockResolvedValue([o({})]);
+    await mountIndividuals(el, { ctx: { permissions: ['audit.view'] }, screen: 'overview' });
+    expect(el.querySelector('[data-nothing-outstanding]')).not.toBeNull();
+  });
+  it('keeps the month picked so the other Individual screens open on it', async () => {
+    api.individualOverview.mockResolvedValue([]);
+    await mountIndividuals(el, { screen: 'overview' });
+    const sel = el.querySelector('select[data-s="month"]');
+    const other = sel.options[1].value;
+    sel.value = other;
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+    await flush();
+    expect(getMonth()).toBe(other);
+    document.body.replaceChildren((el = document.createElement('div')));
+    await mountIndividuals(el, { screen: 'rounds' });
+    expect(el.querySelector('select[data-s="month"]').value).toBe(other);
   });
 });

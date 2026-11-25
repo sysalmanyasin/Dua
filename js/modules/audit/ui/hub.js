@@ -1,23 +1,20 @@
-// Audit Command Centre (Audit 2.0).
-// The dashboard is a permission-filtered presentation of existing Audit APIs; database/RLS rules remain authoritative.
+// Audit Overview. Exactly five sections: Quick Actions, Product Search, Pending Actions, Individual Audit, Active Team Audit.
+// A permission-filtered presentation of existing Audit reads; the database and its row-level security remain authoritative.
 import { html, render } from '../../../shared/html.js';
-import { shortDate } from '../../../shared/format.js';
-import { hero } from '../../../shared/ui.js';
+import { monthLabel } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
-import { attentionBadges } from '../domain/progress.js';
-import { getLastView, setView } from '../domain/nav.js';
+import { currentMonth } from '../domain/history.js';
+import { activeTeamAudit, individualCard, pendingActions, quickActions } from '../domain/overview.js';
+import { setView } from '../domain/nav.js';
 import manifest from '../manifest.js';
-import { loadingCard } from './parts.js';
+import { applyProgressBars, loadingCard, progressBar } from './parts.js';
+import { mountProductSearch } from './productSearch.js';
 import { installSignOutGuard } from './signoutGuard.js';
 
-const SCOPE = {
-  full: 'Full stock',
-  selected: 'Selected companies',
-  single: 'One company',
-  template: 'Template',
-  individual: 'Individual',
-};
+const MAX_OPEN_AUDITS = 6; // open audits whose rounds are read
+const MAX_COMPILED_ROUNDS = 12; // compiled rounds checked for corrections not yet recompiled
+
 const STATUS = {
   open: 'Open',
   archived: 'Archived',
@@ -27,473 +24,240 @@ const STATUS = {
   counting: 'Counting',
   compiled: 'Compiled',
   final: 'Finalized',
-  assigned: 'Assigned',
+  assigned: 'Not started',
   submitted: 'Submitted',
   revoked: 'Revoked',
 };
-const GROUPS = [
-  {
-    title: 'Stock audits',
-    description: 'Engagements, rounds, counting teams and reconciliation.',
-    routes: [
-      ['/audit/engagements', 'All audits', 'Create and browse audit engagements.'],
-      ['/audit/individuals', 'Individual audits', 'See who counted what in a month, person by person.'],
-      ['/audit/engagement', 'Engagement details', 'Manage members and rounds within an audit.'],
-      ['/audit/round', 'Rounds & assignments', 'Split work, assign counters, lock and start rounds.'],
-      ['/audit/compile', 'Review & reconciliation', 'Inspect submissions, differences, corrections and conflicts.'],
-      ['/audit/final', 'Final snapshots', 'Finalize and inspect immutable round results.'],
-    ],
-  },
-  {
-    title: 'My counting',
-    description: 'Your assigned work and personal stock checks.',
-    routes: [
-      ['/audit/count', 'Counting', 'Continue assigned stock counts, including saved offline work.'],
-      ['/audit/individual', 'Individual audit', 'Start a personal stock count.'],
-      ['/audit/templates', 'Audit templates', 'Use or maintain saved product-code lists.'],
-    ],
-  },
-  {
-    title: 'Reports & history',
-    description: 'Results, submissions and accountability.',
-    routes: [['/audit/reports', 'Audit reports & trail', 'Review round results, people and the activity trail.']],
-  },
-  {
-    title: 'Expiry management',
-    description: 'Shared expiry register and monthly rack checks.',
-    routes: [
-      ['/audit/expiry', 'Expiry register', 'Log and search expiry entries.'],
-      ['/audit/expiry/racks', 'Rack management', 'Manage racks and monthly staff assignments.'],
-    ],
-  },
-  {
-    title: 'Barcode centre',
-    description: 'Product barcode register, verification and scanning.',
-    routes: [['/audit/barcode', 'Barcode centre', 'Register, verify and resolve barcode records.']],
-  },
-  {
-    title: 'Administration',
-    description: 'People and access to Audit functions.',
-    routes: [['/audit/team', 'Team & permissions', 'Manage Deputy, Sub-Auditor and individual audit permissions.']],
-  },
-];
+const statusLabel = (status) => STATUS[status] ?? String(status ?? 'Unknown').replaceAll('_', ' ');
+const monthName = (m) => monthLabel(`${m}-01`);
+const bar = progressBar;
 
-function canOpen(route, perms) {
-  if (route.permission) return perms.has(route.permission);
-  return (route.anyOf ?? []).some((key) => perms.has(key));
-}
-
-function navigationGroups(perms) {
-  const routes = new Map(manifest.routes.map((route) => [route.path, route]));
-  return GROUPS.map((group) => {
-    const items = group.routes.flatMap(([path, label, description]) => {
-      const route = routes.get(path);
-      if (!route || !canOpen(route, perms)) return [];
-      return [{ path, label, description }];
-    });
-    return { ...group, items };
-  }).filter((group) => group.items.length > 0);
-}
-
-function statusLabel(status) {
-  return STATUS[status] ?? String(status ?? 'Unknown').replaceAll('_', ' ');
-}
-
-function navCard(group, index) {
-  const panelId = `aud-nav-panel-${index}`;
-  const tone = index % 5;
-  // the first group is the person's main work, so it starts open; the others stay folded until tapped
-  const open = index === 0;
-  const links = group.items.map(
-    (item) =>
-      html`<a class="aud-nav-link" href="#${item.path}">
-        <span class="aud-nav-link-copy">
-          <strong>${item.label}</strong>
-          <span class="muted small">${item.description}</span>
-        </span>
-        <span class="aud-nav-arrow" aria-hidden="true">›</span>
-      </a>`,
-  );
-
-  return html`<section class="card aud-card aud-nav-group aud-nav-tone-${tone}${open ? ' is-expanded' : ''}" aria-label="${group.title}">
-    <button type="button" class="aud-group-toggle" data-aud-toggle aria-expanded="${open}" aria-controls="${panelId}">
-      <span class="aud-group-copy">
-        <span class="aud-group-heading">
-          <strong>${group.title}</strong>
-          <span class="aud-group-count">${group.items.length}</span>
-        </span>
-        <span class="aud-group-description">${group.description}</span>
-      </span>
-      <span class="aud-group-chevron" aria-hidden="true">⌄</span>
-    </button>
-    <div class="aud-group-links" id="${panelId}" data-aud-panel ${open ? '' : 'hidden'}>${links}</div>
-  </section>`;
-}
-
-// Offered only when the last audit opened on this device is one the database still shows this person.
-function resumeSection(last, engagements) {
-  const engagement = last ? engagements.find((item) => item.id === last.engagement) : null;
-  if (!engagement) return '';
-  const path = last.round ? '/audit/round' : '/audit/engagement';
-  // prettier-ignore
-  return html`<section class="card aud-card aud-resume" aria-label="Pick up where you left off">
-    <div class="aud-section-head">
-      <div>
-        <h2>Pick up where you left off</h2>
-        <p class="muted small">${engagement.name}${last.round ? ' · the round you had open' : ''}</p>
-      </div>
-      <a class="btn btn-sm btn-primary" href="#${path}" data-open-last>Open</a>
+function quickSection(chips) {
+  if (!chips.length) return '';
+  return html`<section class="card aud-card aud-quick" aria-label="Quick actions" data-section="quick">
+    <h2>Quick actions</h2>
+    <div class="aud-chips">
+      ${chips.map((c) => html`<a class="btn btn-sm aud-chip" href="#${c.path}" data-chip="${c.key}">${c.label}</a>`)}
     </div>
   </section>`;
 }
 
-function assignmentCard(assignment) {
-  const items = Number(assignment.items) || 0;
-  const counted = Math.min(items, Number(assignment.counted) || 0);
-  const remaining = Math.max(0, items - counted);
-  const percent = items ? Math.round((counted / items) * 100) : 0;
-  const round = `${assignment.round_number ?? ''}${assignment.round_suffix ?? ''}`;
-  const active = assignment.round_state === 'counting' && assignment.status !== 'submitted';
-  const buttonClass = active ? 'btn-primary' : '';
-  const buttonLabel = active ? 'Continue counting' : 'Open my work';
+function pendingList(items) {
+  return html`<ul class="aud-list aud-pending">
+    ${items.map(
+      (i) =>
+        html`<li data-pending="${i.kind}">
+          <span>
+            <strong>${i.engagementName}</strong>${i.label ? html` <span class="muted small">Round ${i.label}</span>` : ''}<br />
+            <span class="small">${i.text}</span>
+          </span>
+          <a class="btn btn-sm" href="#${i.path}" data-e="${i.engagementId}" data-r="${i.roundId}" data-open-item>Open</a>
+        </li>`,
+    )}
+  </ul>`;
+}
 
-  // prettier-ignore
+function pendingSection(items, error) {
+  return html`<section class="card aud-card" aria-label="Pending actions" data-section="pending">
+    <h2>Pending actions ${items.length ? html`<span class="aud-badge" data-pending-count>${items.length}</span>` : ''}</h2>
+    ${error ? html`<p class="note note-error" role="alert">Could not load everything: ${error}</p>` : ''}
+    ${items.length ? pendingList(items) : error ? '' : html`<p class="aud-empty" data-empty>Nothing is waiting for you.</p>`}
+  </section>`;
+}
+
+function individualSection(card, error, ownOnly) {
+  let body;
+  if (error) body = html`<p class="note note-error" role="alert">Could not load this month: ${error}</p>`;
+  else if (ownOnly) body = html`<p class="muted small">Start an individual audit, or pick up the one you have open.</p>`;
+  else if (card.rounds === 0) body = html`<p class="aud-empty">Nobody has counted an individual audit in ${monthName(card.month)} yet.</p>`;
+  else {
+    body = html`<p class="small" data-individual-summary>
+        ${monthName(card.month)}: ${card.people} ${card.people === 1 ? 'person' : 'people'} · ${card.rounds}
+        ${card.rounds === 1 ? 'round' : 'rounds'} · ${card.finished} done · ${card.notFinished} still counting
+      </p>
+      ${bar(Math.round((card.finished / card.rounds) * 100))}
+      ${
+        card.waiting.length
+          ? html`<p class="muted small" data-individual-waiting>
+              Still counting: ${card.waiting.map((w) => `${w.name}${w.waiting > 1 ? ` (${w.waiting})` : ''}`).join(', ')}
+            </p>`
+          : ''
+      }`;
+  }
+  const action = card.action;
+  return html`<section class="card aud-card" aria-label="Individual audit" data-section="individual">
+    <div class="aud-section-head">
+      <h2>Individual audit</h2>
+      ${action ? html`<a class="btn btn-sm ${action.primary ? 'btn-primary' : ''}" href="#${action.path}" data-individual-action>${action.label}</a>` : ''}
+    </div>
+    ${body}
+  </section>`;
+}
+
+function assignmentCard(a) {
+  const items = Number(a.items) || 0;
+  const counted = Math.min(items, Number(a.counted) || 0);
+  const percent = items ? Math.round((counted / items) * 100) : 0;
+  const round = `${a.round_number ?? ''}${a.round_suffix ?? ''}`;
+  const active = a.round_state === 'counting' && a.status !== 'submitted';
   return html`<article class="aud-work-item">
     <div class="aud-work-main">
       <div class="aud-work-title">
-        <strong>${assignment.engagement_name || 'Audit assignment'}</strong>
-        <span class="aud-badge aud-badge-${assignment.status}">${statusLabel(assignment.status)}</span>
+        <strong>${a.engagement_name || 'Audit assignment'}</strong>
+        <span class="aud-badge aud-badge-${a.status}">${statusLabel(a.status)}</span>
       </div>
       <p class="muted small">
-        ${round ? `Round ${round} · ` : ''}${statusLabel(assignment.round_state)} ·
-        ${counted.toLocaleString()} of ${items.toLocaleString()} counted
+        ${round ? `Round ${round} · ` : ''}${statusLabel(a.round_state)} · ${counted.toLocaleString()} of ${items.toLocaleString()} counted
       </p>
-      <div
-        class="aud-progress"
-        role="progressbar"
-        aria-label="Counting progress"
-        aria-valuemin="0"
-        aria-valuemax="100"
-        aria-valuenow="${percent}"
-      >
-        <span data-progress="${percent}"></span>
-      </div>
-      <p class="muted small">${remaining.toLocaleString()} remaining · ${percent}% complete</p>
+      ${bar(percent)}
+      <p class="muted small">${Math.max(0, items - counted).toLocaleString()} remaining · ${percent}% complete</p>
     </div>
-    <a class="btn btn-sm ${buttonClass}" href="#/audit/count" data-open-assignment="${assignment.assignment_id}">${buttonLabel}</a>
+    <a class="btn btn-sm ${active ? 'btn-primary' : ''}" href="#/audit/count" data-open-assignment="${a.assignment_id}"
+      >${active ? 'Continue counting' : 'Open my work'}</a
+    >
   </article>`;
 }
 
-function engagementCard(engagement, overview) {
-  const rounds = overview?.rounds ?? [];
-  const latest = rounds.length ? rounds[rounds.length - 1] : null;
-  const date = engagement.created_at ? shortDate(String(engagement.created_at).slice(0, 10)) : '';
-  const scope = SCOPE[engagement.scope_type] ?? engagement.scope_type;
-  const month = engagement.scope_month ? ` · ${engagement.scope_month}` : '';
-  const created = date ? ` · ${date}` : '';
-  const roundCount = `${rounds.length} round${rounds.length === 1 ? '' : 's'}`;
-  let latestLabel = '';
-  if (latest) {
-    latestLabel = ` · Latest: Round ${latest.round_number}${latest.round_suffix ?? ''} — ${statusLabel(latest.state)}`;
+function teamBody({ audit, error }) {
+  if (error) return html`<p class="note note-error" role="alert">Could not load audits: ${error}</p>`;
+  if (!audit) return html`<p class="aud-empty">There is no active team audit.</p>`;
+  let progress = '';
+  if (audit.percent !== null) {
+    progress = html`${bar(audit.percent)}
+      <p class="muted small" data-team-progress>${audit.submitted} of ${audit.total} submitted</p>`;
+  } else if (audit.total) {
+    progress = html`<p class="muted small">${audit.total} ${audit.total === 1 ? 'person' : 'people'} assigned</p>`;
   }
-
-  // prettier-ignore
-  return html`<article class="aud-engagement-item">
-    <div class="aud-engagement-copy">
-      <strong>${engagement.name}</strong>
-      <span class="muted small">${scope}${month}${created}</span>
-      <span class="muted small">${roundCount}${latestLabel}</span>
-    </div>
-    <span class="aud-badge aud-badge-${engagement.status}">${statusLabel(engagement.status)}</span>
-    <a class="btn btn-sm" href="#/audit/engagement" data-open-engagement="${engagement.id}">Open</a>
-  </article>`;
+  return html`<p><strong>${audit.name}</strong></p>
+    <p class="muted small" data-team-summary>
+      ${audit.roundLabel ? `Round ${audit.roundLabel} · ` : ''}${audit.stateLabel}${audit.rounds > 1 ? ` · ${audit.rounds} rounds so far` : ''}
+    </p>
+    ${progress} ${audit.pending.length ? html`<p class="small" data-team-pending>Needs attention: ${audit.pending.join(' · ')}</p>` : ''}`;
 }
 
-function metric(label, value, detail) {
-  // prettier-ignore
-  return html`<div class="aud-metric">
-    <span class="muted small">${label}</span>
-    <strong>${value}</strong>
-    <span class="muted small">${detail}</span>
-  </div>`;
-}
-
-function myWorkSection(assignments, pendingAssignments, error, perms) {
-  let content;
-  if (error) {
-    content = html`<p class="note note-error" role="alert">Could not load your assignments: ${error}</p>`;
-  } else if (assignments.length) {
-    const rows = assignments.slice(0, 5).map(assignmentCard);
-    content = html`<div class="aud-work-list">${rows}</div>`;
-  } else {
-    content = html`<p class="aud-empty">No counting assignments are currently assigned to you.</p>`;
-  }
-
-  let actions = '';
-  if (perms.has('audit.individual')) {
-    actions = html`<div class="aud-inline-action">
-      <a class="btn btn-sm" href="#/audit/individual">Start an individual audit</a>
-      <a class="btn btn-sm" href="#/audit/templates">Browse templates</a>
-    </div>`;
-  }
-
-  // prettier-ignore
-  return html`<section class="card aud-card" aria-label="My work">
+function teamSection({ audit, mine, error, mineError, canView }) {
+  let body;
+  if (canView) body = teamBody({ audit, error });
+  else if (mineError) body = html`<p class="note note-error" role="alert">Could not load your assignments: ${mineError}</p>`;
+  else if (mine.length) body = html`<div class="aud-work-list">${mine.slice(0, 5).map(assignmentCard)}</div>`;
+  else body = html`<p class="aud-empty">No counting assignments are currently assigned to you.</p>`;
+  const action = canView && audit?.action;
+  return html`<section class="card aud-card" aria-label="Active team audit" data-section="team">
     <div class="aud-section-head">
-      <div>
-        <h2>My work</h2>
-        <p class="muted small">
-          ${pendingAssignments.length} assignment${pendingAssignments.length === 1 ? '' : 's'} currently in counting ·
-          your own progress only.
-        </p>
-      </div>
-      <a href="#/audit/count">View all</a>
+      <h2>${canView ? 'Active team audit' : 'My team audit work'}</h2>
+      ${
+        action
+          ? html`<a
+              class="btn btn-sm btn-primary"
+              href="#${action.path}"
+              data-e="${audit.engagementId}"
+              data-r="${audit.roundId ?? ''}"
+              data-open-item
+              >${action.label}</a
+            >`
+          : ''
+      }
     </div>
-    ${content}
-    ${actions}
+    ${body}
   </section>`;
 }
 
-// Three exact counts, each linking to the list it counts. Shown only for what the person can act on; nothing waiting shows nothing.
-function attentionSection(badges) {
-  if (!badges.length) return '';
-  // prettier-ignore
-  return html`<section class="card aud-card aud-attn" aria-label="Needs your attention">
-    <h2>Needs your attention</h2>
-    <div class="aud-attn-list">
-      ${badges.map((b) => html`<a class="btn" href="#/audit/attention" data-attn="${b.key}"><strong>${b.count}</strong> ${b.text.replace(/^\d+ /, '')}</a>`)}
-    </div>
-  </section>`;
-}
-
-function individualSection() {
-  // prettier-ignore
-  return html`<section class="card aud-card">
-    <h2>Individual audit</h2>
-    <p class="muted small">Start a personal stock count or use one of your saved templates.</p>
-    <div class="aud-inline-action">
-      <a class="btn btn-primary" href="#/audit/individual">Start individual audit</a>
-      <a class="btn" href="#/audit/templates">Browse templates</a>
-    </div>
-  </section>`;
-}
-
-function engagementSection(engagements, details, error, activeRounds, compiledRounds) {
-  let metrics = '';
-  if (!error) {
-    metrics = html`<div class="aud-metrics">
-      ${metric('Recent engagements', engagements.length.toLocaleString(), 'Up to 20 most recent')}
-      ${metric('Active rounds', activeRounds.toLocaleString(), 'In the six most recent open audits')}
-      ${metric('Compiled rounds', compiledRounds.toLocaleString(), 'In that same group of open audits')}
-    </div>`;
-  }
-
-  let errorMessage = '';
-  if (error) {
-    errorMessage = html`<p class="note note-error" role="alert">Could not load audits: ${error}</p>`;
-  }
-
-  let list = '';
-  if (engagements.length) {
-    let rows;
-    if (details.length) {
-      rows = details.map((item) => engagementCard(item.engagement, item.overview));
-    } else {
-      rows = engagements.slice(0, 6).map((item) => engagementCard(item, null));
-    }
-    list = html`<div class="aud-engagement-list">${rows}</div>`;
-  } else if (!error) {
-    list = html`<p class="aud-empty">No audits are currently visible to you.</p>`;
-  }
-
-  let limitNote = '';
-  if (engagements.length >= 20) {
-    limitNote = html`<p class="muted small">Showing the 20 most recent engagements.</p>`;
-  }
-
-  // prettier-ignore
-  return html`<section class="card aud-card" aria-label="Stock audit overview">
-    <div class="aud-section-head">
-      <div>
-        <h2>Stock audit overview</h2>
-        <p class="muted small">Engagements visible to your account, according to Audit access.</p>
-      </div>
-      <a href="#/audit/engagements">All audits</a>
-    </div>
-    ${errorMessage}
-    ${metrics}
-    ${list}
-    ${limitNote}
-  </section>`;
+// The compile overview of each compiled round (newest audits first, bounded), to find corrections approved but not yet compiled in.
+async function checkCompiled(open, overviews) {
+  const rounds = open.flatMap((e) =>
+    (overviews.get(e.id)?.rounds ?? [])
+      .filter((r) => r.state === 'compiled')
+      .map((r) => ({
+        engagementId: e.id,
+        engagementName: e.name,
+        scopeType: e.scope_type,
+        label: `${r.round_number}${r.round_suffix ?? ''}`,
+        roundId: r.id,
+      })),
+  );
+  const slice = rounds.slice(0, MAX_COMPILED_ROUNDS);
+  const results = await Promise.allSettled(slice.map((r) => api.compileOverview(r.roundId)));
+  return slice.map((r, i) => ({ ...r, overview: results[i].status === 'fulfilled' ? results[i].value : null }));
 }
 
 export async function mount(el, { ctx } = {}) {
   const perms = new Set(ctx?.permissions ?? []);
+  const has = (k) => perms.has(k) || perms.has('audit.manage');
   const canCount = perms.has('audit.count');
   const canIndividual = perms.has('audit.individual');
-  const canSeeEngagements = perms.has('audit.view') || perms.has('audit.manage');
+  const canView = perms.has('audit.view') || perms.has('audit.manage');
+  const canSearch = perms.has('audit.view') || perms.has('audit.review') || perms.has('audit.report');
+  const canAttention = perms.has('audit.compile') || perms.has('audit.review');
+  const canRecheck = has('audit.compile') || has('audit.finalize');
   installSignOutGuard(); // unsent count events must remain protected (AUD-9)
   render(el, loadingCard());
 
-  let assignments = [];
-  let engagements = [];
-  let engagementDetails = [];
-  let assignmentError = null;
-  let engagementError = null;
+  const month = currentMonth();
+  const failed = {};
+  const keep = (key) => (error) => {
+    failed[key] = friendlyError(error).message;
+    return null;
+  };
 
-  const tasks = [];
-  if (canCount) {
-    tasks.push(
-      api
-        .myAssignments()
-        .then((rows) => {
-          assignments = rows ?? [];
-        })
-        .catch((error) => {
-          assignmentError = friendlyError(error).message;
-        }),
-    );
-  }
-  if (canSeeEngagements) {
-    tasks.push(
-      api
-        .listEngagements(20)
-        .then(async (rows) => {
-          engagements = rows ?? [];
-          const recentOpen = engagements.filter((item) => item.status === 'open').slice(0, 6);
-          const details = await Promise.allSettled(recentOpen.map((item) => api.engagementOverview(item.id)));
-          engagementDetails = recentOpen.map((item, index) => ({
-            engagement: item,
-            overview: details[index].status === 'fulfilled' ? details[index].value : null,
-          }));
-        })
-        .catch((error) => {
-          engagementError = friendlyError(error).message;
-        }),
-    );
-  }
-  let badges = [];
-  if (perms.has('audit.compile') || perms.has('audit.review')) {
-    // a badge is a convenience: if it cannot be loaded the hub still opens
-    tasks.push(
-      api
-        .attentionSummary()
-        .then((res) => {
-          badges = attentionBadges(res);
-        })
-        .catch(() => {}),
-    );
-  }
-  await Promise.all(tasks);
+  const [mineRows, engagementRows, attention, monthRows] = await Promise.all([
+    canCount || canIndividual ? api.myAssignments().catch(keep('mine')) : null,
+    canView ? api.listEngagements(20).catch(keep('engagements')) : null,
+    canAttention ? api.attentionSummary().catch(keep('attention')) : null,
+    canView ? api.individualOverview(month).catch(keep('month')) : null,
+  ]);
+  const mine = (mineRows ?? []).filter((a) => a.status !== 'revoked');
+  const engagements = engagementRows ?? [];
+  const scopeOf = (id) => engagements.find((e) => e.id === id)?.scope_type ?? null;
 
-  const groups = navigationGroups(perms);
-  const openAssignments = assignments.filter((item) => item.status !== 'revoked');
-  const pendingAssignments = openAssignments.filter((item) => item.round_state === 'counting' && item.status !== 'submitted');
-  const activeRounds = engagementDetails.reduce(
-    (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'counting').length,
-    0,
-  );
-  const compiledRounds = engagementDetails.reduce(
-    (sum, item) => sum + (item.overview?.rounds ?? []).filter((round) => round.state === 'compiled').length,
-    0,
-  );
+  // second step: the rounds of the open audits, then what is compiled in them and the people on the latest team round
+  const open = engagements.filter((e) => e.status === 'open').slice(0, MAX_OPEN_AUDITS);
+  const settled = await Promise.allSettled(open.map((e) => api.engagementOverview(e.id)));
+  const overviews = new Map();
+  open.forEach((e, i) => {
+    if (settled[i].status === 'fulfilled') overviews.set(e.id, settled[i].value);
+  });
+  const first = activeTeamAudit({ engagements, overviews, permissions: perms });
+  const [teamRound, checks] = await Promise.all([
+    canView && first?.roundId ? api.roundOverview(first.roundId).catch(() => null) : null,
+    canView && canRecheck ? checkCompiled(open, overviews) : [],
+  ]);
+  const pending = pendingActions({ attention, rounds: checks, scopeOf, permissions: perms });
+  const teamModel = activeTeamAudit({
+    engagements,
+    overviews,
+    roundOverviewData: teamRound,
+    permissions: perms,
+    attentionRows: pending.map((p) => ({ engagementId: p.engagementId, text: p.text })),
+  });
 
-  let personalContent = '';
-  if (canCount) {
-    personalContent = myWorkSection(openAssignments, pendingAssignments, assignmentError, perms);
-  } else if (canIndividual) {
-    personalContent = individualSection();
-  }
+  const myOpen = mine.find((a) => a.method === 'individual-self-pick' && a.status !== 'submitted');
+  const card = individualCard(monthRows, { month, myOpen, canView, canStart: canIndividual });
+  const teamMine = mine.filter((a) => a.method !== 'individual-self-pick');
 
-  let managementContent = '';
-  let resumeContent = '';
-  const last = getLastView();
-  if (canSeeEngagements) {
-    managementContent = engagementSection(engagements, engagementDetails, engagementError, activeRounds, compiledRounds);
-    resumeContent = resumeSection(last, engagements);
-  }
-
-  let accessNotice = '';
-  if (!canCount && !canSeeEngagements && !canIndividual) {
-    accessNotice = html`<section class="card aud-card">
-      <h2>Audit tools</h2>
-      <p class="muted">Your account has access to the sections below. Choose a section to continue.</p>
-    </section>`;
-  }
-
-  let navigationContent;
-  if (groups.length) {
-    navigationContent = groups.map((group, index) => navCard(group, index));
-  } else {
-    navigationContent = html`<section class="card aud-card">
-      <p class="aud-empty">No Audit pages are available for your current permissions.</p>
-    </section>`;
-  }
-
-  // prettier-ignore
   render(
     el,
     html`<div class="aud aud-dashboard">
-      ${hero({
-        label: 'AUDIT WORKSPACE',
-        title: 'Audit Overview',
-      })}
-      <section class="aud-welcome" aria-label="Dashboard introduction">
-        <div>
-          <strong>${ctx?.full_name ? `Welcome, ${ctx.full_name}` : 'Welcome to Audit'}</strong>
-          <p class="muted small">Your dashboard is tailored to your Audit permissions.</p>
-        </div>
-        <button type="button" class="aud-refresh" data-refresh aria-label="Refresh dashboard">Refresh ↻</button>
-      </section>
-      ${resumeContent}
-      ${attentionSection(badges)}
-      ${personalContent}
-      ${managementContent}
-      ${accessNotice}
-      <section class="aud-navigation" aria-label="Audit navigation">
-        <div class="aud-section-title">
-          <h2>Audit sections</h2>
-          <p class="muted small">Grouped by the work each section supports.</p>
-        </div>
-        ${navigationContent}
-      </section>
+      <div class="aud-overview-head">
+        <h1>Audit overview</h1>
+        <button type="button" class="aud-refresh" data-refresh aria-label="Refresh overview">Refresh ↻</button>
+      </div>
+      ${quickSection(quickActions(manifest.routes, perms))} ${canSearch ? html`<div data-search-host></div>` : ''}
+      ${canAttention || (canView && canRecheck) ? pendingSection(pending, failed.attention) : ''}
+      ${canView || canIndividual ? individualSection(card, failed.month, !canView) : ''}
+      ${canView || canCount ? teamSection({ audit: teamModel, mine: teamMine, error: failed.engagements, mineError: failed.mine, canView }) : ''}
     </div>`,
   );
+  if (canSearch) mountProductSearch(el.querySelector('[data-search-host]'));
 
-  // CSP forbids inline style attributes; widths are applied as DOM properties after escaped rendering.
-  el.querySelectorAll('[data-progress]').forEach((bar) => {
-    bar.style.width = `${Math.max(0, Math.min(100, Number(bar.dataset.progress) || 0))}%`;
-  });
+  applyProgressBars(el);
 
-  // Preserve the current route hand-off convention for pages that need an engagement/round id.
   el.onclick = (event) => {
-    const toggle = event.target.closest('[data-aud-toggle]');
-    if (toggle) {
-      const panelId = toggle.getAttribute('aria-controls');
-      const panel = panelId ? el.querySelector(`#${panelId}`) : null;
-      if (panel) {
-        const expanded = toggle.getAttribute('aria-expanded') === 'true';
-        toggle.setAttribute('aria-expanded', String(!expanded));
-        panel.hidden = expanded;
-        toggle.closest('.aud-nav-group')?.classList.toggle('is-expanded', !expanded);
-      }
-      return;
-    }
-    if (event.target.closest('[data-refresh]')) {
-      mount(el, { ctx });
-      return;
-    }
+    if (event.target.closest('[data-refresh]')) return void mount(el, { ctx });
     // the counting page opens the assignment named here; with none named it shows the list (or the only open one)
-    const assignmentLink = event.target.closest('[data-open-assignment]');
-    if (assignmentLink) {
-      setView({ assignment: assignmentLink.dataset.openAssignment });
-      return;
-    }
-    if (event.target.closest('[data-open-last]') && last) {
-      setView(last.round ? { engagement: last.engagement, round: last.round } : { engagement: last.engagement });
-      return;
-    }
-    const engagementLink = event.target.closest('[data-open-engagement]');
-    if (engagementLink) setView({ engagement: engagementLink.dataset.openEngagement });
+    const assignment = event.target.closest('[data-open-assignment]');
+    if (assignment) return void setView({ assignment: assignment.dataset.openAssignment });
+    // the review pages work on the audit and round kept for the tab (the router has no query string)
+    const item = event.target.closest('[data-open-item]');
+    if (item) setView(item.dataset.r ? { engagement: item.dataset.e, round: item.dataset.r } : { engagement: item.dataset.e });
   };
 }

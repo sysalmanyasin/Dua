@@ -22,9 +22,12 @@ const money = (v) => rupees(toPaisa(v));
 const PARTS = {
   review: ['progress', 'compile', 'differences', 'conflicts'],
   corrections: ['corrections', 'next'],
+  // an Individual round compiles itself on submit: no progress, no compile button, no cross-round conflicts, no final snapshot, no next round
+  individual: ['differences', 'corrections'],
 };
 
 export async function mount(el, { ctx, screen = null } = {}) {
+  const individual = screen === 'individual';
   const shows = (part) => !screen || (PARTS[screen] ?? []).includes(part);
   const perms = ctx?.permissions ?? [];
   const can = (k) => perms.includes(k) || perms.includes('audit.manage');
@@ -292,18 +295,25 @@ export async function mount(el, { ctx, screen = null } = {}) {
   function correctionsCard() {
     const { round, corrections: all } = s.o;
     if (all.length === 0) {
-      if (screen !== 'corrections') return '';
+      if (screen !== 'corrections' && !individual) return '';
       return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
         <h2>Corrections</h2>
-        <p class="muted" data-empty>
-          No corrections have been proposed for this round. A correction is proposed from the items on the
-          <a href="#/audit/compile">Compile &amp; Review</a> screen.
-        </p>
+        ${
+          individual
+            ? html`<p class="muted" data-empty>
+                No corrections have been proposed for this round. Propose one from an item in the list above.
+              </p>`
+            : html`<p class="muted" data-empty>
+                No corrections have been proposed for this round. A correction is proposed from the items on the
+                <a href="#/audit/compile">Compile &amp; Review</a> screen.
+              </p>`
+        }
       </section>`;
     }
     // on the Corrections screen: waiting first, then approved (applied at the next compile), then rejected
     const rank = { proposed: 0, approved: 1, rejected: 2 };
-    const corrections = screen === 'corrections' ? [...all].sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3)) : all;
+    const grouped = screen === 'corrections' || individual;
+    const corrections = grouped ? [...all].sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3)) : all;
     const count = (status) => all.filter((c) => c.status === status).length;
     return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
       <h2>Corrections</h2>
@@ -467,23 +477,27 @@ export async function mount(el, { ctx, screen = null } = {}) {
     render(
       el,
       html`<div class="aud">
-        ${crumbs([
-          { label: 'Audits', href: '#/audit/engagements' },
-          { label: 'This audit', href: '#/audit/engagement' },
-          { label: roundLabel(round), href: '#/audit/round' },
-          { label: screen === 'corrections' ? 'Corrections' : 'Review' },
-        ])}
+        ${crumbs(
+          individual
+            ? [{ label: 'Individual audits', href: '#/audit/individuals' }, { label: roundLabel(round) }, { label: 'Review & corrections' }]
+            : [
+                { label: 'Audits', href: '#/audit/engagements' },
+                { label: 'This audit', href: '#/audit/engagement' },
+                { label: roundLabel(round), href: '#/audit/round' },
+                { label: screen === 'corrections' ? 'Corrections' : 'Review' },
+              ],
+        )}
         ${hero({
           label: 'Audit',
-          title: `${roundLabel(round)} · ${screen === 'corrections' ? 'corrections' : 'review'}`,
+          title: `${roundLabel(round)} · ${individual ? 'review & corrections' : screen === 'corrections' ? 'corrections' : 'review'}`,
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items`,
           actions: html`${
-            round.state === 'compiled' || round.state === 'final'
+            !individual && (round.state === 'compiled' || round.state === 'final')
               ? html`<a class="btn btn-sm" href="#/audit/final">${round.state === 'final' ? 'Final' : 'Final snapshot'}</a> `
               : ''
           }`,
         })}
-        ${screen === 'corrections' ? '' : pipelineStrip(s.o, perms, 'compile')} ${stepBar()}
+        ${screen === 'corrections' || individual ? '' : pipelineStrip(s.o, perms, 'compile')} ${stepBar()}
         ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''} ${correctionsHint()} ${recompileBanner()}
         ${shows('progress') ? progress() : ''} ${shows('compile') ? compileCard() : ''}
         ${shows('differences') ? html`${results()} ${rowsCard()}` : ''} ${shows('corrections') ? correctionsCard() : ''}

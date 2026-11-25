@@ -73,9 +73,27 @@ export default {
     {
       path: '/audit/individuals',
       title: 'Individual audits',
-      desc: 'Individual audits by person and month',
+      desc: 'Individual audits by month: who took part and what is outstanding',
       anyOf: ['audit.view', 'audit.manage'],
-      load: framed(() => import('./ui/individuals.js')),
+      load: framed(() => import('./ui/individuals.js'), { screen: 'overview' }),
+    },
+    {
+      path: '/audit/individual-rounds',
+      desc: 'Each person’s Individual rounds, how far counting has got, and the way to review',
+      anyOf: ['audit.view', 'audit.manage'],
+      load: framed(() => import('./ui/individuals.js'), { screen: 'rounds' }),
+    },
+    {
+      path: '/audit/individual-review',
+      desc: 'Review one Individual round: its differences and corrections',
+      anyOf: ['audit.compile', 'audit.review', 'audit.suggest', 'audit.reopen', 'audit.view', 'audit.manage', 'audit.report'],
+      load: framed(() => import('./ui/compile.js'), { screen: 'individual' }),
+    },
+    {
+      path: '/audit/individual-reports',
+      desc: 'Individual audit reports: per round, per person, and the combined month',
+      anyOf: ['audit.view', 'audit.manage', 'audit.report'],
+      load: framed(() => import('./ui/individualReports.js')),
     },
     {
       path: '/audit/engagement',

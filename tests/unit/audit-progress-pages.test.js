@@ -17,7 +17,6 @@ vi.mock('../../js/modules/audit/data/api.js', () => ({
 const api = await import('../../js/modules/audit/data/api.js');
 const compile = await import('../../js/modules/audit/ui/compile.js');
 const round = await import('../../js/modules/audit/ui/round.js');
-const hub = await import('../../js/modules/audit/ui/hub.js');
 const attention = await import('../../js/modules/audit/ui/attention.js');
 const { setView, getView } = await import('../../js/modules/audit/domain/nav.js');
 
@@ -109,7 +108,7 @@ describe('person panel on the Round page', () => {
   });
 });
 
-describe('hub badges and the attention page', () => {
+describe('the attention page', () => {
   const summary = {
     ready: [{ engagement_id: 'e1', engagement_name: 'Annual', round_id: 'r1', round_label: '1', n: 1 }],
     conflicts: [{ engagement_id: 'e1', engagement_name: 'Annual', round_id: 'r2', round_label: '2', n: 2 }],
@@ -121,33 +120,6 @@ describe('hub badges and the attention page', () => {
     location.hash = '';
   });
 
-  it('shows exact counts only for what the person can act on', async () => {
-    api.attentionSummary.mockResolvedValue(summary);
-    const el = document.createElement('div');
-    document.body.replaceChildren(el);
-    await hub.mount(el, { ctx: { permissions: ['audit.compile', 'audit.review', 'audit.view'] } });
-    const badges = [...el.querySelectorAll('[data-attn]')];
-    expect(badges.map((b) => b.dataset.attn)).toEqual(['ready', 'conflicts']);
-    expect(badges[0].textContent).toContain('1');
-    expect(badges[1].textContent).toContain('2');
-    expect(badges[1].textContent).toContain('open conflicts');
-    expect(badges[0].getAttribute('href')).toBe('#/audit/attention');
-  });
-  it('does not ask for badges when the person has neither key', async () => {
-    const el = document.createElement('div');
-    document.body.replaceChildren(el);
-    await hub.mount(el, { ctx: { permissions: ['audit.view'] } });
-    expect(api.attentionSummary).not.toHaveBeenCalled();
-    expect(el.querySelector('[data-attn]')).toBeNull();
-  });
-  it('still opens the hub when the badges cannot load', async () => {
-    api.attentionSummary.mockRejectedValue(new Error('boom'));
-    const el = document.createElement('div');
-    document.body.replaceChildren(el);
-    await hub.mount(el, { ctx: { permissions: ['audit.compile', 'audit.view'] } });
-    expect(el.textContent).toContain('Audit Overview');
-    expect(el.querySelector('[data-attn]')).toBeNull();
-  });
   it('lists exactly what each badge counts and opens the round', async () => {
     api.attentionSummary.mockResolvedValue(summary);
     const el = document.createElement('div');
