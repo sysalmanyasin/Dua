@@ -122,6 +122,42 @@ describe('Final Snapshot screen: before the final', () => {
     expect(root().textContent).toContain('1 correction is waiting');
     expect(root().querySelector('[data-act="finalize"]').disabled).toBe(true);
   });
+  it('shows a checklist, all clear, and lets the owner finalize', async () => {
+    api.compileOverview.mockResolvedValue(compiled());
+    await final.mount(root(), owner);
+    expect([...root().querySelectorAll('[data-check]')].map((c) => [c.dataset.check, c.dataset.ok])).toEqual([
+      ['current', 'true'],
+      ['corrections', 'true'],
+      ['conflicts', 'true'],
+      ['complete', 'true'],
+    ]);
+    expect(root().querySelector('[data-act="finalize"]').disabled).toBe(false);
+  });
+  it('blocks finalizing a stale compile before the click, and points to the recompile', async () => {
+    const o = compiled({ corrections: [{ id: 'c', status: 'approved', decided_at: '2026-11-18T09:00:00Z' }] });
+    o.compilation.compiled_at = '2026-11-18T08:00:00Z';
+    api.compileOverview.mockResolvedValue(o);
+    await final.mount(root(), owner);
+    const check = root().querySelector('[data-check="current"]');
+    expect(check.dataset.ok).toBe('false');
+    expect(check.textContent).toContain('Needs a recompile first');
+    expect(check.querySelector('a').getAttribute('href')).toBe('#/audit/compile');
+    expect(root().querySelector('[data-act="finalize"]').disabled).toBe(true);
+  });
+  it('points a waiting correction to the Corrections screen', async () => {
+    api.compileOverview.mockResolvedValue(compiled({ corrections: [{ id: 'c', status: 'proposed' }] }));
+    await final.mount(root(), owner);
+    expect(root().querySelector('[data-check="corrections"] a').getAttribute('href')).toBe('#/audit/corrections');
+  });
+  it('warns, but does not block, when someone had not submitted', async () => {
+    const o = compiled();
+    o.compilation.with_missing = true;
+    api.compileOverview.mockResolvedValue(o);
+    await final.mount(root(), owner);
+    expect(root().querySelector('[data-check="complete"]').dataset.ok).toBe('false');
+    expect(root().querySelector('[data-check="complete"]').textContent).toContain('Incomplete');
+    expect(root().querySelector('[data-act="finalize"]').disabled).toBe(false);
+  });
   it('shows the database refusal in words', async () => {
     api.compileOverview.mockResolvedValue(compiled());
     api.finalizeRound.mockRejectedValueOnce(Object.assign(new Error('x'), { hint: 'compile_stale' }));

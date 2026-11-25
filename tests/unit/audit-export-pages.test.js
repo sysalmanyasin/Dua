@@ -75,13 +75,33 @@ describe('Download on the Reports page', () => {
     await until(() => root().querySelector('[data-export-note]').textContent === 'Done.');
   });
 
-  it('the all-rounds buttons pass every round, and say how many were left out', async () => {
-    ex.exportAllRounds.mockResolvedValueOnce(1);
+  it('the combined report downloads the compiled rounds picked, and survives the page redrawing', async () => {
     await mount(root(), owner);
-    root().querySelector('button[data-export-all="xlsx"]').click();
+    expect(root().querySelector('[data-sec="combined"]')).not.toBeNull();
+    // leave out round 1A, then trigger a redraw with a round download: the pick must still be there
+    const box = root().querySelector('input[data-pick="r2"]');
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    root().querySelector('button[data-export="variance"]').click();
+    await until(() => ex.exportRound.mock.calls.length > 0);
+    await until(() => root().querySelector('[data-export-note]').textContent === 'Done.');
+    expect(root().querySelector('input[data-pick="r2"]').checked).toBe(false);
+    root().querySelector('button[data-download="xlsx"]').click();
     await until(() => ex.exportAllRounds.mock.calls.length > 0);
-    expect(ex.exportAllRounds.mock.calls[0].slice(0, 3)).toEqual(['Annual audit', rounds, 'xlsx']);
-    await until(() => root().querySelector('[data-export-note]').textContent.includes('1 round was left out'));
+    expect(ex.exportAllRounds.mock.calls[0].slice(0, 3)).toEqual(['Annual audit', [rounds[0]], 'xlsx']);
+  });
+
+  it('offers the missing-counts report for a round', async () => {
+    await mount(root(), owner);
+    root().querySelector('button[data-export="missing"]').click();
+    await until(() => ex.exportRound.mock.calls.length > 0);
+    expect(ex.exportRound).toHaveBeenCalledWith('Annual audit', rounds[0], 'missing');
+  });
+
+  it('has no combined report while no round has results', async () => {
+    api.reportEngagement.mockResolvedValue(report({ rounds: [rounds[2]] }));
+    await mount(root(), owner);
+    expect(root().querySelector('[data-sec="combined"]')).toBeNull();
   });
 
   it('a refusal is shown in words and the buttons come back', async () => {
