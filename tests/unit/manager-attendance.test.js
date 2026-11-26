@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { todayPkt } from '../../js/shared/format.js';
 import {
+  addDays,
   coordinateText,
   dayRows,
+  dayState,
   parseCoordinates,
   reasonText,
   refusedAttempts,
@@ -10,6 +13,7 @@ import {
   timeLabel,
   validateAccuracy,
   validatePlace,
+  workedText,
 } from '../../js/modules/manager/domain/attendance.js';
 
 describe('attendance: wording', () => {
@@ -32,6 +36,25 @@ describe('attendance: wording', () => {
   it('shows times in Pakistan time', () => {
     expect(timeLabel('2026-11-25T19:30:00Z')).toBe('00:30');
     expect(timeLabel(null)).toBe('—');
+  });
+});
+
+describe('attendance: time at work and dates', () => {
+  it('words minutes the way a person reads them', () => {
+    expect(workedText(510)).toBe('8 h 30 min');
+    expect(workedText(480)).toBe('8 h');
+    expect(workedText(45)).toBe('45 min');
+    for (const none of [0, -5, null, undefined, 'x']) expect(workedText(none)).toBe('—');
+  });
+  it('moves a business date by whole days across month and year ends, whatever the phone time zone', () => {
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2026-11-26', -6)).toBe('2026-11-20');
+  });
+  it('says where a day stands', () => {
+    expect(dayState({ open: true, last_out: null })).toBe('Still in');
+    expect(dayState({ open: false, last_out: '2026-11-25T13:00:00Z' })).toBe('Done');
+    expect(dayState({ open: false, last_out: null })).toBe('—');
   });
 });
 
@@ -102,6 +125,8 @@ describe('attendance: the owner day view', () => {
 // ── the page ──
 const api = {
   today: vi.fn(),
+  myHistory: vi.fn(),
+  summary: vi.fn(),
   checkIn: vi.fn(),
   list: vi.fn(),
   setup: vi.fn(),
@@ -138,6 +163,8 @@ beforeEach(() => {
   api.insideApp.mockReturnValue(true);
   api.today.mockResolvedValue(me());
   api.list.mockResolvedValue([]);
+  api.myHistory.mockResolvedValue({ days: [], events: [] });
+  api.summary.mockResolvedValue({ rows: [] });
   api.setup.mockResolvedValue({ config: { max_accuracy_m: 100, require_app: true }, sites: [] });
 });
 afterEach(() => {
@@ -211,7 +238,11 @@ describe('attendance page', () => {
   });
 
   it('gives the owner the day view and the places, but only what the keys allow', async () => {
-    api.list.mockResolvedValue([rec({ name: 'Test A' }), rec({ name: 'Test A', status: 'rejected', reason: 'outside', distance_m: 300 })]);
+    const day = todayPkt(); // the page opens on today, so the fixture must be today (a fixed date made this fail from the next day on)
+    api.list.mockResolvedValue([
+      rec({ name: 'Test A', business_date: day }),
+      rec({ name: 'Test A', business_date: day, status: 'rejected', reason: 'outside', distance_m: 300 }),
+    ]);
     api.setup.mockResolvedValue({
       config: { max_accuracy_m: 100, require_app: true },
       sites: [{ id: 'p1', name: 'Test Shop', latitude: 10, longitude: 20, radius_m: 100, active: true }],
@@ -222,6 +253,91 @@ describe('attendance page', () => {
     expect(el.textContent).toContain('Test Shop');
     expect(el.querySelector('[data-act="add-site"]')).toBeNull();
     expect(el.querySelector('#at-acc')).toBeNull();
+    expect(el.querySelector('[data-act="punch"]')).toBeNull();
+  });
+
+  it("shows a staff member their own last two weeks and never asks for everyone's summary", async () => {
+    api.myHistory.mockResolvedValue({
+      days: [
+        {
+          date: '2026-11-25',
+          first_in: '2026-11-25T04:00:00Z',
+          last_out: '2026-11-25T12:30:00Z',
+          worked_minutes: 510,
+          accepted: 2,
+          refused: 1,
+          open: false,
+        },
+        { date: '2026-11-24', first_in: '2026-11-24T04:00:00Z', last_out: null, worked_minutes: 0, accepted: 1, refused: 0, open: true },
+      ],
+      events: [],
+    });
+    await open(['attendance.check_in']);
+    expect(api.myHistory).toHaveBeenCalledTimes(1);
+    const [from, to] = api.myHistory.mock.calls[0];
+    expect(to).toBe(todayPkt());
+    expect(from).toBe(addDays(todayPkt(), -13));
+    expect(el.textContent).toContain('My last two weeks');
+    expect(el.textContent).toContain('8 h 30 min');
+    expect(el.textContent).toContain('1 refused');
+    expect(el.textContent).toContain('Still in');
+    expect(api.summary).not.toHaveBeenCalled();
+  });
+
+  it('says so when a staff member has nothing recorded in two weeks', async () => {
+    await open(['attendance.check_in']);
+    expect(el.textContent).toContain('Nothing recorded in the last two weeks.');
+  });
+
+  it('gives the owner the week summary with a flag on a forgotten check-out, and not the staff history', async () => {
+    const day = todayPkt();
+    api.summary.mockResolvedValue({
+      rows: [
+        {
+          staff_id: 's1',
+          name: 'Test A',
+          date: day,
+          first_in: '2026-11-25T04:00:00Z',
+          last_out: '2026-11-25T12:00:00Z',
+          worked_minutes: 480,
+          accepted: 2,
+          refused: 0,
+          open: false,
+        },
+        {
+          staff_id: 's2',
+          name: 'Test B',
+          date: addDays(day, -1),
+          first_in: '2026-11-24T04:00:00Z',
+          last_out: null,
+          worked_minutes: 0,
+          accepted: 1,
+          refused: 0,
+          open: true,
+        },
+      ],
+    });
+    await open(['attendance.view_all']);
+    expect(api.summary).toHaveBeenCalledWith(addDays(day, -6), day);
+    expect(el.textContent).toContain('8 h');
+    expect(el.textContent).toContain('Test B');
+    expect(el.textContent).toContain('No check-out');
+    expect(api.myHistory).not.toHaveBeenCalled();
+    expect(el.textContent).not.toContain('My last two weeks');
+  });
+
+  it('reloads the week when the owner picks another day', async () => {
+    await open(['attendance.view_all']);
+    const input = el.querySelector('#at-date');
+    input.value = '2026-11-10';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    await tick();
+    expect(api.summary).toHaveBeenLastCalledWith('2026-11-04', '2026-11-10');
+  });
+
+  it('shows a failure card when the history cannot be loaded', async () => {
+    api.myHistory.mockRejectedValue(new Error('offline'));
+    await open(['attendance.check_in']);
     expect(el.querySelector('[data-act="punch"]')).toBeNull();
   });
 

@@ -10,6 +10,8 @@ const one = async (query) => {
 
 // ── the person's own check-in ──
 export const today = () => one(db().rpc('mgmt_attendance_today'));
+// The person's own days and events for a date range (migration 0111). Only their own: the database picks the person.
+export const myHistory = (from, to) => one(db().rpc('mgmt_attendance_my_history', { p_from: from, p_to: to }));
 export const checkIn = (kind, fix, key) =>
   db().rpc('mgmt_attendance_check_in', {
     p_kind: kind,
@@ -23,6 +25,7 @@ export const checkIn = (kind, fix, key) =>
 
 // ── the owner ──
 export const list = (from, to) => one(db().rpc('mgmt_attendance_list', { p_from: from, p_to: to }));
+export const summary = (from, to) => one(db().rpc('mgmt_attendance_summary', { p_from: from, p_to: to })); // one line per person per day (0111)
 export const setup = () => one(db().rpc('mgmt_attendance_setup'));
 export const saveSite = (s, reason, key) =>
   db().rpc('mgmt_attendance_site_save', {
