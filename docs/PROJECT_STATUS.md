@@ -39,7 +39,7 @@ This is the concise operational snapshot. For per-module evidence, migration not
 
 ## Not yet an application module
 
-**Workspace Sheets** has workbooks, a virtualised grid, cell editing with conflict handling (Phase 5, increments 1 to 5). Formulas, formats, row and column structure, sheet management, CSV, offline editing, synchronisation and attachments are designed (`docs/modules/workspace.design.md`) but not built.
+**Workspace Sheets** has workbooks, a virtualised grid, cell editing with conflict handling (Phase 5, increments 1 to 5) and a formula engine (Phase 6). Formulas (Phase 6: a pure calculation engine with 11 functions, shown in the grid and accepted by the editor) are built. Formats, row and column structure, sheet management, CSV, offline editing, synchronisation and attachments are designed (`docs/modules/workspace.design.md`) but not built.
 
 **Unified Reports, assistant/AI and Android widgets** remain planned, not registered application modules.
 

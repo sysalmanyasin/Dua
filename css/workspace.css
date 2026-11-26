@@ -635,3 +635,15 @@ input.ws-title:focus {
   margin: var(--space-2) 0 0;
   font-size: 0.8rem;
 }
+
+/* Formula results */
+.ws-cell.is-error .ws-cell-text {
+  color: #b42318;
+  font-weight: 600;
+}
+.ws-edit-result {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

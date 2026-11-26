@@ -302,6 +302,22 @@ describe('the grid view', () => {
     expect(host.querySelector('img')).toBeNull();
   });
 
+  it('shows #### for a number wider than its column, never a cut-off number, and the bar still has the full value', () => {
+    // jsdom has no layout, so say which texts are too wide: the price (a number) overflows, the long text would only be cut with an ellipsis
+    const spy = vi.spyOn(Element.prototype, 'scrollWidth', 'get').mockImplementation(function () {
+      return this.classList?.contains('ws-cell-text') ? 500 : 0;
+    });
+    try {
+      const { selections } = gridFor(findSheet(makeWorkbook(), S1));
+      expect(text(at(host, 1, 1))).toBe('####'); // PKR 1,500.00
+      expect(text(at(host, 1, 0))).toBe('Panadol'); // text is not turned into ####
+      at(host, 1, 1).click();
+      expect(selections.at(-1)).toMatchObject({ text: 'PKR 1,500.00', value: 1500 });
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('draws nothing from a style that is not exactly valid', () => {
     const sheet = findSheet(makeWorkbook(), S1);
     sheet.styles.set(7, { color: 'red; background: url(//evil.example/x)', bg: 'url(x)', size: '14px; position: fixed', weight: 'bolder' });
@@ -381,7 +397,7 @@ describe('the workbook screen', () => {
     expect(host.querySelector('[data-act="add-sheet"]')).toBeNull();
   });
 
-  it('shows the content of the tapped cell above the grid, formulas as written and not editable yet', async () => {
+  it('shows the content of the tapped cell above the grid, a formula as its text with what it shows', async () => {
     open();
     await go();
     const box = () => host.querySelector('.ws-edit-input');
@@ -390,11 +406,13 @@ describe('the workbook screen', () => {
     at(host, 1, 0).click();
     expect(text(host.querySelector('.ws-formula-label'))).toBe('A2');
     expect(box().value).toBe('Panadol');
+    expect(host.querySelector('.ws-edit-result').hidden).toBe(true); // not a formula
     at(host, 2, 1).click();
     expect(text(host.querySelector('.ws-formula-label'))).toBe('B3');
     expect(box().value).toBe('=B2*2');
-    expect(box().readOnly).toBe(true);
-    expect(host.querySelector('.ws-edit-msg').textContent).toContain('later update');
+    expect(box().readOnly).toBe(false);
+    expect(host.querySelector('.ws-edit-result').hidden).toBe(false);
+    expect(host.querySelector('.ws-edit-result').textContent).toBe('Shows: 3000'); // B2 holds 1500 (PKR format); B3 has no format
   });
 
   it('switches sheets from the tabs', async () => {

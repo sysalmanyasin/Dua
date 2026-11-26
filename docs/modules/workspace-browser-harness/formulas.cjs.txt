@@ -1,0 +1,39 @@
+const { chromium } = require('playwright'); const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' }); await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/tmp/chromium', args: ['--no-sandbox', '--disable-gpu'] });
+  const page = await (await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 })).newPage();
+  const t0 = Date.now();
+  await page.goto('http://localhost:8765/'); await page.waitForFunction(() => window.__ready === true, null, { timeout: 90000 });
+  const out = { loadMs: Date.now() - t0 };
+  const cellText = (r, c) => page.evaluate(([r, c]) => document.querySelector('.ws-cell[data-row="' + r + '"][data-col="' + c + '"]')?.textContent ?? null, [r, c]);
+  // scroll right to columns H..J
+  await page.evaluate(() => { document.querySelector('.ws-grid-scroll').scrollLeft = 96 * 6; });
+  await page.waitForTimeout(300);
+  out.row2 = { H: await cellText(1, 7), I: await cellText(1, 8), J_error: await cellText(1, 9) };
+  out.row3_4_circular = [await cellText(2, 9), await cellText(3, 9)];
+  out.row5_6 = [await cellText(4, 9), await cellText(5, 9)];
+  out.errorStyle = await page.evaluate(() => { const c = document.querySelector('.ws-cell.is-error'); return c ? { text: c.textContent, color: getComputedStyle(c.querySelector('.ws-cell-text')).color, align: c.style.justifyContent } : null; });
+  await page.screenshot({ path: '/tmp/shots/07-formulas.png' });
+  // tap a formula cell: bar shows the formula and what it shows
+  const box = await page.locator('.ws-cell[data-row="1"][data-col="7"]').boundingBox();
+  await page.touchscreen.tap(box.x + 8, box.y + 8);
+  out.bar = await page.evaluate(() => ({ label: document.querySelector('.ws-formula-label').textContent, box: document.querySelector('.ws-edit-input').value, result: document.querySelector('.ws-edit-result').textContent, resultVisible: document.querySelector('.ws-edit-result').offsetParent !== null }));
+  // edit the price of row 2 (column C) and watch the dependents change, timing the whole save-and-redraw
+  await page.evaluate(() => { document.querySelector('.ws-grid-scroll').scrollLeft = 0; }); await page.waitForTimeout(200);
+  const before = await page.evaluate(() => window.__stub.server.sheets[0] && 0);
+  const cbox = await page.locator('.ws-cell[data-row="1"][data-col="2"]').boundingBox();
+  await page.touchscreen.tap(cbox.x + 8, cbox.y + 8);
+  await page.locator('.ws-edit-input').fill('1000');
+  const t1 = Date.now(); await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.querySelector('.ws-edit-actions').hidden, null, { timeout: 20000 });
+  out.saveAndRedrawMs = Date.now() - t1;
+  await page.evaluate(() => { document.querySelector('.ws-grid-scroll').scrollLeft = 96 * 6; }); await page.waitForTimeout(300);
+  out.afterEdit = { H2: await cellText(1, 7), I2: await cellText(1, 8) };
+  // scrolling cost with formulas on screen
+  out.scroll = await page.evaluate(async () => { const s = document.querySelector('.ws-grid-scroll'); const times = []; for (let i = 0; i < 60; i += 1) { const a = performance.now(); s.scrollTop = 28 * (100 + i * 9); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); times.push(performance.now() - a); } times.sort((x, y) => x - y); return { median_ms: +times[30].toFixed(1), p95_ms: +times[56].toFixed(1) }; });
+  out.overflow = await page.evaluate(() => { const nums = [...document.querySelectorAll('.ws-cell.is-number .ws-cell-text')]; return { numberCells: nums.length, hashed: nums.filter((n) => n.textContent === '####').length, cutShort: nums.filter((n) => n.textContent !== '####' && n.scrollWidth > n.clientWidth).length, anyEllipsisText: nums.filter((n) => n.textContent.includes('\u2026')).length }; });
+  out.errors = await page.evaluate(() => window.__errors);
+  console.log(JSON.stringify(out, null, 1));
+  await browser.close(); srv.kill();
+})().catch((e) => { console.error('FAIL', e.message); process.exit(1); });

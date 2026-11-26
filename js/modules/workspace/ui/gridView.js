@@ -42,6 +42,7 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
   host.replaceChildren(scroller);
 
   let sheet = null;
+  let calc = null; // calculated results for formula cells (domain/formulas/sheetCalc.js), or null
   let rows = axisLayout([], null, GRID.rowHeight);
   let cols = axisLayout([], null, GRID.colWidth);
   let sel = null; // { row: rowId, col: colId }
@@ -60,7 +61,7 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
     const rowIndex = rows.ids.indexOf(sel.row);
     const colIndex = cols.ids.indexOf(sel.col);
     if (rowIndex < 0 || colIndex < 0) return null;
-    const d = describeCell(sheet, sel.row, sel.col);
+    const d = describeCell(sheet, sel.row, sel.col, calc);
     return {
       label: `${colLabel(colIndex)}${rowIndex + 1}`,
       rowIndex,
@@ -108,7 +109,7 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
     for (const j of rowIdx) {
       for (const i of colIdx) {
         const layer = j < fr && i < fc ? layers.corner : j < fr ? layers.rows : i < fc ? layers.cols : layers.body;
-        const d = describeCell(sheet, rows.ids[j], cols.ids[i]);
+        const d = describeCell(sheet, rows.ids[j], cols.ids[i], calc);
         const cell = el('div', 'ws-cell', layer);
         place(cell, X(i), Y(j), W(i), H(j));
         cell.setAttribute('role', 'gridcell');
@@ -117,6 +118,8 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
         cell.dataset.row = String(j);
         cell.dataset.col = String(i);
         if (d.kind === 'formula') cell.classList.add('is-formula');
+        if (d.kind === 'error') cell.classList.add('is-error');
+        if (d.kind === 'number') cell.classList.add('is-number');
         if (sel && sel.row === rows.ids[j] && sel.col === cols.ids[i]) {
           cell.classList.add('is-selected');
           cell.setAttribute('aria-selected', 'true');
@@ -146,6 +149,12 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
     }
     place(el('div', 'ws-head ws-head-corner', layers.head), 0, 0, HW, HH);
     stage.replaceChildren(layers.body, layers.rows, layers.cols, layers.corner, layers.head);
+    // A number that does not fit its column is shown as #### (as spreadsheets do), never cut short: "170,0..." would look like
+    // a different number. The full value is in the bar when the cell is selected. All reads happen after all writes, so the
+    // browser measures once.
+    for (const span of stage.querySelectorAll('.ws-cell.is-number .ws-cell-text')) {
+      if (span.scrollWidth > span.clientWidth) span.textContent = '####';
+    }
   }
 
   function queue() {
@@ -211,9 +220,11 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
 
   return {
     // Show a sheet. Keeps the scroll position when it is the same sheet (a refresh); starts at the top for another one.
-    setSheet(next) {
+    // `nextCalc` gives formula cells their calculated results.
+    setSheet(next, nextCalc = null) {
       const same = sheet && next && sheet.id === next.id;
       sheet = next;
+      calc = nextCalc;
       layout();
       if (!same) {
         scroller.scrollTop = 0;
