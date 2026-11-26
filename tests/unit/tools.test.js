@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ageText, backupStatus, canAck, drillStatus, feedStatus, notificationState } from '../../js/modules/tools/domain/tools.js';
+import {
+  ageText,
+  alertText,
+  backupStatus,
+  canAck,
+  drillStatus,
+  feedStatus,
+  notificationState,
+} from '../../js/modules/tools/domain/tools.js';
 import { alertLabel } from '../../js/shared/alerts.js';
 import tools from '../../js/modules/tools/manifest.js';
 import { MODULE_IDS } from '../../js/modules/index.js';
@@ -136,5 +144,19 @@ describe('page', () => {
     await mount(el);
     expect(el.textContent).toContain('Could not load this page');
     expect(el.textContent).not.toContain('boom');
+  });
+});
+
+describe('alert text', () => {
+  it('shows the saved title and message when there is one', () => {
+    const n = { kind: 'closing.corrected', title: 'Closing Corrected - Evening 2026-11-25', body: 'Revision 2\nNet cash: Rs. 100' };
+    expect(alertText(n, alertLabel)).toEqual({ title: 'Closing Corrected - Evening 2026-11-25', body: 'Revision 2\nNet cash: Rs. 100' });
+  });
+  it('falls back to the short label for older alerts with no saved text', () => {
+    expect(alertText({ kind: 'closing.submitted', title: null, body: null }, alertLabel)).toEqual({
+      title: alertLabel('closing.submitted'),
+      body: '',
+    });
+    expect(alertText({ kind: 'x.y', title: '  ', body: '  ' }, alertLabel)).toEqual({ title: 'Alert: x.y', body: '' });
   });
 });
