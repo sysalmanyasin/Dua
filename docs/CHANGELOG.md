@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 26 Nov — Stage 7: testing and hardening (f13)
+- Full unit suite, lint, format, secrets and vendor checks pass (183 files, 2,816 tests). The whole database set passes on a PostgreSQL 16 replay of all 127 migrations (111 test files, 4,305 checks, security guards 0199, 0749, 1299 and 1399 included).
+- Live read-only audit: advisors, `search_path` on every definer function (356 of 357; the exception is the platform function `rls_auto_enable`), closed tables closed, who-can-call-what identical to the replay, tables identical, functions identical apart from 31 comment-only differences. Wrong-role and task-flow checks ran live in rolled-back transactions and passed.
+- Found, not changed (written up for the Owner in `docs/ops/f13-stage7-audit-and-phone-test.md`): a Senior with personal `tasks.manage`, a Junior denied `tasks.view_own`, Juniors holding closing grants, four Invoice Desk helpers callable by `anon`, performance advisor items, leaked-password protection off.
+- Live registry: `0419 audit_live_balances` and `0310 inventory_deactivated` were registered with timestamp versions by another session; renamed to their repo numbers after a backup. No other live change.
+- New: the phone test script and close-out list in the f13 doc. No code or feature change.
+
 ## 26 Nov — Automatic attendance, Phase 2 (Attendance module) — built and tested; migration 0111 NOT applied live
 - Attendance has its own side-menu entry (`nav.links`). A person whose only Manager page is Attendance sees a single entry named **Attendance** (`navLinks` no longer lists one page twice).
 - Staff see **My last two weeks** (per day: first in, last out, time at work, refused attempts). The owner sees **the week up to the chosen day** (one line per person per day, time at work, refused count, a "No check-out" flag for a past day left open) next to the existing day view, places and limits.
