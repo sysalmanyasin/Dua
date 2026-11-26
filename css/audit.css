@@ -965,44 +965,59 @@
    tokens). It never covers the whole page, so the count boxes stay usable while it is open. */
 .aud-calc {
   position: fixed;
-  right: 0.6rem;
-  bottom: calc(5rem + env(safe-area-inset-bottom));
+  right: max(0.65rem, env(safe-area-inset-right));
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
   z-index: 900;
-  width: min(15.5rem, 64vw);
-  pointer-events: none; /* only the box itself takes touches */
+  width: min(12.5rem, 52vw);
+  pointer-events: none;
 }
 .aud-calc .aud-calc-box {
   pointer-events: auto;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  max-height: calc(100vh - 7rem);
+  gap: 0.35rem;
+  max-height: min(76dvh, calc(100vh - 7rem));
   overflow-y: auto;
-  padding: 0.55rem 0.65rem 0.7rem;
-  background: var(--surface, #fff);
+  padding: 0.45rem 0.5rem 0.55rem;
+  background: linear-gradient(155deg, var(--surface, #fff) 0%, #eef4ff 100%);
   color: var(--text, #111);
-  border: 1px solid var(--border, #d9e2ee);
-  border-radius: 1.1rem;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+  border: 1px solid #8bb7f7;
+  border-radius: 0.95rem;
+  box-shadow:
+    0 10px 26px rgba(20, 54, 112, 0.28),
+    0 2px 8px rgba(20, 54, 112, 0.12);
 }
 .aud-calc .aud-calc-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
+  gap: 0.35rem;
+  margin: -0.45rem -0.5rem 0;
+  padding: 0.45rem 0.5rem;
+  color: #fff;
+  background: linear-gradient(110deg, #1746a2 0%, #2563eb 58%, #0d9488 100%);
+  border-radius: 0.9rem 0.9rem 0.55rem 0.55rem;
 }
 .aud-calc .aud-calc-head h2 {
   margin: 0;
-  font-size: 0.95rem;
+  color: inherit;
+  font-size: 0.85rem;
+  font-weight: 750;
 }
 .aud-calc .aud-calc-head-actions {
   display: flex;
-  gap: 0.15rem;
+  gap: 0.1rem;
 }
 .aud-calc .aud-calc-head .btn {
-  min-width: 2.4rem;
-  min-height: 2.4rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0.2rem;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.14);
 }
 .aud-calc.is-min .aud-calc-body {
   display: none;
@@ -1010,70 +1025,96 @@
 .aud-calc .aud-calc-body {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 .aud-calc .aud-calc-target {
   margin: 0;
-  line-height: 1.25;
+  line-height: 1.2;
+  font-size: 0.72rem;
 }
 .aud-calc .aud-calc-screen {
-  padding: 0.35rem 0.6rem;
+  padding: 0.3rem 0.45rem;
   text-align: right;
-  background: var(--surface-2, #edf2f8);
-  border-radius: 0.7rem;
-  min-height: 4rem;
+  background: linear-gradient(135deg, #e0f2fe 0%, #ede9fe 100%);
+  color: #172554;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.65rem;
+  min-height: 3.45rem;
   overflow-wrap: anywhere;
 }
 .aud-calc .aud-calc-expr {
-  min-height: 1.2em;
-  font-size: 0.85rem;
-  color: var(--text-muted, #586a82);
+  min-height: 1.1em;
+  font-size: 0.72rem;
+  color: #475569;
 }
 .aud-calc .aud-calc-main {
-  font-size: 1.6rem;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.12;
+  color: #1d4ed8;
 }
 .aud-calc .aud-calc-total {
-  min-height: 1.2em;
+  min-height: 1.1em;
+  font-size: 0.72rem;
+  color: #0f766e;
 }
 .aud-calc .aud-calc-note {
   margin: 0;
-  min-height: 1.1em;
-  font-size: 0.85rem;
+  min-height: 1em;
+  font-size: 0.72rem;
   color: var(--danger, #b42318);
-  font-weight: 600;
+  font-weight: 650;
 }
 .aud-calc .aud-calc-pad {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.3rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.25rem;
 }
 .aud-calc .aud-calc-key {
-  min-height: 2.75rem; /* above the 44 px touch target */
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.15rem;
   font: inherit;
-  font-size: 1.1rem;
-  color: var(--text, #111);
-  background: var(--surface-2, #edf2f8);
-  border: 1px solid var(--border, #d9e2ee);
-  border-radius: 0.7rem;
+  font-size: 0.98rem;
+  font-weight: 650;
+  color: #1e293b;
+  background: linear-gradient(145deg, #fff 0%, #eaf1ff 100%);
+  border: 1px solid #cbdaf5;
+  border-radius: 0.58rem;
+  box-shadow: 0 1px 2px rgba(30, 64, 175, 0.08);
   cursor: pointer;
 }
-.aud-calc .aud-calc-key.is-op {
-  color: var(--primary-text, #fff);
-  background: var(--primary, #1d4ed8);
-  border-color: var(--primary, #1d4ed8);
+.aud-calc .aud-calc-key.is-fn {
+  color: #6d28d9;
+  background: linear-gradient(145deg, #f3e8ff 0%, #e9d5ff 100%);
+  border-color: #c4b5fd;
 }
-.aud-calc .aud-calc-key.is-wide {
-  grid-column: span 2;
+.aud-calc .aud-calc-key.is-op {
+  color: #fff;
+  background: linear-gradient(145deg, #2563eb 0%, #4338ca 100%);
+  border-color: #4f46e5;
+}
+.aud-calc .aud-calc-key[data-k='='] {
+  background: linear-gradient(145deg, #0f9f83 0%, #0d9488 100%);
+  border-color: #0f766e;
 }
 .aud-calc .aud-calc-key:active {
   filter: brightness(0.92);
+  transform: translateY(1px);
 }
 .aud-calc .aud-calc-insert {
   min-height: 2.75rem;
-  font-size: 0.9rem;
+  padding: 0.45rem;
+  font-size: 0.78rem;
   white-space: normal;
+  background: linear-gradient(105deg, #1746a2 0%, #2563eb 65%, #0d9488 100%);
+  border: 0;
+}
+@media (max-width: 380px) {
+  .aud-calc {
+    right: max(0.4rem, env(safe-area-inset-right));
+    width: min(12rem, 56vw);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .aud-calc * {
