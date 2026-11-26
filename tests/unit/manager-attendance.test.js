@@ -141,6 +141,7 @@ beforeEach(() => {
   api.setup.mockResolvedValue({ config: { max_accuracy_m: 100, require_app: true }, sites: [] });
 });
 afterEach(() => {
+  vi.useRealTimers();
   el.remove();
   document.querySelectorAll('dialog').forEach((d) => d.remove());
 });
@@ -211,6 +212,9 @@ describe('attendance page', () => {
   });
 
   it('gives the owner the day view and the places, but only what the keys allow', async () => {
+    // The records are dated 25 Nov; pin today so the day view does not depend on the real date.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-25T12:00:00Z'));
     api.list.mockResolvedValue([rec({ name: 'Test A' }), rec({ name: 'Test A', status: 'rejected', reason: 'outside', distance_m: 300 })]);
     api.setup.mockResolvedValue({
       config: { max_accuracy_m: 100, require_app: true },
