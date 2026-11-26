@@ -6,7 +6,6 @@ import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
 import { setView } from '../domain/nav.js';
 import { errorCard, loadingCard } from './parts.js';
-import { mountProductSearch } from './productSearch.js';
 import { mountWizard } from './wizard.js';
 
 const SCOPE_LABEL = {
@@ -30,8 +29,6 @@ export async function mount(el, { ctx } = {}) {
       html`<div class="aud">
         ${hero({ label: 'Audit', title: 'Audits', sub: 'One audit holds the rounds and the counting team for one piece of work.' })}
         ${canManage ? html`<div data-wizard-host></div>` : ''}
-        <div data-search-host></div>
-        <p class="aud-more"><a class="btn btn-sm" href="#/audit/individuals">Individual audits by person</a></p>
         <section class="card aud-card" aria-label="All audits">
           <h2>All audits</h2>
           ${
@@ -61,8 +58,6 @@ export async function mount(el, { ctx } = {}) {
     );
     const host = el.querySelector('[data-wizard-host]');
     if (host) mountWizard(host, { people, companyList });
-    const searchHost = el.querySelector('[data-search-host]');
-    if (searchHost) mountProductSearch(searchHost);
   };
 
   el.onclick = (e) => {

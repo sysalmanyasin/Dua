@@ -138,11 +138,24 @@ describe('all rounds', () => {
     expect(lines.at(-1).startsWith('1A,B2,')).toBe(true);
   });
 
+  it('a round’s missing-counts file holds only the items nobody counted', async () => {
+    api.compiledRowsAll.mockResolvedValue([
+      row(),
+      row({ code: 'B2', missing: true, counted_qty: 0, variance: -5, variance_value: -277.5 }),
+      row({ code: 'C3', missing: true, auto_matched: true }),
+    ]);
+    await exportRound('Annual audit', { id: 'r2', label: '1A', state: 'compiled', items: 3 }, 'missing');
+    const lines = files.list[0].text.trim().split('\r\n');
+    expect(files.list[0].name).toContain('missing-counts');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('B2');
+  });
+
   it('the workbook is Summary, Combined, then one sheet per round', async () => {
     await exportAllRounds('Annual audit', rounds, 'xlsx');
     const sheets = readWorkbook(files.list[0].bytes);
     expect(sheets.map((s) => s.name)).toEqual(['Summary', 'Combined', 'Round 1', 'Round 1A']);
-    expect(sheets[0].rows.at(-1)[0]).toBe('All rounds');
+    expect(sheets[0].rows.map((r) => r[0])).toEqual(['Round', '1', '1A']); // one row per round, no total across rounds
   });
 
   it('says so when no round has results', async () => {

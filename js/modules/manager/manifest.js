@@ -2,7 +2,9 @@ export default {
   id: 'manager',
   title: 'Manager',
   icon: 'users',
-  nav: { order: 20 },
+  // Attendance has its own menu entry so people who may only check in (staff) and the owner can both find it. A person whose only
+  // Manager page is Attendance sees just "Attendance" (see navLinks in js/core/registry.js).
+  nav: { order: 20, links: [{ id: 'attendance', title: 'Attendance', path: '/manager/attendance', icon: 'users', order: 20.5 }] },
   // The status pill counts the Closing credit lines still waiting to be filed (only for people who may open the inbox).
   status: { anyOf: ['mgmt.inbox_file'], refreshMs: 120_000, load: () => import('./status.js') },
   permission: null, // owner only: each page below lists the keys that may open it (and the database checks them again)
@@ -80,6 +82,13 @@ export default {
       desc: 'Daily ledger and balance tally',
       anyOf: ['mgmt.ledgers'],
       load: () => import('./ui/jazzcash.js'),
+    },
+    {
+      path: '/manager/attendance',
+      title: 'Attendance',
+      desc: 'Check in at the pharmacy; the owner sees the records',
+      anyOf: ['attendance.check_in', 'attendance.view_all', 'attendance.manage'],
+      load: () => import('./ui/attendance.js'),
     },
     {
       path: '/manager/inbox',

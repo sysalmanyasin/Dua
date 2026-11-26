@@ -18,7 +18,17 @@ const q = (n) => String(Number(n));
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 const money = (v) => rupees(toPaisa(v));
 
-export async function mount(el, { ctx } = {}) {
+// The review page serves three ways: the whole page (no `screen`, as before), the Compile & Review screen, or the Corrections screen.
+const PARTS = {
+  review: ['progress', 'compile', 'differences', 'conflicts'],
+  corrections: ['corrections', 'next'],
+  // an Individual round compiles itself on submit: no progress, no compile button, no cross-round conflicts, no final snapshot, no next round
+  individual: ['differences', 'corrections'],
+};
+
+export async function mount(el, { ctx, screen = null } = {}) {
+  const individual = screen === 'individual';
+  const shows = (part) => !screen || (PARTS[screen] ?? []).includes(part);
   const perms = ctx?.permissions ?? [];
   const can = (k) => perms.includes(k) || perms.includes('audit.manage');
   const canCompile = can('audit.compile');
@@ -50,6 +60,8 @@ export async function mount(el, { ctx } = {}) {
     nextMode: 'differences',
     sample: 20,
     nextKey: newKey(),
+    live: {}, // product code -> { qty, active, found }: today's stock, for the correction views (view only)
+    liveFailed: false,
     busy: false,
     error: null,
   };
@@ -74,6 +86,34 @@ export async function mount(el, { ctx } = {}) {
   async function load() {
     s.o = await api.compileOverview(view.round);
     await loadRows();
+    await loadLive(s.o.corrections.filter((x) => x.status === 'proposed').map((x) => x.code));
+  }
+
+  // today's quantity for some codes, kept in s.live. Best effort and read only: the page works without it.
+  async function loadLive(codes) {
+    const need = [...new Set(codes.filter(Boolean))].filter((x) => !(x in s.live)).slice(0, 200);
+    if (need.length === 0) return;
+    try {
+      for (const r of await api.liveBalances(view.round, need)) s.live[r.code] = { qty: r.qty, active: r.active, found: r.found };
+      s.liveFailed = false;
+    } catch {
+      s.liveFailed = true;
+    }
+  }
+  // one line: what Inventory holds right now, beside the quantity the counters were shown
+  function liveLine(code, frozen) {
+    const l = s.live[code];
+    if (!l)
+      return s.liveFailed
+        ? html`<span class="muted small">Live quantity is not available right now.</span>`
+        : html`<span class="muted small">Reading live quantity…</span>`;
+    if (!l.found) return html`<span class="muted small">Not in Inventory now.</span>`;
+    const moved = Number(l.qty) !== Number(frozen);
+    return html`<span class="small" data-live="${code}"
+      >Live system quantity now <strong>${q(l.qty)}</strong>${l.active ? '' : ' (no longer in the stock list, last known)'}${
+        moved ? html` · <span class="aud-diff-bad">changed since the count (was ${q(frozen)})</span>` : ''
+      }</span
+    >`;
   }
 
   const nameOf = (id) => s.o.assignments.find((a) => a.auditor_id === id)?.name ?? 'Someone';
@@ -258,6 +298,17 @@ export async function mount(el, { ctx } = {}) {
             open
               ? html`<div class="aud-form">
                   <label class="field"
+                    ><span>Live system quantity (view only)</span
+                    ><input
+                      type="text"
+                      readonly
+                      tabindex="-1"
+                      data-live-qty="${r.code}"
+                      aria-readonly="true"
+                      value="${s.live[r.code]?.found ? q(s.live[r.code].qty) : '—'}"
+                  /></label>
+                  ${liveLine(r.code, r.system_qty)}
+                  <label class="field"
                     ><span>Correct count</span><input type="text" inputmode="decimal" data-field="qty" value="${s.form.qty ?? ''}"
                   /></label>
                   <label class="field"
@@ -283,10 +334,37 @@ export async function mount(el, { ctx } = {}) {
   }
 
   function correctionsCard() {
-    const { round, corrections } = s.o;
-    if (corrections.length === 0) return '';
+    const { round, corrections: all } = s.o;
+    if (all.length === 0) {
+      if (screen !== 'corrections' && !individual) return '';
+      return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
+        <h2>Corrections</h2>
+        ${
+          individual
+            ? html`<p class="muted" data-empty>
+                No corrections have been proposed for this round. Propose one from an item in the list above.
+              </p>`
+            : html`<p class="muted" data-empty>
+                No corrections have been proposed for this round. A correction is proposed from the items on the
+                <a href="#/audit/compile">Compile &amp; Review</a> screen.
+              </p>`
+        }
+      </section>`;
+    }
+    // on the Corrections screen: waiting first, then approved (applied at the next compile), then rejected
+    const rank = { proposed: 0, approved: 1, rejected: 2 };
+    const grouped = screen === 'corrections' || individual;
+    const corrections = grouped ? [...all].sort((a, b) => (rank[a.status] ?? 3) - (rank[b.status] ?? 3)) : all;
+    const count = (status) => all.filter((c) => c.status === status).length;
     return html`<section class="card aud-card" aria-label="Corrections" data-sec="corrections" tabindex="-1">
       <h2>Corrections</h2>
+      ${
+        screen === 'corrections'
+          ? html`<p class="muted small" data-correction-counts>
+              ${count('proposed')} waiting · ${count('approved')} approved · ${count('rejected')} rejected
+            </p>`
+          : ''
+      }
       ${corrections.map((c) => {
         const open = s.form && s.form.type === 'reject' && s.form.id === c.id;
         return html`<div class="aud-block">
@@ -295,6 +373,7 @@ export async function mount(el, { ctx } = {}) {
             <span class="small"
               >System ${q(c.system_qty)} → proposed count <strong>${q(c.counted_qty)}</strong> by ${c.proposed_by} · ${c.reason}</span
             ><br />
+            ${c.status === 'proposed' ? html`${liveLine(c.code, c.system_qty)}<br />` : ''}
             <span class="aud-badge aud-badge-${c.status === 'approved' ? 'compiled' : c.status === 'rejected' ? 'draft' : 'counting'}"
               >${c.status === 'proposed' ? 'Waiting' : c.status === 'approved' ? 'Approved' : 'Rejected'}</span
             >
@@ -381,6 +460,17 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   }
 
+  // on the Compile & Review screen: corrections waiting for a decision live on their own screen
+  function correctionsHint() {
+    if (screen !== 'review') return '';
+    const waiting = s.o.corrections.filter((x) => x.status === 'proposed').length;
+    if (waiting === 0) return '';
+    return html`<p class="note" role="status" data-corrections-hint>
+      ${waiting} ${waiting === 1 ? 'correction is' : 'corrections are'} waiting for a decision.
+      <a href="#/audit/corrections">Open Corrections</a>
+    </p>`;
+  }
+
   // O4: the result on screen is older than something that was decided after it
   function recompileBanner() {
     const need = recompileNeeded(s.o);
@@ -410,7 +500,10 @@ export async function mount(el, { ctx } = {}) {
       corrections.length > 0 && ['corrections', 'Corrections', waiting ? String(waiting) : ''],
       conflicts.length > 0 && ['conflicts', 'Conflicts', open ? String(open) : ''],
       canCompile && s.o.round.state === 'compiled' && c && ['next', 'Next round', ''],
-    ].filter(Boolean);
+    ]
+      .filter(Boolean)
+      .filter(([key]) => shows(key));
+    if (steps.length < 2) return '';
     return html`<nav class="aud-stepbar" aria-label="Parts of this page">
       ${steps.map(
         ([key, label, badge]) =>
@@ -426,24 +519,31 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`<div class="aud">
-        ${crumbs([
-          { label: 'Audits', href: '#/audit/engagements' },
-          { label: 'This audit', href: '#/audit/engagement' },
-          { label: roundLabel(round), href: '#/audit/round' },
-          { label: 'Review' },
-        ])}
+        ${crumbs(
+          individual
+            ? [{ label: 'Individual audits', href: '#/audit/individuals' }, { label: roundLabel(round) }, { label: 'Review & corrections' }]
+            : [
+                { label: 'Audits', href: '#/audit/engagements' },
+                { label: 'This audit', href: '#/audit/engagement' },
+                { label: roundLabel(round), href: '#/audit/round' },
+                { label: screen === 'corrections' ? 'Corrections' : 'Review' },
+              ],
+        )}
         ${hero({
           label: 'Audit',
-          title: `${roundLabel(round)} · review`,
+          title: `${roundLabel(round)} · ${individual ? 'review & corrections' : screen === 'corrections' ? 'corrections' : 'review'}`,
           sub: `${STATE[round.state] ?? round.state} · ${round.items} items`,
           actions: html`${
-            round.state === 'compiled' || round.state === 'final'
+            !individual && (round.state === 'compiled' || round.state === 'final')
               ? html`<a class="btn btn-sm" href="#/audit/final">${round.state === 'final' ? 'Final' : 'Final snapshot'}</a> `
               : ''
           }`,
         })}
-        ${pipelineStrip(s.o, perms, 'compile')} ${stepBar()} ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''}
-        ${recompileBanner()} ${progress()} ${compileCard()} ${results()} ${rowsCard()} ${correctionsCard()} ${conflictsCard()} ${nextCard()}
+        ${screen === 'corrections' || individual ? '' : pipelineStrip(s.o, perms, 'compile')} ${stepBar()}
+        ${s.error ? html`<p class="note note-error" role="alert">${s.error}</p>` : ''} ${correctionsHint()} ${recompileBanner()}
+        ${shows('progress') ? progress() : ''} ${shows('compile') ? compileCard() : ''}
+        ${shows('differences') ? html`${results()} ${rowsCard()}` : ''} ${shows('corrections') ? correctionsCard() : ''}
+        ${shows('conflicts') ? conflictsCard() : ''} ${shows('next') ? nextCard() : ''}
       </div>`,
     );
   }
@@ -520,7 +620,17 @@ export async function mount(el, { ctx } = {}) {
     }
     if (b.dataset.form) {
       s.form = { type: b.dataset.form, id: b.dataset.id, side: b.dataset.side, mode: 'as_counted', reason: '', qty: '' };
-      return draw();
+      draw();
+      if (b.dataset.form === 'suggest') {
+        const code = s.rows.find((x) => x.round_item_id === b.dataset.id)?.code;
+        // always fresh when the form opens: stock may have moved since the list was read
+        if (code) {
+          delete s.live[code];
+          await loadLive([code]);
+          if (s.form?.id === b.dataset.id) draw();
+        }
+      }
+      return;
     }
     const id = b.dataset.id;
     const reason = (s.form?.reason ?? '').trim();

@@ -276,3 +276,22 @@
     grid-column: auto;
   }
 }
+
+/* Inbox (Stage 4) and the Home Messages section */
+.ib-unread {
+  border-left: 4px solid var(--accent, var(--focus));
+}
+.ib-new {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--accent, #1f5fa8);
+}
+.ib-body {
+  overflow-wrap: anywhere;
+}

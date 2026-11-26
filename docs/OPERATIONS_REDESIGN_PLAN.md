@@ -42,8 +42,8 @@ Legend: **Have** = exists and is reusable; **Partial** = something exists but no
 | Task Master | **Missing** | Nothing (Audit has assignments; Workspace has notes; neither is a task system) | Whole module (§5) |
 | Notifications and reminders for staff | Missing | Owner-only table and sender | Per-recipient rows, delivery and acknowledgement history, reminder policies, in-app inbox (§6) |
 | Announcements with acknowledgement | Missing | `notifications.acked_at` is single-recipient | Recipient table |
-| Dua AI Assistant | Missing | Roadmap range `0800–0899` reserved | Server-side tool registry, confirmation model, session-only memory (§7) |
-| Unified Reports | Missing | Per-module reports (Sales, Inventory, Audit, Closing, eBill) | Registry of report definitions reading each module's authoritative views |
+| Dua AI Assistant | **Deferred (D-70, 26 Nov 2026)** | Roadmap range `0800–0899` reserved | Server-side tool registry, confirmation model, session-only memory (§7) |
+| Unified Reports | **Dropped (D-70, 26 Nov 2026): reports stay in each module; Sale Book, Targets and Manage Fields routed** | Per-module reports (Sales, Inventory, Audit, Closing, eBill) | Registry of report definitions reading each module's authoritative views |
 | Refresh and stale-data UX | Partial | Polling, visibility refresh, one realtime channel | One shared refresh service: realtime for important events, polling otherwise, last-updated time, stale warning |
 | Preserve MFA, RLS, secure RPCs, backups | Have | All present and tested | Every new table gets RLS on, no `anon` grants, tests in the same change |
 | Staging separate from production | Missing | One project | Create before Task Master migrations (§8) |
@@ -90,6 +90,8 @@ Rate = tasks completed and verified on or before their deadline ÷ tasks whose d
 No files or photos. The task creator chooses `none`, `note` (written text) or `tick` (a confirmation tick). The submit RPC refuses a submission that does not meet the rule. The note is stored on the submission event, so there is no evidence table and no Storage.
 
 ## 6. Notifications and reminders (Stage 4)
+**Status (25 Nov 2026):** built, tested and applied live on 25 Nov 2026 (1300, 1301, 1204); merge pending. The owner's answers are D-68. Where the sketch below differs, D-68 and the migrations win: one row per person per message (`ntf_messages`) instead of `ntf_recipients`, a closed table read through functions instead of RLS reads, and announcements are deferred.
+
 - New `ntf_recipients` (notification, user, created, delivered, read, acknowledged) so history is per person. The existing owner `notifications` table and `notify_owner()` keep working unchanged; new code calls a new `notify_users(kind, payload, recipients)` that writes the same kind of row and never raises.
 - In-app inbox read through RLS (a person sees only their own rows); push through the existing `notify-ntfy` pattern.
 - **Privacy:** push payloads carry ids and generic wording only. Salary, amounts and names never appear in a push or lock-screen text. This extends the rule already stated in `0012`.
@@ -148,8 +150,8 @@ Each stage ends only when its tests pass, the Owner, Manager and Staff cases are
 | 2 Dashboard and roles | Shell, snapshot providers, Action Centre read model, rules table, activity feed RPC, Owner and Staff variants, shared refresh and stale-data service | `js/modules/home/*`, `js/core/statusbar.js`, new `js/shared/refresh.js`, manifests of Sales, Closing, Inventory, Audit, new `0700–0749` migrations | No figure differs from its module; staff see only own data; stale banner appears offline; existing Home tests still pass |
 | 3 Task Master | Tables, RPCs, lifecycle, change requests, history, staff and manager screens | new `js/modules/tasks/*`, `1200–1299` migrations, `supabase/tests/12xx_*` | Lifecycle, self-verification block, rejected-then-resubmitted path, duplicate-submit safety, RLS per role |
 | 4 Notifications | Recipients, inbox, reminder policy, schedules, acknowledgements, staff push | `notify-ntfy`, new `1300–1399` migrations, a shared notifications UI | Per-person history; no sensitive text in push; owner alerts unchanged |
-| 5 AI assistant | Edge Function, tool registry, App Guide, confirmations | new function folder under `supabase/functions`, `js/modules/assistant/*`, `0800–0899` | Every tool denied for the wrong role; duplicate-action protection; app works with the function off |
-| 6 Unified Reports | Report registry over existing views | `js/modules/reports/*` (range `0750–0799`) | Report totals equal module totals on golden fixtures |
+| 5 AI assistant (**deferred, D-70**) | Edge Function, tool registry, App Guide, confirmations | new function folder under `supabase/functions`, `js/modules/assistant/*`, `0800–0899` | Every tool denied for the wrong role; duplicate-action protection; app works with the function off |
+| 6 Unified Reports (**closed without a new module, D-70**) | Report registry over existing views | `js/modules/reports/*` (range `0750–0799`) | Report totals equal module totals on golden fixtures |
 | 7 Hardening and release | Playwright end-to-end, performance and accessibility on low-end Android, SECURITY DEFINER review (219 routines), FK indexes, deployment check | `tests/e2e`, CI | All suites green; owner phone acceptance recorded |
 
 ## 11. Risks

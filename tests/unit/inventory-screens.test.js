@@ -482,6 +482,7 @@ describe('overview menu', () => {
       '#/inventory/reorder',
       '#/inventory/excess',
       '#/inventory/health',
+      '#/inventory/deactivated',
       '#/inventory/sync',
     ]);
     vi.resetModules();

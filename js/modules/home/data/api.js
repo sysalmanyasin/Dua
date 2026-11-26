@@ -110,3 +110,15 @@ export async function taskPendingRequests() {
   if (error) throw error;
   return data;
 }
+
+// ── Inbox on Home (the caller's own messages; null means "not for you") ──
+export async function myInboxList(limit = 5) {
+  const { data, error } = await db().rpc('ntf_list_mine', { p_limit: limit });
+  if (error) throw error;
+  return data;
+}
+export async function myInboxUnread() {
+  const { data, error } = await db().rpc('ntf_unread_count');
+  if (error) throw error;
+  return data;
+}

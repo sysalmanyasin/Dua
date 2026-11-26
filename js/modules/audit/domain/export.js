@@ -119,7 +119,10 @@ export const combinedTable = (rounds, name = 'Combined') => ({
   rows: rounds.flatMap((r) => r.lines.map((l) => [r.label, ...lineCells(l)])),
 });
 
-/** One row per round: how many lines differ and what they come to, in whole paisa so it matches the Review screen. */
+/**
+ * One row per round: how many lines differ and what they come to, in whole paisa so it matches the Review screen.
+ * There is no "all rounds" row: a repeated round counts the same item again, so adding rounds up would overstate the difference.
+ */
 export function roundTotals(lines) {
   const paisa = lines.reduce((t, l) => t + toPaisa(l.value), 0);
   const qty = lines.reduce((t, l) => t + milli(l.variance), 0);
@@ -139,18 +142,6 @@ export const summaryTable = (rounds, name = 'Summary') => {
     const t = roundTotals(r.lines);
     return [r.label, r.state, r.items, t.lines, t.quantity, t.value, t.notCounted, t.assumed, t.corrected];
   });
-  const all = roundTotals(rounds.flatMap((r) => r.lines));
-  rows.push([
-    'All rounds',
-    '',
-    rounds.reduce((n, r) => n + Number(r.items ?? 0), 0),
-    all.lines,
-    all.quantity,
-    all.value,
-    all.notCounted,
-    all.assumed,
-    all.corrected,
-  ]);
   return {
     name,
     columns: [

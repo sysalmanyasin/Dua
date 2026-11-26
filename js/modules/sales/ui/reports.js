@@ -193,9 +193,8 @@ export async function mount(el) {
           api.listLinesBetween(from, to),
           api.getTarget(from).catch(() => null),
         ]);
-        state.content = days.length
-          ? html`${monthSummary(monthlyReport({ days, lines, methods, target }).summary, state.month)}${monthTable(monthlyReport({ days, lines, methods, target }))}`
-          : null;
+        const rep = days.length ? monthlyReport({ days, lines, methods, target }) : null;
+        state.content = rep ? html`${monthSummary(rep.summary, state.month)}${monthTable(rep)}` : null;
       } else {
         const mm = await api.listMonthlyMethods();
         const book = saleBook({ months, monthMethods: mm, methods, year: state.kind === 'year' ? Number(state.year) : null });

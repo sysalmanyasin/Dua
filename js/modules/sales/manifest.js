@@ -35,6 +35,27 @@ export default {
       load: () => import('./ui/saleReport.js'),
     },
     {
+      path: '/sales/reports',
+      desc: 'Monthly report and Sale Book (a year or all time), print or save as PDF',
+      title: 'Sale Book',
+      permission: 'sales.view_history',
+      load: () => import('./ui/reports.js'),
+    },
+    {
+      path: '/sales/targets',
+      desc: 'Set the sales target for each month',
+      title: 'Targets',
+      permission: 'targets.manage',
+      load: () => import('./ui/targets.js'),
+    },
+    {
+      path: '/sales/fields',
+      desc: 'Add, rename, hide or switch off a bank or client column',
+      title: 'Manage Fields',
+      permission: 'settings.manage',
+      load: () => import('./ui/fields.js'),
+    },
+    {
       path: '/sales/data',
       desc: 'Every day, month by month',
       title: 'Daily Data',

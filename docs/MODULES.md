@@ -180,8 +180,9 @@ Migrations are applied in filename order, on a clean database, by CI (`supabase/
 | `1100`–`1199` | Dua Workspace (assigned by the owner, 18 Nov 2026) |
 | `1200`–`1299` | Task Master (prefix `task_`) — reserved 21 Nov 2026, owner delegated the choice of ranges |
 | `1300`–`1399` | Notifications & Reminders for staff (prefix `ntf_`) — reserved 21 Nov 2026 |
+| `1400`–`1499` | Android app: devices, push rules, home-screen widget (prefix `app_`) — reserved 25 Nov 2026 by the owner's request |
 
-Attendance is **not** given a range: it waits for the Android app and, when built, lives in Manager's range (`0100`–`0199`) with its own permission (§8.3). Ranges `1400` and above are unassigned; the owner (or a session the owner has delegated to) reserves them here before using them. `tests/unit/migration-ranges.test.js` fails if a migration file falls outside every range above or two ranges overlap.
+Attendance has no range of its own: it lives in Manager's range (`0100`–`0199`) with its own permissions (§8.3; migration `0110`, built 25 Nov 2026). The Android app's devices, push rules and widget live in `1400`–`1499` (`docs/ANDROID_ARCHITECTURE.md`). Ranges `1500` and above are unassigned; the owner (or a session the owner has delegated to) reserves them here before using them. `tests/unit/migration-ranges.test.js` fails if a migration file falls outside every range above or two ranges overlap.
 
 File name: `<4-digit number>_<module>_<what>.sql`, e.g. `0201_closing_tables.sql`. Test name: `<same number>_<module>_<what>_test.sql` (the runner picks up every `*_test.sql`).
 
@@ -289,7 +290,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | Module id | Scope (source in old apps) | Table / function prefix | Permission prefix | Route prefix | Nav order | Migrations | Depends on | Status |
 |---|---|---|---|---|---|---|---|---|
 | `home` | Cover / landing (core); becomes the role-based Operations Dashboard (`docs/OPERATIONS_REDESIGN_PLAN.md`) | `ops_` (new) | — | `/home` | 0 | 0700–0749 | core, other modules' snapshot interfaces | Building; redesign planned |
-| `sales` | Daily sales, dashboard, reports, check list (BT-Sale-Data2 `js/sales`) | _(legacy, none)_ | `sales.`, `targets.`, `checklist.` | `/sales` | 10 | 0001–0099 | core | Building |
+| `sales` | Daily sales, dashboard, reports (Sale Book, Targets, Manage Fields routed, D-70), check list (BT-Sale-Data2 `js/sales`) | _(legacy, none)_ | `sales.`, `targets.`, `checklist.` | `/sales` | 10 | 0001–0099 | core | Building |
 | `candela-sales` | **Owner-only reports** on the Candela daily payment and customer-credit summaries, kept permanently; one staff-safe number (today's total) in the status bar | `candela_` | `candela.` | `/candela-sales` | 15 | 0900–0999 | core, inventory feed (landing tables, by trigger) | Building |
 | `manager` | **Owner-only.** Staff Registry, notes, salary, payslips, petty cash, staff credit, Credit Inbox (from Closing), incentives, ledgers, reports; attendance later with the Android app (BT-Sale-Data2 `js/manager`) | `mgmt_` | `mgmt.`, `credit.` | `/manager` | 20 | 0100–0199 | core, closing credit feed | Building |
 | `closing` | Shift closing, final closing, credit/misc ledgers, Closing Book, history tabs (Closing repo; BT-Sale-Data2 `js/closing`) | `closing_` | `closing.` | `/closing` | 30 | 0200–0299 | core, inventory interface | Building |
@@ -299,7 +300,7 @@ Update only your own row (and only when your brief is accepted). Statuses: **Pla
 | `ebill` | Emergency billing (BT-Sale-Data2 `js/emergency-billing`) | `ebill_` | `ebill.` (new) | `/ebill` | 70 | 0600–0699 | core, inventory interface | Built (Phases 1–5); acceptance pending |
 | `reports` | Unified Reports: cross-module reports, Herald | `reports_` | `reports.` | `/reports` | 80 | 0750–0799 | other modules' interfaces | Planned |
 | `tasks` | **Task Master**: independent operational task system (create, assign, accept, submit, verify), change requests, history, schedules; works without AI | `task_` | `tasks.` | `/tasks` | 25 | 1200–1299 | core | Database layer applied live (1200–1203); screens built in Stage 3b (branch `ops-redesign-stage3b`); 0703 (Action Centre rules, in the `home` range) applied live 25 Nov 2026 |
-| `inbox` | Per-person in-app notifications, reminders, announcements with acknowledgement; push delivery through the existing ntfy sender | `ntf_` | `ntf.` (new) | `/inbox` | 26 | 1300–1399 | core | Planned |
+| `inbox` | Per-person in-app notifications and overdue reminders (built in Stage 4, applied live 25 Nov 2026; announcements and staff push come later) | `ntf_` | `ntf.` (new) | `/inbox` | 26 | 1300–1399 | core | Planned |
 | `ai` | BT Intelligence, assistant | `ai_` | `ai.` (new) | `/ai` | 85 | 0800–0899 | all | Planned |
 | `invoice-desk` | Business-specific invoice creation, history, product suggestions and 80mm print (brief: `docs/modules/invoice-desk.md`) | `invoice_desk_` | `invoice_desk.` | `/invoice-desk` | 85 | 1000–1099 | core | Building |
 | `workspace` | **Dua Workspace.** Rich-text notes and spreadsheets with per-document sharing (owner / editor / viewer), revision history, offline editing and attachments; separate from Manager's staff notes (brief: `docs/modules/workspace.md`) | `workspace_` | `workspace.` | `/workspace` | 86 | 1100–1199 | core | Notes integrated (Phase 4); Sheets planned |
@@ -348,7 +349,7 @@ If you need something that is not listed, add a **request** in your brief and ag
 
 ### 8.3 Decided: attendance
 
-Attendance is built **with the Android app, inside the Manager module**, later. The web Manager module ships without it. Note for that future slice: staff phones will *write* check-in events while the rest of Manager is owner-only, so attendance needs its own separate permission (for check-in) and its own narrow RPC, not a Manager-wide permission.
+Attendance is built **inside the Manager module** and was added on 25 Nov 2026 with the Android app (migration `0110_mgmt_attendance.sql`, page `/manager/attendance`, see `docs/ANDROID_ARCHITECTURE.md`). The web Manager module shipped without it before that. Note for that future slice: staff phones will *write* check-in events while the rest of Manager is owner-only, so attendance needs its own separate permission (for check-in) and its own narrow RPC, not a Manager-wide permission.
 
 ### 8.4 Decided: inventory is latest-only
 
@@ -392,9 +393,9 @@ The old apps used shared `anon` access in places and kept the Dropbox sync funct
 | ID | Question | Status | Answer / suggested default |
 |---|---|---|---|
 | OD-1 | Who owns credit? | **Decided** | Closing records credit (staff-facing). Manager (owner-only) files it by hand from a Credit Inbox into the right ledger. See §8.2 |
-| OD-2 | Attendance now or later? | **Decided** | Later, with the Android app, inside Manager. See §8.3 |
+| OD-2 | Attendance now or later? | **Decided and built** | With the Android app, inside Manager (25 Nov 2026). See §8.3 |
 | OD-3 | Inventory history: dated snapshots or latest only? | **Decided** | **Latest inventory only. No dated snapshots.** Each sync replaces the current stock rows. This overrides the "dated snapshots" wording in D-07 (Candela is still the source of truth). See §8.4 |
-| OD-4 | How the owner is notified | **Decided and built** | **ntfy**, via a `notifications` table plus one send function, `notify-ntfy` (§6.4; D-36, D-37). Live since 12 Nov 2026. Modules call `notify_owner(text, jsonb)` and never call ntfy themselves |
+| OD-4 | How the owner is notified | **Decided and built; transport changing** | **ntfy** (live) is being replaced by Firebase push (`notify-push`, 25 Nov 2026, cutover pending; see `docs/ANDROID_ARCHITECTURE.md` §8). Same `notifications` table and `notify_owner` call. Originally via a `notifications` table plus one send function, `notify-ntfy` (§6.4; D-36, D-37). Live since 12 Nov 2026. Modules call `notify_owner(text, jsonb)` and never call ntfy themselves |
 | OD-5 | Production Supabase project | Open | Today production = staging (`js/core/config.js`). Create `dua-production` before the first module goes live |
 | OD-6 | Offline outbox library for Audit | Open | Foundation request when Audit starts |
 | OD-7 | Free-tier limits with all modules in one project | Open | Review after each accepted module |

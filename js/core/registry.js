@@ -34,6 +34,46 @@ export function resolveModules(manifests, { permissions = [], disabled = [] } = 
     .sort((a, b) => (a.nav?.order ?? 100) - (b.nav?.order ?? 100));
 }
 
+// The side menu: one link per module (its first titled page), plus any extra links a module lists in `nav.links`
+// ({ id, title, path, icon, order? }). An extra link shows only when the person may open that page. `nav.hidden` keeps a
+// module out of the menu (Inbox lives in the bell instead). Pure.
+export function navLinks(modules) {
+  const out = [];
+  for (const m of modules) {
+    if (m.nav?.hidden) continue;
+    const order = m.nav?.order ?? 100;
+    out.push({
+      key: m.id,
+      moduleId: m.id,
+      title: m.title,
+      path: (m.routes.find((r) => r.title) ?? m.routes[0])?.path ?? '/home',
+      icon: null,
+      order,
+      extra: false,
+    });
+    const main = out[out.length - 1];
+    for (const l of m.nav?.links ?? []) {
+      if (!m.routes.some((r) => r.path === l.path)) continue;
+      // When this person's only page in the module IS the extra link's page (a staff member who may open Attendance and nothing
+      // else in Manager), do not list the same page twice: the module's own link takes the page's name.
+      if (l.path === main.path) {
+        main.title = l.title;
+        continue;
+      }
+      out.push({
+        key: `${m.id}:${l.id}`,
+        moduleId: m.id,
+        title: l.title,
+        path: l.path,
+        icon: l.icon ?? null,
+        order: l.order ?? order + 0.5,
+        extra: true,
+      });
+    }
+  }
+  return out.sort((a, b) => a.order - b.order);
+}
+
 export function routesFor(modules) {
   return modules.flatMap((m) => m.routes.map((r) => ({ ...r, moduleId: m.id })));
 }

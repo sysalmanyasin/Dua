@@ -115,7 +115,12 @@ export const tallySave = (date, accounts, appTotal, reason, key) =>
 // ── Credit Inbox (lines recorded in Closing, filed by hand) ──
 export const inboxLines = (state = null) => one(db().rpc('mgmt_inbox_lines', { p_state: state }));
 export const inboxCount = () => one(db().rpc('mgmt_inbox_count'));
-export const inboxFile = (lineId, target, { staffId = null, ledgerId = null, categoryId = null, shift = null, description = null }, key) =>
+export const inboxFile = (
+  lineId,
+  target,
+  { staffId = null, ledgerId = null, categoryId = null, shift = null, description = null, date = null, amount = null },
+  key,
+) =>
   db().rpc('mgmt_inbox_file', {
     p_line_id: lineId,
     p_target: target,
@@ -125,6 +130,8 @@ export const inboxFile = (lineId, target, { staffId = null, ledgerId = null, cat
     p_shift: shift,
     p_description: description,
     p_key: key,
+    p_date: date,
+    p_amount: amount,
   });
 export const inboxDismiss = (lineId, reason, key) => db().rpc('mgmt_inbox_dismiss', { p_line_id: lineId, p_reason: reason, p_key: key });
 export const inboxReopen = (lineId, reason, key) => db().rpc('mgmt_inbox_reopen', { p_line_id: lineId, p_reason: reason, p_key: key });

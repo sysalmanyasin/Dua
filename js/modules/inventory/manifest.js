@@ -42,6 +42,13 @@ export default {
       load: () => import('./ui/health.js'),
     },
     {
+      path: '/inventory/deactivated',
+      title: 'Deactivated',
+      desc: 'Products the stock file no longer lists',
+      permission: 'inventory.view',
+      load: () => import('./ui/deactivated.js'),
+    },
+    {
       path: '/inventory/sync',
       title: 'Sync',
       desc: 'Update the stock data now',

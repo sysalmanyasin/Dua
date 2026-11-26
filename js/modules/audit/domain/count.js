@@ -81,11 +81,14 @@ export function varianceView(item, entry) {
 /** The running difference in paisa for a set of items (a whole company), uncounted items read as zero in stock. */
 export const impactPaisa = (items, entries) => items.reduce((sum, it) => sum + varianceView(it, entries[it.round_item_id]).value, 0);
 
-/** The items grouped by company for display (names in order). One group with no company when there is only one company. */
-export function groupByCompany(items) {
+/**
+ * The items grouped by company for display (names in order). One group with no company when there is only one company,
+ * or when `group` is false (the counter turned grouping off: one list, in name order).
+ */
+export function groupByCompany(items, group = true) {
   const byName = (a, b) => String(a.name || a.code).localeCompare(String(b.name || b.code));
   const sorted = [...items].sort(byName);
-  if (new Set(items.map((i) => i.company)).size <= 1) return [{ company: null, items: sorted }];
+  if (!group || new Set(items.map((i) => i.company)).size <= 1) return [{ company: null, items: sorted }];
   const names = [...new Set(sorted.map((i) => i.company))].sort((a, b) => a.localeCompare(b));
   return names.map((company) => ({ company, items: sorted.filter((i) => i.company === company) }));
 }

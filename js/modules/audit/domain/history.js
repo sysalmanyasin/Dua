@@ -89,6 +89,10 @@ export function overviewGroups(rows) {
       state: r.state,
       stateLabel: stateLabel(r.state),
       day: dayOf(r.started_at),
+      startedAt: r.started_at ?? null,
+      personId: r.person_id,
+      personName: r.person_name,
+      scope: scopeLabel(r.template_name, r.companies),
       done,
       items: done ? Number(r.item_count) : null,
       differences: done ? Number(r.variance_count) : null,
@@ -99,6 +103,25 @@ export function overviewGroups(rows) {
     ...p,
     total: p.rounds.length,
     waiting: p.rounds.filter((x) => !x.done).length,
-    differences: p.rounds.reduce((n, x) => n + (x.differences ?? 0), 0),
   }));
+}
+
+/** What a round was started from: the template's name, else its companies (two shown, the rest counted), else nothing. */
+export function scopeLabel(template, companies) {
+  const name = String(template ?? '').trim();
+  if (name) return `Template: ${name}`;
+  const list = (companies ?? []).map((c) => String(c ?? '').trim()).filter(Boolean);
+  if (list.length <= 2) return list.join(', ');
+  return `${list.slice(0, 2).join(', ')} +${list.length - 2} more`;
+}
+
+/** Every round of every person in one list, newest first (a round with no start time goes last). */
+export function flatRounds(groups) {
+  return (groups ?? [])
+    .flatMap((g) => g.rounds)
+    .sort((a, b) => {
+      const ta = a.startedAt ? Date.parse(a.startedAt) : -Infinity;
+      const tb = b.startedAt ? Date.parse(b.startedAt) : -Infinity;
+      return tb - ta || String(a.roundId).localeCompare(String(b.roundId));
+    });
 }

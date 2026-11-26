@@ -163,6 +163,8 @@ export const reopenAssignment = ({ assignmentId, reason }) =>
   one(db().rpc('audit_reopen', { p_assignment: assignmentId, p_reason: reason }));
 export const proposeCorrection = ({ roundId, itemId, qty, reason }) =>
   one(db().rpc('audit_correction_propose', { p_round: roundId, p_item: itemId, p_qty: qty, p_reason: reason }));
+/** Today's quantity from Inventory for products of one round, view only (audit_live_balances, 0419). */
+export const liveBalances = (roundId, codes) => one(db().rpc('audit_live_balances', { p_round: roundId, p_codes: codes }));
 export const decideCorrection = ({ id, approve, note }) =>
   one(db().rpc('audit_correction_decide', { p_id: id, p_approve: approve, p_note: note || null }));
 export const resolveConflict = ({ id, side, reason }) =>

@@ -3,7 +3,7 @@
 ## Status on 10 Nov 2026
 | Area | Status |
 |---|---|
-| Dashboard, Index, Add Entry, Daily Data, Sale Report (+ target card), Daily Check List, Diff Report, Cash to Deposit, Reports / Sale Book, Targets, Manage Fields, Last Day, Cover | **Built and tested** (owner try-out of the newest pages pending) |
+| Dashboard, Index, Add Entry, Daily Data, Sale Report (+ target card), Daily Check List, Diff Report, Cash to Deposit, Reports / Sale Book, Targets, Manage Fields, Last Day, Cover | **Built, tested and routed** (Sale Book, Targets and Manage Fields routed 26 Nov 2026; owner try-out on a phone pending) |
 | Send via Gmail | **Built**; needs the Google Cloud origin step |
 | History import (2,379 days) | **Done and verified** |
 | Payments page, Check List auto-fill, "Total Credit" pill | Waiting for Candela feed screens / credit ledger |

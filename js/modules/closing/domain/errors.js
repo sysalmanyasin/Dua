@@ -61,7 +61,13 @@ export function friendlyError(err) {
     const kind = code === 'draft_conflict' || code === 'carry_changed' ? 'conflict' : 'refused';
     return { code, kind, message: MESSAGES[code], detail: err.details ?? err.detail ?? null };
   }
-  if (/failed to fetch|networkerror|network request failed|load failed|fetch failed/i.test(text) || err.name === 'TypeError') {
+  // Only a message that says the network failed counts as offline. Any other TypeError is a mistake in the code and must not hide
+  // behind "No connection" (the save chip would read Offline for ever and the real error would never be seen).
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  if (
+    offline ||
+    /failed to fetch|networkerror|network error|network request failed|load failed|fetch failed|internet connection|timed? ?out/i.test(text)
+  ) {
     return { code: null, kind: 'offline', message: OFFLINE, detail: null };
   }
   return { code: null, kind: 'unknown', message: FALLBACK, detail: null };

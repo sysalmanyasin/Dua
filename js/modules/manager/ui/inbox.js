@@ -1,5 +1,5 @@
 // Credit Inbox: credit that staff recorded in Closing, filed BY HAND into Staff Credit or a ledger (or dismissed, with a reason).
-// The amount and the date are locked to what Closing recorded; only the description can be edited. Nothing moves by itself:
+// Filing starts from what Closing recorded (date, shift, amount, description) and every field can be corrected before it is filed. Nothing moves by itself:
 // if Closing changes a line after it was filed, the line only shows "changed after filing" and the owner decides (Reopen).
 import { html, render } from '../../../shared/html.js';
 import { hero } from '../../../shared/ui.js';
@@ -11,6 +11,7 @@ import {
   INBOX_TABS,
   allowedTargets,
   changeNote,
+  defaultShift,
   filingSummary,
   kindLabel,
   linesFor,
@@ -20,6 +21,7 @@ import {
 } from '../domain/inbox.js';
 import { askReason, errorCard, loadingCard, newKey, openDialog, toast } from './parts.js';
 
+const todayIso = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Karachi' });
 const m = (v) => money(v, { decimals: Math.round(Number(v) * 100) % 100 !== 0 });
 
 export async function mount(el, { ctx }) {
@@ -117,11 +119,14 @@ export async function mount(el, { ctx }) {
     const form = {
       target: can.credit ? 'credit' : 'ledger',
       staffId: '',
-      ledgerId: ledgers[0]?.ledger_id ?? '',
-      categoryId: ledgers[0]?.categories[0]?.id ?? '',
-      shift: SHIFTS[0],
+      ledgerId: '',
+      categoryId: '',
+      shift: defaultShift(line.slot_kind),
+      date: line.business_date,
+      amount: String(line.amount),
       description: line.label ?? '',
     };
+    let peopleMonth = monthStart(line.business_date);
     let key = null;
     let errors = {};
     const ledgerOf = () => ledgers.find((l) => l.ledger_id === form.ledgerId);
@@ -135,9 +140,9 @@ export async function mount(el, { ctx }) {
       render(
         body(),
         html`<h2>File this line</h2>
-          <p class="small">
-            <strong>${m(line.amount)}</strong> · ${shortDate(line.business_date)} · ${slotLabel(line.slot_kind, line.slot_seq)}<br />
-            <span class="muted">The amount and the date stay exactly as Closing recorded them.</span>
+          <p class="small muted">
+            From Closing: ${m(line.amount)} · ${shortDate(line.business_date)} · ${slotLabel(line.slot_kind, line.slot_seq)}. Pick where it
+            goes; everything else is already filled in and editable.
           </p>
           ${errors.line ? html`<small class="err">${errors.line}</small>` : ''}
           ${
@@ -155,7 +160,7 @@ export async function mount(el, { ctx }) {
           ${
             form.target === 'credit'
               ? html`<label class="field ${errors.staff ? 'bad' : ''}"
-                  ><span>Person (${monthLabel(monthStart(line.business_date))})</span>
+                  ><span>Person (${monthLabel(monthStart(form.date || line.business_date))})</span>
                   <select data-f="staffId">
                     <option value="">Choose…</option>
                     ${people.map((p) => html`<option value="${p.staff_id}" ${form.staffId === p.staff_id ? 'selected' : ''}>${p.full_name}</option>`)}
@@ -165,27 +170,41 @@ export async function mount(el, { ctx }) {
               : html`<label class="field ${errors.ledger ? 'bad' : ''}"
                     ><span>Ledger</span>
                     <select data-f="ledgerId">
+                      <option value="">Choose ledger…</option>
                       ${ledgers.map((l) => html`<option value="${l.ledger_id}" ${form.ledgerId === l.ledger_id ? 'selected' : ''}>${l.name}</option>`)}
                     </select></label
                   >
                   <label class="field ${errors.category ? 'bad' : ''}"
                     ><span>Category</span>
                     <select data-f="categoryId">
+                      <option value="">${ledger ? 'Choose category…' : 'Choose ledger first…'}</option>
                       ${(ledger?.categories ?? []).map((c) => html`<option value="${c.id}" ${form.categoryId === c.id ? 'selected' : ''}>${c.name} (${directionWord(c.direction)})</option>`)}
                     </select>
                     ${errors.category ? html`<small class="err">${errors.category}</small>` : ''}</label
-                  >
-                  ${
-                    ledger?.has_shift
-                      ? html`<label class="field ${errors.shift ? 'bad' : ''}"
-                          ><span>Shift</span>
-                          <select data-f="shift">
-                            ${SHIFTS.map((s) => html`<option value="${s}" ${form.shift === s ? 'selected' : ''}>${s}</option>`)}
-                          </select></label
-                        >`
-                      : ''
-                  }`
+                  >`
           }
+          <div class="mg-date-shift">
+            <label class="field ${errors.date ? 'bad' : ''}"
+              ><span>Date</span
+              ><input type="date" data-f="date" value="${form.date}" max="${todayIso()}" />
+              ${errors.date ? html`<small class="err">${errors.date}</small>` : ''}</label
+            >
+            ${
+              form.target === 'ledger' && ledger?.has_shift
+                ? html`<label class="field ${errors.shift ? 'bad' : ''}"
+                    ><span>Shift</span>
+                    <select data-f="shift">
+                      ${SHIFTS.map((x) => html`<option value="${x}" ${form.shift === x ? 'selected' : ''}>${x}</option>`)}
+                    </select></label
+                  >`
+                : ''
+            }
+          </div>
+          <label class="field ${errors.amount ? 'bad' : ''}"
+            ><span>Amount</span
+            ><input type="number" inputmode="decimal" step="any" data-f="amount" value="${form.amount}" />
+            ${errors.amount ? html`<small class="err">${errors.amount}</small>` : ''}</label
+          >
           <label class="field"
             ><span>Description</span><input data-f="description" value="${form.description}" maxlength="200" autocomplete="off"
           /></label>
@@ -197,11 +216,24 @@ export async function mount(el, { ctx }) {
       );
     };
     paintDlg();
-    dlg.addEventListener('input', (e) => {
+    dlg.addEventListener('input', async (e) => {
       const f = e.target.dataset?.f;
       if (!f) return;
       form[f] = e.target.value;
       key = null; // an edited form is a new filing, so it needs a new idempotency key
+      if (f === 'date' && can.credit && /^\d{4}-\d{2}-\d{2}$/.test(form.date) && monthStart(form.date) !== peopleMonth) {
+        peopleMonth = monthStart(form.date);
+        const month = peopleMonth;
+        try {
+          const next = await api.creditMonth(month);
+          if (month !== peopleMonth) return; // a newer date was picked meanwhile
+          people = next;
+          if (!people.some((p) => p.staff_id === form.staffId)) form.staffId = '';
+        } catch {
+          toast('Could not load the people for that month.', 'error');
+        }
+        return paintDlg();
+      }
       if (f === 'ledgerId') {
         form.categoryId = ledgerOf()?.categories[0]?.id ?? '';
         paintDlg();
@@ -228,6 +260,8 @@ export async function mount(el, { ctx }) {
           categoryId: form.target === 'ledger' ? form.categoryId : null,
           shift: form.target === 'ledger' && ledgerOf()?.has_shift ? form.shift : null,
           description: form.description.trim() || null,
+          date: form.date || null,
+          amount: form.amount === '' ? null : Number(form.amount),
         },
         key,
       );

@@ -45,19 +45,29 @@ const sendWorkbook = async (name, tables) => {
   downloadBytes(name, bytes, XLSX_TYPE);
 };
 
-/** kind: 'variance' | 'notes' | 'conflicts' (CSV) or 'xlsx' (all three on sheets of one workbook). */
+/** kind: 'variance' | 'missing' | 'notes' | 'conflicts' (CSV) or 'xlsx' (variance, notes and conflicts on sheets of one workbook). */
 export async function exportRound(auditName, round, kind) {
   const data = await loadRound(round);
   if (!data) throw new Error('This round has not been compiled yet.');
   const base = `${auditName} round ${data.label}`;
   const tables = {
     variance: varianceTable(data.lines),
+    // items nobody counted: the lines of the variance report that are missing, not assumed to match
+    missing: varianceTable(
+      data.lines.filter((l) => l.notCounted),
+      'Missing counts',
+    ),
     notes: notesTable(data.notes),
     conflicts: conflictsTable(data.conflicts),
   };
-  if (kind === 'xlsx') return await sendWorkbook(safeFileName(`${base} variance`, 'xlsx'), Object.values(tables));
+  if (kind === 'xlsx') {
+    return await sendWorkbook(safeFileName(`${base} variance`, 'xlsx'), [tables.variance, tables.notes, tables.conflicts]);
+  }
   return sendCsv(
-    safeFileName(`${base} ${kind === 'variance' ? 'variance' : kind === 'notes' ? 'auditor notes' : 'conflicts'}`, 'csv'),
+    safeFileName(
+      `${base} ${{ variance: 'variance', missing: 'missing counts', notes: 'auditor notes', conflicts: 'conflicts' }[kind]}`,
+      'csv',
+    ),
     tables[kind],
   );
 }

@@ -1,0 +1,18 @@
+node_modules/
+# The whole generated native project: scripts/setup.sh rebuilds it from Capacitor's template + overlay/
+android/
+# Secrets and build output never go in Git (CI writes the Firebase file and the keystore from GitHub secrets)
+android/app/google-services.json
+*.jks
+*.keystore
+*.apk
+*.aab
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/capacitor-cordova-android-plugins/build/
+# Written by `cap sync` on every build
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json

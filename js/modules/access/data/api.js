@@ -28,6 +28,12 @@ export async function listUserPermissions(userId) {
   if (error) throw error;
   return data;
 }
+// Every personal Allow/Deny setting, for the "By permission" view. Owner only (RLS: users.manage).
+export async function listAllUserPermissions() {
+  const { data, error } = await db().from('user_permissions').select('user_id, perm_key, effect');
+  if (error) throw error;
+  return data;
+}
 export const setPin = (userId, pin) => callAdminFunction('admin-users', { action: 'set_pin', user_id: userId, pin });
 export const unlock = (userId) => callAdminFunction('admin-users', { action: 'unlock', user_id: userId });
 export const setDisabled = (userId, disabled) => callAdminFunction('admin-users', { action: 'set_disabled', user_id: userId, disabled });
