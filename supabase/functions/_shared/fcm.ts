@@ -88,11 +88,18 @@ export function hrefFor(kind: string): string {
   return '#/home';
 }
 
+// The exact words the phone shows. Also what is saved in the notifications table, so the Tools tab shows what was really sent.
+export const notificationText = (push: PushMessage): { title: string; body: string } => ({
+  title: fitBytes(plainText(push.title), 120),
+  body: fitBytes(plainText(push.message), 3200),
+});
+
 export function buildFcmMessage(token: string, push: PushMessage, kind: string) {
+  const text = notificationText(push);
   return {
     message: {
       token,
-      notification: { title: fitBytes(plainText(push.title), 120), body: fitBytes(plainText(push.message), 3200) },
+      notification: { title: text.title, body: text.body },
       data: { kind, href: hrefFor(kind) },
       android: {
         priority: 'HIGH',

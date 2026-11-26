@@ -13,7 +13,7 @@
 // A missing secret or a missing device is recorded as a failed notification with a plain reason; it is never silent.
 import { serviceClient } from '../_shared/clients.ts';
 import { json, readJson } from '../_shared/http.ts';
-import { buildFcmMessage, forgetAccessToken, getAccessToken, parseServiceAccount, sendFcm } from '../_shared/fcm.ts';
+import { buildFcmMessage, forgetAccessToken, getAccessToken, notificationText, parseServiceAccount, sendFcm } from '../_shared/fcm.ts';
 import { auditRoundMessage, canEnqueue, cleanBackupReport, cleanExternalPayload, closingMessage, messageFor, safeEqual, scrubError, type PushMessage } from '../_shared/ntfy.ts';
 
 type Row = { id: string; kind: string; payload: Record<string, unknown> };
@@ -57,6 +57,10 @@ type Device = { device_id: string; fcm_token: string };
 
 async function deliver(db: Db, sa: NonNullable<ReturnType<typeof parseServiceAccount>>, row: Row): Promise<string | null> {
   const push = await buildMessage(db, row);
+  // Keep the exact text for the Tools tab, even if no phone can be reached. A failure to save never stops the alert.
+  const text = notificationText(push);
+  const { error: saveErr } = await db.rpc('notifications_record_text', { p_id: row.id, p_title: text.title, p_body: text.body });
+  if (saveErr) console.error('notifications_record_text failed', saveErr.message);
   const { data, error } = await db.rpc('app_push_tokens_for', { p_kind: row.kind });
   if (error) return `could not read the registered devices: ${error.message}`.slice(0, 200);
   const devices = (data ?? []) as Device[];
