@@ -51,8 +51,15 @@ export function navLinks(modules) {
       order,
       extra: false,
     });
+    const main = out[out.length - 1];
     for (const l of m.nav?.links ?? []) {
       if (!m.routes.some((r) => r.path === l.path)) continue;
+      // When this person's only page in the module IS the extra link's page (a staff member who may open Attendance and nothing
+      // else in Manager), do not list the same page twice: the module's own link takes the page's name.
+      if (l.path === main.path) {
+        main.title = l.title;
+        continue;
+      }
       out.push({
         key: `${m.id}:${l.id}`,
         moduleId: m.id,

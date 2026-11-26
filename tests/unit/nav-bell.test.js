@@ -5,6 +5,7 @@ import { startBell } from '../../js/core/bell.js';
 import { startShell } from '../../js/core/shell.js';
 import tasks from '../../js/modules/tasks/manifest.js';
 import inbox from '../../js/modules/inbox/manifest.js';
+import manager from '../../js/modules/manager/manifest.js';
 import { icon } from '../../js/shared/icons.js';
 
 const home = {
@@ -27,6 +28,18 @@ describe('menu links (pure)', () => {
     expect(o.find((l) => l.title === 'Team').path).toBe('/tasks/team');
     const s = navLinks(resolveModules(all, { permissions: staff }));
     expect(s.map((l) => l.title)).toEqual(['Home', 'Tasks']);
+  });
+  it('Attendance is in the menu: its own entry for the owner, and the only Manager entry (named Attendance) for staff who may only check in', () => {
+    const all = [home, manager];
+    const o = navLinks(resolveModules(all, { permissions: ['mgmt.staff_view', 'attendance.view_all', 'attendance.manage'] }));
+    expect(o.map((l) => l.title)).toEqual(['Home', 'Manager', 'Attendance']);
+    expect(o.find((l) => l.title === 'Manager').path).toBe('/manager');
+    expect(o.find((l) => l.title === 'Attendance').path).toBe('/manager/attendance');
+    const s = navLinks(resolveModules(all, { permissions: ['attendance.check_in'] }));
+    expect(s.map((l) => l.title)).toEqual(['Home', 'Attendance']);
+    expect(s.find((l) => l.title === 'Attendance').path).toBe('/manager/attendance');
+    const none = navLinks(resolveModules(all, { permissions: ['tasks.view_own'] }));
+    expect(none.map((l) => l.title)).toEqual(['Home']);
   });
   it('Tasks and Inbox have their own icons, and the bell and tasks icons exist', () => {
     expect(tasks.icon).toBe('tasks');
