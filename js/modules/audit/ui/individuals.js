@@ -9,6 +9,7 @@ import { friendlyError } from '../domain/errors.js';
 import { currentMonth, flatRounds, monthChoices, overviewGroups } from '../domain/history.js';
 import { getGroup, getMonth, setGroup, setMonth, setView } from '../domain/nav.js';
 import { applyProgressBars, crumbs, errorCard, loadingCard, progressBar } from './parts.js';
+import { openRoundProgress } from './roundProgress.js';
 
 const MAX_PROGRESS_READS = 20; // rounds still counting whose progress is read
 
@@ -108,11 +109,40 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
             >
               Review
             </button>`
-          : isMine
-            ? html`<a class="btn btn-sm btn-primary" href="#/audit/individual" data-continue>Continue counting</a>`
-            : ''
+          : html`<span class="aud-row-actions">
+              <button
+                type="button"
+                class="btn btn-sm"
+                data-live-progress
+                data-r="${r.roundId}"
+                data-title="${`Round ${r.label}${showPerson ? ` · ${r.personName}` : ''}`}"
+              >
+                Live progress
+              </button>
+              ${isMine ? html`<a class="btn btn-sm btn-primary" href="#/audit/individual" data-continue>Continue counting</a>` : ''}
+            </span>`
       }
     </li>`;
+  };
+
+  // the way to begin: first thing under the title on Monthly Overview, or the way back into the round already open
+  const startCard = () => {
+    if (s.mine)
+      return html`<section class="aud-start" aria-label="Your open round" data-start-card="continue">
+        <div>
+          <strong>You have a round open</strong>
+          <span class="aud-start-hint">Pick up where you stopped.</span>
+        </div>
+        <a class="btn btn-primary" href="#/audit/individual" data-continue>Continue counting</a>
+      </section>`;
+    if (!perms.has('audit.individual')) return '';
+    return html`<section class="aud-start" aria-label="Start an individual audit" data-start-card="start">
+      <div>
+        <strong>Start an individual audit</strong>
+        <span class="aud-start-hint">Choose a company or a template and count it yourself.</span>
+      </div>
+      <a class="btn btn-primary" href="#/audit/individual" data-start>Start</a>
+    </section>`;
   };
 
   const roundsBody = () => (s.grouped ? groupedRounds() : flatList());
@@ -155,6 +185,7 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
           title: overview ? 'Monthly overview' : 'Rounds & progress',
           sub: overview ? 'Who took part this month and what is still outstanding.' : 'Each person’s rounds, and how they are going.',
         })}
+        ${overview ? startCard() : ''}
         <section class="card aud-card" aria-label="Month">
           <label
             ><span>Month</span>
@@ -174,9 +205,7 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
               ? html`<p data-own-open>
                   You have a round open. <a class="btn btn-sm btn-primary" href="#/audit/individual">Continue counting</a>
                 </p>`
-              : !overview && perms.has('audit.individual')
-                ? html`<p><a class="btn btn-sm" href="#/audit/individual" data-start>Start an individual audit</a></p>`
-                : ''
+              : ''
           }
         </section>
         ${body}
@@ -229,8 +258,9 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
       s.error = friendlyError(e).message;
     }
     draw();
-    if (s.error || overview || asked !== s.month) return;
+    if (s.error || asked !== s.month) return;
     s.mine = await findMine();
+    if (overview) return draw();
     await loadProgress(asked);
     if (asked === s.month) draw();
   };
@@ -249,6 +279,8 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
     load();
   };
   el.onclick = (e) => {
+    const live = e.target.closest('button[data-live-progress]');
+    if (live) return void openRoundProgress({ roundId: live.dataset.r, title: live.dataset.title });
     const b = e.target.closest('button[data-open]');
     if (!b) return;
     setView({ engagement: b.dataset.e, round: b.dataset.r });

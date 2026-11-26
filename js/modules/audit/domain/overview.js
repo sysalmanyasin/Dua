@@ -10,25 +10,22 @@ const canOpen = (route, perms) => {
   return (route.anyOf ?? []).some((key) => perms.has(key));
 };
 
+// The three main actions, in this order. Everything else is reached from the tab bar and the Tools tab.
 const QUICK = [
-  ['count', 'Continue counting', '/audit/count'],
-  ['individual', 'Individual audit', '/audit/individual'],
-  ['team', 'Team audits', '/audit/engagements'],
-  ['reports', 'Reports', '/audit/reports'],
-  ['expiry', 'Expiry', '/audit/expiry'],
-  ['barcode', 'Barcodes', '/audit/barcode'],
-  ['templates', 'Templates', '/audit/templates'],
+  ['individual', 'Individual audit', '/audit/individual', 'Start or pick up your count'],
+  ['count', 'Continue counting', '/audit/count', 'Back to your open round'],
+  ['expiry', 'Expiry', '/audit/expiry', 'Log and check expiry dates'],
 ];
 
-/** Compact shortcuts, only to pages the person may open. */
+/** The main actions, only those the person may open. */
 export function quickActions(routes, permissions) {
   const perms = permissions instanceof Set ? permissions : new Set(permissions ?? []);
-  return QUICK.flatMap(([key, label, path]) =>
+  return QUICK.flatMap(([key, label, path, hint]) =>
     canOpen(
       routes.find((r) => r.path === path),
       perms,
     )
-      ? [{ key, label, path }]
+      ? [{ key, label, path, hint }]
       : [],
   );
 }
