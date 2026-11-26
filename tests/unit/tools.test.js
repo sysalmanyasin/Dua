@@ -2,7 +2,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ageText,
+  alertDetail,
   alertText,
+  splitAlerts,
   backupStatus,
   canAck,
   drillStatus,
@@ -135,6 +137,40 @@ describe('page', () => {
     await mount(el);
     expect(el.textContent).toContain('second factor');
   });
+  it('shows the newest three alerts and folds the older ones away', async () => {
+    const mk = (i) => ({
+      id: `n${i}`,
+      kind: 'closing.submitted',
+      status: 'sent',
+      attempts: 1,
+      last_error: null,
+      title: `Alert ${i}`,
+      body: `Body ${i}`,
+      created_at: agoNow(i + 1),
+      acked_at: null,
+    });
+    globalThis.__ov = async () => ({ ...overview, notifications: { failed: 0, unsent: 0, recent: [0, 1, 2, 3, 4].map(mk) } });
+    const { mount } = await import('../../js/modules/tools/ui/page.js');
+    const el = document.getElementById('p');
+    await mount(el);
+    const older = el.querySelector('details.alerts-older');
+    expect(older.querySelector('summary').textContent).toContain('Older alerts (2)');
+    expect(older.open).toBe(false);
+    const rows = [...el.querySelectorAll('section.card .row')].filter((r) => r.textContent.includes('Alert '));
+    expect(rows).toHaveLength(5);
+    expect(rows.filter((r) => !older.contains(r)).map((r) => r.querySelector('strong').textContent)).toEqual([
+      'Alert 0',
+      'Alert 1',
+      'Alert 2',
+    ]);
+  });
+  it('keeps the failure reason out of the list line', async () => {
+    const { mount } = await import('../../js/modules/tools/ui/page.js');
+    const el = document.getElementById('p');
+    await mount(el);
+    expect(el.querySelector('details.alert-body pre').textContent).toContain('Problem: ntfy answered 503');
+    expect(el.querySelector('span.muted.small').textContent).not.toContain('503');
+  });
   it('shows a plain error when loading fails', async () => {
     globalThis.__ov = async () => {
       throw new Error('boom');
@@ -158,5 +194,21 @@ describe('alert text', () => {
       body: '',
     });
     expect(alertText({ kind: 'x.y', title: '  ', body: '  ' }, alertLabel)).toEqual({ title: 'Alert: x.y', body: '' });
+  });
+});
+
+describe('alert list tidying', () => {
+  const mk = (n) => Array.from({ length: n }, (_, i) => ({ id: `a${i}` }));
+  it('shows the newest three and folds the rest', () => {
+    const { shown, older } = splitAlerts(mk(7));
+    expect(shown.map((x) => x.id)).toEqual(['a0', 'a1', 'a2']);
+    expect(older).toHaveLength(4);
+    expect(splitAlerts(mk(2))).toEqual({ shown: mk(2), older: [] });
+    expect(splitAlerts(null)).toEqual({ shown: [], older: [] });
+  });
+  it('puts the message and the failure reason under one fold-out', () => {
+    expect(alertDetail({ body: 'Net cash: Rs. 5', last_error: 'ntfy answered 429' })).toBe('Net cash: Rs. 5\n\nProblem: ntfy answered 429');
+    expect(alertDetail({ body: null, last_error: null })).toBe('');
+    expect(alertDetail({ body: 'x', last_error: '  ' })).toBe('x');
   });
 });
