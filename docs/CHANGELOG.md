@@ -2,6 +2,9 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 26 Nov — Status bar no longer widens the page on a phone (D-71)
+- The strip of pills at the top (Latest sale, Credit inbox, Stock, Candela today, time) was wider than a phone and made the whole page slide sideways. It now scrolls inside its own bar and the page stays at screen width. CSS only (`css/components.css`); new test `status-bar-css`. Not yet seen on the owner's phone.
+
 ## 26 Nov — Stage 7: testing and hardening (f13)
 - Full unit suite, lint, format, secrets and vendor checks pass (183 files, 2,816 tests). The whole database set passes on a PostgreSQL 16 replay of all 127 migrations (111 test files, 4,305 checks, security guards 0199, 0749, 1299 and 1399 included).
 - Live read-only audit: advisors, `search_path` on every definer function (356 of 357; the exception is the platform function `rls_auto_enable`), closed tables closed, who-can-call-what identical to the replay, tables identical, functions identical apart from 31 comment-only differences. Wrong-role and task-flow checks ran live in rolled-back transactions and passed.

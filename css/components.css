@@ -235,12 +235,19 @@ textarea:disabled {
   display: flex;
   align-items: center;
   padding: 0 var(--space-4);
+  /* Many pills must scroll inside the bar, never make the whole page wider than the phone (D-71). */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.status-bar::-webkit-scrollbar {
+  display: none;
 }
 .status-inner {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
 }
 .pill {
   display: inline-flex;
