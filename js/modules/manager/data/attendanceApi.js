@@ -41,6 +41,36 @@ export const saveSite = (s, reason, key) =>
 export const setConfig = (maxAccuracy, requireApp, reason, key) =>
   db().rpc('mgmt_attendance_config_set', { p_max_accuracy: maxAccuracy, p_require_app: requireApp, p_reason: reason, p_key: key });
 
+export const setStable = (seconds, reason, key) =>
+  db().rpc('mgmt_attendance_stable_set', { p_seconds: seconds, p_reason: reason, p_key: key });
+
+// ── automatic attendance: the phone watches the pharmacy (Android app only; migration 0112 and DuaDevicePlugin) ──
+// What a staff phone needs: the active places and the stability period. Staff may read only this, not the owner's setup.
+export const mySite = () => one(db().rpc('mgmt_attendance_my_site'));
+
+const nativeAuto = () => (globalThis.Capacitor?.isNativePlatform?.() ? (globalThis.Capacitor?.Plugins?.DuaDevice ?? null) : null);
+// True only in an Android app new enough to have the geofence code (an older APK does not, and the card is then hidden).
+export const autoSupported = () => Boolean(nativeAuto()?.getAutoAttendanceStatus);
+
+export async function autoStatus() {
+  const native = nativeAuto();
+  if (!native?.getAutoAttendanceStatus) return null;
+  return native.getAutoAttendanceStatus();
+}
+export async function askBackgroundLocation() {
+  const native = nativeAuto();
+  if (!native?.requestBackgroundLocation) return null;
+  return native.requestBackgroundLocation();
+}
+export async function openBatterySettings() {
+  const native = nativeAuto();
+  if (native?.openBatterySettings) await native.openBatterySettings();
+}
+export async function openAppSettings() {
+  const native = nativeAuto();
+  if (native?.openAppSettings) await native.openAppSettings();
+}
+
 // ── the phone's location ──
 // Inside the Android app (Capacitor) the native DuaDevice plugin reads the location AND Android's "mock location" flag, which
 // the web cannot see. In a plain browser we fall back to the browser's location and send source "web" (the server may refuse it).

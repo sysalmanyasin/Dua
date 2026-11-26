@@ -42,6 +42,21 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/today_widget_info" />
         </receiver>
 
+        <!-- Automatic attendance. The geofence receiver is reachable only through the PendingIntent Dua gives Google Play services. -->
+        <receiver
+            android:name=".GeofenceReceiver"
+            android:exported="false" />
+
+        <!-- Android forgets geofences when the phone restarts or Dua is updated; this puts them back. -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -59,6 +74,9 @@
     <!-- Geo-fenced attendance: the server needs a precise fix. Approximate location alone is refused by the app. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Automatic attendance: arrival and departure are detected while Dua is closed. The person must choose "Allow all the time". -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Android 13 and later ask before showing any notification. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
