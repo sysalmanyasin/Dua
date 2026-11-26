@@ -54,3 +54,14 @@ export function alertText(n, labelFor) {
   const body = typeof n?.body === 'string' && n.body.trim() ? n.body.trim() : '';
   return { title, body };
 }
+
+// How many alerts the Tools tab shows before the rest are folded away.
+export const ALERTS_SHOWN = 3;
+export const splitAlerts = (list) => ({ shown: (list ?? []).slice(0, ALERTS_SHOWN), older: (list ?? []).slice(ALERTS_SHOWN) });
+
+// What opens under "Show message": the saved message, and the reason when delivery failed (kept out of the list so it stays short).
+export function alertDetail(n) {
+  const body = typeof n?.body === 'string' ? n.body.trim() : '';
+  const problem = typeof n?.last_error === 'string' ? n.last_error.trim() : '';
+  return [body, problem ? `Problem: ${problem}` : ''].filter(Boolean).join('\n\n');
+}

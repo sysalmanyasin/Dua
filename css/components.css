@@ -482,3 +482,10 @@ textarea:disabled {
   font: inherit;
   font-size: 0.9rem;
 }
+.alerts-older {
+  margin-top: var(--space-2);
+}
+.alerts-older > summary {
+  cursor: pointer;
+  padding: var(--space-2) 0;
+}
