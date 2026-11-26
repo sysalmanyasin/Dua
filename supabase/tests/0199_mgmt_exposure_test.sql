@@ -23,7 +23,10 @@ do $t$ declare bad text; n int;
     -- 0110: geo-fenced attendance; own record via attendance.check_in, owner views/settings via attendance.view_all / attendance.manage,
     -- see 0110_mgmt_attendance_test. The distance helper is internal and NOT listed (clients cannot call it).
     'mgmt_attendance_check_in','mgmt_attendance_today','mgmt_attendance_list','mgmt_attendance_setup',
-    'mgmt_attendance_site_save','mgmt_attendance_config_set'];
+    'mgmt_attendance_site_save','mgmt_attendance_config_set',
+    -- 0111: read-only history; a person's own days (attendance.check_in) and the owner's summary (attendance.view_all),
+    -- see 0111_mgmt_attendance_views_test. The shared day calculation (mgmt_attendance_days) is internal and NOT listed.
+    'mgmt_attendance_my_history','mgmt_attendance_summary'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

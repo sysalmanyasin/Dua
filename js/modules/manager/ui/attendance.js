@@ -8,8 +8,10 @@ import { hero, sectionLabel } from '../../../shared/ui.js';
 import { shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/attendanceApi.js';
 import {
+  addDays,
   coordinateText,
   dayRows,
+  dayState,
   metres,
   parseCoordinates,
   reasonText,
@@ -18,6 +20,7 @@ import {
   timeLabel,
   validateAccuracy,
   validatePlace,
+  workedText,
 } from '../domain/attendance.js';
 import { askReason, errorCard, loadingCard, newKey, openDialog, toast } from './parts.js';
 
@@ -25,13 +28,30 @@ export async function mount(el, { ctx } = {}) {
   const perms = ctx?.permissions;
   const has = (k) => (perms?.has ? perms.has(k) : (perms ?? []).includes(k));
   const can = { checkIn: has('attendance.check_in'), view: has('attendance.view_all'), manage: has('attendance.manage') };
-  const state = { me: null, records: null, setup: null, date: todayPkt(), busy: false, message: null, key: null, error: false };
+  const state = {
+    me: null,
+    mine: null,
+    records: null,
+    week: null,
+    setup: null,
+    date: todayPkt(),
+    busy: false,
+    message: null,
+    key: null,
+    error: false,
+  };
 
   async function load() {
     try {
       const jobs = [];
-      if (can.checkIn) jobs.push(api.today().then((v) => (state.me = v)));
-      if (can.view) jobs.push(api.list(state.date, state.date).then((v) => (state.records = v)));
+      if (can.checkIn) {
+        jobs.push(api.today().then((v) => (state.me = v)));
+        jobs.push(api.myHistory(addDays(todayPkt(), -13), todayPkt()).then((v) => (state.mine = v)));
+      }
+      if (can.view) {
+        jobs.push(api.list(state.date, state.date).then((v) => (state.records = v)));
+        jobs.push(api.summary(addDays(state.date, -6), state.date).then((v) => (state.week = v)));
+      }
       if (can.view || can.manage) jobs.push(api.setup().then((v) => (state.setup = v)));
       await Promise.all(jobs);
       state.error = false;
@@ -93,6 +113,84 @@ export async function mount(el, { ctx } = {}) {
               )}
             </ul>`
           : ''
+      }
+    </section>`;
+  };
+
+  // ── the person's own last two weeks ──
+  const historyCard = () => {
+    const days = state.mine?.days ?? [];
+    return html`<section class="card at-card">
+      <h2>My last two weeks</h2>
+      ${
+        days.length
+          ? html`<table class="table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>In</th>
+                  <th>Out</th>
+                  <th>Time at work</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${days.map(
+                  (d) =>
+                    html`<tr>
+                      <td>${shortDate(d.date)}</td>
+                      <td>${timeLabel(d.first_in)}</td>
+                      <td>${d.open ? 'Still in' : timeLabel(d.last_out)}</td>
+                      <td>
+                        ${workedText(d.worked_minutes)}${d.refused ? html` <span class="chip chip-warn">${d.refused} refused</span>` : ''}
+                      </td>
+                    </tr>`,
+                )}
+              </tbody>
+            </table>`
+          : html`<p class="muted">Nothing recorded in the last two weeks.</p>`
+      }
+    </section>`;
+  };
+
+  // ── the owner's week ending on the chosen day ──
+  const weekCard = () => {
+    const rows = state.week?.rows ?? [];
+    const today = todayPkt();
+    return html`<section class="card at-card">
+      <h2>The week up to ${shortDate(state.date)}</h2>
+      <p class="muted">One line per person per day. Time at work counts only completed in and out pairs.</p>
+      ${
+        rows.length
+          ? html`<table class="table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Name</th>
+                  <th>In</th>
+                  <th>Out</th>
+                  <th>Time at work</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(
+                  (r) =>
+                    html`<tr>
+                      <td>${shortDate(r.date)}</td>
+                      <td>${r.name}</td>
+                      <td>${timeLabel(r.first_in)}</td>
+                      <td>${timeLabel(r.last_out)}</td>
+                      <td>${workedText(r.worked_minutes)}</td>
+                      <td>
+                        ${r.refused ? html`<span class="chip chip-warn">${r.refused} refused</span> ` : ''}${
+                          r.open && r.date < today ? html`<span class="chip chip-warn">No check-out</span>` : dayState(r)
+                        }
+                      </td>
+                    </tr>`,
+                )}
+              </tbody>
+            </table>`
+          : html`<p class="muted">Nobody recorded in this week.</p>`
       }
     </section>`;
   };
@@ -275,7 +373,8 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`${hero({ label: 'Manager', title: 'Attendance', sub: 'Check in at the pharmacy. Your location is checked by the server.' })}
-      ${can.checkIn && state.me ? checkInCard() : ''} ${can.view && state.records ? dayCard() : ''}
+      ${can.checkIn && state.me ? checkInCard() : ''} ${can.checkIn && state.mine ? historyCard() : ''}
+      ${can.view && state.records ? dayCard() : ''} ${can.view && state.week ? weekCard() : ''}
       ${(can.view || can.manage) && state.setup ? setupCard() : ''}`,
     );
   }
