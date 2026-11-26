@@ -1,5 +1,6 @@
 // Attendance. One page, three parts, each shown only to people who may use it (the database checks every call again):
-//   attendance.check_in   the person's own Check in / Check out button and their last 24 hours
+//   attendance.check_in   the person's own Check in / Check out button and their last 24 hours, and (in the Android app) whether
+//                         automatic attendance works on this phone
 //   attendance.view_all   the owner's day view: who is in, first in, last out, and refused attempts
 //   attendance.manage     the owner's places (geofence) and limits
 // The phone only reports where it is. The server measures the distance and decides (migration 0110).
@@ -9,9 +10,12 @@ import { shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/attendanceApi.js';
 import {
   addDays,
+  autoChecklist,
+  autoSummary,
   coordinateText,
   dayRows,
   dayState,
+  journalLabel,
   metres,
   parseCoordinates,
   reasonText,
@@ -20,6 +24,7 @@ import {
   timeLabel,
   validateAccuracy,
   validatePlace,
+  validateStable,
   workedText,
 } from '../domain/attendance.js';
 import { askReason, errorCard, loadingCard, newKey, openDialog, toast } from './parts.js';
@@ -33,6 +38,8 @@ export async function mount(el, { ctx } = {}) {
     mine: null,
     records: null,
     week: null,
+    auto: null,
+    autoBusy: false,
     setup: null,
     date: todayPkt(),
     busy: false,
@@ -41,6 +48,15 @@ export async function mount(el, { ctx } = {}) {
     error: false,
   };
 
+  // What the phone says about automatic attendance. A failure here only hides the card; it never breaks the rest of the page.
+  async function readAuto() {
+    try {
+      state.auto = await api.autoStatus();
+    } catch {
+      state.auto = null;
+    }
+  }
+
   async function load() {
     try {
       const jobs = [];
@@ -48,6 +64,7 @@ export async function mount(el, { ctx } = {}) {
         jobs.push(api.today().then((v) => (state.me = v)));
         jobs.push(api.myHistory(addDays(todayPkt(), -13), todayPkt()).then((v) => (state.mine = v)));
       }
+      if (can.checkIn && api.autoSupported()) jobs.push(readAuto());
       if (can.view) {
         jobs.push(api.list(state.date, state.date).then((v) => (state.records = v)));
         jobs.push(api.summary(addDays(state.date, -6), state.date).then((v) => (state.week = v)));
@@ -116,6 +133,88 @@ export async function mount(el, { ctx } = {}) {
       }
     </section>`;
   };
+
+  // ── automatic attendance on this phone ──
+  const autoCard = () => {
+    const st = state.auto;
+    const sum = autoSummary(st);
+    const checks = autoChecklist(st);
+    const broken = checks.filter((c) => !c.ok && !c.advisory);
+    const journal = (st.journal ?? []).slice(0, 8);
+    const place = (st.sites ?? [])[0];
+    const mark = (c) =>
+      c.ok
+        ? html`<span class="chip">✓</span>`
+        : c.advisory
+          ? html`<span class="chip chip-warn">!</span>`
+          : html`<span class="at-no">✗</span>`;
+    return html`<section class="card at-card">
+      <h2>Automatic attendance</h2>
+      <p class="at-auto-summary ${sum.tone === 'ok' ? '' : 'at-no'}" role="status">${sum.text}</p>
+      ${
+        place
+          ? html`<p class="muted">
+              ${place.name}, ${place.radius} m. Counted after you stay
+              ${st.stableSeconds >= 60 ? `${Math.round(st.stableSeconds / 60)} min` : `${st.stableSeconds} s`}.
+            </p>`
+          : ''
+      }
+      <ul class="at-auto-checks">
+        ${checks.map((c) => html`<li>${mark(c)} <span>${c.label}</span></li>`)}
+      </ul>
+      <div class="actions">
+        ${
+          broken.some((c) => c.fix === 'background')
+            ? html`<button type="button" class="btn btn-primary" data-act="auto-background" ${state.autoBusy ? 'disabled' : ''}>
+                Allow location all the time
+              </button>`
+            : ''
+        }
+        ${
+          broken.some((c) => c.fix === 'app')
+            ? html`<button type="button" class="btn btn-primary" data-act="auto-app">Open phone settings</button>`
+            : ''
+        }
+        ${
+          checks.some((c) => !c.ok && c.fix === 'battery')
+            ? html`<button type="button" class="btn btn-ghost" data-act="auto-battery">Battery settings</button>`
+            : ''
+        }
+        <button type="button" class="btn btn-ghost" data-act="auto-refresh" ${state.autoBusy ? 'disabled' : ''}>Check again</button>
+      </div>
+      ${sectionLabel('Detected on this phone')}
+      <p class="muted">Test mode: these are listed here only. They are not recorded as attendance yet.</p>
+      ${
+        journal.length
+          ? html`<ul class="at-events">
+              ${journal.map(
+                (j) =>
+                  html`<li>
+                    <strong>${journalLabel(j, st.stableSeconds)}</strong> ${timeLabel(new Date(j.at).toISOString())}
+                    ${j.accuracy ? html`<small class="muted">accuracy about ${Math.round(j.accuracy)} m</small>` : ''}
+                  </li>`,
+              )}
+            </ul>`
+          : html`<p class="muted">Nothing detected yet.</p>`
+      }
+    </section>`;
+  };
+
+  async function autoAction(act) {
+    if (state.autoBusy) return;
+    if (act === 'auto-battery') return api.openBatterySettings();
+    if (act === 'auto-app') return api.openAppSettings();
+    state.autoBusy = true;
+    paint();
+    try {
+      if (act === 'auto-background') await api.askBackgroundLocation(); // on Android 11+ this opens the app's location settings
+    } catch {
+      // the person said no; the status below shows what is still missing
+    }
+    await readAuto();
+    state.autoBusy = false;
+    paint();
+  }
 
   // ── the person's own last two weeks ──
   const historyCard = () => {
@@ -281,6 +380,10 @@ export async function mount(el, { ctx } = {}) {
                 ><span>Worst GPS accuracy allowed (metres)</span><input id="at-acc" inputmode="numeric" value="${config.max_accuracy_m}"
               /></label>
               <label class="field"
+                ><span>Stay this long (seconds) before arrival or leaving counts</span
+                ><input id="at-stable" inputmode="numeric" value="${config.stable_seconds ?? 120}"
+              /></label>
+              <label class="field"
                 ><span
                   ><input type="checkbox" id="at-app" ${config.require_app ? 'checked' : ''} /> Check-in only from the Android app</span
                 ></label
@@ -355,7 +458,8 @@ export async function mount(el, { ctx } = {}) {
   async function saveConfig() {
     const box = el.querySelector('#at-cfg-err');
     const acc = Number(el.querySelector('#at-acc').value);
-    const bad = validateAccuracy(acc);
+    const stable = Number(el.querySelector('#at-stable')?.value ?? state.setup.config.stable_seconds ?? 120);
+    const bad = validateAccuracy(acc) ?? validateStable(stable);
     box.textContent = bad ?? '';
     box.hidden = !bad;
     if (bad) return;
@@ -363,6 +467,10 @@ export async function mount(el, { ctx } = {}) {
     if (!reason) return;
     const { error } = await api.setConfig(acc, el.querySelector('#at-app').checked, reason, newKey());
     if (error) return toast(error.message || 'Could not save.', 'error');
+    if (stable !== (state.setup.config.stable_seconds ?? 120)) {
+      const res = await api.setStable(stable, reason, newKey());
+      if (res.error) return toast(res.error.message || 'The stability period was not saved.', 'error');
+    }
     toast('Limits saved');
     load();
   }
@@ -373,9 +481,9 @@ export async function mount(el, { ctx } = {}) {
     render(
       el,
       html`${hero({ label: 'Manager', title: 'Attendance', sub: 'Check in at the pharmacy. Your location is checked by the server.' })}
-      ${can.checkIn && state.me ? checkInCard() : ''} ${can.checkIn && state.mine ? historyCard() : ''}
-      ${can.view && state.records ? dayCard() : ''} ${can.view && state.week ? weekCard() : ''}
-      ${(can.view || can.manage) && state.setup ? setupCard() : ''}`,
+      ${can.checkIn && state.me ? checkInCard() : ''} ${can.checkIn && state.auto ? autoCard() : ''}
+      ${can.checkIn && state.mine ? historyCard() : ''} ${can.view && state.records ? dayCard() : ''}
+      ${can.view && state.week ? weekCard() : ''} ${(can.view || can.manage) && state.setup ? setupCard() : ''}`,
     );
   }
 
@@ -387,12 +495,23 @@ export async function mount(el, { ctx } = {}) {
     else if (a === 'add-site') siteDialog(null);
     else if (a === 'edit-site') siteDialog(state.setup.sites.find((s) => s.id === b.dataset.id) ?? null);
     else if (a === 'save-config') saveConfig();
+    else if (a.startsWith('auto-') && a !== 'auto-refresh') autoAction(a);
+    else if (a === 'auto-refresh') autoAction('auto-refresh');
   });
   el.addEventListener('change', (e) => {
     if (e.target.id !== 'at-date' || !e.target.value) return;
     state.date = e.target.value;
     load();
   });
+
+  // After the person fixes something in Android's settings and returns to Dua, look again.
+  const onShown = async () => {
+    if (!el.isConnected) return document.removeEventListener('visibilitychange', onShown);
+    if (document.visibilityState !== 'visible' || !state.auto) return;
+    await readAuto();
+    paint();
+  };
+  document.addEventListener('visibilitychange', onShown);
 
   render(el, loadingCard());
   await load();

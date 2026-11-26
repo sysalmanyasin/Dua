@@ -77,6 +77,18 @@ supabase/functions/notify-push/, widget-today/, _shared/fcm.ts, _shared/widget.t
 - **Honest limit:** this stops standing outside the shop and casual fake-GPS apps that Android flags. A rooted phone that hides the flag, or someone with a friend holding their phone at the shop, is not stopped. Stronger proof would need Play Integrity, which is a later project.
 - Setting the place: open Manager → Attendance on the phone while standing in the pharmacy → Add a place → "Use my location now" → set the distance (100 m is a sensible start; indoor GPS can be off by 30–60 m).
 
+## 4b. Automatic attendance (in progress: Phase 3 of 8 built, Phase 4 not yet)
+
+Goal: staff do not open Dua or press a button; their phone notices arrival and departure. **Today only the detection is built.** A detection is written to a local journal on the phone and shown on the Attendance page ("Test mode"); it is **not** recorded as attendance yet (Phase 4 does that, with the server's checks).
+
+- **How it works.** After sign-in, Dua asks the server for the active places (`mgmt_attendance_my_site`, migration 0112: places, stability period, accuracy limit; staff cannot read anything else) and hands them to the phone (`DuaDevice.startAutoAttendance`). The phone registers one Google Play services geofence per place (`GeofencingClient`): **DWELL** (stayed inside for the stability period, default 120 s, owner-set 30–600 s) and **EXIT**. Google keeps watching while Dua is closed and the screen is locked. `GeofenceReceiver` journals each transition (last 30, encrypted storage `dua_attendance`). Nothing leaves the phone.
+- **Keeping it alive.** Android forgets geofences when the phone restarts, when Dua is updated, and when location is switched off. `BootReceiver` registers them again after a restart or update. `AttendanceWatchdogWorker` runs every 15 minutes (Android's minimum): it notices a lost permission, location switched off, or "Restricted" background use, tells the person once (notification "Automatic attendance is off") and registers again when the problem is gone, and once a day regardless. It does **not** re-register every run (that would restart the stability timer).
+- **What the person must allow.** Precise location, location switched on, and location **"Allow all the time"** (Android 10 shows a dialog; Android 11 and later send the person to the app's location settings). Dua must not be "Restricted" in the battery settings; "Unrestricted" is recommended. The Attendance page shows each item with a button that repairs it, and refreshes when the person returns from Android's settings.
+- **No foreground service, no always-on notification.** Geofencing is the cheapest way Android offers. The price: Google may delay a transition by a minute or two, and some phone makers (Xiaomi, Oppo, Vivo, Huawei, Samsung "sleeping apps") kill background apps unless the person allows autostart or removes Dua from the battery-saving list. The page cannot see those maker settings; the 15-minute check and the journal show whether it works.
+- **Sign-out and lost permission** wipe the places and the journal (`stopAutoAttendance`); a phone whose person loses `attendance.check_in` forgets the places at the next start.
+- **Radius.** Google recommends 100 m or more for reliable geofences; the database allows 20–2000 m. Use 100 m.
+- **Not built yet (the rest of the plan):** Phase 4 turn a stable arrival/departure into a check-in/check-out; Phase 5 server event processing (unique event ids, event time, ordering, offline queue, per-device secret); Phase 6 owner alerts and health indicators (disabled permission, inactive device); Phase 7 real-phone test matrix; Phase 8 release.
+
 ## 5. Notifications (ntfy retired, Firebase instead)
 
 Firebase Cloud Messaging is free with no message limit and no extra app on the phone. The flow is unchanged for modules: they call `notify_owner(...)`; rows land in `notifications`; a sender delivers them. Only the sender changed.
@@ -149,6 +161,7 @@ Google blocks its sign-in inside an app's embedded browser, so **Send via Gmail 
 7. Raise a test alert (finish a test closing, or `select public.notify_owner('closing.submitted', '{}'::jsonb)`) → the phone shows it within about a minute, with the app closed.
 8. Sign out → the widget goes blank and the phone receives no more of that person's alerts.
 9. Open Reports → no *Send via Gmail* button inside the app; present on the website.
+10. **Automatic attendance (detection only).** Add the pharmacy place. On a staff phone with `attendance.check_in`, open Manager → Attendance in the app: the *Automatic attendance* card should say *Watching the pharmacy* once precise location and "all the time" are allowed (follow the buttons). Walk away beyond the distance and wait the stability period plus a few minutes with the screen locked and Dua closed: *Left* appears in the journal; walk back inside and wait: *Arrived*. Restart the phone and repeat. Switch location off: within about 15 minutes a notification says automatic attendance is off. (These do not create attendance records yet.)
 
 ## 11. Not built yet (next)
 

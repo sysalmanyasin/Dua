@@ -37,11 +37,23 @@ need(gradle.includes(`namespace = "${cfg.appId}"`) && gradle.includes(`applicati
 
 // 2. permissions: exactly the ones the features need
 const perms = [...manifest.matchAll(/uses-permission android:name="android\.permission\.([A-Z_]+)"/g)].map((m) => m[1]).sort();
-const expected = ['ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'INTERNET', 'POST_NOTIFICATIONS'];
+// ACCESS_BACKGROUND_LOCATION and RECEIVE_BOOT_COMPLETED are for automatic attendance (the geofence must work while Dua is closed and be
+// registered again after a restart). Nothing else may be added without changing this list on purpose.
+const expected = ['ACCESS_BACKGROUND_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_FINE_LOCATION', 'INTERNET', 'POST_NOTIFICATIONS', 'RECEIVE_BOOT_COMPLETED'];
 need(JSON.stringify(perms) === JSON.stringify(expected), `permissions must be ${expected.join(', ')}; found ${perms.join(', ')}`);
 need(/android:allowBackup="false"/.test(manifest) && /usesCleartextTraffic="false"/.test(manifest), 'backup and cleartext must be off');
 need(/android:name="\.TodayWidgetProvider"[^>]*android:exported="false"/s.test(manifest), 'the widget receiver must not be exported');
 need(main.includes('registerPlugin(DuaDevicePlugin.class)'), 'MainActivity must register DuaDevicePlugin');
+
+// 2b. automatic attendance: who can reach what
+need(/android:name="\.GeofenceReceiver"[^>]*android:exported="false"/s.test(manifest), 'the geofence receiver must not be exported (only Google Play services, through our PendingIntent)');
+need(
+  /android:name="\.BootReceiver"[\s\S]*?BOOT_COMPLETED[\s\S]*?MY_PACKAGE_REPLACED[\s\S]*?<\/receiver>/.test(manifest),
+  'the boot receiver must listen for BOOT_COMPLETED and MY_PACKAGE_REPLACED (geofences are forgotten at both)',
+);
+need(/FLAG_MUTABLE/.test(javaAll), 'the geofence PendingIntent must be mutable on Android 12 and later (geofencing fills in the event)');
+need(!/android\.permission\.FOREGROUND_SERVICE|ACCESS_MEDIA_LOCATION/.test(manifest), 'automatic attendance uses geofences, not a foreground service: do not add foreground-service permissions');
+need(/GEOFENCE_TRANSITION_DWELL/.test(javaAll) && /setLoiteringDelay/.test(javaAll), 'the geofence must wait for the stability period (DWELL with a loitering delay), not fire on the first touch of the edge');
 
 // 3. every plugin method the web app calls exists in Java, and the other way round
 const javaMethods = [...plugin.matchAll(/@PluginMethod\s+public void (\w+)\(/g)].map((m) => m[1]).sort();

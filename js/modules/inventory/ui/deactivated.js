@@ -32,25 +32,24 @@ export async function mount(el) {
       list.length === 0
         ? emptyCard(rows.length === 0 ? 'No product has been deactivated.' : 'Nothing matches.')
         : html`<p class="muted small">${list.length} of ${rows.length} products</p>
-            <div class="inv-list">
+            <ul class="inv-list">
               ${list.map(
                 (r) =>
-                  html`<div class="inv-row" data-code="${r.code}">
-                    <div>
+                  html`<li class="inv-row" data-code="${r.code}">
+                    <div class="inv-main">
                       <strong>${r.name}</strong>
-                      <span class="muted small">${r.code} · ${r.company}</span>
-                      <span class="muted small"
+                      <span class="muted">${r.code} · ${r.company}</span>
+                      <span class="muted"
                         >Deactivated ${day(r.deactivated_at)} · last sale ${day(r.last_sale_date)} · last received
                         ${day(r.last_receive_date)}</span
                       >
                     </div>
-                    <div class="inv-qty">
-                      <strong>${qty(r.qty)}</strong>
-                      <span class="muted small">last known · ${rs(Number(r.qty) * Number(r.price))}</span>
+                    <div class="inv-qty ${Number(r.qty) < 0 ? 'neg' : Number(r.qty) === 0 ? 'zero' : ''}">
+                      <b>${qty(r.qty)}</b><span>last known · ${rs(Number(r.qty) * Number(r.price))}</span>
                     </div>
-                  </div>`,
+                  </li>`,
               )}
-            </div>`,
+            </ul>`,
     );
   }
 

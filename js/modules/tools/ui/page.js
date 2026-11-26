@@ -4,7 +4,17 @@ import { hero, sectionLabel } from '../../../shared/ui.js';
 import { alertLabel } from '../../../shared/alerts.js';
 import { shortDate } from '../../../shared/format.js';
 import { ackNotification, toolsOverview } from '../data/api.js';
-import { ageText, backupStatus, canAck, drillStatus, feedStatus, notificationState } from '../domain/tools.js';
+import {
+  ageText,
+  alertDetail,
+  alertText,
+  backupStatus,
+  canAck,
+  drillStatus,
+  feedStatus,
+  notificationState,
+  splitAlerts,
+} from '../domain/tools.js';
 
 const chip = (s) => html`<span class="kchip ${s.tone === 'good' ? 'pos' : s.tone === 'bad' ? 'neg' : ''}">${s.text}</span>`;
 const mb = (bytes) => (bytes ? `${(bytes / 1048576).toFixed(1)} MB` : '');
@@ -32,6 +42,25 @@ export async function mount(el) {
       return;
     }
     const b = o.backups;
+    const alertRow = (x) => {
+      const text = alertText(x, alertLabel);
+      const detail = alertDetail(x);
+      return html`<div class="row">
+        <div>
+          <strong>${text.title}</strong><br />
+          <span class="muted small">${notificationState(x)} · ${ageText(x.created_at, now)}</span>
+          ${
+            detail
+              ? html`<details class="alert-body">
+                  <summary class="muted small">Show message</summary>
+                  <pre>${detail}</pre>
+                </details>`
+              : ''
+          }
+        </div>
+        ${canAck(x) ? html`<div class="actions"><button class="btn" data-act="ack" data-id="${x.id}">Acknowledge</button></div>` : ''}
+      </div>`;
+    };
     const n = o.notifications;
     render(
       el,
@@ -66,18 +95,14 @@ export async function mount(el) {
           ${
             n.recent.length === 0
               ? html`<p class="muted">No alerts yet.</p>`
-              : n.recent.map(
-                  (x) =>
-                    html`<div class="row">
-                      <div>
-                        <strong>${alertLabel(x.kind)}</strong><br />
-                        <span class="muted small"
-                          >${notificationState(x)} · ${ageText(x.created_at, now)}${x.last_error ? ` · ${x.last_error}` : ''}</span
-                        >
-                      </div>
-                      ${canAck(x) ? html`<div class="actions"><button class="btn" data-act="ack" data-id="${x.id}">Acknowledge</button></div>` : ''}
-                    </div>`,
-                )
+              : html`${splitAlerts(n.recent).shown.map(alertRow)}${
+                  splitAlerts(n.recent).older.length === 0
+                    ? ''
+                    : html`<details class="alerts-older">
+                        <summary class="muted small">Older alerts (${splitAlerts(n.recent).older.length})</summary>
+                        ${splitAlerts(n.recent).older.map(alertRow)}
+                      </details>`
+                }`
           }
         </section>`,
     );

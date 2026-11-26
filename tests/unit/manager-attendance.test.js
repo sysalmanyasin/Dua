@@ -3,16 +3,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { todayPkt } from '../../js/shared/format.js';
 import {
   addDays,
+  autoChecklist,
+  autoSummary,
   coordinateText,
   dayRows,
   dayState,
+  journalLabel,
   parseCoordinates,
+  problemText,
   reasonText,
   refusedAttempts,
   resultMessage,
   timeLabel,
   validateAccuracy,
   validatePlace,
+  validateStable,
   workedText,
 } from '../../js/modules/manager/domain/attendance.js';
 
@@ -122,6 +127,62 @@ describe('attendance: the owner day view', () => {
   });
 });
 
+describe('automatic attendance: what the card says', () => {
+  const good = {
+    available: true,
+    enrolled: true,
+    precise: true,
+    background: true,
+    locationOn: true,
+    backgroundRestricted: false,
+    batteryUnrestricted: true,
+    problem: null,
+    registered: true,
+    stableSeconds: 120,
+    sites: [{ id: 'a', name: 'Test Shop', radius: 100 }],
+  };
+  it('says working only when everything is in place', () => {
+    expect(autoSummary(good).tone).toBe('ok');
+    expect(autoSummary(null)).toBeNull();
+  });
+  it('explains each way it can fail, most basic first', () => {
+    expect(autoSummary({ ...good, available: false }).tone).toBe('bad');
+    expect(autoSummary({ ...good, enrolled: false }).text).toMatch(/open it again/);
+    expect(autoSummary({ ...good, sites: [] }).text).toMatch(/owner has not added/);
+    expect(autoSummary({ ...good, problem: 'no_background_location' }).text).toMatch(/all the time/);
+    expect(autoSummary({ ...good, problem: 'location_off' }).tone).toBe('bad');
+    expect(autoSummary({ ...good, registered: false, lastError: 'register_failed:x' }).tone).toBe('warn');
+  });
+  it('has a plain sentence for every problem code, and a safe one for an unknown code', () => {
+    for (const c of ['no_precise_location', 'location_off', 'no_background_location', 'background_restricted'])
+      expect(problemText(c).length).toBeGreaterThan(20);
+    expect(problemText('something_new')).toMatch(/not working/);
+  });
+  it('lists what is wrong and points each line at its repair', () => {
+    expect(autoChecklist(good).every((c) => c.ok)).toBe(true);
+    const bad = autoChecklist({ ...good, background: false, backgroundRestricted: true, batteryUnrestricted: false, registered: false });
+    const fails = Object.fromEntries(bad.filter((c) => !c.ok).map((c) => [c.id, c]));
+    expect(Object.keys(fails).sort()).toEqual(['background', 'battery', 'registered', 'restricted']);
+    expect(fails.background.fix).toBe('background');
+    expect(fails.restricted.fix).toBe('battery');
+    expect(fails.battery.advisory).toBe(true);
+    expect(autoChecklist(null)).toEqual([]);
+  });
+  it('words the journal', () => {
+    expect(journalLabel({ type: 'dwell' }, 120)).toBe('Arrived (stayed inside 2 min)');
+    expect(journalLabel({ type: 'dwell' }, 45)).toBe('Arrived (stayed inside 45 s)');
+    expect(journalLabel({ type: 'exit' })).toBe('Left');
+    expect(journalLabel({ type: 'enter' })).toBe('Entered');
+    expect(journalLabel({ type: 'error:1000' })).toBe('Location service problem');
+    expect(journalLabel({ type: 'x' })).toBe('Unknown');
+    expect(journalLabel(null)).toBe('Unknown');
+  });
+  it('keeps the stay time inside the database range', () => {
+    for (const ok of [30, 120, 600]) expect(validateStable(ok)).toBeNull();
+    for (const bad of [29, 601, 1.5, NaN, 0]) expect(validateStable(bad)).toMatch(/30 to 600/);
+  });
+});
+
 // ── the page ──
 const api = {
   today: vi.fn(),
@@ -132,6 +193,12 @@ const api = {
   setup: vi.fn(),
   saveSite: vi.fn(),
   setConfig: vi.fn(),
+  setStable: vi.fn(),
+  autoSupported: vi.fn(),
+  autoStatus: vi.fn(),
+  askBackgroundLocation: vi.fn(),
+  openBatterySettings: vi.fn(),
+  openAppSettings: vi.fn(),
   insideApp: vi.fn(),
   currentLocation: vi.fn(),
   locationProblem: vi.fn(() => 'Location is switched off for Dua.'),
@@ -165,7 +232,7 @@ beforeEach(() => {
   api.list.mockResolvedValue([]);
   api.myHistory.mockResolvedValue({ days: [], events: [] });
   api.summary.mockResolvedValue({ rows: [] });
-  api.setup.mockResolvedValue({ config: { max_accuracy_m: 100, require_app: true }, sites: [] });
+  api.setup.mockResolvedValue({ config: { max_accuracy_m: 100, require_app: true, stable_seconds: 120 }, sites: [] });
 });
 afterEach(() => {
   el.remove();
@@ -362,6 +429,141 @@ describe('attendance page', () => {
     expect(site).toMatchObject({ id: null, name: 'Test Shop', lat: 10.5, lng: 20.25, radius: 80, active: true });
     expect(reason).toBe('first place');
     expect(key).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  describe('automatic attendance card', () => {
+    const phone = (o = {}) => ({
+      available: true,
+      enrolled: true,
+      precise: true,
+      background: true,
+      locationOn: true,
+      backgroundRestricted: false,
+      batteryUnrestricted: true,
+      problem: null,
+      registered: true,
+      stableSeconds: 120,
+      sites: [{ id: 'a', name: 'Test Shop', radius: 100 }],
+      journal: [],
+      ...o,
+    });
+    beforeEach(() => api.autoSupported.mockReturnValue(true));
+
+    it('is not shown in a browser or in an older app', async () => {
+      api.autoSupported.mockReturnValue(false);
+      await open(['attendance.check_in']);
+      expect(el.textContent).not.toContain('Automatic attendance');
+      expect(api.autoStatus).not.toHaveBeenCalled();
+    });
+
+    it('is not shown to someone who may only look at the records', async () => {
+      await open(['attendance.view_all']);
+      expect(el.textContent).not.toContain('Automatic attendance');
+      expect(api.autoStatus).not.toHaveBeenCalled();
+    });
+
+    it('says the phone is watching, and lists what it detected, in test mode', async () => {
+      api.autoStatus.mockResolvedValue(
+        phone({
+          journal: [
+            { type: 'exit', at: Date.parse('2026-11-25T13:00:00Z'), accuracy: 18 },
+            { type: 'dwell', at: Date.parse('2026-11-25T04:00:00Z'), accuracy: 12.4 },
+          ],
+        }),
+      );
+      await open(['attendance.check_in']);
+      expect(el.textContent).toContain('Automatic attendance');
+      expect(el.textContent).toContain('Watching the pharmacy');
+      expect(el.textContent.replace(/\s+/g, ' ')).toContain('Test Shop, 100 m. Counted after you stay 2 min.');
+      expect(el.textContent).toContain('Arrived (stayed inside 2 min)');
+      expect(el.textContent).toContain('Left');
+      expect(el.textContent).toContain('Test mode');
+      expect(el.querySelector('[data-act="auto-background"]')).toBeNull();
+    });
+
+    it('shows what is missing and the button that repairs it; after the person allows it, the status is read again', async () => {
+      api.autoStatus.mockResolvedValueOnce(phone({ background: false, problem: 'no_background_location', registered: false }));
+      api.autoStatus.mockResolvedValue(phone());
+      await open(['attendance.check_in']);
+      expect(el.textContent).toContain('all the time');
+      const fix = el.querySelector('[data-act="auto-background"]');
+      expect(fix).not.toBeNull();
+      fix.click();
+      await tick();
+      expect(api.askBackgroundLocation).toHaveBeenCalledTimes(1);
+      expect(api.autoStatus).toHaveBeenCalledTimes(2);
+      expect(el.textContent).toContain('Watching the pharmacy');
+      expect(el.querySelector('[data-act="auto-background"]')).toBeNull();
+    });
+
+    it('opens the battery and phone settings', async () => {
+      api.autoStatus.mockResolvedValue(phone({ backgroundRestricted: true, problem: 'background_restricted', locationOn: false }));
+      await open(['attendance.check_in']);
+      el.querySelector('[data-act="auto-battery"]').click();
+      el.querySelector('[data-act="auto-app"]').click();
+      await tick();
+      expect(api.openBatterySettings).toHaveBeenCalledTimes(1);
+      expect(api.openAppSettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks again when the person comes back from the phone settings', async () => {
+      api.autoStatus.mockResolvedValueOnce(phone({ locationOn: false, problem: 'location_off' }));
+      api.autoStatus.mockResolvedValue(phone());
+      await open(['attendance.check_in']);
+      expect(el.textContent).toContain('switched off');
+      document.dispatchEvent(new Event('visibilitychange'));
+      await tick();
+      expect(el.textContent).toContain('Watching the pharmacy');
+    });
+
+    it('never breaks the rest of the page when the phone cannot answer', async () => {
+      api.autoStatus.mockRejectedValue(new Error('boom'));
+      await open(['attendance.check_in']);
+      expect(el.textContent).toContain('My attendance');
+      expect(el.textContent).not.toContain('Automatic attendance');
+    });
+  });
+
+  describe('the stay time (owner)', () => {
+    const ask = async (reason) => {
+      await tick();
+      const dlg = [...document.querySelectorAll('dialog')].pop();
+      const box = dlg.querySelector('input, textarea');
+      box.value = reason;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      dlg.querySelector('.btn-primary, [data-ok]').click();
+      await tick();
+    };
+    it('shows the current value and saves a change with the same reason, through its own function', async () => {
+      api.setConfig.mockResolvedValue({ error: null });
+      api.setStable.mockResolvedValue({ error: null });
+      await open(['attendance.view_all', 'attendance.manage']);
+      expect(el.querySelector('#at-stable').value).toBe('120');
+      el.querySelector('#at-stable').value = '90';
+      el.querySelector('[data-act="save-config"]').click();
+      await ask('faster arrivals');
+      expect(api.setConfig).toHaveBeenCalledTimes(1);
+      expect(api.setStable).toHaveBeenCalledTimes(1);
+      const [seconds, reason, key] = api.setStable.mock.calls[0];
+      expect([seconds, reason]).toEqual([90, 'faster arrivals']);
+      expect(key).toMatch(/^[0-9a-f-]{36}$/);
+    });
+    it('does not call the stay-time function when it did not change', async () => {
+      api.setConfig.mockResolvedValue({ error: null });
+      await open(['attendance.view_all', 'attendance.manage']);
+      el.querySelector('[data-act="save-config"]').click();
+      await ask('just checking');
+      expect(api.setConfig).toHaveBeenCalledTimes(1);
+      expect(api.setStable).not.toHaveBeenCalled();
+    });
+    it('refuses a stay time outside 30 to 600 seconds before asking for a reason', async () => {
+      await open(['attendance.view_all', 'attendance.manage']);
+      el.querySelector('#at-stable').value = '10';
+      el.querySelector('[data-act="save-config"]').click();
+      await tick();
+      expect(el.querySelector('#at-cfg-err').textContent).toMatch(/30 to 600/);
+      expect(api.setConfig).not.toHaveBeenCalled();
+    });
   });
 
   it('refuses a bad place before asking for a reason', async () => {
