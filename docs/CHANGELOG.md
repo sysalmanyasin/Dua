@@ -2,10 +2,17 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 26 Nov — Automatic attendance, Phase 2 (Attendance module) — built and tested; migration 0111 NOT applied live
+- Attendance has its own side-menu entry (`nav.links`). A person whose only Manager page is Attendance sees a single entry named **Attendance** (`navLinks` no longer lists one page twice).
+- Staff see **My last two weeks** (per day: first in, last out, time at work, refused attempts). The owner sees **the week up to the chosen day** (one line per person per day, time at work, refused count, a "No check-out" flag for a past day left open) next to the existing day view, places and limits.
+- Migration `0111_mgmt_attendance_views`: `mgmt_attendance_my_history` (own rows only, `attendance.check_in`), `mgmt_attendance_summary` (everyone, `attendance.view_all`) and the internal `mgmt_attendance_days` (not callable). A night shift counts on the day it started; the "out" after midnight makes no row for the next day. Read-only; 0110 is unchanged.
+- Fixed a test that only passed on 25 Nov (its fixture used a fixed date; the page opens on today).
+- Tests: `0111_mgmt_attendance_views_test` (25 checks), the exposure whitelist (52 functions), 9 new unit tests (2,797 in all); full database suite passes (3,124 checks). Not tried on a real phone. No role preset carries an attendance permission (unchanged: the owner grants it per person).
+
 ## 25 Nov — Sales Sale Book, Targets and Manage Fields routed; Stage 6 closed (D-70)
 - Three Sales pages were written on 9 Nov but no route pointed to them, so they could not be opened. They now have routes under Sales: **Sale Book** `/sales/reports` (monthly report, a year, all time; print or save as PDF; permission `sales.view_history`), **Targets** `/sales/targets` (`targets.manage`) and **Manage Fields** `/sales/fields` (`settings.manage`). The permissions are the ones the database already checks. Calculations unchanged; one clean-up (the monthly report is calculated once, not twice).
 - Stage 6 (Unified Reports) is **closed**: reports stay in each module, and the owner needs no other reports in other modules (D-70). No new module, range or migration.
-- Tests: new `sales-reports-page` (8): routes and permissions, monthly, year and all-time views, empty period, failed load shows "Could not load", failed build shows an error. Also fixed a date-dependent test (`manager-attendance` owner day view failed after midnight; today is now pinned). No database change.
+- Tests: new `sales-reports-page` (8): routes and permissions, monthly, year and all-time views, empty period, failed load shows "Could not load", failed build shows an error. No database change.
 - Not verified: the three pages on a real phone.
 
 ## 25 Nov — Menu and bell (D-69)

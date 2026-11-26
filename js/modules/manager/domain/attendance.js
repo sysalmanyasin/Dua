@@ -80,3 +80,21 @@ export function validatePlace({ name, lat, lng, radius }) {
 }
 export const validateAccuracy = (m) =>
   Number.isInteger(m) && m >= 10 && m <= 500 ? null : 'The accuracy limit must be a whole number from 10 to 500 metres.';
+
+// "7 h 30 min", "45 min", "—" for nothing. Whole minutes come from the database (migration 0111).
+export function workedText(minutes) {
+  const m = Math.floor(Number(minutes));
+  if (!Number.isFinite(m) || m <= 0) return '—';
+  const h = Math.floor(m / 60);
+  return h ? `${h} h${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`;
+}
+
+// A business date (YYYY-MM-DD) moved by whole days. Calendar maths in UTC, so the phone's time zone never shifts the date.
+export function addDays(date, n) {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// What the "Now" column and the staff list say about a day.
+export const dayState = (day) => (day.open ? 'Still in' : day.last_out ? 'Done' : '—');
