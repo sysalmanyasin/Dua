@@ -13,6 +13,7 @@ import {
   problemText,
   reasonText,
   refusedAttempts,
+  refusedDetail,
   resultMessage,
   timeLabel,
   validateAccuracy,
@@ -41,6 +42,16 @@ describe('attendance: wording', () => {
   it('shows times in Pakistan time', () => {
     expect(timeLabel('2026-11-25T19:30:00Z')).toBe('00:30');
     expect(timeLabel(null)).toBe('—');
+  });
+});
+
+describe('attendance: refused attempt detail', () => {
+  it('shows the distance only when the server measured one', () => {
+    expect(refusedDetail({ distance_m: 1234.4 })).toBe(' (1234 m from the nearest place)');
+    expect(refusedDetail({ distance_m: 50, mock: true })).toBe(' (50 m from the nearest place, mock location flagged)');
+    expect(refusedDetail({ distance_m: null })).toBe('');
+    expect(refusedDetail({ distance_m: null, mock: true })).toBe(' (mock location flagged)');
+    expect(refusedDetail({})).toBe('');
   });
 });
 
@@ -196,6 +207,7 @@ const api = {
   setStable: vi.fn(),
   autoSupported: vi.fn(),
   autoStatus: vi.fn(),
+  syncPlaces: vi.fn(),
   askBackgroundLocation: vi.fn(),
   openBatterySettings: vi.fn(),
   openAppSettings: vi.fn(),
@@ -494,6 +506,23 @@ describe('attendance page', () => {
       expect(api.autoStatus).toHaveBeenCalledTimes(2);
       expect(el.textContent).toContain('Watching the pharmacy');
       expect(el.querySelector('[data-act="auto-background"]')).toBeNull();
+    });
+
+    it('asks the server for the places when the page opens, and again on "Check again" (a place added after Dua started)', async () => {
+      api.autoStatus.mockResolvedValue(phone());
+      await open(['attendance.check_in']);
+      expect(api.syncPlaces).toHaveBeenCalledTimes(1);
+      el.querySelector('[data-act="auto-refresh"]').click();
+      await tick();
+      expect(api.syncPlaces).toHaveBeenCalledTimes(2);
+      expect(api.autoStatus).toHaveBeenCalledTimes(2);
+    });
+
+    it('still shows the status when the server cannot be reached for the places', async () => {
+      api.syncPlaces.mockRejectedValue(new Error('offline'));
+      api.autoStatus.mockResolvedValue(phone());
+      await open(['attendance.check_in']);
+      expect(el.textContent).toContain('Watching the pharmacy');
     });
 
     it('opens the battery and phone settings', async () => {

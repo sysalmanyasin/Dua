@@ -5,7 +5,7 @@ const getSession = vi.fn();
 vi.mock('../../js/core/supabase.js', () => ({ db: () => ({ rpc, auth: { getSession } }) }));
 vi.mock('../../js/core/config.js', () => ({ getConfig: () => ({ functionsUrl: 'https://x.supabase.co/functions/v1' }) }));
 vi.mock('../../js/core/logger.js', () => ({ log: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } }));
-const { inApp, safeRoute, startNative, stopNative } = await import('../../js/core/native.js');
+const { inApp, safeRoute, startNative, stopNative, sameWatch, syncAttendance } = await import('../../js/core/native.js');
 
 const handlers = {};
 const makeGlobal = ({ perm = 'granted', widget = { configured: false }, push = true, dua = true } = {}) => {
@@ -45,6 +45,7 @@ describe('automatic attendance setup', () => {
   const withAuto = (o = {}) => {
     const made = makeGlobal(o);
     made.g.Capacitor.Plugins.DuaDevice.startAutoAttendance = vi.fn(async () => ({}));
+    made.g.Capacitor.Plugins.DuaDevice.getAutoAttendanceStatus = vi.fn(async () => ({ enrolled: false, sites: [] }));
     made.g.Capacitor.Plugins.DuaDevice.stopAutoAttendance = vi.fn(async () => {});
     return made;
   };
@@ -93,6 +94,52 @@ describe('automatic attendance setup', () => {
     answer({ stable_seconds: 120, sites: [site] });
     expect(await startNative({ permissions: ['attendance.check_in'] }, g)).toBe(true);
     expect(rpc).not.toHaveBeenCalledWith('mgmt_attendance_my_site');
+  });
+
+  const same = {
+    enrolled: true,
+    registered: true,
+    stableSeconds: 120,
+    sites: [{ id: site.id, latitude: 10.5, longitude: 20.25, radius: 100 }],
+  };
+  const server = { stable_seconds: 120, sites: [site] };
+
+  it('syncAttendance picks up a place added after Dua started', async () => {
+    const { g } = withAuto();
+    answer(server);
+    const st = await syncAttendance(g);
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).toHaveBeenCalledTimes(1);
+    expect(st).toEqual({});
+  });
+
+  it('does not register again (which would restart the stay timer) when the phone already watches the same places', async () => {
+    const { g } = withAuto();
+    g.Capacitor.Plugins.DuaDevice.getAutoAttendanceStatus = vi.fn(async () => same);
+    answer(server);
+    expect(await syncAttendance(g)).toBe(same);
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).not.toHaveBeenCalled();
+  });
+
+  it('syncAttendance keeps the phone as it is when the server cannot be read', async () => {
+    const { g } = withAuto();
+    answer(null, { code: 'x' });
+    expect(await syncAttendance(g)).toBeNull();
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).not.toHaveBeenCalled();
+    expect(g.Capacitor.Plugins.DuaDevice.stopAutoAttendance).not.toHaveBeenCalled();
+  });
+
+  it('sameWatch notices every kind of change', () => {
+    expect(sameWatch(same, server)).toBe(true);
+    expect(sameWatch(null, server)).toBe(false);
+    expect(sameWatch({ ...same, enrolled: false }, server)).toBe(false);
+    expect(sameWatch({ ...same, registered: false }, server)).toBe(false);
+    expect(sameWatch({ ...same, stableSeconds: 90 }, server)).toBe(false);
+    expect(sameWatch({ ...same, sites: [] }, server)).toBe(false);
+    expect(sameWatch(same, { ...server, sites: [{ ...site, radius_m: 200 }] })).toBe(false);
+    expect(sameWatch(same, { ...server, sites: [{ ...site, latitude: '10.6' }] })).toBe(false);
+    expect(sameWatch(same, { ...server, sites: [{ ...site, id: 'other' }] })).toBe(false);
+    // no places at all, and the phone is set up with none: nothing to do
+    expect(sameWatch({ enrolled: true, registered: false, stableSeconds: 120, sites: [] }, { stable_seconds: 120, sites: [] })).toBe(true);
   });
 
   it('stops watching at sign-out', async () => {

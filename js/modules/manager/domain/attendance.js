@@ -13,6 +13,15 @@ export const REASON_TEXT = {
 
 export const reasonText = (reason) => REASON_TEXT[reason] ?? 'That could not be recorded. Try again.';
 
+// The bracket after a refused attempt: how far from the nearest place (only when the server measured it) and the mock-location flag.
+export function refusedDetail(r) {
+  const parts = [];
+  if (r.distance_m !== null && r.distance_m !== undefined && Number.isFinite(Number(r.distance_m)))
+    parts.push(`${Math.round(Number(r.distance_m))} m from the nearest place`);
+  if (r.mock) parts.push('mock location flagged');
+  return parts.length ? ` (${parts.join(', ')})` : '';
+}
+
 const TIME = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Karachi', hour: '2-digit', minute: '2-digit', hour12: false });
 export const timeLabel = (iso) => (iso ? TIME.format(new Date(iso)) : '—');
 
