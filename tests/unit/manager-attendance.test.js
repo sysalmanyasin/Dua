@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { todayPkt } from '../../js/shared/format.js';
 import {
   coordinateText,
   dayRows,
@@ -211,7 +212,12 @@ describe('attendance page', () => {
   });
 
   it('gives the owner the day view and the places, but only what the keys allow', async () => {
-    api.list.mockResolvedValue([rec({ name: 'Test A' }), rec({ name: 'Test A', status: 'rejected', reason: 'outside', distance_m: 300 })]);
+    // The page opens on today (Pakistan time), so the records must be dated today or this test only passes on the day it was written.
+    const day = todayPkt();
+    api.list.mockResolvedValue([
+      rec({ name: 'Test A', business_date: day }),
+      rec({ name: 'Test A', business_date: day, status: 'rejected', reason: 'outside', distance_m: 300 }),
+    ]);
     api.setup.mockResolvedValue({
       config: { max_accuracy_m: 100, require_app: true },
       sites: [{ id: 'p1', name: 'Test Shop', latitude: 10, longitude: 20, radius_m: 100, active: true }],
