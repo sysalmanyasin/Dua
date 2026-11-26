@@ -1,6 +1,7 @@
 // Attendance data layer: the database functions of migration 0110 and the phone's location. Kept apart from data/api.js so the
 // attendance slice never conflicts with the rest of Manager. Writes are database functions with an idempotency key.
 import { db } from '../../../core/supabase.js';
+import { syncAttendance } from '../../../core/native.js';
 
 const one = async (query) => {
   const { data, error } = await query;
@@ -51,6 +52,9 @@ export const mySite = () => one(db().rpc('mgmt_attendance_my_site'));
 const nativeAuto = () => (globalThis.Capacitor?.isNativePlatform?.() ? (globalThis.Capacitor?.Plugins?.DuaDevice ?? null) : null);
 // True only in an Android app new enough to have the geofence code (an older APK does not, and the card is then hidden).
 export const autoSupported = () => Boolean(nativeAuto()?.getAutoAttendanceStatus);
+
+// Ask the server again which places to watch and hand them to the phone; returns the phone's new status.
+export const syncPlaces = () => syncAttendance();
 
 export async function autoStatus() {
   const native = nativeAuto();

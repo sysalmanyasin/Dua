@@ -16,9 +16,9 @@ import {
   dayRows,
   dayState,
   journalLabel,
-  metres,
   parseCoordinates,
   reasonText,
+  refusedDetail,
   refusedAttempts,
   resultMessage,
   timeLabel,
@@ -49,8 +49,16 @@ export async function mount(el, { ctx } = {}) {
   };
 
   // What the phone says about automatic attendance. A failure here only hides the card; it never breaks the rest of the page.
-  async function readAuto() {
+  async function readAuto(sync = false) {
     try {
+      // The phone only learns about places when Dua starts; ask the server again so a place added since then is picked up here.
+      if (sync) {
+        try {
+          await api.syncPlaces();
+        } catch {
+          // no connection: the phone keeps the places it already has
+        }
+      }
       state.auto = await api.autoStatus();
     } catch {
       state.auto = null;
@@ -64,7 +72,7 @@ export async function mount(el, { ctx } = {}) {
         jobs.push(api.today().then((v) => (state.me = v)));
         jobs.push(api.myHistory(addDays(todayPkt(), -13), todayPkt()).then((v) => (state.mine = v)));
       }
-      if (can.checkIn && api.autoSupported()) jobs.push(readAuto());
+      if (can.checkIn && api.autoSupported()) jobs.push(readAuto(true));
       if (can.view) {
         jobs.push(api.list(state.date, state.date).then((v) => (state.records = v)));
         jobs.push(api.summary(addDays(state.date, -6), state.date).then((v) => (state.week = v)));
@@ -211,7 +219,7 @@ export async function mount(el, { ctx } = {}) {
     } catch {
       // the person said no; the status below shows what is still missing
     }
-    await readAuto();
+    await readAuto(act === 'auto-refresh' || act === 'auto-background');
     state.autoBusy = false;
     paint();
   }
@@ -338,10 +346,7 @@ export async function mount(el, { ctx } = {}) {
                   (r) =>
                     html`<li>
                       <strong>${r.name}</strong> ${r.kind === 'in' ? 'in' : 'out'} at ${timeLabel(r.at)}
-                      <small class="muted"
-                        >${reasonText(r.reason)} (${metres(r.distance_m)} from the nearest
-                        place${r.mock ? ', mock location flagged' : ''})</small
-                      >
+                      <small class="muted">${reasonText(r.reason)}${refusedDetail(r)}</small>
                     </li>`,
                 )}
               </ul>`
