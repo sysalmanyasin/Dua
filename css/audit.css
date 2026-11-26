@@ -1094,7 +1094,7 @@
   background: linear-gradient(145deg, #2563eb 0%, #4338ca 100%);
   border-color: #4f46e5;
 }
-.aud-calc .aud-calc-key[data-k="="] {
+.aud-calc .aud-calc-key[data-k='='] {
   background: linear-gradient(145deg, #0f9f83 0%, #0d9488 100%);
   border-color: #0f766e;
 }
