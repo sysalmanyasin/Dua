@@ -5,8 +5,10 @@ import * as inventory from '../data/inventory.js';
 import { groupBySupplier } from '../domain/group.js';
 import { numberRows, toHeader, toLine } from '../domain/mapping.js';
 
-export async function loadEntries() {
-  const headers = (await api.feedHeaders()).map(toHeader);
+// With no range: the live feed. With a From and/or To date: every STR dated in that range, feed and history together.
+export async function loadEntries({ from = '', to = '' } = {}) {
+  const raw = from || to ? await api.rangeHeaders({ from, to }) : await api.feedHeaders();
+  const headers = raw.map(toHeader);
   const rows = headers.length ? await api.linesFor(headers.map((h) => h.strId)) : [];
   const meta = rows.length ? await inventory.productMeta([...new Set(rows.map((r) => r.product_code))]).catch(() => null) : {};
   const byId = new Map();

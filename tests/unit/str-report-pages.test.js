@@ -47,7 +47,7 @@ const LINES = [
   L(1, 10, 'D', 6, null), // dispatched, null dispatch = zero
   L(1, 11, 'E', 6, 3), // partial: not zero
 ];
-const api = { feedHeaders: vi.fn(), linesFor: vi.fn() };
+const api = { feedHeaders: vi.fn(), rangeHeaders: vi.fn(), linesFor: vi.fn() };
 const inventory = { productMeta: vi.fn() };
 const prefs = { getPref: vi.fn(), setPref: vi.fn() };
 vi.mock('../../js/modules/str/data/api.js', () => api);
@@ -64,6 +64,7 @@ beforeEach(() => {
   document.body.innerHTML = '<div id="page"></div>';
   el = document.getElementById('page');
   api.feedHeaders.mockReset().mockResolvedValue(HEADERS);
+  api.rangeHeaders.mockReset().mockResolvedValue(HEADERS);
   api.linesFor.mockReset().mockResolvedValue(LINES);
   inventory.productMeta.mockReset().mockResolvedValue({});
   prefs.getPref.mockReset().mockResolvedValue(null);
@@ -107,6 +108,35 @@ describe('Report', () => {
     expect(entries()).toEqual(['STR #T-2']);
     el.querySelector('[data-col="diff"]').click();
     expect(prefs.setPref).toHaveBeenCalledWith('str.report_cols', expect.objectContaining({ diff: false }));
+  });
+  it('filters by Dispatched from BT / Received at BT like the Transfers page', async () => {
+    api.feedHeaders.mockResolvedValue([
+      H({ str_id: 3, str_number: 'T-3', direction: 'out' }),
+      H({ str_id: 2, str_number: 'T-2', direction: 'in' }),
+      H({ str_id: 1, str_number: 'T-1', direction: 'in' }),
+    ]);
+    await report.mount(el);
+    await settle();
+    expect(entries()).toHaveLength(3);
+    el.querySelector('[data-branch="dispatched"]').click();
+    expect(entries()).toEqual(['STR #T-3']);
+    el.querySelector('[data-branch="received"]').click();
+    expect(entries()).toEqual(['STR #T-2', 'STR #T-1']);
+    el.querySelector('[data-branch="all"]').click();
+    expect(entries()).toHaveLength(3);
+  });
+  it('a date range reloads from the server and Clear returns to the live feed', async () => {
+    await report.mount(el);
+    await settle();
+    expect(api.feedHeaders).toHaveBeenCalledTimes(1);
+    const from = el.querySelector('#str-from');
+    from.value = '2026-11-10';
+    from.dispatchEvent(new Event('change', { bubbles: true }));
+    await settle();
+    expect(api.rangeHeaders).toHaveBeenCalledWith({ from: '2026-11-10', to: '' });
+    el.querySelector('#str-clear').click();
+    await settle();
+    expect(api.feedHeaders).toHaveBeenCalledTimes(2);
   });
   it('prints what is on the page', async () => {
     await report.mount(el);
