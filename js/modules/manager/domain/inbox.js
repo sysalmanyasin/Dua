@@ -47,8 +47,7 @@ export function validateFiling(line, form, { ledgers = [], people = [] } = {}) {
   if (form.target === 'credit') {
     const person = people.find((p) => p.staff_id === form.staffId);
     if (!person) errors.staff = 'Pick a person.';
-    else if (person.opening_month && date < person.opening_month)
-      errors.staff = 'This date is before that person’s opening balance month.';
+    else if (person.opening_month && date < person.opening_month) errors.staff = 'This date is before that person’s opening balance month.';
   } else if (form.target === 'ledger') {
     const ledger = ledgers.find((l) => l.ledger_id === form.ledgerId);
     const category = ledger?.categories.find((c) => c.id === form.categoryId);

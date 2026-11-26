@@ -3,6 +3,13 @@
 import { GMAIL_SCOPE, GOOGLE_CLIENT_ID } from './config.js';
 
 const GSI = 'https://accounts.google.com/gsi/client';
+
+// Google refuses to show its sign-in inside an app's embedded browser, so "Send via Gmail" cannot work in the Dua Android app.
+// The app is recognised by Capacitor's native flag, or by the marker the app adds to its user agent (capacitor.config.json).
+export function gmailAvailable(g = globalThis) {
+  if (g.Capacitor?.isNativePlatform?.()) return false;
+  return !/\bDuaAndroid\//.test(g.navigator?.userAgent ?? '');
+}
 const SEND_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send';
 
 // ── message building (pure) ──

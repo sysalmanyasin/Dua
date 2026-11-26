@@ -284,6 +284,33 @@
   cursor: pointer;
 }
 
+/* Attendance (migration 0110) */
+.at-card {
+  margin-bottom: var(--space-3);
+}
+.at-state {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.at-big {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.15rem;
+}
+.at-events {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.at-events li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 /* Credit Inbox filing dialog: date and shift side by side */
 .mg-date-shift {
   display: grid;

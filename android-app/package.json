@@ -1,0 +1,18 @@
+{
+  "name": "dua-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android shell for Dua. It loads the live web app (https://dua.duapharma.com) and adds only what a web page cannot do: Firebase push, location with the mock-location flag, and the Today's Sale widget. See docs/ANDROID_ARCHITECTURE.md.",
+  "scripts": {
+    "sync": "cap sync android",
+    "check": "node scripts/check-shell.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/push-notifications": "8.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
+}

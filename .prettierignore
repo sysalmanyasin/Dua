@@ -6,3 +6,4 @@ supabase/tests/
 *.sql
 *.ts
 *.md
+android-app/

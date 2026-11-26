@@ -1,6 +1,7 @@
 import { isNetworkDown, loadOfflineContext, saveOfflineContext } from './offlineContext.js';
 import { callFunction, db } from './supabase.js';
 import { log } from './logger.js';
+import { stopNative } from './native.js';
 
 export async function adminSignIn(email, password) {
   const { error } = await db().auth.signInWithPassword({ email: String(email).trim(), password });
@@ -55,6 +56,7 @@ export function clearLocalWork(storages = [globalThis.localStorage, globalThis.s
 }
 
 export async function signOut() {
+  await stopNative(); // Android app only: stop alerts and the widget for this phone while the session still exists
   clearLocalWork();
   await db().auth.signOut();
 }
