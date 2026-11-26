@@ -1345,3 +1345,26 @@
   gap: 0.5rem;
   min-height: 44px;
 }
+
+/* counting: the company switch, and last round's count and difference with the "Matched" button */
+.aud .aud-group-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.aud .aud-prev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.aud .aud-prev .aud-mini {
+  white-space: normal;
+  text-align: left;
+}
+/* the live system quantity on a correction is for reading only */
+.aud .aud-form input[readonly] {
+  opacity: 0.75;
+  cursor: default;
+}

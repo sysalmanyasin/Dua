@@ -421,7 +421,7 @@ describe('follow-up round items', () => {
     list[1] = { ...list[1], is_new: true };
     api.myItems.mockResolvedValue(list);
     await mountCount(root(), { ctx: {} });
-    expect(root().textContent).toContain('Last round: Var -3');
+    expect(root().querySelector('[data-prev="i1"]').textContent).toBe('Last round: counted 7 · difference -3');
     expect(root().textContent).toContain('New product since the last round');
     expect(root().querySelector('button[data-same="i2"]')).toBeNull(); // nothing to repeat for a new product
     click('button[data-same="i1"]');

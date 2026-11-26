@@ -60,6 +60,8 @@ export async function mount(el, { ctx, screen = null } = {}) {
     nextMode: 'differences',
     sample: 20,
     nextKey: newKey(),
+    live: {}, // product code -> { qty, active, found }: today's stock, for the correction views (view only)
+    liveFailed: false,
     busy: false,
     error: null,
   };
@@ -84,6 +86,34 @@ export async function mount(el, { ctx, screen = null } = {}) {
   async function load() {
     s.o = await api.compileOverview(view.round);
     await loadRows();
+    await loadLive(s.o.corrections.filter((x) => x.status === 'proposed').map((x) => x.code));
+  }
+
+  // today's quantity for some codes, kept in s.live. Best effort and read only: the page works without it.
+  async function loadLive(codes) {
+    const need = [...new Set(codes.filter(Boolean))].filter((x) => !(x in s.live)).slice(0, 200);
+    if (need.length === 0) return;
+    try {
+      for (const r of await api.liveBalances(view.round, need)) s.live[r.code] = { qty: r.qty, active: r.active, found: r.found };
+      s.liveFailed = false;
+    } catch {
+      s.liveFailed = true;
+    }
+  }
+  // one line: what Inventory holds right now, beside the quantity the counters were shown
+  function liveLine(code, frozen) {
+    const l = s.live[code];
+    if (!l)
+      return s.liveFailed
+        ? html`<span class="muted small">Live quantity is not available right now.</span>`
+        : html`<span class="muted small">Reading live quantity…</span>`;
+    if (!l.found) return html`<span class="muted small">Not in Inventory now.</span>`;
+    const moved = Number(l.qty) !== Number(frozen);
+    return html`<span class="small" data-live="${code}"
+      >Live system quantity now <strong>${q(l.qty)}</strong>${l.active ? '' : ' (no longer in the stock list, last known)'}${
+        moved ? html` · <span class="aud-diff-bad">changed since the count (was ${q(frozen)})</span>` : ''
+      }</span
+    >`;
   }
 
   const nameOf = (id) => s.o.assignments.find((a) => a.auditor_id === id)?.name ?? 'Someone';
@@ -268,6 +298,17 @@ export async function mount(el, { ctx, screen = null } = {}) {
             open
               ? html`<div class="aud-form">
                   <label class="field"
+                    ><span>Live system quantity (view only)</span
+                    ><input
+                      type="text"
+                      readonly
+                      tabindex="-1"
+                      data-live-qty="${r.code}"
+                      aria-readonly="true"
+                      value="${s.live[r.code]?.found ? q(s.live[r.code].qty) : '—'}"
+                  /></label>
+                  ${liveLine(r.code, r.system_qty)}
+                  <label class="field"
                     ><span>Correct count</span><input type="text" inputmode="decimal" data-field="qty" value="${s.form.qty ?? ''}"
                   /></label>
                   <label class="field"
@@ -332,6 +373,7 @@ export async function mount(el, { ctx, screen = null } = {}) {
             <span class="small"
               >System ${q(c.system_qty)} → proposed count <strong>${q(c.counted_qty)}</strong> by ${c.proposed_by} · ${c.reason}</span
             ><br />
+            ${c.status === 'proposed' ? html`${liveLine(c.code, c.system_qty)}<br />` : ''}
             <span class="aud-badge aud-badge-${c.status === 'approved' ? 'compiled' : c.status === 'rejected' ? 'draft' : 'counting'}"
               >${c.status === 'proposed' ? 'Waiting' : c.status === 'approved' ? 'Approved' : 'Rejected'}</span
             >
@@ -578,7 +620,17 @@ export async function mount(el, { ctx, screen = null } = {}) {
     }
     if (b.dataset.form) {
       s.form = { type: b.dataset.form, id: b.dataset.id, side: b.dataset.side, mode: 'as_counted', reason: '', qty: '' };
-      return draw();
+      draw();
+      if (b.dataset.form === 'suggest') {
+        const code = s.rows.find((x) => x.round_item_id === b.dataset.id)?.code;
+        // always fresh when the form opens: stock may have moved since the list was read
+        if (code) {
+          delete s.live[code];
+          await loadLive([code]);
+          if (s.form?.id === b.dataset.id) draw();
+        }
+      }
+      return;
     }
     const id = b.dataset.id;
     const reason = (s.form?.reason ?? '').trim();

@@ -133,6 +133,7 @@ async function mountCounting(el, assignmentId, ctx) {
     mode: 'all',
     shown: PAGE,
     collapsed: new Set(),
+    group: true, // company groups on or off; the switch is only shown when the list has more than one company
     lastAction: null,
     confirmSubmit: false,
     result: null, // an Individual Audit compiles itself on submit; its totals are shown once it is submitted
@@ -228,18 +229,30 @@ async function mountCounting(el, assignmentId, ctx) {
     const id = it.round_item_id;
     const e = s.entries[id];
     const prev = it.prev_counted !== null && it.prev_counted !== undefined;
+    const meta = `${it.code ? it.code : 'No SKU'} · Rs ${q(Number(it.retail_price))}${companies.length > 1 && !s.group ? ` · ${it.company}` : ''}`;
+    const pv = Number(it.prev_variance ?? 0);
+    const prevText = `Last round: counted ${q(it.prev_counted)} · difference ${pv > 0 ? '+' : ''}${q(pv)}`;
+    const prevCls = pv === 0 ? 'aud-diff-ok' : pv > 0 ? 'aud-diff-over' : 'aud-diff-bad';
     return html`<div class="aud-row ${s.pinned === id ? 'aud-row-scanned' : ''}" data-item="${id}">
       <div class="aud-grid">
         <div class="aud-row-main">
           <strong>${it.name || it.code}</strong>
-          <span class="muted small">${it.code ? it.code : 'No SKU'} · Rs ${q(Number(it.retail_price))}</span>
+          <span class="muted small">${meta}</span>
           ${it.is_new ? html`<span class="small aud-diff-bad">New product since the last round</span>` : ''}
           ${
             prev
-              ? html`<span class="muted small"
-                  >Last round: Var ${Number(it.prev_variance) > 0 ? '+' : ''}${q(it.prev_variance)}
-                  ${open() && !locked(id) ? html`<button type="button" class="aud-mini" data-same="${id}">Same</button>` : ''}</span
-                >`
+              ? html`<span class="aud-prev small ${prevCls}" data-prev="${id}">${prevText}</span> ${
+                    open() && !locked(id)
+                      ? html`<button
+                          type="button"
+                          class="aud-mini"
+                          data-same="${id}"
+                          aria-label="${`Matched, same as last round (${q(it.prev_counted)}) for ${it.name || it.code}`}"
+                        >
+                          ${`Matched: same as last (${q(it.prev_counted)})`}
+                        </button>`
+                      : ''
+                  }`
               : ''
           }
         </div>
@@ -304,7 +317,7 @@ async function mountCounting(el, assignmentId, ctx) {
     const rows = visible();
     const box = el.querySelector('#aud-list');
     if (!box) return;
-    const groups = groupByCompany(rows);
+    const groups = groupByCompany(rows, s.group);
     let budget = s.shown;
     const parts = [];
     // a scanned item goes to the very top, above the company groups
@@ -435,6 +448,13 @@ async function mountCounting(el, assignmentId, ctx) {
               ].map(([v, t]) => html`<option value="${v}" ${s.mode === v ? 'selected' : ''}>${t}</option>`)}
             </select>
           </div>
+          ${
+            companies.length > 1
+              ? html`<label class="aud-check aud-group-switch"
+                  ><input type="checkbox" data-f="group" ${s.group ? 'checked' : ''} /> Group by company</label
+                >`
+              : ''
+          }
         </section>
         <section class="card aud-card" id="aud-list" aria-label="Items"></section>
         ${open() ? submitCard() : ''} ${open() ? stickyBar() : ''}
@@ -626,6 +646,11 @@ async function mountCounting(el, assignmentId, ctx) {
       s.shown = PAGE;
       return drawList();
     }
+    if (f === 'group') {
+      s.group = t.checked;
+      s.shown = PAGE;
+      return drawList();
+    }
     if (f === 'extra') return void (s.extraNote = truncateExtraNote(t.value));
     if (t.dataset?.qty) {
       if (t.value.trim() === '') return;
@@ -647,8 +672,24 @@ async function mountCounting(el, assignmentId, ctx) {
   };
   // which count box the person was last in: the calculator's answer goes there. (`focusin` is not a handler property, so it
   // is added as a listener, and the one from an earlier visit to this screen is taken off first.)
+  // Entering a count box, by tap, Tab, Enter or a scan, selects what is in it, so the next key replaces it (empty or not).
   const focusIn = (e) => {
-    if (e.target.dataset?.qty) s.lastQty = e.target.dataset.qty;
+    const t = e.target;
+    if (!t.dataset?.qty) return;
+    s.lastQty = t.dataset.qty;
+    s.selectOnUp = t;
+    s.selectOnUpAt = Date.now();
+    // after the browser has placed the caret; a phone's tap would otherwise put the caret back
+    setTimeout(() => {
+      if (document.activeElement === t) t.select?.();
+    }, 0);
+  };
+  // a mouse click that has just focused the box must not drop the selection again when the button is released
+  el.onmouseup = (e) => {
+    if (s.selectOnUp && e.target === s.selectOnUp && Date.now() - s.selectOnUpAt < 1500) {
+      e.preventDefault();
+      s.selectOnUp = null;
+    }
   };
   const earlier = focusTrackers.get(el);
   if (earlier) el.removeEventListener('focusin', earlier);
