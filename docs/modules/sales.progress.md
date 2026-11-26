@@ -5,7 +5,7 @@ Branch: integrated on `main`.
 
 ## Implemented source
 
-The Sales manifest registers nine routes: Dashboard, monthly Index, Add Entry, Sale Report, Daily Data, Daily Check List, Diff Report, Cash to Deposit and Last Day. The module source includes the dashboard/Cover flow, target and field configuration, daily sales entry/correction, checklist, history and Gmail-send path. Six Sales-related unit-test files are present in the repository.
+The Sales manifest registers ten routes: Dashboard, monthly Index, Add Entry, Sale Report, Sale Book (`/sales/reports`, added 25 Nov 2026, D-70), Daily Data, Daily Check List, Diff Report, Cash to Deposit and Last Day. `ui/targets.js` and `ui/fields.js` exist but have no route (owner asked 25 Nov 2026). The module source includes the dashboard/Cover flow, target and field configuration, daily sales entry/correction, checklist, history and Gmail-send path. Six Sales-related unit-test files are present in the repository.
 
 ## Live / deployment evidence
 

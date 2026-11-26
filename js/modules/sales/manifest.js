@@ -35,6 +35,13 @@ export default {
       load: () => import('./ui/saleReport.js'),
     },
     {
+      path: '/sales/reports',
+      desc: 'Monthly report and Sale Book (a year or all time), print or save as PDF',
+      title: 'Sale Book',
+      permission: 'sales.view_history',
+      load: () => import('./ui/reports.js'),
+    },
+    {
       path: '/sales/data',
       desc: 'Every day, month by month',
       title: 'Daily Data',

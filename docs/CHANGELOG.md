@@ -2,6 +2,11 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 25 Nov — Sale Book route (Stage 6 start, D-70)
+- The Sales monthly report and Sale Book (monthly report, a year, all time; print or save as PDF) was written on 9 Nov (`ui/reports.js`, `domain/bookReports.js`) but no route pointed to it, so it could not be opened. It now has the route `/sales/reports` ("Sale Book", permission `sales.view_history`) under Sales. Calculations unchanged; one small clean-up (the monthly report is calculated once, not twice).
+- Tests: new `sales-reports-page` (7): route registered with the right permission, monthly, year and all-time views, empty period, failed load shows "Could not load", failed build shows an error. No database change.
+- Found, not changed: `ui/targets.js` and `ui/fields.js` (Targets, Manage Fields) are also not routed. Asked the owner.
+
 ## 25 Nov — Menu and bell (D-69)
 - Bell in the top bar with the unread number, tab-title number `(3) Page · Dua`, app badge where supported, and an in-app notice for each new message (checked every minute and whenever the app is shown again; a failed check clears the number). Inbox left the side menu.
 - Team is a side-menu entry under Tasks (Owner only); Tasks and Inbox have their own icons. Pure helper `navLinks`; manifests may use `nav.links`, `nav.hidden` and `bell`.
