@@ -26,7 +26,10 @@ do $t$ declare bad text; n int;
     'mgmt_attendance_site_save','mgmt_attendance_config_set',
     -- 0111: read-only history; a person's own days (attendance.check_in) and the owner's summary (attendance.view_all),
     -- see 0111_mgmt_attendance_views_test. The shared day calculation (mgmt_attendance_days) is internal and NOT listed.
-    'mgmt_attendance_my_history','mgmt_attendance_summary'];
+    'mgmt_attendance_my_history','mgmt_attendance_summary',
+    -- 0112: the stability period (owner, attendance.manage) and the narrow read a staff phone uses to watch the pharmacy
+    -- (attendance.check_in), see 0112_mgmt_attendance_auto_setup_test.
+    'mgmt_attendance_stable_set','mgmt_attendance_my_site'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

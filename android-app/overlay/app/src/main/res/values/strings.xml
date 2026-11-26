@@ -9,5 +9,9 @@
     <string name="widget_sign_in">Open Dua and sign in</string>
     <string name="widget_no_figure">No figure yet today</string>
     <string name="widget_updated">Updated %1$s</string>
+    <string name="attendance_channel_name">Automatic attendance</string>
+    <string name="attendance_channel_description">Tells you when automatic attendance stops working on this phone</string>
+    <string name="attendance_off_title">Automatic attendance is off</string>
+    <string name="attendance_off_text">Dua cannot see when you arrive or leave. Open Dua, then Attendance, and fix the item marked in red.</string>
     <string name="widget_offline">Offline · last update %1$s</string>
 </resources>

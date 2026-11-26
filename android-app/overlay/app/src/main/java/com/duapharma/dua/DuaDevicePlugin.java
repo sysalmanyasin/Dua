@@ -3,11 +3,15 @@ package com.duapharma.dua;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import androidx.core.content.ContextCompat;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -20,17 +24,24 @@ import com.google.android.gms.location.CurrentLocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import java.util.UUID;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * The only custom native code the web app talks to. Three small jobs a web page cannot do:
  *  - an install id (identifies this phone to the server; not a secret),
  *  - the location WITH Android's mock-location flag, for geo-fenced attendance (the server measures the distance and decides),
- *  - keeping the home-screen widget's secret in encrypted storage.
+ *  - keeping the home-screen widget's secret in encrypted storage,
+ *  - automatic attendance: the pharmacy's geofence, the permissions it needs, and what it detected (see AttendanceGeofence).
  * Only the live Dua site can call it (capacitor.config.json: server.url + allowNavigation).
  */
 @CapacitorPlugin(
     name = "DuaDevice",
-    permissions = { @Permission(alias = "location", strings = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION }) }
+    permissions = {
+        @Permission(alias = "location", strings = { Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION }),
+        // "Allow all the time". Android 10 shows a dialog; Android 11 and later send the person to the app's location settings instead.
+        @Permission(alias = "background", strings = { Manifest.permission.ACCESS_BACKGROUND_LOCATION })
+    }
 )
 public class DuaDevicePlugin extends Plugin {
 
@@ -100,6 +111,141 @@ public class DuaDevicePlugin extends Plugin {
     @SuppressWarnings("deprecation")
     private static boolean isMock(Location location) {
         return Build.VERSION.SDK_INT >= 31 ? location.isMock() : location.isFromMockProvider();
+    }
+
+    // ───── automatic attendance (geofence) ─────
+
+    /** Everything the Attendance page needs to show whether automatic attendance can work on this phone, and what it has detected. */
+    private JSObject autoStatus() {
+        Context context = getContext();
+        AttendanceStore store = new AttendanceStore(context);
+        JSObject result = new JSObject();
+        result.put("sdk", Build.VERSION.SDK_INT);
+        result.put("available", store.available());
+        result.put("enrolled", store.enrolled());
+        result.put("precise", AttendanceGeofence.hasPrecise(context));
+        result.put("background", AttendanceGeofence.hasBackground(context));
+        result.put("locationOn", AttendanceGeofence.locationOn(context));
+        result.put("backgroundRestricted", AttendanceGeofence.backgroundRestricted(context));
+        result.put("batteryUnrestricted", AttendanceGeofence.ignoringBatteryOptimisations(context));
+        result.put("problem", store.enrolled() ? AttendanceGeofence.problem(context) : null);
+        result.put("registered", store.registered());
+        result.put("registeredAt", store.registeredAt());
+        result.put("lastCheckAt", store.lastCheckAt());
+        result.put("lastError", store.lastError());
+        result.put("stableSeconds", store.stableSeconds());
+        result.put("sites", store.sites());
+        result.put("journal", store.journal());
+        return result;
+    }
+
+    @PluginMethod
+    public void getAutoAttendanceStatus(PluginCall call) {
+        call.resolve(autoStatus());
+    }
+
+    /**
+     * Saves the places to watch and registers the geofence. Called by the web app after sign-in with what the server sent
+     * (mgmt_attendance_my_site). An empty list stops watching but keeps this phone set up.
+     */
+    @PluginMethod
+    public void startAutoAttendance(PluginCall call) {
+        String userId = call.getString("userId");
+        Integer stable = call.getInt("stableSeconds");
+        JSArray list = call.getArray("sites");
+        if (userId == null || userId.length() < 8 || stable == null || AttendanceLogic.validateStable(stable) != null || list == null || list.length() > AttendanceLogic.MAX_SITES) {
+            call.reject("Invalid automatic attendance settings");
+            return;
+        }
+        JSONArray clean = new JSONArray();
+        try {
+            for (int i = 0; i < list.length(); i++) {
+                JSONObject site = list.getJSONObject(i);
+                String id = site.getString("id");
+                double lat = site.getDouble("latitude");
+                double lng = site.getDouble("longitude");
+                int radius = site.getInt("radius");
+                String bad = AttendanceLogic.validateSite(id, lat, lng, radius);
+                if (bad != null) {
+                    call.reject("Invalid place: " + bad);
+                    return;
+                }
+                String name = site.optString("name", "");
+                clean.put(new JSONObject().put("id", id).put("name", name.length() > 60 ? name.substring(0, 60) : name).put("latitude", lat).put("longitude", lng).put("radius", radius));
+            }
+        } catch (Exception e) {
+            call.reject("Invalid automatic attendance settings");
+            return;
+        }
+        AttendanceStore store = new AttendanceStore(getContext());
+        if (!store.save(userId, clean, stable)) {
+            call.reject("This phone cannot store the settings safely");
+            return;
+        }
+        AttendanceGeofence.ensureWatchdog(getContext());
+        AttendanceGeofence.register(getContext(), (ok, error) -> call.resolve(autoStatus()));
+    }
+
+    /** Sign-out, or the person lost the right: stop watching and forget everything. */
+    @PluginMethod
+    public void stopAutoAttendance(PluginCall call) {
+        AttendanceGeofence.unregister(getContext());
+        AttendanceGeofence.cancelWatchdog(getContext());
+        AttendanceGeofence.clearProblemNotification(getContext());
+        new AttendanceStore(getContext()).clear();
+        call.resolve();
+    }
+
+    /** Precise location first, then "all the time". The page shows the explanation before calling this. */
+    @PluginMethod
+    public void requestBackgroundLocation(PluginCall call) {
+        if (!AttendanceGeofence.hasPrecise(getContext())) {
+            requestPermissionForAlias("location", call, "backgroundStepOne");
+            return;
+        }
+        askBackground(call);
+    }
+
+    @PermissionCallback
+    private void backgroundStepOne(PluginCall call) {
+        if (!AttendanceGeofence.hasPrecise(getContext())) {
+            call.reject("Precise location was not allowed", "1");
+            return;
+        }
+        askBackground(call);
+    }
+
+    private void askBackground(PluginCall call) {
+        if (Build.VERSION.SDK_INT < 29 || AttendanceGeofence.hasBackground(getContext())) {
+            call.resolve(autoStatus());
+            return;
+        }
+        requestPermissionForAlias("background", call, "backgroundStepTwo");
+    }
+
+    @PermissionCallback
+    private void backgroundStepTwo(PluginCall call) {
+        // On Android 11 and later the system opens the app's location settings instead of a dialog and this returns at once. The person
+        // finishes there; the page asks for the status again when Dua is shown again.
+        call.resolve(autoStatus());
+    }
+
+    @PluginMethod
+    public void openBatterySettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            openAppSettings(call);
+            return;
+        }
+        getActivity().startActivity(intent);
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getContext().getPackageName(), null));
+        getActivity().startActivity(intent);
+        call.resolve();
     }
 
     // ───── Today's Sale widget ─────

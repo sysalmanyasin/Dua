@@ -2,7 +2,7 @@
 //
 // The app shell injects window.Capacitor into the live site. We use only two native plugins, and only through that object (the CSP forbids
 // loading anything else): Capacitor's PushNotifications (Firebase push) and our own DuaDevice (android/.../DuaDevicePlugin.java: install id,
-// location with Android's mock flag, the home-screen widget's saved secret). If the shell is an older APK without a plugin, that part is
+// location with Android's mock flag, the home-screen widget's saved secret, the automatic-attendance geofence). If the shell is an older APK without a plugin, that part is
 // skipped and the rest keeps working.
 import { getConfig } from './config.js';
 import { log } from './logger.js';
@@ -83,6 +83,33 @@ async function setupWidget(ctx, dev, deviceId, version) {
   await dev.saveWidgetConfig({ userId, deviceId, secret: res.widget_secret, endpoint: `${getConfig().functionsUrl}/widget-today` });
 }
 
+// Automatic attendance: the phone watches the pharmacy's geofence by itself (DuaDevicePlugin, AttendanceGeofence.java). The server only
+// tells a phone about the places if the person holds attendance.check_in; a phone whose person lost that right forgets them.
+async function setupAttendance(ctx, dev) {
+  if (!dev.startAutoAttendance) return; // an older APK without the geofence code
+  if (!has(ctx, 'attendance.check_in')) {
+    await dev.stopAutoAttendance();
+    return;
+  }
+  const { data: session } = await db().auth.getSession();
+  const userId = session?.session?.user?.id;
+  if (!userId) return;
+  const { data, error } = await db().rpc('mgmt_attendance_my_site');
+  // A network or server problem is not a reason to stop watching: keep what the phone already has.
+  if (error || !data) return log.warn('attendance place not read', { code: error?.code });
+  await dev.startAutoAttendance({
+    userId,
+    stableSeconds: Number(data.stable_seconds),
+    sites: (data.sites ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      latitude: Number(s.latitude),
+      longitude: Number(s.longitude),
+      radius: Number(s.radius_m),
+    })),
+  });
+}
+
 // Called once the person is signed in and the shell has started. Never throws.
 export async function startNative(ctx, g = globalThis) {
   if (!inApp(g)) return false;
@@ -91,6 +118,11 @@ export async function startNative(ctx, g = globalThis) {
   try {
     const { deviceId, version } = await dev.getDeviceInfo();
     await setupWidget(ctx, dev, deviceId, version);
+    try {
+      await setupAttendance(ctx, dev); // its own try: a problem here must not stop push registration
+    } catch (e) {
+      log.error('automatic attendance setup failed', { message: String(e?.message ?? e).slice(0, 120) });
+    }
     const push = plugin('PushNotifications', g);
     if (push) await setupPush(push, deviceId, version, g);
     return true;
@@ -115,6 +147,11 @@ export async function stopNative(g = globalThis) {
     await dev.clearWidgetConfig();
   } catch {
     // nothing to clear
+  }
+  try {
+    if (dev.stopAutoAttendance) await dev.stopAutoAttendance(); // this phone stops watching the pharmacy for this person
+  } catch {
+    // nothing to stop
   }
   try {
     await plugin('PushNotifications', g)?.unregister?.();

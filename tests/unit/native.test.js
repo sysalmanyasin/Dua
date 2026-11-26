@@ -40,6 +40,68 @@ beforeEach(() => {
   getSession.mockReset().mockResolvedValue({ data: { session: { user: { id: 'user-1' } } } });
 });
 
+describe('automatic attendance setup', () => {
+  const site = { id: '3f2c1a9e-1111-4222-8333-444455556666', name: 'Test Shop', latitude: '10.5', longitude: '20.25', radius_m: 100 };
+  const withAuto = (o = {}) => {
+    const made = makeGlobal(o);
+    made.g.Capacitor.Plugins.DuaDevice.startAutoAttendance = vi.fn(async () => ({}));
+    made.g.Capacitor.Plugins.DuaDevice.stopAutoAttendance = vi.fn(async () => {});
+    return made;
+  };
+  const answer = (data, error = null) =>
+    rpc.mockImplementation(async (name) => (name === 'mgmt_attendance_my_site' ? { data, error } : { data: {}, error: null }));
+
+  it('gives the phone the places when the person may check in', async () => {
+    const { g } = withAuto();
+    answer({ stable_seconds: 120, max_accuracy_m: 100, sites: [site] });
+    await startNative({ permissions: ['attendance.check_in'] }, g);
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).toHaveBeenCalledWith({
+      userId: 'user-1',
+      stableSeconds: 120,
+      sites: [{ id: site.id, name: 'Test Shop', latitude: 10.5, longitude: 20.25, radius: 100 }],
+    });
+  });
+
+  it('makes the phone forget the places when the person may not check in', async () => {
+    const { g } = withAuto();
+    await startNative({ permissions: ['tasks.view_own'] }, g);
+    expect(g.Capacitor.Plugins.DuaDevice.stopAutoAttendance).toHaveBeenCalled();
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalledWith('mgmt_attendance_my_site');
+  });
+
+  it('keeps watching when the server cannot be reached (a network blip is not a reason to stop)', async () => {
+    const { g } = withAuto();
+    answer(null, { code: 'PGRST000' });
+    await startNative({ permissions: ['attendance.check_in'] }, g);
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).not.toHaveBeenCalled();
+    expect(g.Capacitor.Plugins.DuaDevice.stopAutoAttendance).not.toHaveBeenCalled();
+  });
+
+  it('still registers push when automatic attendance fails', async () => {
+    const { g, PushNotifications } = withAuto();
+    g.Capacitor.Plugins.DuaDevice.startAutoAttendance = vi.fn(async () => {
+      throw new Error('native refused');
+    });
+    answer({ stable_seconds: 120, sites: [site] });
+    expect(await startNative({ permissions: ['attendance.check_in'] }, g)).toBe(true);
+    expect(PushNotifications.register).toHaveBeenCalled();
+  });
+
+  it('does nothing in an older app without the geofence code', async () => {
+    const { g } = makeGlobal();
+    answer({ stable_seconds: 120, sites: [site] });
+    expect(await startNative({ permissions: ['attendance.check_in'] }, g)).toBe(true);
+    expect(rpc).not.toHaveBeenCalledWith('mgmt_attendance_my_site');
+  });
+
+  it('stops watching at sign-out', async () => {
+    const { g } = withAuto();
+    await stopNative(g);
+    expect(g.Capacitor.Plugins.DuaDevice.stopAutoAttendance).toHaveBeenCalled();
+  });
+});
+
 describe('in a browser', () => {
   it('does nothing at all', async () => {
     expect(inApp({})).toBe(false);

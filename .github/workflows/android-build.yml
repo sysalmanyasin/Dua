@@ -122,6 +122,11 @@ jobs:
             echo "DUA_KEY_PASSWORD=$KEY_PASSWORD"
           } >> "$GITHUB_ENV"
 
+      # AttendanceLogicTest: the decisions of automatic attendance (place ranges, which problem comes first), no phone needed.
+      - name: Run the shell's unit tests
+        working-directory: android-app/android
+        run: ./gradlew testDebugUnitTest --no-daemon
+
       - name: Build
         working-directory: android-app/android
         env:
