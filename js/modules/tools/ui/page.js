@@ -4,7 +4,7 @@ import { hero, sectionLabel } from '../../../shared/ui.js';
 import { alertLabel } from '../../../shared/alerts.js';
 import { shortDate } from '../../../shared/format.js';
 import { ackNotification, toolsOverview } from '../data/api.js';
-import { ageText, backupStatus, canAck, drillStatus, feedStatus, notificationState } from '../domain/tools.js';
+import { ageText, alertText, backupStatus, canAck, drillStatus, feedStatus, notificationState } from '../domain/tools.js';
 
 const chip = (s) => html`<span class="kchip ${s.tone === 'good' ? 'pos' : s.tone === 'bad' ? 'neg' : ''}">${s.text}</span>`;
 const mb = (bytes) => (bytes ? `${(bytes / 1048576).toFixed(1)} MB` : '');
@@ -70,10 +70,18 @@ export async function mount(el) {
                   (x) =>
                     html`<div class="row">
                       <div>
-                        <strong>${alertLabel(x.kind)}</strong><br />
+                        <strong>${alertText(x, alertLabel).title}</strong><br />
                         <span class="muted small"
                           >${notificationState(x)} · ${ageText(x.created_at, now)}${x.last_error ? ` · ${x.last_error}` : ''}</span
                         >
+                        ${
+                          alertText(x, alertLabel).body
+                            ? html`<details class="alert-body">
+                                <summary class="muted small">Show message</summary>
+                                <pre>${alertText(x, alertLabel).body}</pre>
+                              </details>`
+                            : ''
+                        }
                       </div>
                       ${canAck(x) ? html`<div class="actions"><button class="btn" data-act="ack" data-id="${x.id}">Acknowledge</button></div>` : ''}
                     </div>`,

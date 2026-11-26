@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   b64url,
   buildFcmMessage,
+  notificationText,
   channelFor,
   classifyFcmResponse,
   fitBytes,
@@ -189,5 +190,19 @@ describe('widget request', () => {
   });
   it('hashes like the database does (SHA-256, lower-case hex)', async () => {
     expect(await sha256Hex('abc')).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  });
+});
+
+describe('saved alert text', () => {
+  it('is exactly what the phone shows', () => {
+    const push = { title: '**Round 3** · Ali', message: 'Short **-5** \\_x', priority: 5, tags: [], markdown: true };
+    const saved = notificationText(push);
+    expect(saved).toEqual(buildFcmMessage('t', push, 'audit.compiled').message.notification);
+    expect(saved.body).toBe('Short -5 _x');
+  });
+  it('keeps to the size limits', () => {
+    const saved = notificationText({ title: 'T'.repeat(500), message: 'm'.repeat(9000), priority: 3, tags: [] });
+    expect(new TextEncoder().encode(saved.title).length).toBeLessThanOrEqual(120);
+    expect(new TextEncoder().encode(saved.body).length).toBeLessThanOrEqual(3200);
   });
 });

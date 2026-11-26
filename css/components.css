@@ -463,3 +463,15 @@ textarea:disabled {
     scroll-behavior: auto !important;
   }
 }
+
+/* Tools tab: the full text of a sent alert, folded away until asked for */
+.alert-body {
+  margin-top: var(--space-2);
+}
+.alert-body pre {
+  margin: var(--space-2) 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 0.9rem;
+}
