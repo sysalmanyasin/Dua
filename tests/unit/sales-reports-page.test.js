@@ -52,9 +52,16 @@ describe('Sale Book route', () => {
     expect(r.permission).toBe('sales.view_history');
     expect(typeof r.load).toBe('function');
   });
-  it('the route loads a module that has mount()', async () => {
-    const mod = await manifest.routes.find((x) => x.path === '/sales/reports').load();
-    expect(typeof mod.mount).toBe('function');
+  it('Targets and Manage Fields are routed with the permissions the database checks', () => {
+    const find = (p) => manifest.routes.find((x) => x.path === p);
+    expect(find('/sales/targets')).toMatchObject({ title: 'Targets', permission: 'targets.manage' });
+    expect(find('/sales/fields')).toMatchObject({ title: 'Manage Fields', permission: 'settings.manage' });
+  });
+  it('the routes load modules that have mount()', async () => {
+    for (const path of ['/sales/reports', '/sales/targets', '/sales/fields']) {
+      const mod = await manifest.routes.find((x) => x.path === path).load();
+      expect(typeof mod.mount).toBe('function');
+    }
   });
 });
 
