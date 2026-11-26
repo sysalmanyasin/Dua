@@ -476,7 +476,9 @@ async function mountCounting(el, assignmentId, ctx) {
     open()
       ? html`<div class="aud-actions">
             ${s.canScan ? html`<button type="button" class="btn btn-primary btn-sm" data-act="scan">Scan a barcode</button>` : ''}
-            <button type="button" class="btn btn-ghost btn-sm" data-act="calc">Calculator</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-act="calc" aria-pressed="${s.calc ? 'true' : 'false'}">
+              Calculator
+            </button>
             ${s.canScan && s.pinned ? html`<button type="button" class="btn btn-ghost btn-sm" data-act="unpin">Show the whole list</button>` : ''}
           </div>
           ${
@@ -501,20 +503,31 @@ async function mountCounting(el, assignmentId, ctx) {
       : '';
 
   // the calculator hands its answer to the count box the person was last in; it is saved exactly as if it had been typed
-  function openCalc() {
+  // the box it would fill right now: the one the person was last in, if it can still be counted
+  const calcTarget = () => {
     const id = s.lastQty && s.byId.has(s.lastQty) ? s.lastQty : null;
     const it = id ? s.byId.get(id) : null;
-    const usable = it && open() && !locked(id);
-    openCalculator({
-      target: usable ? `${it.name || it.code}${it.code ? ` (${it.code})` : ''}` : '',
-      onClose: () => el.querySelector('[data-act="calc"]')?.focus(),
+    return it && open() && !locked(id) ? { id, label: `${it.name || it.code}${it.code ? ` (${it.code})` : ''}` } : null;
+  };
+  // a floating panel at the side: it stays open while counting, follows the box the person is in, and is switched on and off here
+  function openCalc() {
+    if (s.calc) return void s.calc.close();
+    s.calc = openCalculator({
+      getTarget: () => calcTarget()?.label ?? '',
+      onClose: () => {
+        s.calc = null;
+        el.querySelector('[data-act="calc"]')?.setAttribute('aria-pressed', 'false');
+      },
       onInsert: (qty) => {
+        const id = calcTarget()?.id;
+        if (!id) return;
         void record(id, { qty });
         // on to the next box, as Enter does
         const input = [...el.querySelectorAll('input[data-qty]')].find((i) => i.dataset.qty === id);
         if (input) nextInput(input);
       },
     });
+    el.querySelector('[data-act="calc"]')?.setAttribute('aria-pressed', 'true');
   }
 
   // a scan finds an item in the person's own list and puts it first; the quantity is always typed (AUD-4, AUD-5)
@@ -677,6 +690,7 @@ async function mountCounting(el, assignmentId, ctx) {
     const t = e.target;
     if (!t.dataset?.qty) return;
     s.lastQty = t.dataset.qty;
+    s.calc?.refreshTarget();
     s.selectOnUp = t;
     s.selectOnUpAt = Date.now();
     // after the browser has placed the caret; a phone's tap would otherwise put the caret back

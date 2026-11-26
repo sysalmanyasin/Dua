@@ -106,6 +106,7 @@ const PRECACHE = [
   "js/modules/audit/ui/racks.js",
   "js/modules/audit/ui/reports.js",
   "js/modules/audit/ui/round.js",
+  "js/modules/audit/ui/roundProgress.js",
   "js/modules/audit/ui/scanEngine.js",
   "js/modules/audit/ui/scanner.js",
   "js/modules/audit/ui/signoutGuard.js",

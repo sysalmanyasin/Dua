@@ -1,4 +1,4 @@
-// Audit Overview. Exactly five sections: Quick Actions, Product Search, Pending Actions, Individual Audit, Active Team Audit.
+// Audit Overview. Exactly five sections: Main actions (three cards), Product Search, Pending Actions, Individual Audit, Active Team Audit.
 // A permission-filtered presentation of existing Audit reads; the database and its row-level security remain authoritative.
 import { html, render } from '../../../shared/html.js';
 import { monthLabel } from '../../../shared/format.js';
@@ -32,13 +32,40 @@ const statusLabel = (status) => STATUS[status] ?? String(status ?? 'Unknown').re
 const monthName = (m) => monthLabel(`${m}-01`);
 const bar = progressBar;
 
-function quickSection(chips) {
+// glyphs are drawn here so the three cards read at a glance; they are decoration, the label carries the meaning
+const GLYPH = {
+  individual: html`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+  </svg>`,
+  count: html`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M5 12l4.5 4.5L19 7" />
+    <rect x="3" y="3" width="18" height="18" rx="5" />
+  </svg>`,
+  expiry: html`<svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="13" r="8" />
+    <path d="M12 9v4.5l3 2M9 2h6" />
+  </svg>`,
+};
+
+/** The three main actions as cards. "Continue counting" shows how far the open round has got, when there is one. */
+function quickSection(chips, open) {
   if (!chips.length) return '';
-  return html`<section class="card aud-card aud-quick" aria-label="Quick actions" data-section="quick">
-    <h2>Quick actions</h2>
-    <div class="aud-chips">
-      ${chips.map((c) => html`<a class="btn btn-sm aud-chip" href="#${c.path}" data-chip="${c.key}">${c.label}</a>`)}
-    </div>
+  return html`<section class="aud-quick" aria-label="Main actions" data-section="quick">
+    ${chips.map((c) => {
+      const live = c.key === 'count' && open;
+      const percent = live && open.items ? Math.round((open.counted / open.items) * 100) : null;
+      return html`<a class="aud-action aud-action-${c.key}" href="#${c.path}" data-chip="${c.key}" ${live ? 'data-live' : ''}>
+        <span class="aud-action-icon">${GLYPH[c.key]}</span>
+        <span class="aud-action-text">
+          <strong>${c.label}</strong>
+          <span class="aud-action-hint" ${live ? 'data-live-hint' : ''}
+            >${live ? `${open.counted.toLocaleString()} of ${open.items.toLocaleString()} counted${percent !== null ? ` · ${percent}%` : ''}` : c.hint}</span
+          >
+        </span>
+        <span class="aud-action-go" aria-hidden="true">›</span>
+      </a>`;
+    })}
   </section>`;
 }
 
@@ -231,6 +258,11 @@ export async function mount(el, { ctx } = {}) {
   });
 
   const myOpen = mine.find((a) => a.method === 'individual-self-pick' && a.status !== 'submitted');
+  // the round the person is counting right now (team or individual), for the live line on "Continue counting"
+  const activeMine = mine.find((a) => a.round_state === 'counting' && a.status !== 'submitted');
+  const openRound = activeMine
+    ? { items: Number(activeMine.items) || 0, counted: Math.min(Number(activeMine.items) || 0, Number(activeMine.counted) || 0) }
+    : null;
   const card = individualCard(monthRows, { month, myOpen, canView, canStart: canIndividual });
   const teamMine = mine.filter((a) => a.method !== 'individual-self-pick');
 
@@ -238,10 +270,13 @@ export async function mount(el, { ctx } = {}) {
     el,
     html`<div class="aud aud-dashboard">
       <div class="aud-overview-head">
-        <h1>Audit overview</h1>
+        <div>
+          <p class="aud-eyebrow">${monthName(month)}</p>
+          <h1>Audit overview</h1>
+        </div>
         <button type="button" class="aud-refresh" data-refresh aria-label="Refresh overview">Refresh ↻</button>
       </div>
-      ${quickSection(quickActions(manifest.routes, perms))} ${canSearch ? html`<div data-search-host></div>` : ''}
+      ${quickSection(quickActions(manifest.routes, perms), openRound)} ${canSearch ? html`<div data-search-host></div>` : ''}
       ${canAttention || (canView && canRecheck) ? pendingSection(pending, failed.attention) : ''}
       ${canView || canIndividual ? individualSection(card, failed.month, !canView) : ''}
       ${canView || canCount ? teamSection({ audit: teamModel, mine: teamMine, error: failed.engagements, mineError: failed.mine, canView }) : ''}

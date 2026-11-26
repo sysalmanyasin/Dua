@@ -312,7 +312,8 @@ describe('the calculator on the counting screen', () => {
     expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Alpha one (A1)');
     tapKeys('6', '×', '1', '0', '+', '4');
     sheet().querySelector('[data-s="insert"]').click();
-    expect(sheet()).toBeNull();
+    expect(sheet()).not.toBeNull(); // a side panel: it stays open for the next item, with a fresh sum
+    expect(sheet().querySelector('[data-main]').textContent).toBe('0');
     expect(root().querySelector('input[data-qty="i1"]').value).toBe('64');
     expect(root().querySelector('[data-diff="i1"]').textContent).toBe('+54+Rs 5,427'); // 54 over, at Rs 100.5
     expect(await store.count('asg1')).toBe(1); // kept on the device first, like any count
@@ -324,7 +325,7 @@ describe('the calculator on the counting screen', () => {
   it('with no box chosen yet it opens but cannot insert, and says so', async () => {
     await mountCount(root(), { ctx: {} });
     click('button[data-act="calc"]');
-    expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Tap a count box first');
+    expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Tap a count box');
     expect(sheet().querySelector('[data-s="insert"]').disabled).toBe(true);
   });
 
@@ -339,20 +340,26 @@ describe('the calculator on the counting screen', () => {
     expect(root().querySelector('input[data-qty="i2"]').value).toBe('');
   });
 
-  it('closing it without inserting changes nothing and returns focus to the button', async () => {
+  it('closing it without inserting changes nothing, and the Calculator button switches it on and off', async () => {
     await mountCount(root(), { ctx: {} });
     focusBox('i1');
     click('button[data-act="calc"]');
+    expect(root().querySelector('button[data-act="calc"]').getAttribute('aria-pressed')).toBe('true');
     sheet().querySelector('[data-s="close"]').click();
     expect(await store.count('asg1')).toBe(0);
-    expect(document.activeElement).toBe(root().querySelector('button[data-act="calc"]'));
+    expect(root().querySelector('button[data-act="calc"]').getAttribute('aria-pressed')).toBe('false');
+    click('button[data-act="calc"]');
+    expect(sheet()).not.toBeNull();
+    click('button[data-act="calc"]'); // the same button closes it again
+    expect(sheet()).toBeNull();
   });
 
-  it('answers a different box after the person moves to it', async () => {
+  it('follows the box the person moves to while it is open', async () => {
     await mountCount(root(), { ctx: {} });
     focusBox('i1');
-    focusBox('i3');
     click('button[data-act="calc"]');
+    expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Alpha one (A1)');
+    focusBox('i3');
     expect(sheet().querySelector('.aud-calc-target').textContent).toContain('Beta one (B1)');
     tapKeys('8');
     sheet().querySelector('[data-s="insert"]').click();

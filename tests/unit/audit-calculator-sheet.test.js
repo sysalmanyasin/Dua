@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The calculator sheet on its own: keypad, keyboard, what it will and will not hand over, and how it closes.
+// The calculator panel on its own: keypad, keyboard, what it will and will not hand over, how it follows the count box, and how it closes.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { openCalculator } from '../../js/modules/audit/ui/calculator.js';
 
@@ -20,15 +20,15 @@ beforeEach(() => {
 });
 
 describe('opening', () => {
-  it('is a modal dialog with a keypad, says where the answer goes, and starts empty', () => {
+  it('is a floating, non-modal panel with a keypad, says where the answer goes, and starts empty', () => {
     openCalculator({ target: 'Alpha one (A1)', onInsert: vi.fn() });
     expect(sheet().getAttribute('role')).toBe('dialog');
-    expect(sheet().getAttribute('aria-modal')).toBe('true');
+    expect(sheet().getAttribute('aria-modal')).toBe('false');
     expect(q('.aud-calc-target').textContent).toContain('Alpha one (A1)');
     expect(main()).toBe('0');
     expect(q('[data-expr]').textContent).toBe('');
     expect(sheet().querySelectorAll('button[data-k]')).toHaveLength(18);
-    expect(document.activeElement).toBe(q('[data-screen]')); // so the keyboard works at once
+    expect(document.activeElement).toBe(document.getElementById('opener')); // the cursor stays where it was: in the count box
   });
 
   it('has an accessible name on every key that is not a plain digit', () => {
@@ -40,7 +40,7 @@ describe('opening', () => {
   it('with no count box chosen it still works as a calculator but cannot insert', () => {
     const onInsert = vi.fn();
     openCalculator({ target: '', onInsert });
-    expect(q('.aud-calc-target').textContent).toContain('Tap a count box first');
+    expect(q('.aud-calc-target').textContent).toContain('Tap a count box');
     expect(q('[data-s="insert"]').disabled).toBe(true);
     tap('6', '×', '1', '0');
     expect(q('[data-total]').textContent).toBe('= 60');
@@ -90,14 +90,49 @@ describe('working out a sum', () => {
 });
 
 describe('inserting', () => {
-  it('closes the sheet and then hands over the number, once', () => {
-    const onInsert = vi.fn(() => expect(sheet()).toBeNull()); // already closed when the number arrives
+  it('hands over the number once, stays open, and starts a new sum for the next item', () => {
+    const onInsert = vi.fn();
     openCalculator({ target: 'A', onInsert });
     tap('6', '×', '1', '0', '+', '4');
     q('[data-s="insert"]').click();
     expect(onInsert).toHaveBeenCalledTimes(1);
     expect(onInsert).toHaveBeenCalledWith(64);
-    expect(document.activeElement).toBe(document.getElementById('opener'));
+    expect(sheet()).not.toBeNull();
+    expect(main()).toBe('0');
+    expect(q('[data-expr]').textContent).toBe('');
+  });
+
+  it('follows the count box: the target is read again whenever the panel is told the box changed', () => {
+    let where = 'Alpha (A1)';
+    const onInsert = vi.fn();
+    const c = openCalculator({ getTarget: () => where, onInsert });
+    expect(q('.aud-calc-target').textContent).toContain('Alpha (A1)');
+    where = '';
+    c.refreshTarget();
+    expect(q('.aud-calc-target').textContent).toContain('Tap a count box');
+    expect(q('[data-s="insert"]').disabled).toBe(true);
+    where = 'Beta (B2)';
+    c.refreshTarget();
+    expect(q('[data-s="insert"]').disabled).toBe(false);
+    tap('7');
+    q('[data-s="insert"]').click();
+    expect(onInsert).toHaveBeenCalledWith(7);
+  });
+
+  it('a key press does not take the cursor out of the count box', () => {
+    openCalculator({ target: 'A', onInsert: vi.fn() });
+    const down = new Event('pointerdown', { bubbles: true, cancelable: true });
+    q('button[data-k="7"]').dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true);
+  });
+
+  it('can be minimised to its title bar and expanded again', () => {
+    const c = openCalculator({ target: 'A', onInsert: vi.fn() });
+    q('[data-s="min"]').click();
+    expect(sheet().classList.contains('is-min')).toBe(true);
+    expect(q('[data-s="min"]').getAttribute('aria-expanded')).toBe('false');
+    c.toggleMinimized();
+    expect(sheet().classList.contains('is-min')).toBe(false);
   });
 
   it('hands over a decimal count as a number', () => {
@@ -108,7 +143,7 @@ describe('inserting', () => {
     expect(onInsert).toHaveBeenCalledWith(2.5);
   });
 
-  it('a new sheet always starts empty: the running sum is not kept', () => {
+  it('a new panel always starts empty: the running sum is not kept', () => {
     openCalculator({ target: 'A', onInsert: vi.fn() }).close();
     openCalculator({ target: 'A', onInsert: vi.fn() });
     expect(main()).toBe('0');
@@ -149,12 +184,11 @@ describe('the keyboard', () => {
 });
 
 describe('closing and focus', () => {
-  it('Escape, Close and a tap on the dimmed area all close it and return focus to the opener', () => {
+  it('Escape, Close and leaving the page all close it, and a tap elsewhere does not', () => {
     const onClose = vi.fn();
     openCalculator({ target: 'A', onInsert: vi.fn(), onClose });
     press('Escape');
     expect(sheet()).toBeNull();
-    expect(document.activeElement).toBe(document.getElementById('opener'));
     expect(onClose).toHaveBeenCalledTimes(1);
 
     openCalculator({ target: 'A', onInsert: vi.fn(), onClose });
@@ -162,12 +196,14 @@ describe('closing and focus', () => {
     expect(sheet()).toBeNull();
 
     openCalculator({ target: 'A', onInsert: vi.fn(), onClose });
-    sheet().click(); // the dimmed area is the dialog element itself
+    sheet().click(); // the panel has no dimmed backdrop to tap
+    expect(sheet()).not.toBeNull();
+    window.dispatchEvent(new Event('hashchange'));
     expect(sheet()).toBeNull();
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
-  it('a tap inside the sheet does not close it', () => {
+  it('a tap inside the panel does not close it', () => {
     openCalculator({ target: 'A', onInsert: vi.fn() });
     q('.aud-calc-box').click();
     expect(sheet()).not.toBeNull();
@@ -181,15 +217,10 @@ describe('closing and focus', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps Tab inside the sheet', () => {
+  it('does not trap Tab: the panel is not a modal, so focus moves on as normal', () => {
     openCalculator({ target: 'A', onInsert: vi.fn() });
     const buttons = [...sheet().querySelectorAll('button:not([disabled])')];
     buttons.at(-1).focus();
-    expect(press('Tab', buttons.at(-1)).defaultPrevented).toBe(true);
-    expect(document.activeElement).toBe(buttons[0]);
-    expect(press('Tab', buttons[0], { shiftKey: true }).defaultPrevented).toBe(true);
-    expect(document.activeElement).toBe(buttons.at(-1));
-    buttons[2].focus();
-    expect(press('Tab', buttons[2]).defaultPrevented).toBe(false); // in the middle, the browser moves focus
+    expect(press('Tab', buttons.at(-1)).defaultPrevented).toBe(false);
   });
 });

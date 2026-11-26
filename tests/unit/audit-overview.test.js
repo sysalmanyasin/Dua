@@ -95,11 +95,14 @@ describe('audit overview', () => {
     expect(text(el)).not.toMatch(/recent activity/i);
   });
 
-  it('quick actions are compact chips to pages the person may open', async () => {
+  it('there are three main action cards, in this order, to pages the person may open', async () => {
     await open(OWNER);
     const chips = [...el.querySelectorAll('[data-chip]')].map((c) => c.dataset.chip);
-    expect(chips).toEqual(expect.arrayContaining(['count', 'individual', 'team', 'reports', 'expiry', 'barcode', 'templates']));
-    expect(el.querySelector('[data-chip="team"]').getAttribute('href')).toBe('#/audit/engagements');
+    expect(chips).toEqual(['individual', 'count', 'expiry']);
+    expect(el.querySelector('[data-chip="individual"]').getAttribute('href')).toBe('#/audit/individual');
+    expect(el.querySelector('[data-chip="count"]').getAttribute('href')).toBe('#/audit/count');
+    expect(el.querySelector('[data-chip="expiry"]').getAttribute('href')).toBe('#/audit/expiry');
+    for (const gone of ['team', 'reports', 'barcode', 'templates']) expect(el.querySelector(`[data-chip="${gone}"]`)).toBeNull();
   });
 
   it('lists each pending item on its own row and opens the right screen with the right round', async () => {
@@ -174,6 +177,29 @@ describe('audit overview', () => {
     for (const call of ['listEngagements', 'attentionSummary', 'individualOverview']) expect(api[call]).not.toHaveBeenCalled();
   });
 
+  it('Continue counting shows how far the open round has got, and says what it is for when nothing is open', async () => {
+    api.myAssignments.mockResolvedValue([
+      {
+        assignment_id: 'a1',
+        engagement_name: 'Annual audit',
+        round_number: 1,
+        round_suffix: '',
+        round_state: 'counting',
+        status: 'assigned',
+        items: 20,
+        counted: 5,
+        method: 'auto',
+      },
+    ]);
+    await open(['audit.count']);
+    expect(el.querySelector('[data-chip="count"]').hasAttribute('data-live')).toBe(true);
+    expect(el.querySelector('[data-live-hint]').textContent).toBe('5 of 20 counted · 25%');
+    api.myAssignments.mockResolvedValue([]);
+    await open(['audit.count']);
+    expect(el.querySelector('[data-chip="count"]').hasAttribute('data-live')).toBe(false);
+    expect(el.querySelector('[data-chip="count"]').textContent).toContain('Back to your open round');
+  });
+
   it('a sub-auditor with an open individual round is offered to continue it', async () => {
     api.myAssignments.mockResolvedValue([
       { assignment_id: 'a2', method: 'individual-self-pick', status: 'assigned', round_state: 'counting' },
@@ -218,6 +244,11 @@ describe('overview rules', () => {
   const routes = manifest.routes;
   it('quick actions leave out what the person cannot open', () => {
     expect(quickActions(routes, ['audit.count']).map((c) => c.key)).toEqual(['count']);
+    expect(quickActions(routes, new Set(['audit.count', 'audit.individual', 'audit.expiry_log'])).map((c) => c.key)).toEqual([
+      'individual',
+      'count',
+      'expiry',
+    ]);
     expect(quickActions(routes, []).length).toBe(0);
   });
 
