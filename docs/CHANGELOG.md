@@ -9,6 +9,12 @@ Dates are 2026. Counts are as of the end of each step.
 - Fixed a test that only passed on 25 Nov (its fixture used a fixed date; the page opens on today).
 - Tests: `0111_mgmt_attendance_views_test` (25 checks), the exposure whitelist (52 functions), 9 new unit tests (2,797 in all); full database suite passes (3,124 checks). Not tried on a real phone. No role preset carries an attendance permission (unchanged: the owner grants it per person).
 
+## 25 Nov — Sales Sale Book, Targets and Manage Fields routed; Stage 6 closed (D-70)
+- Three Sales pages were written on 9 Nov but no route pointed to them, so they could not be opened. They now have routes under Sales: **Sale Book** `/sales/reports` (monthly report, a year, all time; print or save as PDF; permission `sales.view_history`), **Targets** `/sales/targets` (`targets.manage`) and **Manage Fields** `/sales/fields` (`settings.manage`). The permissions are the ones the database already checks. Calculations unchanged; one clean-up (the monthly report is calculated once, not twice).
+- Stage 6 (Unified Reports) is **closed**: reports stay in each module, and the owner needs no other reports in other modules (D-70). No new module, range or migration.
+- Tests: new `sales-reports-page` (8): routes and permissions, monthly, year and all-time views, empty period, failed load shows "Could not load", failed build shows an error. No database change.
+- Not verified: the three pages on a real phone.
+
 ## 25 Nov — Menu and bell (D-69)
 - Bell in the top bar with the unread number, tab-title number `(3) Page · Dua`, app badge where supported, and an in-app notice for each new message (checked every minute and whenever the app is shown again; a failed check clears the number). Inbox left the side menu.
 - Team is a side-menu entry under Tasks (Owner only); Tasks and Inbox have their own icons. Pure helper `navLinks`; manifests may use `nav.links`, `nav.hidden` and `bell`.
