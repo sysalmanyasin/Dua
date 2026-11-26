@@ -20,6 +20,8 @@ const make = (tag, className, parent, text) => {
   return node;
 };
 const norm = (t) => t.replace(/\r\n?/g, '\n');
+// What a formula cell currently shows (its calculated result), or null for any other cell.
+const shownOf = (info) => (info.formula !== null && info.formula !== undefined ? info.text : null);
 const shorten = (t) => ([...t].length > 80 ? `${[...t].slice(0, 80).join('')}…` : t);
 
 // deps: getSheet() -> the sheet shown; getHeadSeq() -> how far the local copy is current; sender -> createOperationSender;
@@ -40,6 +42,7 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
   const cancel = make('button', 'btn btn-sm', actions, 'Cancel');
   cancel.type = 'button';
   cancel.dataset.edit = 'cancel';
+  const result = make('p', 'ws-edit-result', bar); // what a formula cell currently shows
   const msg = make('p', 'ws-edit-msg', bar);
   msg.setAttribute('role', 'status');
   const choice = make('div', 'ws-edit-choice', bar);
@@ -84,6 +87,7 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
       actions.hidden = true;
       msg.textContent = '';
       msg.hidden = true;
+      result.hidden = true;
       choice.hidden = true;
       box.rows = 1;
       return;
@@ -102,6 +106,8 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
     cancel.textContent = ed.locked ? 'Discard' : 'Cancel';
     msg.textContent = ed.message || ed.reason;
     msg.hidden = msg.textContent === '';
+    result.hidden = cell.shown === null || cell.shown === undefined;
+    if (!result.hidden) result.textContent = `Shows: ${cell.shown === '' ? '(empty)' : cell.shown}`;
     choice.hidden = ed.conflict === null || ed.conflict.kind !== 'cell';
     mine.disabled = ed.busy;
     theirs.disabled = ed.busy;
@@ -125,10 +131,11 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
       cell = null;
       ed = null;
     } else if (!same) {
-      cell = { rowId: info.rowId, colId: info.colId, label: info.label };
+      cell = { rowId: info.rowId, colId: info.colId, label: info.label, shown: shownOf(info) };
       begin();
     } else {
       cell.label = info.label;
+      cell.shown = shownOf(info);
       if (ed) refreshContent();
       else begin(); // the same cell again after its change was saved: show what it holds now
     }
@@ -148,10 +155,6 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
     if (!ed || ed.busy) return;
     if (!ed.locked) {
       const parsed = parseCellInput(ed.draft);
-      if (parsed.kind === 'formula') {
-        ed.message = "Formulas can be entered in a later update. To store text that starts with =, begin it with an apostrophe (').";
-        return paint();
-      }
       if (parsed.kind === 'invalid') {
         ed.message = parsed.reason;
         return paint();

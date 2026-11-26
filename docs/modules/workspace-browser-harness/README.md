@@ -6,7 +6,7 @@ buttons always visible). Nothing here is part of the app. The files end in `.txt
 
 What it does: serves the repo with the app's real Content Security Policy, loads the Sheets screen, and replaces
 `data/workbooks.js` with a stub that uses the JS reference model (`domain/spreadsheet.js`) as the server. The stub builds a
-3,101-row workbook with styles, a formula and a frozen first row and column. It does not touch Supabase.
+3,101-row workbook with styles, about 1,900 formulas (a value per row, running totals, an error, a circular pair) and a frozen first row and column. It does not touch Supabase.
 
 Run (from the repo root, in a scratch folder outside the repo):
 
@@ -20,7 +20,7 @@ Run (from the repo root, in a scratch folder outside the repo):
 
 Scripts: `drive.cjs` (errors, CSP, cell count for a long sheet, contrast, paint order of frozen headers, tap, scroll cost,
 dark mode, landscape; screenshots to `/tmp/shots`), `keys.cjs` (arrow keys, Page Down, End), `edit.cjs` (edit a styled cell,
-formula refusal, unsaved-draft guard), `conflict.cjs` (a real conflict and "Keep theirs").
+formula refusal, unsaved-draft guard), `conflict.cjs` (a real conflict and "Keep theirs"), `formulas.cjs` (about 1,900 formulas: results, `#DIV/0!`, `#CIRC!`, running totals, the bar, an edit that recalculates, scroll cost, and that no number is cut short).
 
 Limits: desktop Chromium emulating a phone screen is not a phone (no soft keyboard, no real touch scrolling, a fast CPU).
 The stub server is the model, not the database. Update `stub-workbooks.js` if the data-layer exports change.

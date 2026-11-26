@@ -1,0 +1,1787 @@
+{
+  "about": "Formula cases for the Workspace formula engine. Numbers are invented. A case is either { f, expect, cells? }: the formula f is put in Z100 and Z100 is checked; or { cells, expect: { A1: value } }: those cells are checked. cells holds values or formulas (text starting with =). Errors are { error }, an approximate number is { approx }.",
+  "cases": [
+    {
+      "f": "=1+2*3",
+      "expect": 7
+    },
+    {
+      "f": "=(1+2)*3",
+      "expect": 9
+    },
+    {
+      "f": "=2^3",
+      "expect": 8
+    },
+    {
+      "f": "=2^3^2",
+      "expect": 64
+    },
+    {
+      "f": "=-2^2",
+      "expect": 4
+    },
+    {
+      "f": "=2^-2",
+      "expect": 0.25
+    },
+    {
+      "f": "=10/4",
+      "expect": 2.5
+    },
+    {
+      "f": "=10/0",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=0/0",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=0^-1",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=1-1-1",
+      "expect": -1
+    },
+    {
+      "f": "=8/4/2",
+      "expect": 1
+    },
+    {
+      "f": "=--5",
+      "expect": 5
+    },
+    {
+      "f": "=+5",
+      "expect": 5
+    },
+    {
+      "f": "=3*-2",
+      "expect": -6
+    },
+    {
+      "f": "=.5+.25",
+      "expect": 0.75
+    },
+    {
+      "f": "=1e3+1",
+      "expect": 1001
+    },
+    {
+      "f": "=2E-2*100",
+      "expect": {
+        "approx": 2
+      }
+    },
+    {
+      "f": "=0.1+0.2",
+      "expect": {
+        "approx": 0.3
+      }
+    },
+    {
+      "f": "=10^400",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=(-8)^(1/3)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=0^0",
+      "expect": 1
+    },
+    {
+      "f": "=1/3*3",
+      "expect": 1
+    },
+    {
+      "f": "=-0",
+      "expect": 0
+    },
+    {
+      "f": "=5-5.5",
+      "expect": -0.5
+    },
+    {
+      "f": "=1000000*1000000",
+      "expect": 1000000000000
+    },
+    {
+      "f": "=7*(2+3)-4/2",
+      "expect": 33
+    },
+    {
+      "f": "=2*3^2",
+      "expect": 18
+    },
+    {
+      "f": "=-3^2+1",
+      "expect": 10
+    },
+    {
+      "f": "=10-2-3",
+      "expect": 5
+    },
+    {
+      "f": "=2^0.5*2^0.5",
+      "expect": {
+        "approx": 2
+      }
+    },
+    {
+      "f": "=1+1+1+1+1+1+1+1+1+1",
+      "expect": 10
+    },
+    {
+      "f": "=(((((1)))))+1",
+      "expect": 2
+    },
+    {
+      "f": "=\"a\"&\"b\"",
+      "expect": "ab"
+    },
+    {
+      "f": "=\"x\"&1",
+      "expect": "x1"
+    },
+    {
+      "f": "=1&2",
+      "expect": "12"
+    },
+    {
+      "f": "=TRUE&\"!\"",
+      "expect": "TRUE!"
+    },
+    {
+      "f": "=\"a\"&A1",
+      "expect": "a"
+    },
+    {
+      "f": "=0.1+0.2&\"\"",
+      "expect": "0.3"
+    },
+    {
+      "f": "=\"say \"\"hi\"\"\"",
+      "expect": "say \"hi\""
+    },
+    {
+      "f": "=\"3\"+4",
+      "expect": 7
+    },
+    {
+      "f": "=\"abc\"+1",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=\"\"+1",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=\" 5 \"+1",
+      "expect": 6
+    },
+    {
+      "f": "=\"1,200\"+1",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=TRUE+1",
+      "expect": 2
+    },
+    {
+      "f": "=FALSE*5",
+      "expect": 0
+    },
+    {
+      "f": "=\"1e2\"+0",
+      "expect": 100
+    },
+    {
+      "f": "=\"5%\"+0",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=A1+1",
+      "expect": 1
+    },
+    {
+      "f": "=A1&B1",
+      "expect": ""
+    },
+    {
+      "f": "=-\"3\"",
+      "expect": -3
+    },
+    {
+      "f": "=-\"x\"",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=1/3&\"\"",
+      "expect": "0.333333333333333"
+    },
+    {
+      "f": "=\"a\"&A1:A2",
+      "expect": {
+        "error": "#VALUE!"
+      },
+      "cells": {
+        "A1": "x",
+        "A2": "y"
+      }
+    },
+    {
+      "f": "=4005808123456&\"\"",
+      "expect": "4005808123456"
+    },
+    {
+      "f": "=\"0x10\"+1",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=\"+7\"*2",
+      "expect": 14
+    },
+    {
+      "f": "=1E400",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1<2",
+      "expect": true
+    },
+    {
+      "f": "=2<=2",
+      "expect": true
+    },
+    {
+      "f": "=3<>3",
+      "expect": false
+    },
+    {
+      "f": "=\"a\"=\"A\"",
+      "expect": true
+    },
+    {
+      "f": "=\"a\"<\"B\"",
+      "expect": true
+    },
+    {
+      "f": "=\"b\"<\"A\"",
+      "expect": false
+    },
+    {
+      "f": "=5<\"a\"",
+      "expect": true
+    },
+    {
+      "f": "=5=\"5\"",
+      "expect": false
+    },
+    {
+      "f": "=TRUE>5",
+      "expect": true
+    },
+    {
+      "f": "=FALSE>\"a\"",
+      "expect": true
+    },
+    {
+      "f": "=A1=0",
+      "expect": true
+    },
+    {
+      "f": "=A1=\"\"",
+      "expect": true
+    },
+    {
+      "f": "=A1=FALSE",
+      "expect": true
+    },
+    {
+      "f": "=A1<1",
+      "expect": true
+    },
+    {
+      "f": "=B1=A1",
+      "expect": true
+    },
+    {
+      "f": "=A1>\"a\"",
+      "expect": false
+    },
+    {
+      "f": "=1=1.0",
+      "expect": true
+    },
+    {
+      "f": "=TRUE=1",
+      "expect": false
+    },
+    {
+      "f": "=FALSE<TRUE",
+      "expect": true
+    },
+    {
+      "f": "=\"é\">\"e\"",
+      "expect": true
+    },
+    {
+      "f": "=1>#REF!",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=\"abc\"<\"abd\"",
+      "expect": true
+    },
+    {
+      "f": "=2>10",
+      "expect": false
+    },
+    {
+      "f": "=\"2\">\"10\"",
+      "expect": true
+    },
+    {
+      "f": "=A1=A2",
+      "expect": true,
+      "cells": {
+        "A1": 5,
+        "A2": 5
+      }
+    },
+    {
+      "f": "=A1<>A2",
+      "expect": true,
+      "cells": {
+        "A1": "a",
+        "A2": "b"
+      }
+    },
+    {
+      "f": "=SUM(A1:A3)",
+      "expect": 6,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(A1:A5)",
+      "expect": 6,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3,
+        "A4": "x",
+        "A5": true
+      }
+    },
+    {
+      "f": "=SUM(1,\"2\",TRUE)",
+      "expect": 4
+    },
+    {
+      "f": "=SUM(\"a\")",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=SUM()",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=SUM(A1:A3,10)",
+      "expect": 16,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(A1,A2)",
+      "expect": 3,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(A1:A3)",
+      "expect": {
+        "error": "#DIV/0!"
+      },
+      "cells": {
+        "A1": 1,
+        "A2": "=1/0",
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(B1:B3)",
+      "expect": 0,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(A1:B2)",
+      "expect": 33,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3,
+        "B1": 10,
+        "B2": 20
+      }
+    },
+    {
+      "f": "=SUM(B2:A1)",
+      "expect": 33,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3,
+        "B1": 10,
+        "B2": 20
+      }
+    },
+    {
+      "f": "=SUM(SUM(A1:A2),A3)",
+      "expect": 6,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(\"\")",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=SUM(A1:A2)*2",
+      "expect": 6,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(A1:A3)",
+      "expect": {
+        "error": "#NAME?"
+      },
+      "cells": {
+        "A1": 1,
+        "A2": "=SUM(A1:A2:A3)",
+        "A3": 3
+      },
+      "note": "a broken formula in the range is #NAME?"
+    },
+    {
+      "f": "=SUM(A1:A101)",
+      "expect": {
+        "error": "#REF!"
+      },
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3
+      }
+    },
+    {
+      "f": "=SUM(Z1)",
+      "expect": 0
+    },
+    {
+      "f": "=SUM(1,2,3,4,5,6,7,8,9,10)",
+      "expect": 55
+    },
+    {
+      "f": "=SUM(-1,1)",
+      "expect": 0
+    },
+    {
+      "f": "=SUM(0.1,0.2)",
+      "expect": {
+        "approx": 0.3
+      }
+    },
+    {
+      "f": "=AVERAGE(A1:A4)",
+      "expect": 2.5,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3,
+        "A4": 4
+      }
+    },
+    {
+      "f": "=AVERAGE(A1:A5)",
+      "expect": 2.5,
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3,
+        "A4": 4,
+        "A5": "x"
+      }
+    },
+    {
+      "f": "=AVERAGE(B1:B3)",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=AVERAGE(1,\"3\")",
+      "expect": 2
+    },
+    {
+      "f": "=AVERAGE(TRUE,3)",
+      "expect": 2
+    },
+    {
+      "f": "=AVERAGE(A1:A2)",
+      "expect": {
+        "error": "#DIV/0!"
+      },
+      "cells": {
+        "A1": "a",
+        "A2": true
+      }
+    },
+    {
+      "f": "=MIN(A1:A3)",
+      "expect": 2,
+      "cells": {
+        "A1": 5,
+        "A2": 2,
+        "A3": 9
+      }
+    },
+    {
+      "f": "=MAX(A1:A3)",
+      "expect": 9,
+      "cells": {
+        "A1": 5,
+        "A2": 2,
+        "A3": 9
+      }
+    },
+    {
+      "f": "=MIN(B1:B2)",
+      "expect": 0
+    },
+    {
+      "f": "=MAX(-1,-5)",
+      "expect": -1
+    },
+    {
+      "f": "=MIN(A1:A3,1)",
+      "expect": 1,
+      "cells": {
+        "A1": 5,
+        "A2": 2,
+        "A3": 9
+      }
+    },
+    {
+      "f": "=MAX(A1:A4)",
+      "expect": 9,
+      "cells": {
+        "A1": 5,
+        "A2": 2,
+        "A3": 9,
+        "A4": "zzz"
+      }
+    },
+    {
+      "f": "=MIN(\"x\")",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=MAX(B1:B3)",
+      "expect": 0
+    },
+    {
+      "f": "=MIN(-3,A1:A3)",
+      "expect": -3,
+      "cells": {
+        "A1": 5,
+        "A2": 2,
+        "A3": 9
+      }
+    },
+    {
+      "f": "=MAX(A1:A3)",
+      "expect": {
+        "error": "#NAME?"
+      },
+      "cells": {
+        "A1": 5,
+        "A2": "=1+",
+        "A3": 9
+      }
+    },
+    {
+      "f": "=COUNT(A1:A4)",
+      "expect": 1,
+      "cells": {
+        "A1": 1,
+        "A2": "a",
+        "A3": true,
+        "A4": ""
+      }
+    },
+    {
+      "f": "=COUNT(1,\"2\",\"a\",TRUE)",
+      "expect": 3
+    },
+    {
+      "f": "=COUNT(B1:B3)",
+      "expect": 0
+    },
+    {
+      "f": "=COUNT(1/0)",
+      "expect": 0
+    },
+    {
+      "f": "=COUNTA(A1:A4)",
+      "expect": 4,
+      "cells": {
+        "A1": 1,
+        "A2": "a",
+        "A3": true,
+        "A4": ""
+      }
+    },
+    {
+      "f": "=COUNTA(B1:B3)",
+      "expect": 0
+    },
+    {
+      "f": "=COUNTA(A1:A4,5)",
+      "expect": 5,
+      "cells": {
+        "A1": 1,
+        "A2": "a",
+        "A3": true,
+        "A4": ""
+      }
+    },
+    {
+      "f": "=COUNTA(A1:A2)",
+      "expect": 2,
+      "cells": {
+        "A1": 1,
+        "A2": "=1/0"
+      }
+    },
+    {
+      "f": "=COUNT(A1:A2)",
+      "expect": 1,
+      "cells": {
+        "A1": 1,
+        "A2": "=1/0"
+      }
+    },
+    {
+      "f": "=COUNT()",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=IF(1>2,\"y\",\"n\")",
+      "expect": "n"
+    },
+    {
+      "f": "=IF(TRUE,1)",
+      "expect": 1
+    },
+    {
+      "f": "=IF(FALSE,1)",
+      "expect": false
+    },
+    {
+      "f": "=IF(TRUE,1,1/0)",
+      "expect": 1
+    },
+    {
+      "f": "=IF(FALSE,1/0,2)",
+      "expect": 2
+    },
+    {
+      "f": "=IF(\"abc\",1,2)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=IF(1/0,1,2)",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=IF(A1:A2,1,2)",
+      "expect": {
+        "error": "#VALUE!"
+      },
+      "cells": {
+        "A1": 1,
+        "A2": 1
+      }
+    },
+    {
+      "f": "=IF(0,1,2)",
+      "expect": 2
+    },
+    {
+      "f": "=IF(\"true\",1,2)",
+      "expect": 1
+    },
+    {
+      "f": "=IF(A1,1,2)",
+      "expect": 2
+    },
+    {
+      "f": "=IF(1,IF(0,\"a\",\"b\"),\"c\")",
+      "expect": "b"
+    },
+    {
+      "f": "=IF(TRUE)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=IF(1,2,3,4)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=IF(TRUE,A1)",
+      "expect": 0
+    },
+    {
+      "f": "=IF(A1>2,A1*2,A1)",
+      "expect": 12,
+      "cells": {
+        "A1": 6
+      }
+    },
+    {
+      "f": "=IF(A1>2,A1*2,A1)",
+      "expect": 1,
+      "cells": {
+        "A1": 1
+      }
+    },
+    {
+      "f": "=IF(2>1,\"a\")&\"b\"",
+      "expect": "ab"
+    },
+    {
+      "f": "=AND(TRUE,1)",
+      "expect": true
+    },
+    {
+      "f": "=AND(TRUE,0)",
+      "expect": false
+    },
+    {
+      "f": "=OR(FALSE,0)",
+      "expect": false
+    },
+    {
+      "f": "=OR(FALSE,2)",
+      "expect": true
+    },
+    {
+      "f": "=AND(\"a\")",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=AND(A1:A2)",
+      "expect": {
+        "error": "#VALUE!"
+      },
+      "cells": {
+        "A1": "x",
+        "A2": "y"
+      }
+    },
+    {
+      "f": "=AND(1/0,FALSE)",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=OR(1,1/0)",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=AND(A1:A3)",
+      "expect": false,
+      "cells": {
+        "A1": 1,
+        "A2": 0,
+        "A3": "x"
+      }
+    },
+    {
+      "f": "=OR(A1:A3)",
+      "expect": true,
+      "cells": {
+        "A1": 1,
+        "A2": 0,
+        "A3": "x"
+      }
+    },
+    {
+      "f": "=AND(B1:B3)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=OR(TRUE)",
+      "expect": true
+    },
+    {
+      "f": "=AND(A1>0,A2>0)",
+      "expect": true,
+      "cells": {
+        "A1": 1,
+        "A2": 2
+      }
+    },
+    {
+      "f": "=OR(A1>5,A2>5)",
+      "expect": false,
+      "cells": {
+        "A1": 1,
+        "A2": 2
+      }
+    },
+    {
+      "f": "=ROUND(2.5,0)",
+      "expect": 3
+    },
+    {
+      "f": "=ROUND(-2.5,0)",
+      "expect": -3
+    },
+    {
+      "f": "=ROUND(1.005,2)",
+      "expect": 1.01
+    },
+    {
+      "f": "=ROUND(2.675,2)",
+      "expect": 2.68
+    },
+    {
+      "f": "=ROUND(1250,-2)",
+      "expect": 1300
+    },
+    {
+      "f": "=ROUND(-1250,-2)",
+      "expect": -1300
+    },
+    {
+      "f": "=ROUND(0.5)",
+      "expect": 1
+    },
+    {
+      "f": "=ROUND(-0.5)",
+      "expect": -1
+    },
+    {
+      "f": "=ROUND(1.5)",
+      "expect": 2
+    },
+    {
+      "f": "=ROUND(1.2345,3)",
+      "expect": 1.235
+    },
+    {
+      "f": "=ROUND(1234.5678,2)",
+      "expect": 1234.57
+    },
+    {
+      "f": "=ROUND(5,1.9)",
+      "expect": 5
+    },
+    {
+      "f": "=ROUND(\"x\",1)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=ROUND(1,2,3)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=ROUND()",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=ROUND(3.14159,4)",
+      "expect": 3.1416
+    },
+    {
+      "f": "=ROUND(0.049,1)",
+      "expect": 0
+    },
+    {
+      "f": "=ROUND(-0.049,1)",
+      "expect": 0
+    },
+    {
+      "f": "=ROUND(15,-1)",
+      "expect": 20
+    },
+    {
+      "f": "=ROUND(14.999,-1)",
+      "expect": 10
+    },
+    {
+      "f": "=ROUND(\"2.5\",0)",
+      "expect": 3
+    },
+    {
+      "f": "=ROUND(1/3,2)",
+      "expect": 0.33
+    },
+    {
+      "f": "=ROUND(1e20,2)",
+      "expect": 1e20
+    },
+    {
+      "f": "=ABS(-3)",
+      "expect": 3
+    },
+    {
+      "f": "=ABS(\"-3\")",
+      "expect": 3
+    },
+    {
+      "f": "=ABS(TRUE)",
+      "expect": 1
+    },
+    {
+      "f": "=ABS(\"x\")",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=ABS(-0)",
+      "expect": 0
+    },
+    {
+      "f": "=ABS(1,2)",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=ABS(2-5)",
+      "expect": 3
+    },
+    {
+      "f": "=ABS(A1:A2)",
+      "expect": {
+        "error": "#VALUE!"
+      },
+      "cells": {
+        "A1": 1,
+        "A2": 2
+      }
+    },
+    {
+      "f": "=CONCAT(\"a\",1,TRUE)",
+      "expect": "a1TRUE"
+    },
+    {
+      "f": "=CONCAT(A1:A3)",
+      "expect": "xyz",
+      "cells": {
+        "A1": "x",
+        "A2": "y",
+        "A3": "z"
+      }
+    },
+    {
+      "f": "=CONCAT(A1:A3,B1:B3)",
+      "expect": "xyz",
+      "cells": {
+        "A1": "x",
+        "A2": "y",
+        "A3": "z"
+      }
+    },
+    {
+      "f": "=CONCAT(A1:A2)",
+      "expect": {
+        "error": "#DIV/0!"
+      },
+      "cells": {
+        "A1": "x",
+        "A2": "=1/0"
+      }
+    },
+    {
+      "f": "=CONCAT()",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=CONCAT(1.5,2)",
+      "expect": "1.52"
+    },
+    {
+      "f": "=CONCAT(A1:B2)",
+      "expect": "abcd",
+      "cells": {
+        "A1": "a",
+        "B1": "b",
+        "A2": "c",
+        "B2": "d"
+      }
+    },
+    {
+      "f": "=CONCAT(\"a\",\"b\")&\"c\"",
+      "expect": "abc"
+    },
+    {
+      "f": "=CONCAT(A1,A2)",
+      "expect": "12",
+      "cells": {
+        "A1": 1,
+        "A2": 2
+      }
+    },
+    {
+      "f": "=CONCAT(A1:A2,\" \",B1)",
+      "expect": "xy z",
+      "cells": {
+        "A1": "x",
+        "A2": "y",
+        "B1": "z"
+      }
+    },
+    {
+      "f": "=CONCAT(\"\")",
+      "expect": ""
+    },
+    {
+      "f": "=FOO(1)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=foo",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=sum(1,2)",
+      "expect": 3
+    },
+    {
+      "f": "=#REF!",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=1+#REF!",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=#VALUE!",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=#div/0!",
+      "expect": {
+        "error": "#DIV/0!"
+      }
+    },
+    {
+      "f": "=IF(TRUE,#NAME?,1)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=#CIRC!",
+      "expect": {
+        "error": "#CIRC!"
+      }
+    },
+    {
+      "f": "=SuM(1,2)",
+      "expect": 3
+    },
+    {
+      "f": "=A0",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=Sheet1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1+",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=(1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=SUM(1,)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1 2",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=\"abc",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1 +* 2",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=Sheet2!A1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=A:A",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "==1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1.2.3",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=SUM(1;2)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=5%",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=@A1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=SUM(,1)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=SUM((1,2))",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1,2",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=()",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=#NOPE!",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=A1:",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=:A1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=A1:B2:C3",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1+2)",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=IF(1,2,",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=\"a\"\"",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=2 3 4",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=$",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=A1 B1",
+      "expect": {
+        "error": "#NAME?"
+      }
+    },
+    {
+      "f": "=1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1",
+      "expect": {
+        "error": "#NAME?"
+      },
+      "note": "longer than 1,000 characters"
+    },
+    {
+      "f": "=((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "expect": {
+        "error": "#NAME?"
+      },
+      "note": "nested deeper than 64"
+    },
+    {
+      "f": "=((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "expect": 1
+    },
+    {
+      "f": "=$A$1+A$1+$A1",
+      "expect": 15,
+      "cells": {
+        "A1": 5
+      }
+    },
+    {
+      "f": "=AA1",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=A101",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=A1:A101",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=SUM(A1:AA1)",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=SUM(AAA1)",
+      "expect": {
+        "error": "#REF!"
+      }
+    },
+    {
+      "f": "=A1",
+      "expect": 5,
+      "cells": {
+        "A1": 5
+      }
+    },
+    {
+      "f": "=a1",
+      "expect": 5,
+      "cells": {
+        "A1": 5
+      }
+    },
+    {
+      "f": "=Z1",
+      "expect": 0
+    },
+    {
+      "f": "=A100",
+      "expect": 0
+    },
+    {
+      "f": "=B2:A1",
+      "expect": {
+        "error": "#VALUE!"
+      }
+    },
+    {
+      "f": "=$B$2*2",
+      "expect": 8,
+      "cells": {
+        "B2": 4
+      }
+    },
+    {
+      "f": "=B2+B3",
+      "expect": 9,
+      "cells": {
+        "B2": 4,
+        "B3": 5
+      }
+    },
+    {
+      "f": "=A1+B1",
+      "expect": {
+        "error": "#VALUE!"
+      },
+      "cells": {
+        "A1": 1,
+        "B1": "x"
+      }
+    },
+    {
+      "cells": {
+        "A1": "=A1"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        }
+      },
+      "note": "a cell that refers to itself"
+    },
+    {
+      "cells": {
+        "A1": "=B1",
+        "B1": "=A1"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "B1": {
+          "error": "#CIRC!"
+        }
+      },
+      "note": "two cells"
+    },
+    {
+      "cells": {
+        "A1": "=B1+1",
+        "B1": "=C1",
+        "C1": "=A1",
+        "D1": "=A1+1",
+        "E1": 1
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "B1": {
+          "error": "#CIRC!"
+        },
+        "C1": {
+          "error": "#CIRC!"
+        },
+        "D1": {
+          "error": "#CIRC!"
+        },
+        "E1": 1
+      },
+      "note": "three cells and one that depends on them"
+    },
+    {
+      "cells": {
+        "A5": "=SUM(A1:A5)",
+        "A1": 1
+      },
+      "expect": {
+        "A5": {
+          "error": "#CIRC!"
+        },
+        "A1": 1
+      },
+      "note": "through a range that contains the formula itself"
+    },
+    {
+      "cells": {
+        "A1": "=IF(TRUE,1,A1)"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        }
+      },
+      "note": "circular even though the loop is never taken"
+    },
+    {
+      "cells": {
+        "A1": "=B1",
+        "B1": 5
+      },
+      "expect": {
+        "A1": 5,
+        "B1": 5
+      }
+    },
+    {
+      "cells": {
+        "A1": "=B1",
+        "B1": "=C1",
+        "C1": 1
+      },
+      "expect": {
+        "A1": 1,
+        "B1": 1,
+        "C1": 1
+      }
+    },
+    {
+      "cells": {
+        "A1": "=A1",
+        "B1": 3,
+        "D1": "=COUNT(A1:C1)"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "D1": 1
+      },
+      "note": "COUNT ignores the error"
+    },
+    {
+      "cells": {
+        "A1": "=B1",
+        "B1": "=A1",
+        "C1": "=D1",
+        "D1": "=C1",
+        "E1": 7,
+        "F1": "=E1*2"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "B1": {
+          "error": "#CIRC!"
+        },
+        "C1": {
+          "error": "#CIRC!"
+        },
+        "D1": {
+          "error": "#CIRC!"
+        },
+        "F1": 14
+      },
+      "note": "two separate cycles and an ordinary cell"
+    },
+    {
+      "cells": {
+        "A1": "=SUM(B1:B3)",
+        "B2": "=A1"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "B2": {
+          "error": "#CIRC!"
+        }
+      },
+      "note": "a cycle through a range"
+    },
+    {
+      "cells": {
+        "A1": "=SUM(B1:B3)",
+        "B4": "=A1"
+      },
+      "expect": {
+        "A1": 0,
+        "B4": 0
+      },
+      "note": "a range that stops short of the formula is not a cycle"
+    },
+    {
+      "cells": {
+        "A1": 1,
+        "A2": "=A1+1",
+        "A3": "=A2+1",
+        "A4": "=SUM(A1:A3)"
+      },
+      "expect": {
+        "A2": 2,
+        "A3": 3,
+        "A4": 6
+      }
+    },
+    {
+      "cells": {
+        "A1": "=B1",
+        "B1": "=C1",
+        "C1": "=B1"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "B1": {
+          "error": "#CIRC!"
+        },
+        "C1": {
+          "error": "#CIRC!"
+        }
+      },
+      "note": "a cell outside the loop that reads into it"
+    },
+    {
+      "cells": {
+        "A1": 2,
+        "B1": "=A1*2",
+        "C1": "=B1*2",
+        "D1": "=C1*2",
+        "E1": "=SUM(A1:D1)"
+      },
+      "expect": {
+        "B1": 4,
+        "C1": 8,
+        "D1": 16,
+        "E1": 30
+      }
+    },
+    {
+      "cells": {
+        "A1": "=IF(B1>0,\"yes\",\"no\")",
+        "B1": "=C1-5",
+        "C1": 3
+      },
+      "expect": {
+        "B1": -2,
+        "A1": "no"
+      }
+    },
+    {
+      "cells": {
+        "A1": 1,
+        "A2": 2,
+        "A3": 3,
+        "B1": "=SUM(A1:A3)",
+        "B2": "=AVERAGE(A1:A3)",
+        "B3": "=MAX(A1:A3)-MIN(A1:A3)",
+        "B4": "=B1+B2+B3"
+      },
+      "expect": {
+        "B1": 6,
+        "B2": 2,
+        "B3": 2,
+        "B4": 10
+      }
+    },
+    {
+      "cells": {
+        "A1": "=A2",
+        "A2": "=A3",
+        "A3": "=A4",
+        "A4": "=#REF!"
+      },
+      "expect": {
+        "A1": {
+          "error": "#REF!"
+        },
+        "A2": {
+          "error": "#REF!"
+        },
+        "A3": {
+          "error": "#REF!"
+        },
+        "A4": {
+          "error": "#REF!"
+        }
+      },
+      "note": "an error is passed along"
+    },
+    {
+      "cells": {
+        "A1": 10,
+        "A2": "=A1/0",
+        "A3": "=IF(A2>1,1,2)",
+        "A4": "=COUNT(A1:A3)",
+        "A5": "=COUNTA(A1:A3)"
+      },
+      "expect": {
+        "A2": {
+          "error": "#DIV/0!"
+        },
+        "A3": {
+          "error": "#DIV/0!"
+        },
+        "A4": 1,
+        "A5": 3
+      }
+    },
+    {
+      "cells": {
+        "A1": "=B1",
+        "B1": "=A1",
+        "C1": "=SUM(A1:B1)",
+        "D1": "=1+1"
+      },
+      "expect": {
+        "A1": {
+          "error": "#CIRC!"
+        },
+        "B1": {
+          "error": "#CIRC!"
+        },
+        "C1": {
+          "error": "#CIRC!"
+        },
+        "D1": 2
+      }
+    }
+  ]
+}

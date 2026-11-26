@@ -247,16 +247,30 @@ describe('saving an edit', () => {
     await vi.waitFor(() => expect(serverCell(2, 1).value).toBe('Brufen'));
   });
 
-  it('refuses a formula for now and sends nothing', async () => {
+  it('saves a formula as formula text, never as a value', async () => {
     await open();
     select(1, 0);
     type('=A1+B1');
     btn('save').click();
     await settle();
-    expect(msg()).toContain('Formulas can be entered in a later update');
+    expect(applyCalls()).toHaveLength(1);
+    const sent = applyCalls()[0][1].p_ops[0].payload.cells[0];
+    expect(sent).toMatchObject({ formula: '=A1+B1' });
+    expect('value' in sent).toBe(false);
+    expect(serverCell(2, 1)).toMatchObject({ formula: '=A1+B1', value: null });
+  });
+
+  it('refuses a formula that cannot be read, sends nothing and keeps the draft', async () => {
+    await open();
+    select(1, 0);
+    type('=A1+');
+    btn('save').click();
+    await settle();
+    expect(msg()).toContain('This formula cannot be read');
+    expect(msg()).toContain('ends too soon');
     expect(applyCalls()).toHaveLength(0);
     expect(serverCell(2, 1).value).toBe('Panadol');
-    expect(box().value).toBe('=A1+B1'); // the draft is still there
+    expect(box().value).toBe('=A1+'); // the draft is still there
   });
 
   it('refuses text that is too long for a cell', async () => {
@@ -281,12 +295,12 @@ describe('saving an edit', () => {
     expect(btn('save').closest('.ws-edit-actions').hidden).toBe(true);
   });
 
-  it('shows formulas and numbers that cannot be typed back as read-only, with the reason', async () => {
+  it('lets a formula be edited as text, and shows a number that cannot be typed back as read-only, with the reason', async () => {
     await open();
     select(4, 0);
     expect(box().value).toBe('=B2*2');
-    expect(box().readOnly).toBe(true);
-    expect(msg()).toContain('later update');
+    expect(box().readOnly).toBe(false);
+    expect(msg()).toBe('');
     select(5, 0);
     expect(box().readOnly).toBe(true);
     expect(msg()).toContain('too large or too precise');
@@ -550,6 +564,78 @@ describe('what the edit files must never do', () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync('js/modules/workspace/ui/cellEditor.js', 'utf8');
     expect(src).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|cssText|setAttribute\(\s*['"]style|\beval\b|new Function/);
+  });
+});
+
+describe('formulas on screen', () => {
+  const refresh = async () => {
+    host.querySelector('[data-act="refresh"]').click();
+    await settle();
+  };
+
+  it('a formula already in the workbook shows its result, not its text', async () => {
+    await open();
+    expect(at(4, 0).textContent).toBe('3000'); // =B2*2 where B2 holds 1500
+    expect(at(4, 0).classList.contains('is-formula')).toBe(false);
+  });
+
+  it('a saved formula shows its result and the bar says what it shows', async () => {
+    await open();
+    select(1, 0);
+    type('=B2+1');
+    btn('save').click();
+    await saved();
+    await vi.waitFor(() => expect(at(1, 0).textContent).toBe('1501'));
+    expect(box().value).toBe('=B2+1'); // the box keeps the formula
+    expect(host.querySelector('.ws-edit-result').textContent).toBe('Shows: 1501');
+    expect(at(1, 0).style.justifyContent).toBe('flex-end'); // a number is right-aligned
+  });
+
+  it('an error result is shown as the error, highlighted, and never stored', async () => {
+    await open();
+    select(1, 0);
+    type('=1/0');
+    btn('save').click();
+    await saved();
+    await vi.waitFor(() => expect(at(1, 0).textContent).toBe('#DIV/0!'));
+    expect(at(1, 0).classList.contains('is-error')).toBe(true);
+    expect(host.querySelector('.ws-edit-result').textContent).toBe('Shows: #DIV/0!');
+    expect(serverCell(2, 1)).toMatchObject({ formula: '=1/0', value: null }); // only the text is stored
+  });
+
+  it('a formula that refers to itself shows #CIRC!', async () => {
+    await open();
+    select(1, 0);
+    type('=A2');
+    btn('save').click();
+    await saved();
+    await vi.waitFor(() => expect(at(1, 0).textContent).toBe('#CIRC!'));
+  });
+
+  it("someone else's change to a cell it reads updates the result after a refresh", async () => {
+    await open();
+    expect(at(4, 0).textContent).toBe('3000');
+    otherEdit(2, 2, 2000);
+    await refresh();
+    expect(at(4, 0).textContent).toBe('4000');
+  });
+
+  it('a change to a cell outside every formula leaves the results alone', async () => {
+    await open();
+    otherEdit(3, 1, 'x');
+    await refresh();
+    expect(at(4, 0).textContent).toBe('3000');
+  });
+
+  it('changing a formula back to plain text removes the calculation', async () => {
+    await open();
+    select(4, 0);
+    type("'=B2*2");
+    btn('save').click();
+    await saved();
+    await vi.waitFor(() => expect(at(4, 0).textContent).toBe('=B2*2'));
+    expect(serverCell(5, 1)).toMatchObject({ value: '=B2*2', formula: null });
+    expect(host.querySelector('.ws-edit-result').hidden).toBe(true);
   });
 });
 

@@ -58,9 +58,33 @@ describe('what typing becomes', () => {
     expect(parseCellInput(undefined)).toEqual({ kind: 'clear' });
   });
 
-  it('refuses formulas for now rather than storing something that does nothing', () => {
-    expect(parseCellInput('=A1+B1')).toEqual({ kind: 'formula' });
-    expect(parseCellInput('  =1')).toEqual({ kind: 'formula' });
+  it('reads a formula that parses, and keeps its text as typed (spaces around it are trimmed)', () => {
+    expect(parseCellInput('=A1+B1')).toEqual({ kind: 'formula', formula: '=A1+B1' });
+    expect(parseCellInput('  =1  ')).toEqual({ kind: 'formula', formula: '=1' });
+    expect(parseCellInput('=sum(a1:a3) * 2')).toEqual({ kind: 'formula', formula: '=sum(a1:a3) * 2' }); // stored as typed
+    expect(parseCellInput('=FOO(1)')).toEqual({ kind: 'formula', formula: '=FOO(1)' }); // unknown names show #NAME?, as elsewhere
+  });
+
+  it('refuses a formula that cannot be read, with a plain reason and where it went wrong, instead of storing an error', () => {
+    for (const [typed, reason, pos] of [
+      ['=1+', 'ends too soon', 3],
+      ['=(1', 'Expected )', 3],
+      ['=SUM(1,)', 'Unexpected', 7],
+      ['=Sheet2!A1', 'other sheets', 7],
+      ['=', 'Type something', 1],
+      ['="abc', 'closing quote', 1],
+    ]) {
+      const r = parseCellInput(typed);
+      expect(r.kind, typed).toBe('invalid');
+      expect(r.reason, typed).toMatch(/^This formula cannot be read: /);
+      expect(r.reason, typed).toContain(reason);
+      expect(r.pos, typed).toBe(pos);
+    }
+    expect(parseCellInput('=' + '1+'.repeat(600) + '1').reason).toContain('at most 1,000 characters');
+  });
+
+  it('a leading apostrophe stores formula-looking text as text', () => {
+    expect(parseCellInput("'=A1+B1")).toEqual({ kind: 'value', value: '=A1+B1' });
   });
 
   it('keeps ordinary text exactly as typed, including spaces, other languages and markup characters', () => {
@@ -141,9 +165,9 @@ describe('what the edit box shows', () => {
     }
   });
 
-  it('shows but does not allow editing of what typing cannot reproduce: formulas and unrepresentable numbers', () => {
-    expect(editState(cell(null, '=A1*2'))).toMatchObject({ text: '=A1*2', editable: false });
-    expect(editState(cell(null, '=A1*2')).reason).toMatch(/later update/);
+  it('shows a formula as its text, editable, and shows what typing cannot reproduce (unrepresentable numbers) as read-only', () => {
+    expect(editState(cell(null, '=A1*2'))).toEqual({ text: '=A1*2', editable: true });
+    expect(parseCellInput(editState(cell(null, '=SUM(A1:A3) + 1')).text)).toEqual({ kind: 'formula', formula: '=SUM(A1:A3) + 1' }); // round trip
     for (const n of [1e21, 1.5e-7, 1234567890123456, 0.1234567890123456, 2 ** 60]) {
       const st = editState(cell(n));
       expect(st.editable, String(n)).toBe(false);
@@ -151,6 +175,12 @@ describe('what the edit box shows', () => {
     }
     expect(editState(cell(123456789012345)).editable).toBe(true);
     expect(editState(null)).toEqual({ text: '', editable: true });
+  });
+
+  it('text that looks like a formula or a broken formula is shown with an apostrophe so saving it does not change it', () => {
+    expect(editState(cell('=A1+1'))).toEqual({ text: "'=A1+1", editable: true });
+    expect(editState(cell('=oops('))).toEqual({ text: "'=oops(", editable: true });
+    expect(parseCellInput("'=oops(")).toEqual({ kind: 'value', value: '=oops(' });
   });
 });
 

@@ -43,7 +43,8 @@
 - **Done 23 Nov 2026 (merged as PR #77):** Phase 5 increment 4, the read-only grid screen and New workbook.
 - **Now:** Notes acceptance was reported by the owner on 21 Nov 2026. Cell editing (Phase 5 increment 5) is built; next is Sheets Phase 5 increment 6 (sheet management), then row and column structure operations and formats. Run real-browser CSP and phone grid-performance checks as the UI takes shape.
 - **Next (Phase 5):** workbooks and the spreadsheet grid. `1102` (sheets, cells with stable row/column ids, styles, operation log, snapshots) is on `main` and applied live (21 Nov 2026); the Sheets UI is not built; next are the JS domain model with a parity fixture, then the grid.
-- **Then:** formula engine (6), formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
+- **Done 24 Nov 2026:** Phase 6, the formula engine (rules in `docs/modules/workspace.formulas.md`).
+- **Then:** formatting/sort/filter/CSV (7), IndexedDB offline queue with sign-out hook (8), synchronisation and conflict merge screens (9), attachments (10), integration and acceptance (11). Details and acceptance gates: `docs/modules/workspace.design.md`.
 
 ### Closing / Manager / STR
 - Treat the core implementations as built; prioritize acceptance and documented integration gaps rather than rebuilding their existing screens.

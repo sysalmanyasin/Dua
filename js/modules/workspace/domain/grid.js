@@ -122,13 +122,19 @@ function formatNumber(n, nf) {
   return generalNumber(n);
 }
 
-// { text, kind } for a stored cell (or null) and its already-sanitized style. kind is 'number', 'boolean', 'text',
-// 'formula' or 'empty'; it only decides the default alignment. Formulas are not calculated yet (Phase 6): the formula
-// text is shown.
-export function displayCell(cell, style = {}) {
+const isErrorValue = (v) => v !== null && typeof v === 'object' && typeof v.error === 'string';
+
+// { text, kind } for a stored cell (or null) and its already-sanitized style. kind is 'number', 'boolean', 'text', 'error',
+// 'formula' or 'empty'; it only decides the default alignment. `computed` is the calculated result of a formula cell (from
+// domain/formulas); without it a formula cell shows its formula text.
+export function displayCell(cell, style = {}, computed = undefined) {
   if (!cell) return { text: '', kind: 'empty' };
-  if (cell.formula !== null && cell.formula !== undefined) return { text: String(cell.formula), kind: 'formula' };
-  const v = cell.value;
+  let v = cell.value;
+  if (cell.formula !== null && cell.formula !== undefined) {
+    if (computed === undefined) return { text: String(cell.formula), kind: 'formula' };
+    v = computed;
+  }
+  if (isErrorValue(v)) return { text: v.error, kind: 'error' };
   if (v === null || v === undefined) return { text: '', kind: 'empty' };
   if (typeof v === 'boolean') return { text: v ? 'TRUE' : 'FALSE', kind: 'boolean' };
   if (typeof v === 'number') return { text: formatNumber(v, style.numfmt), kind: 'number' };
@@ -140,7 +146,7 @@ export function displayCell(cell, style = {}) {
 const BORDER_PX = { thin: 1, medium: 2, thick: 3 };
 const ALIGN = { left: 'flex-start', center: 'center', right: 'flex-end' };
 const VALIGN = { top: 'flex-start', middle: 'center', bottom: 'flex-end' };
-const DEFAULT_ALIGN = { number: 'right', boolean: 'center', text: 'left', formula: 'left', empty: 'left' };
+const DEFAULT_ALIGN = { number: 'right', boolean: 'center', text: 'left', error: 'center', formula: 'left', empty: 'left' };
 
 // CSS properties (camelCase, for element.style) for one cell. Always goes through sanitizeStyle, because the database can
 // hold older styles that are not exactly valid. Only values that passed the whitelist ever reach CSS.
@@ -159,12 +165,14 @@ export function cellCss(rawStyle, kind = 'text') {
   return { css, style: s };
 }
 
-// Everything needed to draw one cell, from the sheet and the row and column ids.
-export function describeCell(sheet, rowId, colId) {
+// Everything needed to draw one cell, from the sheet and the row and column ids. `calc` (optional, from
+// domain/formulas/sheetCalc.js) supplies calculated results for formula cells.
+export function describeCell(sheet, rowId, colId, calc = null) {
   const cell = sheet.cells.get(`${rowId}:${colId}`) ?? null;
   const filled = cell && (cell.value !== null || cell.formula !== null || cell.style_id !== null);
   if (!filled) return { text: '', kind: 'empty', css: {}, formula: null, value: null };
   const style = cell.style_id === null ? {} : (sheet.styles.get(cell.style_id) ?? {});
-  const shown = displayCell(cell, sanitizeStyle(style));
+  const computed = cell.formula !== null && cell.formula !== undefined && calc ? calc.get(rowId, colId) : undefined;
+  const shown = displayCell(cell, sanitizeStyle(style), computed);
   return { ...shown, css: cellCss(style, shown.kind).css, formula: cell.formula, value: cell.value };
 }

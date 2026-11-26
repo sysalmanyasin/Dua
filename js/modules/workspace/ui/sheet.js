@@ -1,12 +1,14 @@
 // One open workbook: sheet tabs, the grid, the edit bar for the selected cell, refresh.
 // Which workbook is open comes from session storage (the router carries no ids); home.js sets it.
-// Cell text can be edited (ui/cellEditor.js). Formulas, formatting and structure changes arrive in later increments.
+// Cell text and formulas can be edited (ui/cellEditor.js); formulas are calculated by domain/formulas. Formatting and structure
+// changes arrive in later increments.
 import { html, render } from '../../../shared/html.js';
 import { newId, OPEN_KEY, relativeWhen } from '../domain/documents.js';
 import { can, roleLabel } from '../domain/permissions.js';
 import { buildOp, findLiveSheet, liveSheets } from '../domain/spreadsheet.js';
 import { createOperationSender, openWorkbookFull, pullAndApply } from '../data/workbooks.js';
 import { createCellEditor } from './cellEditor.js';
+import { createSheetCalc } from '../domain/formulas/sheetCalc.js';
 import { createGridView } from './gridView.js';
 import { confirmAction } from './panel.js';
 
@@ -68,6 +70,16 @@ export async function mount(el, { measure = null } = {}) {
     return sheet;
   };
 
+  // Calculated results for the sheet on screen. Rebuilt whenever the sheet may have changed (its version moves on every
+  // change, ours or anyone's) or another sheet is shown.
+  let calcCache = { sheet: null, seq: -1, calc: null };
+  function calcFor(sheet) {
+    if (!sheet) return null;
+    if (calcCache.sheet !== sheet || calcCache.seq !== s.wb.head_seq)
+      calcCache = { sheet, seq: s.wb.head_seq, calc: createSheetCalc(sheet) };
+    return calcCache.calc;
+  }
+
   const sender = createOperationSender({ docId: id });
   const editor = createCellEditor($('#ws-formula'), {
     getSheet: activeSheet,
@@ -101,7 +113,7 @@ export async function mount(el, { measure = null } = {}) {
     $('#ws-foot').textContent = s.info.archived
       ? `Archived, so it cannot be changed. ${when}`
       : canEdit()
-        ? `Tap a cell, type, then Save. Formulas and formatting arrive in later updates. ${when}`
+        ? `Tap a cell, type, then Save. Start with = to enter a formula. Formatting arrives in a later update. ${when}`
         : `You can view this workbook but not change it. ${when}`;
     const refresh = $('[data-act="refresh"]');
     refresh.disabled = s.busy;
@@ -150,7 +162,7 @@ export async function mount(el, { measure = null } = {}) {
     drawHead();
     drawBanner();
     drawTabs();
-    grid.setSheet(activeSheet());
+    grid.setSheet(activeSheet(), calcFor(activeSheet()));
     $('#ws-grid').hidden = !activeSheet();
   }
 
@@ -236,7 +248,7 @@ export async function mount(el, { measure = null } = {}) {
       }
       s.sheetId = b.dataset.sheet;
       drawTabs();
-      grid.setSheet(activeSheet());
+      grid.setSheet(activeSheet(), calcFor(activeSheet()));
     }
   });
 
