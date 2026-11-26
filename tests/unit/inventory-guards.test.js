@@ -74,6 +74,7 @@ describe('manifest', () => {
       ['/inventory/reorder', 'inventory.view'],
       ['/inventory/excess', 'inventory.view'],
       ['/inventory/health', 'inventory.view'],
+      ['/inventory/deactivated', 'inventory.view'],
       ['/inventory/sync', 'inventory.sync'],
     ]);
     for (const r of manifest.routes) expect(r.path.startsWith('/inventory')).toBe(true);

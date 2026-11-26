@@ -28,6 +28,9 @@ export async function inTransit() {
   return Object.fromEntries((rows ?? []).map((r) => [r.code, r.packs]));
 }
 
+/** Products the stock feed no longer lists, newest first: [{ code, name, company, qty, price, deactivated_at, ... }]. Needs inventory.view. */
+export const deactivatedProducts = (offset = 0) => call('inventory_deactivated', { p_limit: 2000, p_offset: offset });
+
 /** The four Home numbers as the database computes them. Needs inventory.view. */
 export const coverSummary = () => call('inventory_cover_summary');
 

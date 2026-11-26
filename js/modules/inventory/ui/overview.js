@@ -61,6 +61,7 @@ export async function mount(el, { ctx }) {
       ['inventory.view', '#/inventory/reorder', 'Reorder', 'What to buy'],
       ['inventory.view', '#/inventory/excess', 'Excess Working', 'Whole packs you do not need'],
       ['inventory.view', '#/inventory/health', 'Health', 'Where the stock stands'],
+      ['inventory.view', '#/inventory/deactivated', 'Deactivated', 'Products the stock file no longer lists'],
       ['inventory.sync', '#/inventory/sync', 'Sync', 'Update the stock data now'],
     ].filter(([perm]) => perms.has(perm));
     return items.length

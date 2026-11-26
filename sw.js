@@ -216,6 +216,7 @@ const PRECACHE = [
   "js/modules/inventory/domain/xlsx.js",
   "js/modules/inventory/manifest.js",
   "js/modules/inventory/status.js",
+  "js/modules/inventory/ui/deactivated.js",
   "js/modules/inventory/ui/download.js",
   "js/modules/inventory/ui/excess.js",
   "js/modules/inventory/ui/export.js",
