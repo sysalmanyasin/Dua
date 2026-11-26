@@ -81,6 +81,9 @@ export function validatePlace({ name, lat, lng, radius }) {
 export const validateAccuracy = (m) =>
   Number.isInteger(m) && m >= 10 && m <= 500 ? null : 'The accuracy limit must be a whole number from 10 to 500 metres.';
 
+export const validateStable = (s) =>
+  Number.isInteger(s) && s >= 30 && s <= 600 ? null : 'The stay time must be a whole number of seconds from 30 to 600.';
+
 // "7 h 30 min", "45 min", "—" for nothing. Whole minutes come from the database (migration 0111).
 export function workedText(minutes) {
   const m = Math.floor(Number(minutes));
@@ -98,3 +101,50 @@ export function addDays(date, n) {
 
 // What the "Now" column and the staff list say about a day.
 export const dayState = (day) => (day.open ? 'Still in' : day.last_out ? 'Done' : '—');
+
+// ── automatic attendance on the phone (Phase 3: the phone watches the pharmacy and keeps a local journal) ──
+const PROBLEMS = {
+  no_precise_location: 'Allow precise location for Dua.',
+  location_off: 'Location is switched off on this phone. Switch it on.',
+  no_background_location:
+    'Location must be allowed "all the time", otherwise Android stops Dua from seeing you arrive while the app is closed.',
+  background_restricted: 'Android has restricted Dua in the background. Set Dua to "Unrestricted" in the battery settings.',
+};
+export const problemText = (code) => PROBLEMS[code] ?? 'Automatic attendance is not working on this phone.';
+
+// What the status card says, from what the phone reports (DuaDevicePlugin.getAutoAttendanceStatus).
+//   tone: ok = working, warn = needs a look, bad = not working
+export function autoSummary(st) {
+  if (!st) return null;
+  if (!st.available)
+    return { tone: 'bad', text: 'This phone cannot store the settings safely, so automatic attendance is not available on it.' };
+  if (!st.enrolled) return { tone: 'warn', text: 'Not set up on this phone yet. Close Dua and open it again.' };
+  if (!(st.sites ?? []).length) return { tone: 'warn', text: 'The owner has not added the pharmacy place yet.' };
+  if (st.problem) return { tone: 'bad', text: problemText(st.problem) };
+  if (!st.registered)
+    return { tone: 'warn', text: `Starting up${st.lastError ? ` (${String(st.lastError).slice(0, 60)})` : ''}. Check again in a minute.` };
+  return { tone: 'ok', text: 'Watching the pharmacy. Dua notices when you arrive and when you leave, even when the app is closed.' };
+}
+
+// The checklist under the summary. fix says which button repairs the line; advisory lines never block.
+export function autoChecklist(st) {
+  if (!st) return [];
+  return [
+    { id: 'precise', ok: Boolean(st.precise), label: 'Precise location allowed', fix: 'background' },
+    { id: 'on', ok: Boolean(st.locationOn), label: 'Location switched on', fix: 'app' },
+    { id: 'background', ok: Boolean(st.background), label: 'Location allowed all the time', fix: 'background' },
+    { id: 'restricted', ok: !st.backgroundRestricted, label: 'Not restricted in the background', fix: 'battery' },
+    { id: 'battery', ok: Boolean(st.batteryUnrestricted), label: 'Battery use unrestricted (recommended)', fix: 'battery', advisory: true },
+    { id: 'registered', ok: Boolean(st.registered), label: 'Pharmacy registered with this phone' },
+  ];
+}
+
+// One line of the local journal: { type, at (ms), lat, lng, accuracy }.
+export function journalLabel(entry, stableSeconds = 120) {
+  if (entry?.type === 'dwell')
+    return `Arrived (stayed inside ${stableSeconds >= 60 ? `${Math.round(stableSeconds / 60)} min` : `${stableSeconds} s`})`;
+  if (entry?.type === 'exit') return 'Left';
+  if (entry?.type === 'enter') return 'Entered';
+  if (String(entry?.type ?? '').startsWith('error:')) return 'Location service problem';
+  return 'Unknown';
+}

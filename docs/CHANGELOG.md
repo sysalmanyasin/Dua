@@ -2,6 +2,13 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 26 Nov — Automatic attendance, Phase 3 (native geofencing, detection only) — needs a new APK; migration 0112 not applied live
+- The Android app registers the pharmacy's geofence with Google Play services (DWELL after the stability period, and EXIT). It keeps watching with Dua closed and the screen locked, is registered again after a restart or an app update, and is checked every 15 minutes. The person is told once if location, "all the time" permission or background use is taken away. Detections go to a local journal on the phone and are shown on the Attendance page as **test mode**: **nothing is recorded as attendance yet** (Phase 4).
+- New permissions `ACCESS_BACKGROUND_LOCATION` and `RECEIVE_BOOT_COMPLETED`; new native classes `AttendanceGeofence`, `GeofenceReceiver`, `BootReceiver`, `AttendanceWatchdogWorker`, `AttendanceStore`, `AttendanceLogic` and six plugin methods. The shell check pins the new permissions, the unexported receiver, the mutable PendingIntent and DWELL with a loitering delay. CI runs `AttendanceLogicTest`.
+- Migration `0112_mgmt_attendance_auto_setup`: `stable_seconds` setting (default 120, owner-set 30–600 via `mgmt_attendance_stable_set`, reason required and logged), `mgmt_attendance_my_site` (the narrow read a staff phone uses: active places, stay time, accuracy limit), and `mgmt_attendance_setup` also reports the stay time.
+- Web: *Automatic attendance* card (shown only inside the app with the new APK) with a checklist and repair buttons; the owner's *Limits* gain the stay time; sign-in hands the places to the phone, sign-out and a lost right clear them. An older APK ignores all of it.
+- Tests: 28 new database checks (exposure whitelist now 54 functions), 31 logic assertions run here, 22 new unit tests. **Not tried on a real phone and the Android code has not been compiled yet** (the pull request build does that).
+
 ## 26 Nov — Automatic attendance, Phase 2 (Attendance module) — built and tested; migration 0111 NOT applied live
 - Attendance has its own side-menu entry (`nav.links`). A person whose only Manager page is Attendance sees a single entry named **Attendance** (`navLinks` no longer lists one page twice).
 - Staff see **My last two weeks** (per day: first in, last out, time at work, refused attempts). The owner sees **the week up to the chosen day** (one line per person per day, time at work, refused count, a "No check-out" flag for a past day left open) next to the existing day view, places and limits.
