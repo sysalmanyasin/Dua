@@ -998,8 +998,7 @@
   margin: -0.45rem -0.5rem 0;
   padding: 0.45rem 0.5rem;
   color: #fff;
-  background:
-    linear-gradient(110deg, #1746a2 0%, #2563eb 58%, #0d9488 100%);
+  background: linear-gradient(110deg, #1746a2 0%, #2563eb 58%, #0d9488 100%);
   border-radius: 0.9rem 0.9rem 0.55rem 0.55rem;
 }
 .aud-calc .aud-calc-head h2 {
@@ -1087,8 +1086,7 @@
 }
 .aud-calc .aud-calc-key.is-fn {
   color: #6d28d9;
-  background:
-    linear-gradient(145deg, #f3e8ff 0%, #e9d5ff 100%);
+  background: linear-gradient(145deg, #f3e8ff 0%, #e9d5ff 100%);
   border-color: #c4b5fd;
 }
 .aud-calc .aud-calc-key.is-op {
@@ -1109,8 +1107,7 @@
   padding: 0.45rem;
   font-size: 0.78rem;
   white-space: normal;
-  background:
-    linear-gradient(105deg, #1746a2 0%, #2563eb 65%, #0d9488 100%);
+  background: linear-gradient(105deg, #1746a2 0%, #2563eb 65%, #0d9488 100%);
   border: 0;
 }
 @media (max-width: 380px) {
