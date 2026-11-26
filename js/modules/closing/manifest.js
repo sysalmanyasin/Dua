@@ -29,6 +29,13 @@ export default {
       load: () => import('./ui/view.js'),
     },
     {
+      path: '/closing/bills',
+      title: 'Bill Number Sheet',
+      desc: 'A4 sheet of bill numbers and credit boxes, filled in from the last closing',
+      anyOf: ['closing.enter_own', 'closing.view_all', 'closing.review', 'closing.correct', 'closing.settings'],
+      load: () => import('./ui/bills.js'),
+    },
+    {
       path: '/closing/credit',
       title: 'Credit Ledger',
       desc: 'Credit position stored with each submitted closing',

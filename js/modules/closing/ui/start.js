@@ -209,10 +209,11 @@ export async function mount(el, { ctx } = {}) {
   const chip = (href, name) => html`<a class="cls-navchip" href="${href}">${name}</a>`;
   const chips = () =>
     html`<nav class="cls-chips" aria-label="Closing pages">
-      ${canBooks ? chip('#/closing/credit', 'Credit Ledger') : ''} ${canBooks ? chip('#/closing/misc', 'Misc Ledger') : ''}
-      ${canBooks ? chip('#/closing/book', 'Closing Book') : ''} ${canBooks ? chip('#/closing/history/cc', 'CC history') : ''}
-      ${canBooks ? chip('#/closing/history/rbd', 'RBD history') : ''} ${canBooks ? chip('#/closing/history/mediq', 'MEDIQ history') : ''}
-      ${canReview ? chip('#/closing/review', 'Review') : ''} ${canOpen ? chip('#/closing/settings', 'Settings') : ''}
+      ${chip('#/closing/bills', 'Bill Number Sheet')} ${canBooks ? chip('#/closing/credit', 'Credit Ledger') : ''}
+      ${canBooks ? chip('#/closing/misc', 'Misc Ledger') : ''} ${canBooks ? chip('#/closing/book', 'Closing Book') : ''}
+      ${canBooks ? chip('#/closing/history/cc', 'CC history') : ''} ${canBooks ? chip('#/closing/history/rbd', 'RBD history') : ''}
+      ${canBooks ? chip('#/closing/history/mediq', 'MEDIQ history') : ''} ${canReview ? chip('#/closing/review', 'Review') : ''}
+      ${canOpen ? chip('#/closing/settings', 'Settings') : ''}
     </nav>`;
 
   const draw = () => keepFocus(el, paint);
