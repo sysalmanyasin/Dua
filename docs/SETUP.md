@@ -14,7 +14,7 @@ New project, Free plan, name `dua-staging`, region closest to Pakistan. Save the
 - Site URL: your GitHub Pages address for staging.
 
 ## 3. Apply the database
-Apply **every** file in `supabase/migrations/` in number order (131 files today, `0001` to `1403`), either with the Supabase CLI against the new project or by pasting each file into the SQL editor. Some migrations need extensions and Vault entries that must exist first (`pg_cron`, `pg_net`, and the Vault secrets listed in `docs/RUNBOOK.md` section 3), and a few create scheduled jobs. Apply them to a new, empty project only; never re-apply a migration to a project that already has it. Afterwards check RLS on every table, no `anon` grants and that the new functions work (`docs/RUNBOOK.md` section 4, step 4).
+Apply **every** file in `supabase/migrations/` in number order (136 files today, `0001` to `1403`), either with the Supabase CLI against the new project or by pasting each file into the SQL editor. Some migrations need extensions and Vault entries that must exist first (`pg_cron`, `pg_net`, and the Vault secrets listed in `docs/RUNBOOK.md` section 3), and a few create scheduled jobs. Apply them to a new, empty project only; never re-apply a migration to a project that already has it. Afterwards check RLS on every table, no `anon` grants and that the new functions work (`docs/RUNBOOK.md` section 4, step 4).
 
 ## 4. Edge Function secrets (Edge Functions → Secrets)
 | Name | Value |

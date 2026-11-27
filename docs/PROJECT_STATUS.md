@@ -5,13 +5,13 @@
 **Repository:** https://github.com/sysalmanyasin/Dua. **Live site:** https://sysalmanyasin.github.io/Dua/.
 
 <!-- repo-facts -->
-- Migration files: 131
-- Database test files: 119
+- Migration files: 136
+- Database test files: 121
 - Registered modules: 15
-- Edge Functions: 7
+- Edge Functions: 8
 <!-- /repo-facts -->
 
-The block above is checked by `tests/unit/docs-consistency.test.js`. Update it when you add a migration, a database test file, a module or a function.
+The block above is checked by `tests/unit/docs-consistency.test.js`. Update it when you add a migration, a database test file, a module or a function. (Raised on 28 Nov 2026 after merging newer work into `main`; the pass/fail results quoted below were measured on 27 Nov at 131 migrations, 119 test files and 7 Edge Functions and have not been re-run at the new counts.)
 
 ## What the words mean
 
