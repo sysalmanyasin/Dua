@@ -48,3 +48,34 @@ export function parseAttendanceEvent(body: Record<string, unknown> | null): Atte
     mock: body?.mock === true,
   };
 }
+
+// The phone's own tracking report (see migration 1404): sent every 15 minutes with the same device secret as the events.
+// It carries no location at all: only which problem the phone found (or none) and how many events are still waiting to be sent.
+export const HEALTH_STATES = [
+  'no_precise_location',
+  'location_off',
+  'no_background_location',
+  'background_restricted',
+  'not_registered',
+] as const;
+
+export type AttendanceHealthRequest = {
+  deviceId: string;
+  secret: string;
+  state: (typeof HEALTH_STATES)[number] | null; // null = everything works
+  pending: number;
+};
+
+export function parseAttendanceHealth(body: Record<string, unknown> | null): AttendanceHealthRequest | null {
+  const deviceId = body?.device_id;
+  const secret = body?.secret;
+  const state = body?.state ?? null;
+  const pending = body?.pending;
+  if (
+    typeof deviceId !== 'string' || !UUID.test(deviceId) ||
+    typeof secret !== 'string' || !SECRET.test(secret) ||
+    (state !== null && !(HEALTH_STATES as readonly unknown[]).includes(state)) ||
+    typeof pending !== 'number' || !Number.isInteger(pending) || pending < 0 || pending > 1000
+  ) return null;
+  return { deviceId: deviceId.toLowerCase(), secret, state: state as AttendanceHealthRequest['state'], pending };
+}

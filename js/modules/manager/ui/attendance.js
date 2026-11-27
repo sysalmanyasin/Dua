@@ -1,7 +1,8 @@
 // Attendance. One page, three parts, each shown only to people who may use it (the database checks every call again):
 //   attendance.check_in   the person's own Check in / Check out button and their last 24 hours, and (in the Android app) whether
 //                         automatic attendance works on this phone
-//   attendance.view_all   the owner's day view: who is in, first in, last out, and refused attempts
+//   attendance.view_all   the owner's day view: who is at work now and whether each phone is tracking, first in, last out, refused
+//                         attempts, and the times a phone was not tracking
 //   attendance.manage     the owner's places (geofence) and limits
 // The phone only reports where it is. The server measures the distance and decides (migration 0110).
 import { html, render } from '../../../shared/html.js';
@@ -10,17 +11,20 @@ import { shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/attendanceApi.js';
 import {
   addDays,
+  attentionCount,
   autoChecklist,
   autoSummary,
   coordinateText,
   dayRows,
   dayState,
+  gapRows,
   groupByDay,
   journalDetail,
   journalLabel,
   journalTone,
   parseCoordinates,
   pendingText,
+  peopleRows,
   reasonText,
   refusedDetail,
   refusedAttempts,
@@ -43,6 +47,8 @@ export async function mount(el, { ctx } = {}) {
     mine: null,
     records: null,
     week: null,
+    health: null,
+    gaps: [],
     auto: null,
     autoBusy: false,
     setup: null,
@@ -81,6 +87,19 @@ export async function mount(el, { ctx } = {}) {
       if (can.view) {
         jobs.push(api.list(state.date, state.date).then((v) => (state.records = v)));
         jobs.push(api.summary(addDays(state.date, -6), state.date).then((v) => (state.week = v)));
+        // an older database has no health functions: the rest of the page must still work
+        jobs.push(
+          api.health().then(
+            (v) => (state.health = v),
+            () => (state.health = null),
+          ),
+        );
+        jobs.push(
+          api.gaps(state.date, state.date).then(
+            (v) => (state.gaps = v ?? []),
+            () => (state.gaps = []),
+          ),
+        );
       }
       if (can.view || can.manage) jobs.push(api.setup().then((v) => (state.setup = v)));
       await Promise.all(jobs);
@@ -286,6 +305,42 @@ export async function mount(el, { ctx } = {}) {
     </section>`;
   };
 
+  // ── the owner's "who is at work now": each person's state and whether their phone is tracking ──
+  const peopleCard = () => {
+    const people = peopleRows(state.health);
+    const bad = attentionCount(state.health);
+    return html`<section class="card at-card">
+      <h2>Who is at work</h2>
+      <p class="muted">
+        ${people.filter((p) => p.at_work).length} at work now ·
+        ${bad ? `${bad} phone${bad === 1 ? '' : 's'} not tracking` : 'every phone that reported is tracking'}
+      </p>
+      ${state.health.auto_enabled ? '' : html`<p class="muted">Automatic recording is off, so nothing is recorded or alerted. Phone states are shown for testing.</p>`}
+      ${
+        people.length
+          ? html`<ul class="at-list">
+              ${people.map(
+                (p) =>
+                  html`<li class="at-row${p.phoneInfo.tone === 'bad' ? ' at-row-warn' : ''}">
+                    <span class="at-main"
+                      ><strong>${p.name}</strong
+                      ><small
+                        >${p.at_work ? `In since ${timeLabel(p.since)}${p.source === 'auto' ? ' (automatic)' : ''}` : 'Not in'} ·
+                        ${p.phoneInfo.text}${p.phoneInfo.note ? ` · ${p.phoneInfo.note}` : ''}</small
+                      ></span
+                    >
+                    <span class="at-side">
+                      ${p.at_work ? html`<span class="chip chip-ok">At work</span>` : html`<span class="chip">Out</span>`}
+                      ${p.phoneInfo.tone === 'bad' ? html`<span class="chip chip-warn">Not tracking</span>` : ''}
+                    </span>
+                  </li>`,
+              )}
+            </ul>`
+          : html`<p class="muted">Nobody holds the check-in right yet. Give it to each person in Users &amp; Access.</p>`
+      }
+    </section>`;
+  };
+
   // ── the owner's week ending on the chosen day ──
   const weekCard = () => {
     const days = groupByDay(state.week?.rows);
@@ -349,6 +404,22 @@ export async function mount(el, { ctx } = {}) {
                   </li>`,
               )}
             </ul>`
+          : ''
+      }
+      ${
+        state.gaps.length
+          ? html`${sectionLabel('Times a phone was not tracking')}
+              <ul class="at-list">
+                ${gapRows(state.gaps).map(
+                  (g) =>
+                    html`<li class="at-row at-row-warn">
+                      <span class="at-main"
+                        ><span><strong>${g.name}</strong></span
+                        ><small>${g.text} · ${g.to ? `${g.from} to ${g.to}` : `since ${g.from}, still not tracking`}</small></span
+                      >
+                    </li>`,
+                )}
+              </ul>`
           : ''
       }
       ${
@@ -527,8 +598,9 @@ export async function mount(el, { ctx } = {}) {
       el,
       html`${hero({ label: 'Manager', title: 'Attendance', sub: 'Your arrival and leaving at the pharmacy. The server checks where you are.' })}
       ${can.checkIn && state.me ? checkInCard() : ''} ${can.checkIn && state.auto ? autoCard() : ''}
-      ${can.checkIn && state.mine ? historyCard() : ''} ${can.view && state.records ? dayCard() : ''}
-      ${can.view && state.week ? weekCard() : ''} ${(can.view || can.manage) && state.setup ? setupCard() : ''}`,
+      ${can.checkIn && state.mine ? historyCard() : ''} ${can.view && state.health ? peopleCard() : ''}
+      ${can.view && state.records ? dayCard() : ''} ${can.view && state.week ? weekCard() : ''}
+      ${(can.view || can.manage) && state.setup ? setupCard() : ''}`,
     );
   }
 

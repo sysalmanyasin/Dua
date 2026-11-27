@@ -233,3 +233,56 @@ export function groupByDay(rows) {
   }
   return [...days.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, list]) => ({ date, rows: list }));
 }
+
+// ── the owner's view of every phone (Phase 6, migration 1404) ──
+const PHONE_STATE = {
+  ok: 'Tracking works',
+  no_precise_location: 'Precise location not allowed',
+  location_off: 'Location is switched off',
+  no_background_location: 'Location is not "all the time"',
+  background_restricted: 'Dua is restricted in the background',
+  not_registered: 'Could not start watching the place',
+  silent: 'Phone has gone quiet',
+};
+export const phoneStateText = (code) => PHONE_STATE[code] ?? 'Tracking is not working';
+
+// "just now", "12 min ago", "3 h ago", "2 d ago"
+export function agoText(iso, nowMs = Date.now()) {
+  const t = Date.parse(iso ?? '');
+  if (!Number.isFinite(t)) return '';
+  const min = Math.max(0, Math.floor((nowMs - t) / 60000));
+  if (min < 2) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  if (min < 48 * 60) return `${Math.floor(min / 60)} h ago`;
+  return `${Math.floor(min / 1440)} d ago`;
+}
+
+// One person's phone in the "who is at work" list. tone: ok / warn / bad.
+export function phoneSummary(phone, nowMs = Date.now()) {
+  if (!phone) return { tone: 'warn', text: 'No phone set up', note: 'Their phone is set up when they open the new Dua app.' };
+  if (!phone.state)
+    return { tone: 'warn', text: 'No report from this phone yet', note: 'It reports after the new Dua app has been installed and opened.' };
+  const when = phone.reported_at ? `Last report ${agoText(phone.reported_at, nowMs)}` : '';
+  const queued = Number(phone.pending) > 0 ? ` · ${phone.pending} waiting to send` : '';
+  if (phone.state === 'ok') return { tone: 'ok', text: phoneStateText('ok'), note: `${when}${queued}` };
+  return { tone: 'bad', text: phoneStateText(phone.state), note: `${when}${queued}` };
+}
+
+// The people list for the owner: at work first, then by name; a phone that needs attention is flagged.
+export function peopleRows(health, nowMs = Date.now()) {
+  return (health?.people ?? [])
+    .map((p) => ({ ...p, phoneInfo: phoneSummary(p.phone, nowMs) }))
+    .sort((a, b) => Number(b.at_work) - Number(a.at_work) || String(a.name).localeCompare(String(b.name)));
+}
+
+export const attentionCount = (health) => (health?.people ?? []).filter((p) => p.phone?.state && p.phone.state !== 'ok').length;
+
+// Periods when a phone was not tracking, for one day: "Location is switched off, 10:20 to 11:05" or "since 10:20 (still)".
+export function gapRows(gaps) {
+  return (gaps ?? []).map((g) => ({
+    name: g.name,
+    text: phoneStateText(g.state),
+    from: timeLabel(g.from_at),
+    to: g.to_at ? timeLabel(g.to_at) : null,
+  }));
+}

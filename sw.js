@@ -50,6 +50,7 @@ const PRECACHE = [
   "js/core/shell.js",
   "js/core/statusbar.js",
   "js/core/supabase.js",
+  "js/core/trackingBanner.js",
   "js/modules/access/data/api.js",
   "js/modules/access/manifest.js",
   "js/modules/access/ui/page.js",
