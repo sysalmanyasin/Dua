@@ -58,8 +58,14 @@ begin
   return new;
 end $$;
 
--- one-off: clear the message that is still unread for a task that has already been decided
-update public.ntf_messages m set read_at = now()
- where m.kind = 'task.waiting_verification' and m.read_at is null
-   and not exists (select 1 from public.task_events e where e.id::text = split_part(m.dedupe_key, ':', 2)
-                      and exists (select 1 from public.task_items i where i.id = e.task_id and i.status in ('submitted', 'in_verification')));
+-- one-off: clear the message that is still unread for a task that has already been decided.
+-- ntf_messages is created later (1300), so on an empty database there is nothing to clear and the table does not exist yet.
+do $clean$
+begin
+  if to_regclass('public.ntf_messages') is not null then
+    update public.ntf_messages m set read_at = now()
+     where m.kind = 'task.waiting_verification' and m.read_at is null
+       and not exists (select 1 from public.task_events e where e.id::text = split_part(m.dedupe_key, ':', 2)
+                          and exists (select 1 from public.task_items i where i.id = e.task_id and i.status in ('submitted', 'in_verification')));
+  end if;
+end $clean$;
