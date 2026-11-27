@@ -31,7 +31,7 @@ const schedule = (fn) => (globalThis.requestAnimationFrame ? globalThis.requestA
 
 // onSelect receives { label, rowIndex, colIndex, rowId, colId, text, value, formula } or null.
 // measure() may be passed to override the size of the viewport (tests; a hidden tab reports 0).
-export function createGridView(host, { onSelect = () => {}, measure = null } = {}) {
+export function createGridView(host, { onSelect = () => {}, onActivate = () => {}, measure = null } = {}) {
   host.classList.add('ws-grid');
   host.setAttribute('role', 'grid');
   host.setAttribute('aria-readonly', 'true');
@@ -191,12 +191,24 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
     if (!cell || !sheet) return;
     const j = Number(cell.dataset.row);
     const i = Number(cell.dataset.col);
+    const again = sel !== null && sel.row === rows.ids[j] && sel.col === cols.ids[i];
     select(rows.ids[j], cols.ids[i], { reveal: false });
     host.focus({ preventScroll: true });
+    if (again) onActivate(); // tapping the selected cell again starts editing it, as in a spreadsheet
   });
   host.addEventListener('keydown', (e) => {
     if (!sheet || rows.ids.length === 0 || cols.ids.length === 0) return;
     const cur = selectionInfo();
+    if (cur && (e.key === 'Enter' || e.key === 'F2')) {
+      e.preventDefault();
+      onActivate();
+      return;
+    }
+    if (cur && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      onActivate(e.key); // typing on a selected cell replaces its content
+      return;
+    }
     let j = cur ? cur.rowIndex : 0;
     let i = cur ? cur.colIndex : 0;
     const page = Math.max(Math.floor((viewport().height - GRID.headerHeight) / GRID.rowHeight) - 1, 1);
@@ -235,6 +247,12 @@ export function createGridView(host, { onSelect = () => {}, measure = null } = {
       onSelect(selectionInfo());
     },
     select,
+    // Select the cell `dRow` rows and `dCol` columns away (stays put at the edge).
+    move(dRow, dCol) {
+      const cur = selectionInfo();
+      if (!cur || rows.ids.length === 0 || cols.ids.length === 0) return;
+      select(rows.ids[clamp(cur.rowIndex + dRow, 0, rows.ids.length - 1)], cols.ids[clamp(cur.colIndex + dCol, 0, cols.ids.length - 1)]);
+    },
     getSelection: selectionInfo,
     redraw: draw,
     // Where a cell would be drawn; used by tests and by "scroll to".
