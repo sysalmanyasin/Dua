@@ -47,10 +47,10 @@ begin
   perform pg_temp.owner(); t2 := public.task_create('Nobody yet', '', 'none', 'normal', null, today + 5); reset role;
   perform pg_temp.ok(pg_temp.total(j) = 1, 'a task with no assignee tells nobody');
 
-  -- ── handed in: the Owner and the named verifier, not the Senior who is not named, not the person who did it ──
+  -- ── handed in: the Owner only (1206). A named verifier finds the work in To Verify; nobody else, and not the person who did it, is told ──
   perform pg_temp.junior(); perform public.task_accept(t1); perform public.task_start(t1); perform public.task_submit(t1, null, false); reset role;
   perform pg_temp.ok(pg_temp.count(o, 'task.waiting_verification') = 1 and pg_temp.last(o, 'task.waiting_verification') ->> 'href' = '/tasks/verify', 'the Owner is told work is waiting, with a link to the queue');
-  perform pg_temp.ok(pg_temp.count(s3, 'task.waiting_verification') = 1, 'so is the Senior the owner named');
+  perform pg_temp.ok(pg_temp.count(s3, 'task.waiting_verification') = 0, 'the Senior the owner named is not sent the notice (the work waits for them in To Verify)');
   perform pg_temp.ok(pg_temp.count(s2, 'task.waiting_verification') = 0, 'a Senior who is not named is not told');
   perform pg_temp.ok(pg_temp.count(j, 'task.waiting_verification') = 0, 'and the person who handed it in is not told');
 
@@ -61,6 +61,7 @@ begin
   perform pg_temp.ok(pg_temp.count(o, 'task.waiting_verification') = 2, 'handing it in again tells the verifiers again (a new event, a new message)');
   perform pg_temp.named(); perform public.task_verify(t1, true, null); reset role;
   perform pg_temp.ok(pg_temp.count(j, 'task.returned') = 1, 'approving sends no send-back message');
+  perform pg_temp.ok((select count(*) from public.ntf_messages where user_id = o and kind = 'task.waiting_verification' and read_at is null) = 0, 'once the work is approved, the Owner''s waiting-to-check messages are marked read');
 
   -- ── requests ──
   perform pg_temp.owner(); t3 := public.task_create('Fix the shelf label', '', 'none', 'normal', j1, today + 3); reset role;
