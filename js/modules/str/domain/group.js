@@ -1,4 +1,4 @@
-import { diffQty, packFactor, toPackQty } from './pack.js';
+import { diffQty, packFactor, round2, toPackQty } from './pack.js';
 
 export const UNASSIGNED = 'Unassigned Supplier';
 
@@ -32,7 +32,7 @@ export function groupBySupplier(lines, metaByCode = {}) {
     .sort((a, b) => a.supplier.localeCompare(b.supplier));
 }
 
-const sum = (rows, key) => rows.reduce((s, r) => s + (r[key] || 0), 0);
+const sum = (rows, key) => rows.reduce((s, r) => round2(s + (r[key] || 0)), 0);
 
 // Subtotal of one supplier group: STR and dispatch pack quantities only (no receive total, STR-8).
 export function groupTotals(group) {
@@ -43,7 +43,7 @@ export function grandTotals(groups) {
   return groups.reduce(
     (t, g) => {
       const s = groupTotals(g);
-      return { items: t.items + s.items, str: t.str + s.str, dispatch: t.dispatch + s.dispatch };
+      return { items: t.items + s.items, str: round2(t.str + s.str), dispatch: round2(t.dispatch + s.dispatch) };
     },
     { items: 0, str: 0, dispatch: 0 },
   );
