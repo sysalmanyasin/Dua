@@ -101,6 +101,10 @@ export async function mount(el, { measure = null } = {}) {
     getHeadSeq: () => s.wb.head_seq,
     sender,
     canEdit,
+    afterEnter() {
+      grid.move(1, 0);
+      editor.focus(); // keep typing: the keyboard stays open for the next cell
+    },
     blocked: () => (s.pendingSheet ? 'A sheet change is waiting to be sent. Try it again or discard it first.' : ''),
     refresh: () => sync(),
     notify(text) {
@@ -112,13 +116,26 @@ export async function mount(el, { measure = null } = {}) {
   const grid = createGridView($('#ws-grid'), {
     measure,
     onSelect(info) {
-      if (!editor.select(info)) {
-        // unsaved text on another cell: stay there, and say why
-        const c = editor.cell();
+      if (editor.select(info)) return;
+      // Typed text on another cell: stay there, and save it first (moving on saves, as in a spreadsheet).
+      const c = editor.cell();
+      grid.select(c.rowId, c.colId, { reveal: false });
+      if (!info || !editor.canCommit()) {
+        if (!editor.hasUnsaved()) return;
         s.notice = `Save or cancel your change to ${c.label} first.`;
         drawBanner();
-        grid.select(c.rowId, c.colId, { reveal: false });
+        return;
       }
+      editor.commit().then((saved) => {
+        if (saved) grid.select(info.rowId, info.colId, { reveal: false });
+        else {
+          s.notice = `${c.label} was not saved, so you stayed on it. Fix or cancel it, then move on.`;
+          drawBanner();
+        }
+      });
+    },
+    onActivate(typed) {
+      editor.focus(typed);
     },
   });
 

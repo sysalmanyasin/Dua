@@ -1,0 +1,35 @@
+// Excel-like entry in a real Chromium on a 390 px phone screen: tap, tap again, type, Enter moves down, moving saves.
+const { chromium } = require('playwright'); const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' }); await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME, args: ['--no-sandbox', '--disable-gpu'] });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto('http://localhost:8765/'); await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
+  const out = {};
+  const cell = (r, c) => page.locator(`.ws-cell[data-row="${r}"][data-col="${c}"]`);
+  const val = (r, c) => page.evaluate(([r, c]) => { const s = window.__stub.server.sheets.find((x) => !x.deleted); const k = window.__stub.server.sheets.find((x) => !x.deleted).cells; return null; }, [r, c]);
+  const label = () => page.locator('.ws-formula-label').textContent();
+  const focused = () => page.evaluate(() => document.activeElement && document.activeElement.className);
+  const shown = (r, c) => cell(r, c).textContent();
+  await cell(30, 0).scrollIntoViewIfNeeded().catch(() => {});
+  await page.evaluate(() => { document.querySelector('.ws-grid-scroll, #ws-grid [class*=scroll]')?.scrollTo?.(0, 0); });
+  await cell(1, 0).tap(); out.afterFirstTap = { label: await label(), focus: await focused() };
+  await cell(1, 0).tap(); out.afterSecondTap = { focus: await focused() };
+  await page.keyboard.type('salman'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  out.afterEnter = { label: await label(), focus: await focused(), a2: await shown(1, 0) };
+  await page.keyboard.type('x1'); // typing in the box of A3 (focused)
+  await cell(1, 1).tap(); await page.waitForTimeout(500);
+  out.afterMoving = { label: await label(), a3: await shown(2, 0) };
+  // type-to-replace with a (physical) keyboard on the grid
+  await page.locator('#ws-grid').focus(); await cell(3, 0).tap(); await page.keyboard.press('q'); out.typeToReplace = { box: await page.locator('.ws-edit-input').inputValue(), focus: await focused() };
+  await page.keyboard.type('ty'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  out.afterTypeEnter = { label: await label(), a4: await shown(3, 0) };
+  // entering many rows: the selected cell must stay in view
+  for (let i = 0; i < 14; i += 1) { await page.keyboard.type('n' + i); await page.keyboard.press('Enter'); await page.waitForTimeout(250); }
+  out.visible = await page.evaluate(() => { const c = document.querySelector('.ws-cell.is-selected'); const g = document.querySelector('#ws-grid').getBoundingClientRect(); if (!c) return 'no selected cell drawn'; const r = c.getBoundingClientRect(); return { inView: r.top >= g.top && r.bottom <= g.bottom + 1, label: document.querySelector('.ws-formula-label').textContent }; });
+  await page.screenshot({ path: '/tmp/shots/20-entry.png' });
+  out.errors = await page.evaluate(() => window.__errors);
+  console.log(JSON.stringify(out, null, 1));
+  await browser.close(); srv.kill();
+})().catch((e) => { console.error('FAIL', e.message); process.exit(1); });

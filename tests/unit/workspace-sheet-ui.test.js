@@ -283,7 +283,7 @@ describe('the grid view', () => {
     expect(selections.at(-1).label).toBe('A100'); // stops at the last row
     expect(sc.scrollTop).toBeGreaterThan(0);
     expect(at(host, 99, 0).classList.contains('is-selected')).toBe(true);
-    const e = new KeyboardEvent('keydown', { key: 'x', bubbles: true, cancelable: true });
+    const e = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
     host.dispatchEvent(e);
     expect(e.defaultPrevented).toBe(false); // other keys are left alone
   });
