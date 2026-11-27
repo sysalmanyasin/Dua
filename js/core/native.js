@@ -111,6 +111,27 @@ export function sameWatch(st, data) {
   );
 }
 
+// What a person with automatic attendance must fix, in words a shop assistant understands. Used by the red strip at the top of Dua.
+// Staff keep using Dua as normal: this only tells them, and the owner is told by the server at the same time (migration 1404).
+const TRACKING_TEXT = {
+  no_precise_location: 'Allow precise location for Dua.',
+  location_off: 'Location is switched off on this phone. Switch it on.',
+  no_background_location: 'Set Dua\'s location to "Allow all the time".',
+  background_restricted: 'Set Dua to "Unrestricted" in the battery settings.',
+};
+
+// The one problem to show, or null when everything works (or this phone, this person or this app is not part of automatic attendance).
+export async function trackingProblem(ctx, g = globalThis) {
+  if (!inApp(g) || !has(ctx, 'attendance.check_in')) return null;
+  const dev = plugin('DuaDevice', g);
+  if (!dev?.getAutoAttendanceStatus) return null;
+  const st = await dev.getAutoAttendanceStatus();
+  if (!isNewShell(st) || !st.auto || !st.enrolled) return null;
+  if (st.problem) return { code: st.problem, text: TRACKING_TEXT[st.problem] ?? 'Automatic attendance is not working on this phone.' };
+  if (!st.hasKey) return { code: 'no_key', text: 'Open Attendance and press "Check again" to finish setting up this phone.' };
+  return null;
+}
+
 // Reads the places from the server and gives them to the phone. Used at start-up and by the Attendance page ("Check again", and after the
 // owner changes a place), so a place added after Dua was opened reaches the phone without closing the app. Returns the phone's status.
 export async function syncAttendance(g = globalThis) {

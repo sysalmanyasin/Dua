@@ -6,6 +6,8 @@ const TEXT = {
   'audit.conflict': 'An audit has a conflict to settle',
   'audit.finalized': 'An audit round was made final',
   'attendance.rejected': 'A check-in attempt was refused',
+  'attendance.tracking_off': 'A staff phone stopped tracking',
+  'attendance.checkout_missed': 'A check-out is missing',
   'inventory.sync_stale': 'The inventory feed is late',
   'inventory.sync_failed': 'The inventory sync failed',
   'backup.failed': 'The daily backup failed',

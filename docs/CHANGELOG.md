@@ -5,6 +5,13 @@ Dates are 2026. Counts are as of the end of each step.
 ## 26 Nov — Audit tab chips about 60% of their old size
 - The two rows of tabs on the Audit pages (Overview / Team Audit / Individual Audit / Tools, and the screens under them such as Monthly Overview, Rounds & Progress, Review) were tall and wide. Height, side padding and text are now about 60% of before (tabs 44 px to 26 px, screens 40 px to 24 px). CSS only (`css/audit.css`). Not yet seen on the owner's phone.
 
+## 27 Nov — Automatic attendance, Phase 6: tracking can't be switched off silently (staff are not blocked)
+- Decision: staff keep using Dua as normal; no block screen. There is no opt-out tick (the owner's switch applies to everyone with the check-in right). Phase 6 makes sure the owner always knows when tracking is off.
+- **Phone (needs a new APK).** Every 15 minutes the phone reports its own tracking state (which problem, how many events are waiting; no location) to a new Edge Function `attendance-health` with its device key.
+- **Server (migration `1404`).** The phone's state is stored; while recording is on every change is kept in an append-only log and the owner is alerted (`attendance.tracking_off`). A scheduled check (pg_cron, every 15 minutes) alerts for a phone that stopped reporting for an hour (07:00–22:00 Pakistan), for tracking still off (daily reminder) and for a check-in open over 14 hours (`attendance.checkout_missed`). New owner reads `mgmt_attendance_health` (who is at work, each phone's state) and `mgmt_attendance_gaps`. Alerts carry dates only.
+- **Web.** Owner: "Who is at work" card and "Times a phone was not tracking" under the day's records. Staff: a red strip at the top of Dua with the one thing to fix, linking to Attendance (never blocks anything). New alert wording for the two alert kinds.
+- Tests: 51 new database checks (3,260 total), 88 new unit tests (3,543 total: parser, alert wording, strip, owner cards, wording helpers), 3 new Java logic tests (16, run locally); shell check pins the health address to the events address. The Android classes compile in CI only (PR debug build).
+
 ## 27 Nov — Attendance page: three fixes from the first look at the new page (web only, no new APK, no migration)
 - A **check-out** refused because you are not at the pharmacy no longer says "Check in when you arrive"; it says the check-out was not recorded.
 - Journal lines show the time with the day small underneath (older lines no longer wrap the title); a week row with nothing to show no longer carries an empty "—" chip.

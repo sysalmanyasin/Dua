@@ -22,6 +22,8 @@ const KNOWN: Record<string, (p: Record<string, unknown>) => PushMessage> = {
   'audit.finalized': () => ({ title: 'Dua: audit final', message: 'An audit round was made final.', priority: 3, tags: ['white_check_mark'] }),
   'closing.corrected': (p) => ({ title: 'Dua: closing corrected', message: `A closing was corrected${dateOf(p)}.`, priority: 3, tags: ['memo'] }),
   'attendance.rejected': (p) => ({ title: 'Dua: attendance attempt refused', message: `A check-in was refused${dateOf(p)}. Open Attendance to see why.`, priority: 4, tags: ['warning'] }),
+  'attendance.tracking_off': (p) => ({ title: 'Dua: staff tracking is off', message: `A staff phone is not tracking arrival and leaving${dateOf(p)}. Open Attendance to see whose.`, priority: 4, tags: ['warning'] }),
+  'attendance.checkout_missed': (p) => ({ title: 'Dua: check-out missing', message: `Someone has been checked in for over 14 hours${dateOf(p)}. Open Attendance to see who.`, priority: 4, tags: ['warning'] }),
   'inventory.sync_stale': () => ({ title: 'Dua: inventory feed is late', message: 'No successful inventory sync for over 3 hours.', priority: 4, tags: ['warning'] }),
   'inventory.sync_failed': () => ({ title: 'Dua: inventory sync failed', message: 'The last inventory sync failed. See Needs attention.', priority: 4, tags: ['warning'] }),
   'backup.failed': (p) => ({ title: 'Dua: BACKUP FAILED', message: `The daily backup did not complete${dateOf(p)}. Check the Tools tab.`, priority: 5, tags: ['rotating_light'] }),

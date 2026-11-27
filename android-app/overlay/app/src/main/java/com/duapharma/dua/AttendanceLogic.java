@@ -31,6 +31,24 @@ final class AttendanceLogic {
         return endpoint != null && endpoint.matches("https://[a-z0-9-]+\\.supabase\\.co/functions/v1/attendance-event");
     }
 
+    /**
+     * Where the phone's own tracking report goes: the sibling function of the events endpoint, so the phone only ever has to be told ONE
+     * address and the secret can only go to our own functions. Null when the stored events address is not ours.
+     */
+    static String healthEndpoint(String endpoint) {
+        return validEndpoint(endpoint) ? endpoint.replaceAll("attendance-event$", "attendance-health") : null;
+    }
+
+    /**
+     * What the phone tells the server about its own tracking: null when everything works, otherwise the problem (the four names from
+     * {@link #problem}), or "not_registered" when there is a place to watch and the geofence could not be set (for example Google Play
+     * services refused). A phone with no place to watch has nothing to report: the owner knows that already.
+     */
+    static String healthState(String problem, boolean hasPlace, boolean registered) {
+        if (problem != null) return problem;
+        return hasPlace && !registered ? "not_registered" : null;
+    }
+
     static boolean validSecret(String secret) {
         return secret != null && secret.matches("[0-9a-f]{64}");
     }
