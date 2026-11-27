@@ -59,7 +59,57 @@ describe('automatic attendance setup', () => {
     expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).toHaveBeenCalledWith({
       userId: 'user-1',
       stableSeconds: 120,
+      maxAccuracy: 100,
+      auto: false,
       sites: [{ id: site.id, name: 'Test Shop', latitude: 10.5, longitude: 20.25, radius: 100 }],
+    });
+  });
+
+  describe("with the owner's switch on", () => {
+    const on = { stable_seconds: 120, max_accuracy_m: 100, auto_enabled: true, sites: [site] };
+    const secret = 'ab'.repeat(32);
+    const answerOn = (enrol = { data: { secret }, error: null }) =>
+      rpc.mockImplementation(async (name) => {
+        if (name === 'mgmt_attendance_my_site') return { data: on, error: null };
+        if (name === 'app_device_attendance_enroll') return enrol;
+        return { data: {}, error: null };
+      });
+
+    it("registers the install, asks for the phone's own key and passes it with the endpoint", async () => {
+      const { g } = withAuto();
+      answerOn();
+      await startNative({ permissions: ['attendance.check_in'] }, g);
+      expect(rpc).toHaveBeenCalledWith('app_device_register', expect.objectContaining({ p_device_id: 'dev-1', p_fcm_token: null }));
+      expect(rpc).toHaveBeenCalledWith('app_device_attendance_enroll', { p_device_id: 'dev-1' });
+      const sent = g.Capacitor.Plugins.DuaDevice.startAutoAttendance.mock.calls[0][0];
+      expect(sent).toMatchObject({ auto: true, deviceId: 'dev-1', secret, maxAccuracy: 100 });
+      expect(sent.endpoint).toMatch(/\/attendance-event$/);
+    });
+
+    it('does not ask for a new key when the phone already has one', async () => {
+      const { g } = withAuto();
+      g.Capacitor.Plugins.DuaDevice.getAutoAttendanceStatus = vi.fn(async () => ({
+        enrolled: true,
+        registered: true,
+        auto: false,
+        hasKey: true,
+        stableSeconds: 120,
+        maxAccuracy: 100,
+        sites: [{ id: site.id, latitude: 10.5, longitude: 20.25, radius: 100 }],
+      }));
+      answerOn();
+      await startNative({ permissions: ['attendance.check_in'] }, g);
+      expect(rpc).not.toHaveBeenCalledWith('app_device_attendance_enroll', expect.anything());
+      expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance.mock.calls[0][0].secret).toBeUndefined();
+    });
+
+    it('still sets the phone up when the key cannot be issued (it is asked again next time)', async () => {
+      const { g } = withAuto();
+      answerOn({ data: null, error: { code: '42501' } });
+      await startNative({ permissions: ['attendance.check_in'] }, g);
+      const sent = g.Capacitor.Plugins.DuaDevice.startAutoAttendance.mock.calls[0][0];
+      expect(sent.auto).toBe(true);
+      expect(sent.secret).toBeUndefined();
     });
   });
 
@@ -126,6 +176,16 @@ describe('automatic attendance setup', () => {
     expect(await syncAttendance(g)).toBeNull();
     expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).not.toHaveBeenCalled();
     expect(g.Capacitor.Plugins.DuaDevice.stopAutoAttendance).not.toHaveBeenCalled();
+  });
+
+  it('sameWatch notices the switch, the key and the accuracy limit', () => {
+    const watching = { ...same, auto: true, hasKey: true, maxAccuracy: 100 };
+    const wants = { ...server, auto_enabled: true, max_accuracy_m: 100 };
+    expect(sameWatch(watching, wants)).toBe(true);
+    expect(sameWatch(same, wants)).toBe(false); // switch turned on
+    expect(sameWatch(watching, server)).toBe(false); // switch turned off
+    expect(sameWatch({ ...watching, hasKey: false }, wants)).toBe(false); // no key yet
+    expect(sameWatch({ ...watching, maxAccuracy: 50 }, wants)).toBe(false);
   });
 
   it('sameWatch notices every kind of change', () => {

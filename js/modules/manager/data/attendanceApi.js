@@ -27,6 +27,7 @@ export const checkIn = (kind, fix, key) =>
 // ── the owner ──
 export const list = (from, to) => one(db().rpc('mgmt_attendance_list', { p_from: from, p_to: to }));
 export const summary = (from, to) => one(db().rpc('mgmt_attendance_summary', { p_from: from, p_to: to })); // one line per person per day (0111)
+export const setAuto = (enabled, reason, key) => db().rpc('mgmt_attendance_auto_set', { p_enabled: enabled, p_reason: reason, p_key: key });
 export const setup = () => one(db().rpc('mgmt_attendance_setup'));
 export const saveSite = (s, reason, key) =>
   db().rpc('mgmt_attendance_site_save', {

@@ -134,6 +134,10 @@ public class DuaDevicePlugin extends Plugin {
         result.put("lastCheckAt", store.lastCheckAt());
         result.put("lastError", store.lastError());
         result.put("stableSeconds", store.stableSeconds());
+        result.put("auto", store.autoOn());
+        result.put("hasKey", store.hasKey());
+        result.put("pending", store.queueSize());
+        result.put("maxAccuracy", store.maxAccuracy());
         result.put("sites", store.sites());
         result.put("journal", store.journal());
         return result;
@@ -147,6 +151,8 @@ public class DuaDevicePlugin extends Plugin {
     /**
      * Saves the places to watch and registers the geofence. Called by the web app after sign-in with what the server sent
      * (mgmt_attendance_my_site). An empty list stops watching but keeps this phone set up.
+     * "auto" is the owner's switch: when it is off the phone only lists what it detects (test mode). When it is on the phone also needs
+     * deviceId, endpoint (pinned to our attendance-event function) and, the first time, the secret the server issued for this phone.
      */
     @PluginMethod
     public void startAutoAttendance(PluginCall call) {
@@ -155,6 +161,23 @@ public class DuaDevicePlugin extends Plugin {
         JSArray list = call.getArray("sites");
         if (userId == null || userId.length() < 8 || stable == null || AttendanceLogic.validateStable(stable) != null || list == null || list.length() > AttendanceLogic.MAX_SITES) {
             call.reject("Invalid automatic attendance settings");
+            return;
+        }
+        boolean auto = Boolean.TRUE.equals(call.getBoolean("auto", false));
+        Integer maxAccuracy = call.getInt("maxAccuracy", 100);
+        String deviceId = call.getString("deviceId");
+        String endpoint = call.getString("endpoint");
+        String secret = call.getString("secret");
+        if (maxAccuracy == null || maxAccuracy < 10 || maxAccuracy > 1000) {
+            call.reject("Invalid accuracy limit");
+            return;
+        }
+        if (auto && (!AttendanceLogic.validDeviceId(deviceId) || !AttendanceLogic.validEndpoint(endpoint))) {
+            call.reject("Invalid automatic recording settings");
+            return;
+        }
+        if (secret != null && !AttendanceLogic.validSecret(secret)) {
+            call.reject("Invalid automatic recording settings");
             return;
         }
         JSONArray clean = new JSONArray();
@@ -178,10 +201,12 @@ public class DuaDevicePlugin extends Plugin {
             return;
         }
         AttendanceStore store = new AttendanceStore(getContext());
-        if (!store.save(userId, clean, stable)) {
+        if (!store.save(userId, clean, stable, auto, maxAccuracy, auto ? deviceId : null, auto ? endpoint : null, auto ? secret : null)) {
             call.reject("This phone cannot store the settings safely");
             return;
         }
+        if (!auto) AttendanceEvents.cancelAll(getContext());
+        else if (store.hasKey() && store.queueSize() > 0) AttendanceEvents.flushLater(getContext());
         AttendanceGeofence.ensureWatchdog(getContext());
         AttendanceGeofence.register(getContext(), (ok, error) -> call.resolve(autoStatus()));
     }
@@ -192,6 +217,7 @@ public class DuaDevicePlugin extends Plugin {
         AttendanceGeofence.unregister(getContext());
         AttendanceGeofence.cancelWatchdog(getContext());
         AttendanceGeofence.clearProblemNotification(getContext());
+        AttendanceEvents.cancelAll(getContext());
         new AttendanceStore(getContext()).clear();
         call.resolve();
     }

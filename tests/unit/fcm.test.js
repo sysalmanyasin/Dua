@@ -16,6 +16,7 @@ import {
 } from '../../supabase/functions/_shared/fcm.ts';
 import { messageFor } from '../../supabase/functions/_shared/ntfy.ts';
 import { parseWidgetRequest, sha256Hex } from '../../supabase/functions/_shared/widget.ts';
+import { parseAttendanceEvent } from '../../supabase/functions/_shared/attendance.ts';
 
 let publicKey;
 let sa;
@@ -204,5 +205,61 @@ describe('saved alert text', () => {
     const saved = notificationText({ title: 'T'.repeat(500), message: 'm'.repeat(9000), priority: 3, tags: [] });
     expect(new TextEncoder().encode(saved.title).length).toBeLessThanOrEqual(120);
     expect(new TextEncoder().encode(saved.body).length).toBeLessThanOrEqual(3200);
+  });
+});
+
+describe('attendance event request', () => {
+  const ok = {
+    device_id: '20000000-0000-4000-8000-000000000004',
+    secret: 'a'.repeat(64),
+    event_id: '30000000-0000-4000-8000-000000000005',
+    kind: 'in',
+    at: 1_790_000_000_000,
+    latitude: 31.387139,
+    longitude: 74.189924,
+    accuracy: 12.5,
+    mock: false,
+  };
+  it('accepts a complete event and turns the time into ISO text', () => {
+    expect(parseAttendanceEvent(ok)).toEqual({
+      deviceId: ok.device_id,
+      secret: ok.secret,
+      eventId: ok.event_id,
+      kind: 'in',
+      at: new Date(1_790_000_000_000).toISOString(),
+      latitude: 31.387139,
+      longitude: 74.189924,
+      accuracy: 12.5,
+      mock: false,
+    });
+    expect(parseAttendanceEvent({ ...ok, kind: 'out', mock: true })).toMatchObject({ kind: 'out', mock: true });
+  });
+  it('treats anything but mock === true as not mock', () => {
+    expect(parseAttendanceEvent({ ...ok, mock: 'yes' }).mock).toBe(false);
+    const { mock, ...without } = ok;
+    expect(mock).toBe(false);
+    expect(parseAttendanceEvent(without).mock).toBe(false);
+  });
+  it('refuses a malformed event', () => {
+    for (const bad of [
+      null,
+      {},
+      { ...ok, device_id: 'x' },
+      { ...ok, secret: 'short' },
+      { ...ok, event_id: 'x' },
+      { ...ok, kind: 'sideways' },
+      { ...ok, kind: undefined },
+      { ...ok, at: 'now' },
+      { ...ok, at: 5 },
+      { ...ok, at: 9_000_000_000_000 },
+      { ...ok, latitude: 91 },
+      { ...ok, longitude: -181 },
+      { ...ok, latitude: '31.3' },
+      { ...ok, accuracy: -1 },
+      { ...ok, accuracy: Number.NaN },
+      { ...ok, accuracy: 1e9 },
+    ]) {
+      expect(parseAttendanceEvent(bad)).toBeNull();
+    }
   });
 });

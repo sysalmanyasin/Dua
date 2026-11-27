@@ -54,6 +54,6 @@ jobs:
       - name: Type-check Edge Functions
         working-directory: supabase/functions
         run: |
-          for f in staff-login admin-users sync-inventory-from-dropbox notify-ntfy notify-push widget-today; do
+          for f in staff-login admin-users sync-inventory-from-dropbox notify-ntfy notify-push widget-today attendance-event; do
             deno check --no-lock "$f/index.ts"
           done
