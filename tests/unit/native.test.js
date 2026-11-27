@@ -45,7 +45,12 @@ describe('automatic attendance setup', () => {
   const withAuto = (o = {}) => {
     const made = makeGlobal(o);
     made.g.Capacitor.Plugins.DuaDevice.startAutoAttendance = vi.fn(async () => ({}));
-    made.g.Capacitor.Plugins.DuaDevice.getAutoAttendanceStatus = vi.fn(async () => ({ enrolled: false, sites: [] }));
+    made.g.Capacitor.Plugins.DuaDevice.getAutoAttendanceStatus = vi.fn(async () => ({
+      enrolled: false,
+      auto: false,
+      hasKey: false,
+      sites: [],
+    }));
     made.g.Capacitor.Plugins.DuaDevice.stopAutoAttendance = vi.fn(async () => {});
     return made;
   };
@@ -149,6 +154,8 @@ describe('automatic attendance setup', () => {
   const same = {
     enrolled: true,
     registered: true,
+    auto: false,
+    hasKey: false,
     stableSeconds: 120,
     sites: [{ id: site.id, latitude: 10.5, longitude: 20.25, radius: 100 }],
   };
@@ -186,6 +193,25 @@ describe('automatic attendance setup', () => {
     expect(sameWatch(watching, server)).toBe(false); // switch turned off
     expect(sameWatch({ ...watching, hasKey: false }, wants)).toBe(false); // no key yet
     expect(sameWatch({ ...watching, maxAccuracy: 50 }, wants)).toBe(false);
+  });
+
+  it('sameWatch leaves an older copy of the app alone (it knows nothing of the switch or key)', () => {
+    const older = { enrolled: true, registered: true, stableSeconds: 120, sites: same.sites };
+    expect(sameWatch(older, { ...server, auto_enabled: true, max_accuracy_m: 100 })).toBe(true);
+    expect(sameWatch(older, { ...server, sites: [{ ...site, radius_m: 200 }] })).toBe(false); // places still sync
+  });
+
+  it('does not ask an older copy of the app for a key it cannot use', async () => {
+    const { g } = withAuto();
+    g.Capacitor.Plugins.DuaDevice.getAutoAttendanceStatus = vi.fn(async () => ({ enrolled: false, sites: [] }));
+    rpc.mockImplementation(async (name) =>
+      name === 'mgmt_attendance_my_site'
+        ? { data: { stable_seconds: 120, max_accuracy_m: 100, auto_enabled: true, sites: [site] }, error: null }
+        : { data: {}, error: null },
+    );
+    await startNative({ permissions: ['attendance.check_in'] }, g);
+    expect(rpc).not.toHaveBeenCalledWith('app_device_attendance_enroll', expect.anything());
+    expect(g.Capacitor.Plugins.DuaDevice.startAutoAttendance).toHaveBeenCalledTimes(1);
   });
 
   it('sameWatch notices every kind of change', () => {

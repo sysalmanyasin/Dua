@@ -12,7 +12,11 @@ export const REASON_TEXT = {
   still_inside: 'You were still at the pharmacy, so the check-out was not recorded.',
 };
 
-export const reasonText = (reason) => REASON_TEXT[reason] ?? 'That could not be recorded. Try again.';
+// kind ('in' / 'out') only changes "outside": a check-out refused from far away must not say "check in when you arrive".
+export function reasonText(reason, kind) {
+  if (reason === 'outside' && kind === 'out') return 'You are not at the pharmacy, so this check-out was not recorded.';
+  return REASON_TEXT[reason] ?? 'That could not be recorded. Try again.';
+}
 
 // The bracket after a refused attempt: how far from the nearest place (only when the server measured it) and the mock-location flag.
 export function refusedDetail(r) {
@@ -29,7 +33,7 @@ export const timeLabel = (iso) => (iso ? TIME.format(new Date(iso)) : '—');
 export const metres = (m) => (m === null || m === undefined || !Number.isFinite(Number(m)) ? '—' : `${Math.round(Number(m))} m`);
 
 // The sentence shown after pressing the button. `res` is what mgmt_attendance_check_in returned.
-export function resultMessage(res) {
+export function resultMessage(res, kind) {
   if (!res) return { ok: false, text: 'No answer. Check your connection and try again.' };
   if (res.ok) {
     const where = res.place ? ` at ${res.place}` : '';
@@ -39,7 +43,7 @@ export function resultMessage(res) {
     res.reason === 'outside' && res.distance_m !== null && res.distance_m !== undefined
       ? ` You are about ${metres(res.distance_m)} away.`
       : '';
-  return { ok: false, text: `${reasonText(res.reason)}${away}` };
+  return { ok: false, text: `${reasonText(res.reason, res.kind ?? kind)}${away}` };
 }
 
 // "10.5, 20.25" or "10.5 20.25" or two separate numbers. Returns { lat, lng } or null. Map apps paste "lat, lng".
