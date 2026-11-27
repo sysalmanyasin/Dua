@@ -329,21 +329,114 @@ describe('who may edit', () => {
 });
 
 describe('unsaved text is never dropped silently', () => {
-  it('stays on the cell and says why when another cell is tapped with unsaved text', async () => {
+  it('moving to another cell saves the typed text first, then moves (as in a spreadsheet)', async () => {
     await open();
     select(1, 0);
     type('Brufen');
     select(1, 1);
-    expect(banner()).toContain('Save or cancel your change to A2 first');
+    await vi.waitFor(() => expect(serverCell(2, 1).value).toBe('Brufen'));
+    await vi.waitFor(() => expect(host.querySelector('.ws-formula-label').textContent).toBe('B2'));
+    expect(at(1, 1).classList.contains('is-selected')).toBe(true);
+    expect(box().value).toBe('1500');
+    expect(applyCalls()).toHaveLength(1);
+  });
+
+  it('stays on the cell, with the reason, when the typed text cannot be saved', async () => {
+    await open();
+    select(1, 0);
+    type('=1+');
+    select(1, 1);
+    await vi.waitFor(() => expect(banner()).toContain('A2 was not saved'));
     expect(host.querySelector('.ws-formula-label').textContent).toBe('A2');
-    expect(box().value).toBe('Brufen');
+    expect(box().value).toBe('=1+');
+    expect(msg()).not.toBe('');
     expect(at(1, 0).classList.contains('is-selected')).toBe(true);
-    expect(at(1, 1).classList.contains('is-selected')).toBe(false);
-    // after Cancel the person can move on
+    expect(applyCalls()).toHaveLength(0); // nothing was sent for text that cannot be a formula
     btn('cancel').click();
     select(1, 1);
     expect(host.querySelector('.ws-formula-label').textContent).toBe('B2');
-    expect(box().value).toBe('1500');
+  });
+
+  it("stays on the cell when the save meets someone else's change, and offers the choice", async () => {
+    await open();
+    select(1, 0);
+    type('Mine');
+    otherEdit(2, 1, 'Theirs'); // lands on the server before this copy knows
+    select(1, 1);
+    await vi.waitFor(() => expect(btn('use-mine').closest('.ws-edit-choice').hidden).toBe(false));
+    expect(host.querySelector('.ws-formula-label').textContent).toBe('A2');
+    expect(serverCell(2, 1).value).toBe('Theirs'); // never overwritten
+  });
+
+  it('while a save is unanswered a tap on another cell does not start a second one', async () => {
+    await open();
+    select(1, 0);
+    type('Brufen');
+    fail.workspace_apply_ops = [{ message: 'TypeError: Failed to fetch' }];
+    select(1, 1);
+    await vi.waitFor(() => expect(btn('save').textContent).toBe('Try again'));
+    select(2, 1);
+    await settle();
+    expect(host.querySelector('.ws-formula-label').textContent).toBe('A2');
+    expect(applyCalls()).toHaveLength(1);
+  });
+
+  it('tapping the selected cell again puts the cursor in the box', async () => {
+    await open();
+    select(1, 0);
+    expect(document.activeElement).not.toBe(box());
+    select(1, 0);
+    expect(document.activeElement).toBe(box());
+  });
+
+  it('typing on a selected cell replaces what it held and starts editing', async () => {
+    await open();
+    select(1, 0);
+    const grid = host.querySelector('#ws-grid');
+    grid.dispatchEvent(new KeyboardEvent('keydown', { key: 'Z', bubbles: true, cancelable: true }));
+    expect(box().value).toBe('Z');
+    expect(document.activeElement).toBe(box());
+    expect(btn('save').closest('.ws-edit-actions').hidden).toBe(false);
+    // Ctrl+C and friends are left alone
+    const copy = new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true });
+    grid.dispatchEvent(copy);
+    expect(copy.defaultPrevented).toBe(false);
+  });
+
+  it('Enter saves and moves down one row, ready for the next entry', async () => {
+    await open();
+    select(1, 0);
+    type('Brufen');
+    press('Enter');
+    await vi.waitFor(() => expect(serverCell(2, 1).value).toBe('Brufen'));
+    await vi.waitFor(() => expect(host.querySelector('.ws-formula-label').textContent).toBe('A3'));
+    expect(document.activeElement).toBe(box());
+    expect(at(2, 0).classList.contains('is-selected')).toBe(true);
+  });
+
+  it('Enter does not move down when the text could not be saved', async () => {
+    await open();
+    select(1, 0);
+    type('=1+');
+    press('Enter');
+    await settle();
+    await settle();
+    expect(host.querySelector('.ws-formula-label').textContent).toBe('A2');
+    expect(box().value).toBe('=1+');
+    expect(msg()).not.toBe('');
+    expect(banner()).not.toContain('was not saved'); // Enter never even tried to move
+    expect(applyCalls()).toHaveLength(0);
+  });
+
+  it('Enter with nothing typed just moves down, and Shift+Enter stays a new line', async () => {
+    await open();
+    select(1, 0);
+    press('Enter');
+    expect(host.querySelector('.ws-formula-label').textContent).toBe('A3');
+    expect(applyCalls()).toHaveLength(0);
+    const e = new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true });
+    box().dispatchEvent(e);
+    expect(e.defaultPrevented).toBe(false);
   });
 
   it('moving to another cell with nothing unsaved is free, and so is a refresh while typing', async () => {

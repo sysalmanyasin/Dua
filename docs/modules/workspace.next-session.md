@@ -130,6 +130,33 @@ Registered in `js/modules/index.js` (`'workspace'`), `index.html` (stylesheet li
 - **Not verified:** a real phone (thumb reach, soft keyboard over the name dialog), a screen reader, two real accounts reordering at the same time, and the flow against the real database (the model is tied to it by the parity test; the live database was only read). Capital letters outside plain ASCII (for example a dotted capital I) are compared with the browser's lower-casing, PostgreSQL's `lower()` could differ for such letters; the database stays the judge and the screen then shows its refusal.
 - **Known debt:** grid ARIA (rows) is still open (3e item 1); do it in increment 7 or 8. Sheet tabs are 33 px high (tap target) - the buttons beside them are 40 px.
 
+## 3h. Excel-like entry (27 Nov 2026, after the owner tried increment 6 on a phone)
+
+- **Why:** the owner found editing "not like Excel": tap a cell, tap the bar above, type, press Save, and a tap on another cell with typed text was refused. The bar is the formula bar; what was missing was the behaviour around it.
+- **What changed** (`ui/cellEditor.js`, `ui/gridView.js`, `ui/sheet.js`; no database change):
+  1. **Tap the selected cell again** (or press Enter or F2 on a hardware keyboard) puts the cursor in the bar, so the phone keyboard opens.
+  2. **Typing on a selected cell** (hardware keyboard) replaces its content and starts editing; Ctrl, Alt and Meta combinations are left alone.
+  3. **Enter saves and moves down one row, and the box stays focused** for the next entry. With nothing typed, Enter just moves down. Shift+Enter is still a new line. The Save button saves and stays.
+  4. **Moving to another cell saves the typed text first** (it used to be refused). The move happens only if the save was applied. If the text cannot be saved (a formula that does not parse), the save meets someone else's change (the Use mine / Keep theirs choice is shown), the change is unsent (offline) or a save is in flight, the person stays on the cell and is told why. Nothing is dropped silently and no second save starts while one is unanswered (D-45 kept).
+- **Rules that bit:** `doSave()` now resolves `true` only when the change was applied; every caller must treat anything else as "stay". `canCommit()` is false for a locked (unsent) draft and for a conflict, so moving can never resend over someone else's change.
+- **Checked:** `workspace-sheet-edit.test.js` (the old "refuse to move" test was replaced by five tests of the new behaviour plus four for tap, type and Enter); real Chromium on a 390 px screen (`entry.cjs`): second tap focuses the bar, Enter moves down with the box still focused, moving saves, type-to-replace, 14 rows entered in a row with the selected cell always in view, no errors.
+- **Not verified:** the real phone keyboard (a second tap on a cell opening it, "Enter" or "Next" key behaviour of the owner's keyboard), IME, and in-cell editing: the text is still edited in the bar above the grid, as in the Excel and Google Sheets phone apps. If the owner wants the text edited inside the cell, that is a separate increment.
+- **Not built (asked for by the owner):** a toolbar ("ribbon"). The first buttons arrive with rows and columns (increment 7: insert, delete, size) and formats (increment 8: bold, colour, alignment, number format, borders).
+
+## 3h. Excel-like entry (27 Nov 2026, from the owner's phone try-out)
+
+The owner tried editing on a real phone and found it unlike a spreadsheet: tap a cell, tap the bar above, type, press Save, and moving to another cell was refused while text was unsaved. Changed in `ui/cellEditor.js`, `ui/gridView.js`, `ui/sheet.js` (no database change):
+
+- **Tap the selected cell again** (or press Enter or F2 on a keyboard) to put the cursor in the bar; the keyboard opens on a phone. The bar is the formula bar; typing in the cell itself (an overlay on the cell) is NOT built, decide after the next phone try-out.
+- **Typing on a selected cell replaces its content** (hardware keyboard; Ctrl, Cmd and Alt combinations are left alone).
+- **Enter saves and moves down one row**, and the cursor stays in the bar so the next entry can be typed at once. Enter with nothing typed only moves down. Shift+Enter is still a new line.
+- **Moving to another cell saves the typed text first**, then moves (it used to refuse). If the text cannot be saved (an unfinished formula, a conflict, an unsent change, offline) the person stays on the cell, with the reason in the bar. While a save is unanswered a tap elsewhere does not start a second save.
+- **Kept rules:** the save is the same `buildCellEdit` write with the base the edit started from, an unanswered save is resent with the same operation id (D-45), nothing typed is dropped silently.
+- **Tests:** `workspace-sheet-edit.test.js` (43), `workspace-sheet-ui.test.js`. **Real Chromium** (`entry.cjs`, 390 px, real taps and keys): tap, tap again, type, Enter moves down, moving saves, type-to-replace, 14 entries in a row keep the selected cell in view. **8 of 8 mutations caught.**
+- **Run mutation checks on a COPY of the repo** (`tar` it to /tmp and symlink `node_modules`), never in place with a background process: a timed-out run once left a deliberately broken line in the working tree.
+- **Not verified:** the phone keyboard itself (the owner), a screen reader.
+- **Still missing from the owner's list:** a toolbar. Increment 7 adds structure buttons (insert and delete rows and columns, resize); increment 8 adds the formatting ribbon (bold, colours, alignment, number format).
+
 ## 4. What to do next (the road to completion)
 
 The owner gave "go" for Phase 5 on 23 and 24 Nov 2026 ("go ahead", "Continue"). **Phase 6 and later each need a new, separate "go" (rule N-17).** Phase numbers and gates are in `workspace.design.md` §9. Each increment below is its own reviewable PR; keep the same method as increments 3 to 5: pure domain code first with exact tests, then data, then screen, then a real-browser check, then mutations, then docs.

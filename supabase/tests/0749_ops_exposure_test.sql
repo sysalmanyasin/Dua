@@ -8,7 +8,7 @@ begin if cond is not true then raise exception 'FAIL: %', msg; end if; raise not
 do $t$ declare
   bad text; n int;
   -- the only ops functions a signed-in browser may call; each checks ops.view or ops.manage_rules inside and returns null or refuses otherwise
-  allowed text[] := array['ops_action_items','ops_recent_activity','ops_bi_summary','ops_rules_list','ops_rule_set','ops_activity_category_set'];
+  allowed text[] := array['ops_action_items','ops_recent_activity','ops_bi_summary','ops_closing_summary','ops_rules_list','ops_rule_set','ops_activity_category_set'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace s on s.oid = p.pronamespace
    where s.nspname = 'public' and (p.proname like 'ops\_%' or p.proname like 'closing\_ops\_%' or p.proname = 'mgmt_my_payslips') and has_function_privilege('anon', p.oid, 'execute');
@@ -16,7 +16,7 @@ begin
 
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace s on s.oid = p.pronamespace
    where s.nspname = 'public' and (p.proname like 'ops\_%' or p.proname like 'closing\_ops\_%') and has_function_privilege('authenticated', p.oid, 'execute') and p.proname <> all (allowed);
-  perform pg_temp.ok(bad is null, 'a signed-in browser can call only the six whitelisted ops functions' || coalesce(' (found: ' || bad || ')', ''));
+  perform pg_temp.ok(bad is null, 'a signed-in browser can call only the seven whitelisted ops functions' || coalesce(' (found: ' || bad || ')', ''));
 
   select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
    where s.nspname = 'public' and p.proname = any (allowed) and has_function_privilege('authenticated', p.oid, 'execute');
@@ -32,7 +32,7 @@ begin
   perform pg_temp.ok(bad is null, 'every ops, closing_ops and payslip function has search_path pinned to public' || coalesce(' (missing: ' || bad || ')', ''));
 
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace s on s.oid = p.pronamespace
-   where s.nspname = 'public' and p.proname in ('ops_action_items','ops_recent_activity','ops_bi_summary','ops_rules_list','ops_rule_set','ops_activity_category_set','mgmt_my_payslips') and not p.prosecdef;
+   where s.nspname = 'public' and p.proname in ('ops_action_items','ops_recent_activity','ops_bi_summary','ops_closing_summary','ops_rules_list','ops_rule_set','ops_activity_category_set','mgmt_my_payslips') and not p.prosecdef;
   perform pg_temp.ok(bad is null, 'the browser-callable ops functions run as the definer, so the tables can stay closed' || coalesce(' (not definer: ' || bad || ')', ''));
 
   -- tables: closed to the browser, reachable only through the functions

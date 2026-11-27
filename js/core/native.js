@@ -85,15 +85,21 @@ async function setupWidget(ctx, dev, deviceId, version) {
 
 // True when the phone already watches exactly what the server says, so nothing needs registering again
 // (registering restarts the stability timer, so it is skipped when nothing changed).
+// Only the app built from Phase 4 on knows about the owner's switch and the phone's key; it says so in its status.
+const isNewShell = (st) => typeof st?.hasKey === 'boolean';
+
 export function sameWatch(st, data) {
   if (!st?.enrolled) return false;
   const want = data.sites ?? [];
   const have = st.sites ?? [];
   if (Number(st.stableSeconds) !== Number(data.stable_seconds) || have.length !== want.length) return false;
   if (want.length && !st.registered) return false;
-  // the owner's switch, the accuracy limit, and (when the switch is on) the phone's own key
-  if (Boolean(st.auto) !== Boolean(data.auto_enabled)) return false;
-  if (data.auto_enabled && (!st.hasKey || Number(st.maxAccuracy) !== Number(data.max_accuracy_m))) return false;
+  // the owner's switch, the accuracy limit, and (when the switch is on) the phone's own key.
+  // An older copy of the app (before automatic recording) does not report them: leave it alone instead of registering again on every visit.
+  if (isNewShell(st)) {
+    if (Boolean(st.auto) !== Boolean(data.auto_enabled)) return false;
+    if (data.auto_enabled && (!st.hasKey || Number(st.maxAccuracy) !== Number(data.max_accuracy_m))) return false;
+  }
   return want.every((w) =>
     have.some(
       (h) =>
@@ -103,6 +109,27 @@ export function sameWatch(st, data) {
         Number(h.radius) === Number(w.radius_m),
     ),
   );
+}
+
+// What a person with automatic attendance must fix, in words a shop assistant understands. Used by the red strip at the top of Dua.
+// Staff keep using Dua as normal: this only tells them, and the owner is told by the server at the same time (migration 1404).
+const TRACKING_TEXT = {
+  no_precise_location: 'Allow precise location for Dua.',
+  location_off: 'Location is switched off on this phone. Switch it on.',
+  no_background_location: 'Set Dua\'s location to "Allow all the time".',
+  background_restricted: 'Set Dua to "Unrestricted" in the battery settings.',
+};
+
+// The one problem to show, or null when everything works (or this phone, this person or this app is not part of automatic attendance).
+export async function trackingProblem(ctx, g = globalThis) {
+  if (!inApp(g) || !has(ctx, 'attendance.check_in')) return null;
+  const dev = plugin('DuaDevice', g);
+  if (!dev?.getAutoAttendanceStatus) return null;
+  const st = await dev.getAutoAttendanceStatus();
+  if (!isNewShell(st) || !st.auto || !st.enrolled) return null;
+  if (st.problem) return { code: st.problem, text: TRACKING_TEXT[st.problem] ?? 'Automatic attendance is not working on this phone.' };
+  if (!st.hasKey) return { code: 'no_key', text: 'Open Attendance and press "Check again" to finish setting up this phone.' };
+  return null;
 }
 
 // Reads the places from the server and gives them to the phone. Used at start-up and by the Attendance page ("Check again", and after the
@@ -134,7 +161,7 @@ export async function syncAttendance(g = globalThis) {
       radius: Number(s.radius_m),
     })),
   };
-  if (settings.auto) {
+  if (settings.auto && isNewShell(st)) {
     // The owner switched automatic recording on: this phone reports arrivals and departures with a key of its own, because the web
     // login is not available while Dua is closed. The key works for that one purpose only; the server checks it on every event.
     const { deviceId, version } = await dev.getDeviceInfo();

@@ -143,4 +143,36 @@ public class AttendanceLogicTest {
         assertTrue(AttendanceLogic.validKind(IN) && AttendanceLogic.validKind(OUT));
         assertFalse(AttendanceLogic.validKind("sideways") || AttendanceLogic.validKind(null));
     }
+
+    @Test
+    public void theHealthReportGoesOnlyToOurOwnSiblingFunction() {
+        String events = "https://abcdefghijkl.supabase.co/functions/v1/attendance-event";
+        assertEquals("https://abcdefghijkl.supabase.co/functions/v1/attendance-health", AttendanceLogic.healthEndpoint(events));
+        assertNull(AttendanceLogic.healthEndpoint(null));
+        assertNull(AttendanceLogic.healthEndpoint("https://evil.example.com/functions/v1/attendance-event"));
+        assertNull(AttendanceLogic.healthEndpoint("http://abcdefghijkl.supabase.co/functions/v1/attendance-event"));
+        assertNull(AttendanceLogic.healthEndpoint("https://abcdefghijkl.supabase.co/functions/v1/attendance-health"));
+    }
+
+    @Test
+    public void theHealthStateIsNullWhenAllIsWellOtherwiseTheProblem() {
+        assertNull(AttendanceLogic.healthState(null, true, true));
+        assertEquals("location_off", AttendanceLogic.healthState("location_off", true, true));
+        assertEquals("no_background_location", AttendanceLogic.healthState("no_background_location", false, false));
+        assertEquals("not_registered", AttendanceLogic.healthState(null, true, false));
+        assertNull(AttendanceLogic.healthState(null, false, false)); // no place to watch: nothing to report
+    }
+
+    @Test
+    public void everyProblemThePhoneCanFindIsOneTheServerKnows() {
+        String[] server = {"no_precise_location", "location_off", "no_background_location", "background_restricted", "not_registered"};
+        boolean[][] cases = {{false, true, true, false}, {true, false, true, false}, {true, true, false, false}, {true, true, true, true}};
+        for (boolean[] c : cases) {
+            String state = AttendanceLogic.healthState(AttendanceLogic.problem(c[0], c[1], c[2], c[3]), true, true);
+            assertNotNull(state);
+            boolean known = false;
+            for (String s : server) known |= s.equals(state);
+            assertTrue(state, known);
+        }
+    }
 }

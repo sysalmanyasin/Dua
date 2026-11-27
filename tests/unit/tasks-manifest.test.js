@@ -11,6 +11,7 @@ describe('tasks manifest', () => {
       '/tasks/requests': 'tasks.manage',
       '/tasks/schedules': 'tasks.manage',
       '/tasks/team': 'tasks.manage',
+      '/tasks/guide': 'tasks.manage',
     });
   });
   it('has titles and descriptions for the page list', () => {

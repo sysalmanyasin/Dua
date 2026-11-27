@@ -83,7 +83,7 @@ export const channelFor = (priority: number): 'dua_urgent' | 'dua_alerts' => (pr
 
 // Where tapping the notification opens inside the app (a hash route of this site, never an address typed by anyone else).
 export function hrefFor(kind: string): string {
-  if (kind === 'attendance.rejected') return '#/manager/attendance';
+  if (kind.startsWith('attendance.')) return '#/manager/attendance';
   if (/^(backup|restore_drill|inventory\.sync)/.test(kind)) return '#/tools';
   return '#/home';
 }

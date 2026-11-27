@@ -26,8 +26,12 @@ const shorten = (t) => ([...t].length > 80 ? `${[...t].slice(0, 80).join('')}…
 
 // deps: getSheet() -> the sheet shown; getHeadSeq() -> how far the local copy is current; sender -> createOperationSender;
 // canEdit() -> boolean; refresh() -> pulls and redraws (async); notify(text) -> a message for the screen;
-// blocked() -> a reason a NEW save cannot start now (a sheet change is still waiting in the shared sender), or ''.
-export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, refresh, notify = () => {}, blocked = () => '' }) {
+// blocked() -> a reason a NEW save cannot start now (a sheet change is still waiting in the shared sender), or '';
+// afterEnter() -> called after Enter saved the cell (the screen moves down one row).
+export function createCellEditor(
+  bar,
+  { getSheet, getHeadSeq, sender, canEdit, refresh, notify = () => {}, blocked = () => '', afterEnter = () => {} },
+) {
   bar.classList.add('ws-formula');
   const label = make('span', 'ws-formula-label', bar, '—');
   const box = make('textarea', 'ws-edit-input', bar);
@@ -152,26 +156,30 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
     if (ed.original === was) box.value = ed.draft;
   }
 
+  // Resolves true when the change was applied, false for anything else (the reason is shown in the bar).
   async function doSave() {
-    if (!ed || ed.busy) return;
+    if (!ed || ed.busy) return false;
     if (!ed.locked) {
       const why = blocked();
       if (why) {
         ed.message = why;
-        return paint();
+        paint();
+        return false;
       }
       const parsed = parseCellInput(ed.draft);
       if (parsed.kind === 'invalid') {
         ed.message = parsed.reason;
-        return paint();
+        paint();
+        return false;
       }
       const sheet = getSheet();
-      if (!sheet) return;
+      if (!sheet) return false;
       try {
         sender.enqueue(buildCellEdit(sheet, cell.rowId, cell.colId, parsed, ed.baseSeq));
       } catch (e) {
         ed.message = e.message;
-        return paint();
+        paint();
+        return false;
       }
     }
     ed.busy = true;
@@ -196,12 +204,12 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
           begin();
           paint();
         }
-        return;
+        return true;
       }
       if (outcome === 'conflict') {
         const kind = res.conflicts?.[0]?.kind ?? 'cell';
         await refresh(); // brings in what the other person did
-        if (!ed) return; // the cell is gone: select() already told the person and kept their text in the message
+        if (!ed) return false; // the cell is gone: select() already told the person and kept their text in the message
         if (kind === 'cell') {
           const their = shorten(editState(stored()).text) || 'nothing (the cell is empty)';
           ed.conflict = { kind };
@@ -210,21 +218,41 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
           ed.conflict = { kind };
           ed.message = 'Someone deleted this row or column, so your change was not saved. Cancel to continue.';
         }
-        return paint();
+        paint();
+        return false;
       }
       ed.message = res.reason ?? 'The change was not accepted.';
-      return paint();
+      paint();
+      return false;
     }
     if (r.status === 'offline') {
       ed.locked = true; // the same change is resent when the person taps Try again
       ed.message = 'You seem to be offline, so your change is not saved yet. Try again when you are back online.';
-      return paint();
+      paint();
+      return false;
     }
     sender.takeRefused();
     ed.locked = false;
     ed.message = r.error?.message ?? 'Your change was not saved.';
     paint();
-    return undefined;
+    return false;
+  }
+
+  // True when there is typed text that can be saved right now (moving to another cell saves it, as in Excel).
+  const canCommit = () => ed !== null && ed.editable && dirty() && !ed.locked && ed.conflict === null && !ed.busy;
+
+  // Puts the cursor in the box (the keyboard opens on a phone). `replaceWith` starts the text afresh: typing on a
+  // selected cell replaces what it held.
+  function focusBox(replaceWith) {
+    if (!cell || !ed) return;
+    if (replaceWith !== undefined && ed.editable && !ed.locked && !ed.busy && ed.conflict === null) {
+      ed.draft = replaceWith;
+      ed.message = '';
+      box.value = replaceWith;
+    }
+    paint();
+    box.focus();
+    if (!box.readOnly) box.setSelectionRange(box.value.length, box.value.length);
   }
 
   function doCancel() {
@@ -256,11 +284,15 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
   box.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
-      doSave();
+      if (!dirty() && !ed?.locked) return afterEnter(); // nothing typed: Enter just moves down
+      doSave().then((ok) => {
+        if (ok) afterEnter();
+      });
     } else if (e.key === 'Escape' && ed && ed.editable) {
       e.preventDefault();
       doCancel();
     }
+    return undefined;
   });
   bar.addEventListener('click', (e) => {
     const b = e.target.closest('button[data-edit]');
@@ -275,6 +307,9 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
   return {
     select,
     hasUnsaved: unsaved,
+    canCommit,
+    commit: () => (canCommit() ? doSave() : Promise.resolve(false)),
+    focus: focusBox,
     where: () => cell?.label ?? '',
     cell: () => (cell ? { ...cell } : null),
   };

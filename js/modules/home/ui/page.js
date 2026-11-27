@@ -5,6 +5,7 @@ import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/f
 import { BRAND } from '../../../core/config.js';
 import { coverSummary, inventoryCover, notificationsAttention } from '../data/api.js';
 import { startOpsSections } from './ops.js';
+import { startClosingSummary } from './closing-summary.js';
 import { startStaffSections } from './staff.js';
 import { startMessages } from './messages.js';
 import { startTaskSections } from './tasks.js';
@@ -219,7 +220,8 @@ export async function mount(el, { ctx, modules = [] }) {
       }
       ${
         showOps
-          ? html`<div id="home-ops-actions"></div>
+          ? html`<div id="home-closing-summary"></div>
+              <div id="home-ops-actions"></div>
               <div id="home-ops-bi"></div>`
           : ''
       }
@@ -284,6 +286,7 @@ export async function mount(el, { ctx, modules = [] }) {
   renderFavourites();
 
   if (showOps) {
+    startClosingSummary({ host: el.querySelector('#home-closing-summary') });
     startOpsSections({
       actionHost: el.querySelector('#home-ops-actions'),
       biHost: el.querySelector('#home-ops-bi'),

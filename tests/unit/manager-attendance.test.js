@@ -3,16 +3,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { todayPkt } from '../../js/shared/format.js';
 import {
   addDays,
+  agoText,
+  attentionCount,
   autoChecklist,
   autoSummary,
   coordinateText,
   dayRows,
   dayState,
+  gapRows,
   groupByDay,
   journalDetail,
   journalLabel,
   journalTone,
   pendingText,
+  peopleRows,
+  phoneStateText,
+  phoneSummary,
   spanText,
   parseCoordinates,
   problemText,
@@ -211,6 +217,8 @@ const api = {
   setConfig: vi.fn(),
   setStable: vi.fn(),
   setAuto: vi.fn(),
+  health: vi.fn(),
+  gaps: vi.fn(),
   autoSupported: vi.fn(),
   autoStatus: vi.fn(),
   syncPlaces: vi.fn(),
@@ -250,6 +258,8 @@ beforeEach(() => {
   api.list.mockResolvedValue([]);
   api.myHistory.mockResolvedValue({ days: [], events: [] });
   api.summary.mockResolvedValue({ rows: [] });
+  api.health.mockResolvedValue({ auto_enabled: false, people: [] });
+  api.gaps.mockResolvedValue([]);
   api.setup.mockResolvedValue({ config: { max_accuracy_m: 100, require_app: true, stable_seconds: 120 }, sites: [] });
 });
 afterEach(() => {
@@ -302,6 +312,16 @@ describe("automatic recording: the phone's story", () => {
     expect(journalTone({ type: 'recorded' })).toBe('ok');
     for (const type of ['refused', 'dropped', 'no_fix', 'key_rejected', 'error:1000']) expect(journalTone({ type })).toBe('warn');
     for (const type of ['dwell', 'exit', 'ignored', 'cancelled', 'off']) expect(journalTone({ type })).toBe('plain');
+  });
+  it('does not tell a refused check-out to "check in when you arrive"', () => {
+    expect(reasonText('outside')).toMatch(/Check in when you arrive/);
+    expect(reasonText('outside', 'in')).toMatch(/Check in when you arrive/);
+    expect(reasonText('outside', 'out')).toBe('You are not at the pharmacy, so this check-out was not recorded.');
+    expect(reasonText('weak_signal', 'out')).toBe(reasonText('weak_signal'));
+    expect(resultMessage({ ok: false, reason: 'outside', distance_m: 15055 }, 'out').text).toBe(
+      'You are not at the pharmacy, so this check-out was not recorded. You are about 15055 m away.',
+    );
+    expect(resultMessage({ ok: false, reason: 'outside', distance_m: 90 }, 'in').text).toMatch(/Check in when you arrive/);
   });
   it('words a refused check-out while still inside', () => {
     expect(reasonText('still_inside')).toMatch(/still at the pharmacy/);
@@ -624,6 +644,15 @@ describe('attendance page', () => {
       expect(el.textContent).toContain('Watching the pharmacy');
     });
 
+    it('puts the day under the time of an older journal line, not in front of it', async () => {
+      const yesterday = Date.now() - 24 * 3600 * 1000;
+      api.autoStatus.mockResolvedValue({ ...phone(), journal: [{ type: 'exit', at: yesterday, accuracy: 13 }] });
+      await open(['attendance.check_in']);
+      const when = el.querySelector('.at-when');
+      expect(when.querySelector('b').textContent).toMatch(/^\d\d:\d\d$/);
+      expect(when.querySelector('small').textContent).toMatch(/\d{4}/);
+    });
+
     it('shows what happened to each event, and what is waiting to be sent', async () => {
       api.autoStatus.mockResolvedValue({
         ...phone(),
@@ -798,5 +827,131 @@ describe('attendance page', () => {
     await tick();
     expect(dlg.querySelector('#s-err').textContent).toMatch(/latitude, longitude/);
     expect(api.saveSite).not.toHaveBeenCalled();
+  });
+});
+
+describe('attendance: the owner view of every phone', () => {
+  const NOW = Date.parse('2026-11-27T10:00:00Z');
+  it('says each tracking problem in plain words', () => {
+    expect(phoneStateText('ok')).toBe('Tracking works');
+    expect(phoneStateText('location_off')).toMatch(/switched off/);
+    expect(phoneStateText('no_background_location')).toMatch(/all the time/);
+    expect(phoneStateText('background_restricted')).toMatch(/restricted/);
+    expect(phoneStateText('silent')).toMatch(/quiet/);
+    expect(phoneStateText('something_new')).toBe('Tracking is not working');
+  });
+  it('tells how long ago', () => {
+    expect(agoText('2026-11-27T09:59:30Z', NOW)).toBe('just now');
+    expect(agoText('2026-11-27T09:48:00Z', NOW)).toBe('12 min ago');
+    expect(agoText('2026-11-27T07:00:00Z', NOW)).toBe('3 h ago');
+    expect(agoText('2026-11-24T10:00:00Z', NOW)).toBe('3 d ago');
+    expect(agoText(null, NOW)).toBe('');
+    expect(agoText('garbage', NOW)).toBe('');
+  });
+  it('summarises a phone: none, never reported, working, broken', () => {
+    expect(phoneSummary(null, NOW)).toMatchObject({ tone: 'warn', text: 'No phone set up' });
+    expect(phoneSummary({ state: null }, NOW)).toMatchObject({ tone: 'warn', text: 'No report from this phone yet' });
+    expect(phoneSummary({ state: 'ok', reported_at: '2026-11-27T09:50:00Z', pending: 0 }, NOW)).toEqual({
+      tone: 'ok',
+      text: 'Tracking works',
+      note: 'Last report 10 min ago',
+    });
+    const bad = phoneSummary({ state: 'location_off', reported_at: '2026-11-27T09:50:00Z', pending: 2 }, NOW);
+    expect(bad.tone).toBe('bad');
+    expect(bad.note).toContain('2 waiting to send');
+  });
+  it('lists people at work first, then by name, and counts the phones that need a look', () => {
+    const health = {
+      people: [
+        { name: 'Zara', at_work: false, phone: { state: 'ok' } },
+        { name: 'Ali', at_work: false, phone: { state: 'location_off' } },
+        { name: 'Bilal', at_work: true, phone: null },
+      ],
+    };
+    expect(peopleRows(health, NOW).map((p) => p.name)).toEqual(['Bilal', 'Ali', 'Zara']);
+    expect(attentionCount(health)).toBe(1);
+    expect(peopleRows(null)).toEqual([]);
+    expect(attentionCount(null)).toBe(0);
+  });
+  it('words a gap with its times, and "still" while it is open', () => {
+    const rows = gapRows([
+      { name: 'Ali', state: 'location_off', from_at: '2026-11-27T05:20:00Z', to_at: '2026-11-27T06:05:00Z' },
+      { name: 'Sara', state: 'silent', from_at: '2026-11-27T07:00:00Z', to_at: null },
+    ]);
+    expect(rows[0]).toEqual({ name: 'Ali', text: 'Location is switched off', from: '10:20', to: '11:05' });
+    expect(rows[1].to).toBeNull();
+    expect(gapRows(null)).toEqual([]);
+  });
+});
+
+describe('attendance page: who is at work (owner)', () => {
+  const health = (o = {}) => ({
+    auto_enabled: true,
+    people: [
+      {
+        staff_id: 'a',
+        name: 'Ali Raza',
+        at_work: true,
+        since: '2026-11-27T04:10:00Z',
+        source: 'auto',
+        phone: { state: 'ok', reported_at: new Date().toISOString(), pending: 0 },
+      },
+      {
+        staff_id: 'b',
+        name: 'Sara Khan',
+        at_work: false,
+        since: null,
+        source: null,
+        phone: { state: 'location_off', reported_at: new Date().toISOString(), pending: 1 },
+      },
+    ],
+    ...o,
+  });
+  it('shows who is in and which phone is not tracking', async () => {
+    api.health.mockResolvedValue(health());
+    await open(['attendance.view_all']);
+    expect(el.textContent).toContain('Who is at work');
+    expect(el.textContent).toContain('1 at work now');
+    expect(el.textContent).toContain('1 phone not tracking');
+    expect(el.textContent).toContain('Ali Raza');
+    expect(el.textContent).toContain('In since 09:10 (automatic)');
+    expect(el.textContent).toContain('Location is switched off');
+    expect(el.textContent).toContain('Not tracking');
+    expect(el.textContent).not.toContain('Automatic recording is off');
+  });
+  it('says so when recording is off (phone states are only for testing)', async () => {
+    api.health.mockResolvedValue(health({ auto_enabled: false }));
+    await open(['attendance.view_all']);
+    expect(el.textContent).toContain('Automatic recording is off');
+  });
+  it('is not shown to staff, who see only their own check-in', async () => {
+    api.health.mockResolvedValue(health());
+    await open(['attendance.check_in']);
+    expect(el.textContent).not.toContain('Who is at work');
+    expect(api.health).not.toHaveBeenCalled();
+    expect(api.gaps).not.toHaveBeenCalled();
+  });
+  it('leaves the rest of the page working when the health functions are not there yet', async () => {
+    api.health.mockRejectedValue(new Error('no such function'));
+    api.gaps.mockRejectedValue(new Error('no such function'));
+    await open(['attendance.view_all']);
+    expect(el.textContent).toContain('Attendance records');
+    expect(el.textContent).not.toContain('Who is at work');
+  });
+  it('lists the times a phone was not tracking on the chosen day', async () => {
+    api.health.mockResolvedValue(health());
+    api.gaps.mockResolvedValue([
+      { staff_id: 'b', name: 'Sara Khan', state: 'location_off', from_at: '2026-11-27T05:20:00Z', to_at: '2026-11-27T06:05:00Z' },
+      { staff_id: 'a', name: 'Ali Raza', state: 'silent', from_at: '2026-11-27T07:00:00Z', to_at: null },
+    ]);
+    await open(['attendance.view_all']);
+    expect(el.textContent).toContain('Times a phone was not tracking');
+    expect(el.textContent).toContain('Location is switched off · 10:20 to 11:05');
+    expect(el.textContent).toContain('since 12:00, still not tracking');
+  });
+  it('shows no gaps section when there are none', async () => {
+    api.health.mockResolvedValue(health());
+    await open(['attendance.view_all']);
+    expect(el.textContent).not.toContain('Times a phone was not tracking');
   });
 });

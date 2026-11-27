@@ -34,7 +34,8 @@ export async function mount(el) {
       const today = todayPkt();
       if (data.tasks === null) return html`<p class="home-empty">Only the owner can manage tasks.</p>`;
       const staff = data.team?.staff ?? [];
-      return html`<details class="tk-more tk-new" data-keep="new-task">
+      return html`<p class="muted"><a href="#/tasks/guide">Owner guide: how Task Master works</a></p>
+        <details class="tk-more tk-new" data-keep="new-task">
           <summary>Create a task</summary>
           <form class="tk-form" data-act="create">
             <label class="field"
