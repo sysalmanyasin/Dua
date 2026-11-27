@@ -327,6 +327,7 @@ const PRECACHE = [
   "js/modules/tasks/manifest.js",
   "js/modules/tasks/ui/actions.js",
   "js/modules/tasks/ui/detail.js",
+  "js/modules/tasks/ui/guide.js",
   "js/modules/tasks/ui/kit.js",
   "js/modules/tasks/ui/manage.js",
   "js/modules/tasks/ui/mine.js",
