@@ -6,7 +6,7 @@
 
 <!-- repo-facts -->
 - Migration files: 136
-- Database test files: 121
+- Database test files: 122
 - Registered modules: 15
 - Edge Functions: 8
 <!-- /repo-facts -->
