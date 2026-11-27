@@ -5,8 +5,8 @@
 **Repository:** https://github.com/sysalmanyasin/Dua. **Live site:** https://sysalmanyasin.github.io/Dua/.
 
 <!-- repo-facts -->
-- Migration files: 136
-- Database test files: 122
+- Migration files: 137
+- Database test files: 123
 - Registered modules: 15
 - Edge Functions: 8
 <!-- /repo-facts -->

@@ -279,6 +279,8 @@ export const individualOverview = (month = null) => one(db().rpc('audit_individu
 
 // ── per-person progress and attention badges (0416, 0417) ──
 /** The items one person was given, with their latest count, note and the assumed flag. */
+// The whole round as it stands: every item with the count so far, the system quantity, the difference and its value, A-Z; plus each counter (0420).
+export const roundLive = (roundId) => one(db().rpc('audit_round_live', { p_round: roundId }));
 export const assignmentProgress = (assignmentId) => one(db().rpc('audit_assignment_progress', { p_assignment: assignmentId }));
 /** Rounds ready to compile, open conflicts and corrections waiting, each only for what the person may act on. */
 export const attentionSummary = () => one(db().rpc('audit_attention_summary'));

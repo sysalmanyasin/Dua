@@ -1,6 +1,13 @@
 # Changelog (everything built so far)
 
 Dates are 2026. Counts are as of the end of each step.
+## 28 Nov — Audit: Live progress popup shows the products, differences and Force Submit (migration `0420`)
+- The **Live progress** popup on Monthly Overview and Rounds & Progress now lists every product of the round **A to Z**, with what was counted, the system quantity, the difference and its value. Filters: **All**, **Differences**, **Counted**, **Not counted** (each with its count). Totals at the top add the number and value of differences.
+- **Force submit** is in the popup for each counter who has not submitted, for people with `audit.compile`: leave the rest uncounted, or mark them as matching the system (kept flagged as assumed), with a reason. The list behind it reloads afterwards.
+- Fixed: the progress bars in the popup were drawn empty (the fill colour was only defined inside the page, not in the popup). A counter submitted for "as matching" is now counted correctly in the popup (the earlier read counted only live count events).
+- **Database:** `0420_audit_round_live` adds `audit_round_live(p_round)` (read only; same gate as the compile overview, so a counter cannot see system quantities) and re-creates `audit_force_submit` with one addition: an Individual Audit compiles itself after a forced submit, like a normal submit (`0412`), so the round is not left open. Other rounds behave exactly as before. Test: `supabase/tests/0420_audit_round_live_test.sql` (27 checks).
+- **Web:** `audit/domain/roundLive.js`, `audit/ui/roundProgress.js` (rewritten), `audit/data/api.js` (`roundLive`), CSS in `css/audit.css`. Tests: `audit-round-progress` (rewritten) and `audit-round-live`.
+
 ## 27 Nov — Audit 0: code and documentation reconciliation, test baseline
 - Documentation rewritten to match the code: `README.md`, `docs/PROJECT_STATUS.md` (replaced), `ARCHITECTURE`, `SECURITY_MODEL`, `DATABASE_DESIGN`, `TESTING`, `SETUP`, `RUNBOOK`, `ANDROID_ARCHITECTURE`, `ROADMAP` (header). New: `docs/KNOWN_ISSUES.md`, `docs/TEST_ACCEPTANCE_MATRIX.md`, `docs/AUDIT_0_BASELINE.md`. Older status documents carry a historical banner. `README.tmp` removed.
 - New tests (nothing existing changed or weakened): database `0999` (whole-schema exposure), `0014`, `0226`, `0505`, `1002`; handler tests for `staff-login`, `admin-users`, `attendance-event`, `widget-today` and the `notify-push` secret gate; `docs-consistency`; a known-defect marker for KI-2. New `npm run test:coverage` (measured, not enforced).

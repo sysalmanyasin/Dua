@@ -1,57 +1,38 @@
-// A round's live counting progress, in a popup over the page: how far the count has got, who has counted how much, and when it
-// was last read. It reads the round again every few seconds while it is open and stops by itself when it is closed, when the
-// page is left, or when counting has finished. Nothing is written; the numbers are the ones the counting screens send.
+// A round's live counting progress, in a popup over the page: how far the count has got, who has counted how much, every product with
+// its count, system quantity and difference (filter: All, Differences, Counted, Not counted; always A to Z), and, for the main
+// auditor, Force Submit for a counter who has not submitted. It reads the round again every few seconds while it is open and stops by
+// itself when it is closed, when the page is left, or when counting has finished. The only thing it can write is Force Submit, and
+// only when the person who opened it holds audit.compile (the database checks the same key).
 import { html, render } from '../../../shared/html.js';
+import { money } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { friendlyError } from '../domain/errors.js';
+import { qtyText } from '../domain/history.js';
+import { LIVE_FILTERS, diffText, filterLive, liveCounts, liveFrom } from '../domain/roundLive.js';
 import { applyProgressBars, progressBar } from './parts.js';
 
 const EVERY_MS = 8000;
+const SHOWN = 300;
 const clock = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 const STATE = { counting: 'Counting', compiled: 'Compiled', final: 'Finalized', draft: 'Getting ready', locked: 'Locked' };
 
-/** Totals and per-person rows from audit_compile_overview. Pure. */
-export function progressFrom(overview) {
-  const list = (overview?.assignments ?? []).filter((a) => a.status !== 'revoked');
-  const items = list.reduce((n, a) => n + Number(a.items || 0), 0);
-  const counted = Math.min(
-    items,
-    list.reduce((n, a) => n + Number(a.counted || 0), 0),
-  );
-  return {
-    items,
-    counted,
-    remaining: Math.max(0, items - counted),
-    percent: items ? Math.round((counted / items) * 100) : 0,
-    state: overview?.round?.state ?? null,
-    people: list.map((a) => {
-      const total = Number(a.items || 0);
-      const done = Math.min(total, Number(a.counted || 0));
-      return {
-        name: a.name || 'Counter',
-        total,
-        done,
-        percent: total ? Math.round((done / total) * 100) : 0,
-        submitted: a.status === 'submitted',
-      };
-    }),
-  };
-}
-
-/**
- * Opens the popup for one round. `title` names it ("Round 10 · Mian Waqas"). `deps` lets tests replace the document, the read
- * and the interval. Returns { close, refresh }.
- */
-export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) {
+/** Opens the popup for one round. `title` names it ("Round 10 · Mian Waqas"). `canForce` shows Force Submit (audit.compile).
+ * `onChange` is called after a Force Submit so the page behind can reload. `deps` lets tests replace the document, the read, the
+ * submit and the interval. Returns { close, refresh }. */
+export function openRoundProgress({ roundId, title = 'Round', canForce = false, onChange = null, deps = {} } = {}) {
   const doc = deps.doc ?? document;
-  const read = deps.read ?? api.compileOverview;
+  const read = deps.read ?? api.roundLive;
+  const submit = deps.submit ?? api.forceSubmit;
   const every = deps.every ?? EVERY_MS;
   const opener = doc.activeElement;
   let closed = false;
   let model = null;
   let error = '';
+  let notice = '';
   let at = null;
   let busy = false;
+  let filter = 'all';
+  let force = null; // { id, name, mode, reason, busy, error } while the Force Submit form is open
 
   const host = doc.createElement('div');
   host.className = 'aud-pop';
@@ -60,9 +41,53 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
   host.setAttribute('aria-labelledby', 'aud-pop-title');
   doc.body.append(host);
 
+  const finishedNow = () => Boolean(model?.state && model.state !== 'counting');
+
+  function forceForm() {
+    return html`<div class="aud-pop-form" data-force-form>
+      <p class="small">What should happen to the products <strong>${force.name}</strong> has not counted?</p>
+      <label class="aud-pop-radio"
+        ><input type="radio" name="aud-fmode" data-field="mode" value="as_counted" ${force.mode === 'as_counted' ? 'checked' : ''} /> Leave
+        them uncounted (they count as zero in stock)</label
+      >
+      <label class="aud-pop-radio"
+        ><input type="radio" name="aud-fmode" data-field="mode" value="match" ${force.mode === 'match' ? 'checked' : ''} /> Mark them as
+        matching the system (kept flagged as assumed)</label
+      >
+      <label class="aud-pop-field"
+        ><span>Why? (kept in the history)</span><input type="text" data-field="reason" maxlength="500" value="${force.reason}"
+      /></label>
+      ${force.error ? html`<p class="note note-error" role="alert" data-force-error>${force.error}</p>` : ''}
+      <div class="aud-pop-actions">
+        <button type="button" class="btn btn-primary btn-sm" data-s="force-yes" ${force.busy ? 'disabled' : ''}>
+          ${force.busy ? 'Submitting…' : 'Force submit'}
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" data-s="force-cancel" ${force.busy ? 'disabled' : ''}>Cancel</button>
+      </div>
+    </div>`;
+  }
+
+  function itemRow(i) {
+    const counted = i.counted
+      ? html`Counted <strong>${qtyText(i.qty)}</strong> · System ${qtyText(i.systemQty)} ·
+          <span class="${i.hasDifference ? 'aud-pop-diff' : ''}" data-diff
+            >Difference
+            ${diffText(i.difference)}${i.hasDifference && i.value !== null ? ` (${money(i.value, { decimals: true })})` : ''}</span
+          >`
+      : html`<span data-not-counted>Not counted</span>`;
+    return html`<li data-item class="${i.counted ? '' : 'aud-pop-left'}">
+      <strong>${i.name}</strong>
+      <span class="muted small">${i.code} · ${i.company}${i.person && model.people.length > 1 ? ` · ${i.person}` : ''}</span>
+      <span class="small">${counted}${i.assumed ? ' · assumed to match' : ''}${i.note ? ` · note: ${i.note}` : ''}</span>
+    </li>`;
+  }
+
   function draw() {
     const m = model;
-    const finished = m && m.state && m.state !== 'counting';
+    const finished = finishedNow();
+    const canActOn = canForce && m && m.state === 'counting';
+    const counts = m ? liveCounts(m.items) : null;
+    const rows = m ? filterLive(m.items, filter) : [];
     render(
       host,
       html`<div class="aud-pop-box">
@@ -79,13 +104,19 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
             : !m
               ? html`<p class="muted" role="status">Reading the count…</p>`
               : html`<div class="aud-pop-hero">
-                    <div class="aud-pop-percent" data-percent>${m.percent}<span>%</span></div>
+                    <div class="aud-pop-percent" data-percent>${m.totals.percent}<span>%</span></div>
                     <div>
-                      <strong data-counted>${m.counted.toLocaleString()} of ${m.items.toLocaleString()} counted</strong>
-                      <p class="muted small" data-remaining>${m.remaining.toLocaleString()} remaining</p>
+                      <strong data-counted>${m.totals.counted.toLocaleString()} of ${m.totals.items.toLocaleString()} counted</strong>
+                      <p class="muted small" data-remaining>${m.totals.remaining.toLocaleString()} remaining</p>
+                      <p class="small" data-differences>
+                        ${m.totals.differences.toLocaleString()}
+                        ${m.totals.differences === 1 ? 'difference' : 'differences'}${
+                          m.totals.differences ? ` (${money(m.totals.value, { decimals: true })})` : ''
+                        }
+                      </p>
                     </div>
                   </div>
-                  ${progressBar(m.percent)}
+                  ${progressBar(m.totals.percent)}
                   ${
                     finished
                       ? html`<p class="aud-pop-state" data-finished>${STATE[m.state] ?? m.state}: counting has finished.</p>`
@@ -93,6 +124,7 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
                           <span class="aud-dot" aria-hidden="true"></span> Counting now
                         </p>`
                   }
+                  ${notice ? html`<p class="note" role="status" data-notice>${notice}</p>` : ''}
                   <ul class="aud-pop-people">
                     ${m.people.map(
                       (p) =>
@@ -101,13 +133,50 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
                             ><strong>${p.name}</strong>
                             <span class="muted small">${p.done.toLocaleString()} of ${p.total.toLocaleString()}</span></span
                           >
-                          <span class="aud-badge ${p.submitted ? 'aud-badge-submitted' : 'aud-badge-counting'}"
-                            >${p.submitted ? 'Submitted' : `${p.percent}%`}</span
+                          <span class="aud-pop-badge ${p.submitted ? 'is-submitted' : ''}"
+                            >${p.submitted ? (p.forced ? 'Submitted by owner' : 'Submitted') : `${p.percent}%`}</span
                           >
                           ${progressBar(p.percent)}
+                          ${
+                            canActOn && !p.submitted
+                              ? force?.id === p.id
+                                ? forceForm()
+                                : html`<button
+                                    type="button"
+                                    class="btn btn-sm aud-pop-force"
+                                    data-s="force"
+                                    data-id="${p.id}"
+                                    data-name="${p.name}"
+                                  >
+                                    Force submit
+                                  </button>`
+                              : ''
+                          }
                         </li>`,
                     )}
-                  </ul>`
+                  </ul>
+                  <div class="aud-pop-filters" role="group" aria-label="Show products">
+                    ${LIVE_FILTERS.map(
+                      (f) =>
+                        html`<button
+                          type="button"
+                          class="btn btn-sm ${filter === f.key ? 'btn-primary' : 'btn-ghost'}"
+                          data-f="${f.key}"
+                          aria-pressed="${filter === f.key}"
+                        >
+                          ${f.label} (${counts[f.key]})
+                        </button>`,
+                    )}
+                  </div>
+                  <p class="muted small">Products A to Z</p>
+                  ${
+                    rows.length === 0
+                      ? html`<p class="muted small" data-empty>No products in this view.</p>`
+                      : html`<ul class="aud-pop-items" data-items>
+                          ${rows.slice(0, SHOWN).map(itemRow)}
+                        </ul>`
+                  }
+                  ${rows.length > SHOWN ? html`<p class="muted small" data-more>Showing the first ${SHOWN} of ${rows.length}. Use a filter to narrow it.</p>` : ''}`
         }
         <div class="aud-pop-foot">
           <span class="muted small" data-updated>${at ? `Updated ${clock(at)}${finished ? '' : ' · refreshes by itself'}` : ''}</span>
@@ -118,28 +187,59 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
     applyProgressBars(host);
   }
 
-  async function refresh() {
+  // `quiet` is the timer: it updates the numbers but does not redraw over a form someone is typing in
+  async function refresh({ quiet = false } = {}) {
     if (closed || busy) return;
     busy = true;
     try {
-      model = progressFrom(await read(roundId));
+      model = liveFrom(await read(roundId));
       error = '';
       at = new Date();
     } catch (e) {
-      // keep the last numbers on screen; say that the read failed
+      // keep the last numbers on screen; say that the read failed only when there is nothing to show
       error = model ? '' : friendlyError(e).message;
-      if (model) at = at ?? null;
     }
     busy = false;
     if (closed) return;
+    if (!(quiet && force)) draw();
+    if (finishedNow()) stop();
+  }
+
+  async function doForce() {
+    if (!force || force.busy) return;
+    const reason = force.reason.trim();
+    if (reason.length < 3) {
+      force.error = 'Please give a reason (at least 3 letters).';
+      return draw();
+    }
+    force.busy = true;
+    force.error = '';
     draw();
-    if (model?.state && model.state !== 'counting') stop();
+    const { id, name, mode } = force;
+    try {
+      await submit({ assignmentId: id, mode, reason });
+    } catch (e) {
+      if (closed) return;
+      force.busy = false;
+      force.error = friendlyError(e).message;
+      return draw();
+    }
+    if (closed) return;
+    force = null;
+    notice = `Submitted for ${name}.`;
+    await refresh();
+    onChange?.();
+    // a forced submit can finish the round (an Individual round compiles itself); the timer stops then
+    if (!finishedNow() && !timer) startTimer();
   }
 
   let timer = null;
   const stop = () => {
     if (timer) (deps.clear ?? clearInterval)(timer);
     timer = null;
+  };
+  const startTimer = () => {
+    timer = (deps.timer ?? setInterval)(() => void refresh({ quiet: true }), every);
   };
   function close() {
     if (closed) return;
@@ -151,10 +251,29 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
   }
 
   host.onclick = (e) => {
-    const action = e.target.closest('button[data-s]')?.dataset.s;
+    const btn = e.target.closest('button');
+    const action = btn?.dataset.s;
     if (action === 'close') close();
     else if (action === 'refresh') void refresh();
-    else if (e.target === host) close(); // a tap on the dimmed area
+    else if (action === 'force') {
+      force = { id: btn.dataset.id, name: btn.dataset.name, mode: 'as_counted', reason: '', busy: false, error: '' };
+      notice = '';
+      draw();
+      host.querySelector('[data-force-form] input[type="text"]')?.focus();
+    } else if (action === 'force-cancel') {
+      force = null;
+      draw();
+    } else if (action === 'force-yes') void doForce();
+    else if (btn?.dataset.f) {
+      filter = btn.dataset.f;
+      draw();
+    } else if (e.target === host) close(); // a tap on the dimmed area
+  };
+  host.oninput = (e) => {
+    if (force && e.target.matches('input[type="text"][data-field="reason"]')) force.reason = e.target.value;
+  };
+  host.onchange = (e) => {
+    if (force && e.target.matches('input[type="radio"][data-field="mode"]')) force.mode = e.target.value;
   };
   host.onkeydown = (e) => {
     if (e.key === 'Escape') {
@@ -167,7 +286,7 @@ export function openRoundProgress({ roundId, title = 'Round', deps = {} } = {}) 
   draw();
   host.querySelector('button[data-s="close"]')?.focus();
   void refresh().then(() => {
-    if (!closed && !(model?.state && model.state !== 'counting')) timer = (deps.timer ?? setInterval)(() => void refresh(), every);
+    if (!closed && !finishedNow()) startTimer();
   });
   return { close, refresh };
 }
