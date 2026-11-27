@@ -1,4 +1,7 @@
 # PROJECT_PROGRESS
+
+> **Historical log.** Rows are point-in-time and many are superseded (test counts, migration counts, "not built" notes). Current status: `docs/PROJECT_STATUS.md`. Do not use this file as evidence of what is live or tested today.
+
 | Date | Task | Done | Tested | Failed | Next |
 |---|---|---|---|---|---|
 | 2026-11-05 | Phase 0 business rules from old code | yes (draft) | n/a | — | owner approval; answer ASK items |

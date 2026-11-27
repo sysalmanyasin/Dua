@@ -1,58 +1,39 @@
 # Dua — Fazal Din's Pharma Plus
 
-> **Verified 22 Nov 2026:** audited main commit `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages deployment #244 succeeded. Live DuaPharmaPlus: PostgreSQL 17.11, 124/124 public tables have RLS, 341 public routines and 93 four-digit migration registry rows. Main has 92 migration files; already-applied live migration 0015 source is on `ops-redesign-stage1` and must be reconciled into main without reapplying. See [22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md).
+A modular pharmacy operations web app: plain HTML and JavaScript ES modules (no build step), Supabase (Postgres, Auth, Edge Functions) and GitHub Pages, plus an Android shell (`android-app/`) for attendance, push alerts and a home-screen widget.
 
-
-
-A modular pharmacy operations web app built with plain HTML and JavaScript ES modules, Supabase (Postgres, Auth and Edge Functions), and GitHub Pages.
-
-**Live application:** https://sysalmanyasin.github.io/Dua/  
-**Canonical status:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md)  
-**Full module register:** [docs/MODULE_PROGRESS_REGISTER.md](docs/MODULE_PROGRESS_REGISTER.md)  
+**Live site:** https://sysalmanyasin.github.io/Dua/
 **Repository:** https://github.com/sysalmanyasin/Dua
+**Current status:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) (verified 27 Nov 2026, commit `07e87e4`)
+**Known issues:** [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)
+**What is tested, and what is not:** [docs/TEST_ACCEPTANCE_MATRIX.md](docs/TEST_ACCEPTANCE_MATRIX.md)
 
-## Previous project status snapshot (21 Nov 2026; superseded)
+## Status in one paragraph
 
-The current verified snapshot is at the top of this README and in [the 22 Nov code/live audit](docs/PROJECT_AUDIT_2026-11-22.md). The following section is retained as historical context.
-
-| Area | Status |
-|---|---|
-| Foundation, Access and Tools | Integrated; authentication/permissions and operational tooling recorded live |
-| Home and Sales | Integrated; real-device acceptance and real Gmail send verification remain |
-| Manager | Integrated; migrations 0101–0108 recorded live; owner phone acceptance and real Closing inbox check remain |
-| Closing | 14-section ledger, shared drafts/live sync, ledgers, Book/PDF, history, review and settings integrated; owner try-out #5 and audit-gate decision remain |
-| Inventory | Six screens and feed integrated; live migrations through 0309 and sync Edge Function v24; phone PDF check and sync cleanup remain |
-| STR and Candela Sales | Screens and live database workflows integrated; owner phone acceptance and sync monitoring remain |
-| Audit | A1–C2 integrated/live, including expiry and barcode; Individual Audit rounds compile themselves on submit (0412, 22 Nov 2026); phone, print/CSV acceptance and hardening remain |
-| Emergency Billing | Phases 1–6 automated work integrated; live partial refunds, receipt settings, reports and exports; real-device/printer acceptance and granting `ebill.*` rights remain |
-| Invoice Desk | Three business templates, create/history/product screens integrated; migrations 1000–1003 live and registered by repo number; E2E and physical-printer acceptance remain |
-| Workspace | Notes integrated on main (editor, sharing, history, search, folders); 1100/1101/1110 recorded live; Sheets database `1102` applied live (21 Nov 2026), Sheets UI not built, no offline sync or attachments yet; Notes accepted by the owner after live testing |
-| Unified Reports, assistant and Android | Future work |
-
-The full module-by-module evidence, live migration-registry audit, deployment findings and remaining tasks are in [the Master Module Progress Register](docs/MODULE_PROGRESS_REGISTER.md) and [the 21 Nov code audit](docs/PROJECT_AUDIT_2026-11-21.md).
-
-**Important:** “integrated”, “live”, “tested” and “accepted” are different states. Live deployment statements are recorded in module progress files and have not all been freshly rechecked against Supabase during this documentation update. Old progress-file test counts are historical and must not be added together.
+Fifteen modules are on `main` and registered (home, sales, manager, access, tools, closing, inventory, str, candela-sales, ebill, audit, invoice-desk, workspace, tasks, inbox). Their automated checks pass: lint, formatting, unit tests, 131 migrations applied to an empty PostgreSQL 16 with the database security tests, Deno type-checks of the 7 Edge Functions, secret and vendor scans. **That is not the same as accepted.** There are no browser end-to-end tests, no real restore of a Drive backup has been recorded, "production" and "staging" are the same Supabase project, and owner/device acceptance is outstanding for most modules. Statements about the live Supabase project in older documents were not re-checked. Do not infer that a feature is live because its code exists.
 
 ## Read this first
 
-| If you are… | Read |
+| If you are... | Read |
 |---|---|
 | using the app | `docs/USER_GUIDE.md` |
 | the owner / administrator | `docs/ADMIN_GUIDE.md` |
 | operating or fixing it | `docs/RUNBOOK.md`, `docs/SETUP.md` |
 | building a module | `docs/MODULES.md`, `docs/ARCHITECTURE.md`, `docs/DATABASE_DESIGN.md`, `docs/SECURITY_MODEL.md` |
 | checking business rules | `docs/BUSINESS_RULES.md`, `docs/DECISIONS.md` |
-| checking test evidence | `docs/TESTING.md` |
-| checking module progress | `docs/MODULE_PROGRESS_REGISTER.md`, `docs/modules/*.progress.md` |
-| planning work | `docs/PROJECT_STATUS.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `PROJECT_PROGRESS.md` |
+| checking test evidence | `docs/TESTING.md`, `docs/TEST_ACCEPTANCE_MATRIX.md`, `docs/AUDIT_0_BASELINE.md` |
+| planning work | `docs/PROJECT_STATUS.md`, `docs/KNOWN_ISSUES.md`, `docs/ROADMAP.md` |
+
+Dated files (`PROJECT_PROGRESS.md`, `docs/CHANGELOG.md`, `docs/PROJECT_AUDIT_*`, `docs/modules/*.progress.md`) are history.
 
 ## Local development
 
 ```sh
 npm ci
-npm run serve
-npm run verify
-bash supabase/tests/run.sh
+npm run serve              # http://localhost:8080
+npm run verify             # lint, format check, unit tests, secret scan, vendor hashes
+npm run test:coverage      # coverage report (measured, not enforced)
+bash supabase/tests/run.sh # needs a local PostgreSQL and PGUSER/PGPASSWORD/PGHOST; creates and drops its own database
 ```
 
-The database test script needs a local PostgreSQL instance and `PGUSER`. Never push without the checks passing. Never commit secrets or real staff/business data.
+CI (`.github/workflows/ci.yml`) runs the same app checks, the database suite on PostgreSQL 16, Deno type-checks of every Edge Function, and `actionlint`. **CI does not gate deployment:** GitHub Pages publishes from `main` on its own (see `docs/KNOWN_ISSUES.md`, KI-4). Never push without the checks passing. Never commit secrets or real staff or business data.

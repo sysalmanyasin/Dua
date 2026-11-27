@@ -1,5 +1,8 @@
 # Dua — Master module progress register
 
+> **Superseded in part by Audit 0 (27 Nov 2026).** This register is a 22 Nov snapshot and is historical. Known stale items: it says `main` has 92 migration files (now 131); that `0015`/`0017` are not on `main` (both are); that Workspace Sheets UI is unbuilt or unmerged (sheet UI, cell editing, formulas and sheet management are on `main`); that Attendance and Android are later/planned (both exist); it omits the `tasks` and `inbox` modules (7 and 1 routes, registered). Use `docs/PROJECT_STATUS.md` for current status, `docs/TEST_ACCEPTANCE_MATRIX.md` for per-module tests and gaps, and `docs/KNOWN_ISSUES.md` for defects. "Live" statements here were recorded by earlier sessions and have not been re-checked.
+
+
 **Snapshot:** 22 November 2026
 
 > Fresh verification: main commit `18283f17600be54d562a5eb3c40bf89906416b29`; CI #444 and Pages #244 passed. Live database has 124/124 public tables RLS-enabled, 341 public routines and 93 four-digit migration registry rows; main has 92 migration files, with live-applied 0015 source only on `ops-redesign-stage1`. Workspace Sheets reference model is merged; no grid UI/data layer yet. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md).  

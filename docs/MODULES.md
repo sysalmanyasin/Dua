@@ -1,5 +1,8 @@
 # MODULES.md — The Shared Contract
 
+> **Audit 0 note (27 Nov 2026):** this is the module contract; its rules are unchanged. Facts in it that were stale: the registry has **15** module ids (`tasks` and `inbox` are registered), `main` has **131** migration files, and current status lives in `docs/PROJECT_STATUS.md`, not in the "Last updated" line below. Before adding a module, extend `docs/TEST_ACCEPTANCE_MATRIX.md` and the repo-facts block in `docs/PROJECT_STATUS.md` (a test fails if they drift).
+
+
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 

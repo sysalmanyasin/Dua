@@ -1,20 +1,25 @@
 # Testing and verification
 
-**Status snapshot:** 22 November 2026.
+**Baseline:** 27 Nov 2026, commit `07e87e4` plus the Audit 0 branch. Commands, results and limits: `docs/AUDIT_0_BASELINE.md`. Per-module matrix: `docs/TEST_ACCEPTANCE_MATRIX.md`. Older module-session counts (1,267, 1,562, 1,891, 1,933, 2,434 and so on) are history and must not be added together or compared with today's totals.
 
-**Fresh CI evidence:** GitHub Actions [CI run #444](https://github.com/sysalmanyasin/Dua/actions/runs/45006802268) passed on main commit `18283f17600be54d562a5eb3c40bf89906416b29`; GitHub Pages deployment [#244](https://github.com/sysalmanyasin/Dua/actions/runs/45006801951) succeeded on the same commit. CI covers automated app, DB and four current Edge Function checks; it does not prove live business acceptance or physical-device behaviour. Migration-source drift (live-applied 0015 source missing from main) is recorded in [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). This document separates automated test evidence from live deployment and real-device acceptance.
+## Current baseline (reproducible)
 
-## Latest recorded verification
+| Check | Command | Result |
+|---|---|---|
+| Lint | `npm run lint` | pass |
+| Formatting | `npm run format:check` | pass (`.md`, `.ts`, `.sql`, `android-app/` are excluded by `.prettierignore`) |
+| Unit and page tests | `npm test` | pass: 202 files, 3,601 tests (197 files and 3,514 tests before Audit 0); no `.skip`, `.only` or `.todo` |
+| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 131 migrations applied to an empty database, 119 test files, 3,268 `pass:` lines plus 843 `pass (refused)` lines, 0 FAIL/ERROR (3,209 `pass:` lines before Audit 0) |
+| Edge Function types | `deno check --no-lock <fn>/index.ts` for all 7 | pass |
+| Edge Function handlers | `tests/unit/edge-*.test.js` | `staff-login`, `admin-users`, `attendance-event`, `widget-today`, `notify-push` secret gate. Not covered: `sync-inventory-from-dropbox`, `notify-ntfy`, `notify-push` delivery |
+| Workflow lint | `actionlint` | pass |
+| Secrets and vendor | `npm run check:secrets`, `npm run check:vendor` | pass |
+| Service-worker precache | `npm run build:sw` | no drift |
+| Coverage | `npm run test:coverage` | 87.6% statements, 86.6% branches, 88.1% functions, 87.6% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) (measured, not enforced) |
+| Android | `node android-app/scripts/check-shell.mjs` | pass. Gradle unit test and APK build run only in GitHub Actions |
 
-Historical local baseline (19 Nov 2026):
+A passing jsdom or local PostgreSQL test proves only its own scope. It does not prove real-device behaviour, Google integration, a production restore, the live database's state, or any owner workflow.
 
-- `npm run verify`: lint, format, secret and vendor checks passed; **1,562 / 1,562 unit tests passed**.
-- `bash supabase/tests/run.sh`: full local PostgreSQL database suite passed.
-- Deno Edge Function type checks and workflow lint were **not run locally** in that session.
-
-Fresh GitHub Actions verification is available for `main` commit `96694979e65242f5ee24eb86f215630686b552c8`: CI run #401 passed all three jobs (app, database, functions) and Pages deployment #226 succeeded. This is workflow evidence for that exact commit, not a substitute for device acceptance.
-
-As recorded for the 21 Nov 2026 `main` snapshot: 1,891 unit tests in 121 files; 77 database test files. The latest CI run on the same commit is green. Do not add module-specific test counts from different dates/branches.
 
 ## Test suites
 
@@ -24,7 +29,8 @@ As recorded for the 21 Nov 2026 `main` snapshot: 1,891 unit tests in 121 files; 
 | Repository checks | `npm run lint`, `npm run format:check`, `npm run check:secrets`, `npm run check:vendor` | Style, unsafe DOM patterns, secret leakage and vendored-file hashes |
 | Combined repository verification | `npm run verify` | Runs the repository's configured app checks |
 | Database tests | `bash supabase/tests/run.sh` | Rebuilds a clean local PostgreSQL database from repository migrations, then checks RLS, grants, permissions, validation, idempotency, immutable records and module-specific rules |
-| Edge Function checks | CI Deno checks in `.github/workflows/ci.yml` | Type-checks the Edge Functions listed in the workflow |
+| Edge Function checks | CI Deno checks in `.github/workflows/ci.yml` (all 7 functions) and handler tests `tests/unit/edge-*.test.js` | Types; for five functions the handler's real code path against fake Supabase clients (`tests/helpers/edgeHarness.js`) |
+| Whole-database invariants | `supabase/tests/0999_global_exposure_test.sql` | Every public table has RLS; every SECURITY DEFINER function pins `search_path`; the visitor role runs no function outside a documented list (KI-1) |
 | Workflow lint | CI actionlint step | Checks GitHub Actions workflow syntax |
 
 ## How to run
@@ -35,7 +41,7 @@ npm run verify
 bash supabase/tests/run.sh
 ```
 
-The database runner needs a local PostgreSQL instance and `PGUSER`. The workflow also runs Deno and actionlint; local `npm run verify` alone does not prove those jobs passed. Inspect the actual GitHub Actions run.
+The database runner needs a local PostgreSQL instance and `PGHOST`, `PGUSER`, `PGPASSWORD`; it creates and drops its own database, so never point it at a real project. The workflow also runs Deno and actionlint; local `npm run verify` alone does not prove those jobs passed. Inspect the actual GitHub Actions run.
 
 ## Recorded module-specific evidence
 
@@ -76,5 +82,7 @@ These statements come from module progress records. Before production changes, q
 - Emergency Billing real-device and real-printer acceptance (owner checklist in `docs/modules/ebill-phase6.md` section 3) and live granting of `ebill.*` rights.
 - Workspace Notes real-phone and two-account acceptance: accepted by the owner after live testing (21 Nov 2026, reported in chat). Automated tests remain jsdom only.
 - Playwright browser end-to-end automation and Sentry production monitoring.
+- Handler tests for `sync-inventory-from-dropbox` and `notify-ntfy`; database tests for the migrations listed in `docs/KNOWN_ISSUES.md`; Invoice Desk page tests.
+- PostgreSQL 17 (the live version per older documents); the suite runs on 16 (KI-7).
 
 A passing jsdom or local PostgreSQL test proves only its test scope. It does not prove real-device usability, Google integration, production restore, or every live permission path.

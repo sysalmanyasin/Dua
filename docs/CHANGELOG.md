@@ -1,6 +1,11 @@
 # Changelog (everything built so far)
 
 Dates are 2026. Counts are as of the end of each step.
+## 27 Nov — Audit 0: code and documentation reconciliation, test baseline
+- Documentation rewritten to match the code: `README.md`, `docs/PROJECT_STATUS.md` (replaced), `ARCHITECTURE`, `SECURITY_MODEL`, `DATABASE_DESIGN`, `TESTING`, `SETUP`, `RUNBOOK`, `ANDROID_ARCHITECTURE`, `ROADMAP` (header). New: `docs/KNOWN_ISSUES.md`, `docs/TEST_ACCEPTANCE_MATRIX.md`, `docs/AUDIT_0_BASELINE.md`. Older status documents carry a historical banner. `README.tmp` removed.
+- New tests (nothing existing changed or weakened): database `0999` (whole-schema exposure), `0014`, `0226`, `0505`, `1002`; handler tests for `staff-login`, `admin-users`, `attendance-event`, `widget-today` and the `notify-push` secret gate; `docs-consistency`; a known-defect marker for KI-2. New `npm run test:coverage` (measured, not enforced).
+- Findings recorded, not fixed: KI-1 (five functions callable by the visitor role), KI-2 (amount in words below one rupee). No migration was applied and nothing was deployed.
+
 
 ## 26 Nov — Audit tab chips about 60% of their old size
 - The two rows of tabs on the Audit pages (Overview / Team Audit / Individual Audit / Tools, and the screens under them such as Monthly Overview, Rounds & Progress, Review) were tall and wide. Height, side padding and text are now about 60% of before (tabs 44 px to 26 px, screens 40 px to 24 px). CSS only (`css/audit.css`). Not yet seen on the owner's phone.

@@ -14,10 +14,12 @@
     "test:db": "bash supabase/tests/run.sh",
     "serve": "npx http-server -c-1 -p 8080 .",
     "verify": "npm run lint && npm run format:check && npm test && npm run check:secrets && npm run check:vendor",
-    "build:sw": "node tools/sw-precache.mjs"
+    "build:sw": "node tools/sw-precache.mjs",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text-summary --coverage.reporter=json-summary"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
+    "@vitest/coverage-v8": "2.1.9",
     "eslint": "9.39.5",
     "fake-indexeddb": "6.2.8",
     "globals": "17.14.0",

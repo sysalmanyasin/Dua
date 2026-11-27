@@ -1,4 +1,6 @@
-# Setup guide: provisioning a fresh staging project\n\n> **Not the current live-project status.** This is a bootstrap procedure for creating a separate staging environment. The existing DuaPharmaPlus project is already live and has migrations, Edge Functions, backup jobs and owner configuration applied. For current live operations, use `docs/RUNBOOK.md` and `docs/PROJECT_STATUS.md`. Do not follow this guide against the live project as if it were empty.
+# Setup guide: provisioning a fresh staging project
+
+> **Not the current live-project status.** This is a bootstrap procedure for creating a separate staging environment. The existing DuaPharmaPlus project is already live and has migrations, Edge Functions, backup jobs and owner configuration applied. For current live operations, use `docs/RUNBOOK.md` and `docs/PROJECT_STATUS.md`. Do not follow this guide against the live project as if it were empty.
 
 ## 1. Create the Supabase staging project
 New project, Free plan, name `dua-staging`, region closest to Pakistan. Save the database password in your password manager, not in Git.
@@ -12,7 +14,7 @@ New project, Free plan, name `dua-staging`, region closest to Pakistan. Save the
 - Site URL: your GitHub Pages address for staging.
 
 ## 3. Apply the database
-SQL editor → paste `supabase/migrations/0001_core.sql` → Run. (Later migrations: same, in number order.)
+Apply **every** file in `supabase/migrations/` in number order (131 files today, `0001` to `1403`), either with the Supabase CLI against the new project or by pasting each file into the SQL editor. Some migrations need extensions and Vault entries that must exist first (`pg_cron`, `pg_net`, and the Vault secrets listed in `docs/RUNBOOK.md` section 3), and a few create scheduled jobs. Apply them to a new, empty project only; never re-apply a migration to a project that already has it. Afterwards check RLS on every table, no `anon` grants and that the new functions work (`docs/RUNBOOK.md` section 4, step 4).
 
 ## 4. Edge Function secrets (Edge Functions → Secrets)
 | Name | Value |
@@ -25,7 +27,7 @@ SQL editor → paste `supabase/migrations/0001_core.sql` → Run. (Later migrati
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided to functions automatically. Never copy the service-role key anywhere else.
 
 ## 5. Deploy functions
-`supabase functions deploy staff-login admin-users --no-verify-jwt` (or paste each folder in the dashboard editor, with "Verify JWT" off for both; they check access themselves). After moving to 4-digit PINs, also delete the old `request-access` and `claim-account` functions.
+Deploy all seven functions: `staff-login`, `admin-users`, `sync-inventory-from-dropbox`, `notify-ntfy`, `notify-push`, `widget-today`, `attendance-event`. Six of them have "Verify JWT" off (listed in `supabase/config.toml`; each checks its own credential). `notify-ntfy` is not listed there, so confirm its setting in the dashboard. Extra secrets are needed for the notification, inventory and Android functions (`NOTIFY_DRAIN_SECRET`, `OPS_REPORT_SECRET`, `FCM_SERVICE_ACCOUNT`, Dropbox and sync secrets; see `docs/RUNBOOK.md` section 3). If the old `request-access` and `claim-account` functions exist on the project, delete them.
 
 ## 6. Create the first owner
 1. Authentication → Users → **Add user** → your email + strong password (tick auto-confirm).

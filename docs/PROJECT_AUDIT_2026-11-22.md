@@ -1,5 +1,8 @@
 # Dua — code and live Supabase audit (22 Nov 2026)
 
+> **Historical audit.** Superseded by Audit 0 (`docs/AUDIT_0_BASELINE.md`, 27 Nov 2026). Its counts and live-state findings describe 21/22 Nov and were not re-checked.
+
+
 **Repository:** [sysalmanyasin/Dua](https://github.com/sysalmanyasin/Dua)  
 **Audited branch/commit:** `main` / [`18283f17600be54d562a5eb3c40bf89906416b29`](https://github.com/sysalmanyasin/Dua/commit/18283f17600be54d562a5eb3c40bf89906416b29)  
 **Live site:** https://sysalmanyasin.github.io/Dua/  
