@@ -2,6 +2,12 @@
 
 Dates are 2026. Counts are as of the end of each step.
 
+## 27 Nov — Home: Owner-only Latest closing summary (migrations `0227` and `0704`)
+- New card on Home, above the Action Centre, for the Owner only (`ops.view` with the second factor): the latest submitted closing named like "2026-11-22 — Closing 1 — Night", with **Carried CC**, **Total Deposits**, **Book Bills**, **Manual Returns** and **MEDIQ Collected**. Book Bills, Manual Returns and MEDIQ are totals since the last Final Closing (the Final's own figures included, the same rule as the Final page; if the latest closing is a Final it shows only its own). Deposits are the latest closing's cumulative Total Cash Deposits; Carried CC is what that closing carried in. MEDIQ is the extra MEDIQ collected, as the Final page adds it up.
+- **Database:** `0227_closing_ops_summary` (Closing range, internal only, adds stored values, no money rule changed) and `0704_ops_closing_summary` (the Owner door, returns null without `ops.view`). The Ops exposure guard `0749` now whitelists `ops_closing_summary` (seven functions). Test: `supabase/tests/0227_closing_ops_summary_test.sql` (25 checks, including a match with `closing_final_breakdown`).
+- **Web:** `home/domain/closing-summary.js` (words and boxes), `home/ui/closing-summary.js` (section, own realtime channel, keeps the last figures when a refresh fails), CSS in `css/home.css`; `watchClosings` takes an optional channel name.
+- Tests: 14 new unit tests plus a gating test (the card is shown to the Owner only and is never requested for anyone else).
+
 ## 26 Nov — Audit tab chips about 60% of their old size
 - The two rows of tabs on the Audit pages (Overview / Team Audit / Individual Audit / Tools, and the screens under them such as Monthly Overview, Rounds & Progress, Review) were tall and wide. Height, side padding and text are now about 60% of before (tabs 44 px to 26 px, screens 40 px to 24 px). CSS only (`css/audit.css`). Not yet seen on the owner's phone.
 

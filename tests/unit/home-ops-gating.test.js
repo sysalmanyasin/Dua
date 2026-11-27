@@ -10,6 +10,7 @@ vi.mock('../../js/modules/home/data/api.js', () => ({
   opsActionItems: vi.fn(async () => ({ items: [] })),
   opsRecentActivity: vi.fn(async () => ({ events: [] })),
   opsBiSummary: vi.fn(async () => null),
+  opsClosingSummary: vi.fn(async () => null),
   watchClosings: vi.fn(() => () => {}),
   myPayslips: vi.fn(async () => ({ payslips: [] })),
   myRecentClosings: vi.fn(async () => []),
@@ -37,6 +38,7 @@ beforeEach(() => {
   el = document.getElementById('home');
   api.opsActionItems.mockClear();
   api.opsRecentActivity.mockClear();
+  api.opsClosingSummary.mockClear();
   api.myPayslips.mockClear();
   for (const f of ['myTaskSnapshot', 'myTaskList', 'taskVerificationQueue', 'taskTeamOverview', 'taskPendingRequests']) api[f].mockClear();
 });
@@ -64,6 +66,37 @@ describe('Home: Operations sections are for ops.view only', () => {
     expect(order.indexOf('Action Centre')).toBeGreaterThan(order.indexOf('Business snapshot'));
     expect(order.indexOf('Recent activity')).toBeGreaterThan(order.indexOf('Action Centre'));
     expect(order.indexOf('Favourites')).toBeGreaterThan(order.indexOf('Recent activity'));
+  });
+
+  it('shows the Latest closing summary to the Owner only, above the Action Centre, and never asks for it otherwise', async () => {
+    api.opsClosingSummary.mockResolvedValueOnce({
+      has_closing: true,
+      business_date: '2026-11-22',
+      day_no: 1,
+      kind: 'night',
+      seq: 10,
+      mode: 'shift',
+      is_opening: false,
+      period_start: '2026-11-20',
+      period_closings: 4,
+      book_bills: 27725,
+      manual_returns: 69648,
+      mediq_collected: 0,
+      deposits: 455000,
+      carried_cc: 19872,
+    });
+    await open(['ops.view', 'sales.view_last_day']);
+    expect(api.opsClosingSummary).toHaveBeenCalledTimes(1);
+    const order = [...el.querySelectorAll('h2')].map((h) => h.textContent.trim());
+    expect(order.indexOf('Latest closing summary')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('Action Centre')).toBeGreaterThan(order.indexOf('Latest closing summary'));
+    expect(el.querySelector('#home-closing-summary').textContent).toContain('Rs. 455,000');
+    document.body.innerHTML = '<div id="home"></div>';
+    el = document.getElementById('home');
+    api.opsClosingSummary.mockClear();
+    await open(['sales.view_last_day', 'closing.enter_own']);
+    expect(el.querySelector('#home-closing-summary')).toBeNull();
+    expect(api.opsClosingSummary).not.toHaveBeenCalled();
   });
 
   it('shows the staff sections, not the owner ones, to a person with payroll.view_own', async () => {
