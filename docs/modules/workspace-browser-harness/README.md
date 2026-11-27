@@ -20,7 +20,7 @@ Run (from the repo root, in a scratch folder outside the repo):
 
 Scripts: `drive.cjs` (errors, CSP, cell count for a long sheet, contrast, paint order of frozen headers, tap, scroll cost,
 dark mode, landscape; screenshots to `/tmp/shots`), `keys.cjs` (arrow keys, Page Down, End), `edit.cjs` (edit a styled cell,
-formula refusal, unsaved-draft guard), `conflict.cjs` (a real conflict and "Keep theirs"), `formulas.cjs` (about 1,900 formulas: results, `#DIV/0!`, `#CIRC!`, running totals, the bar, an edit that recalculates, scroll cost, and that no number is cut short).
+formula refusal, unsaved-draft guard), `conflict.cjs` (a real conflict and "Keep theirs"), `sheets.cjs` (sheet management on a 390 px phone screen: tab row, the Sheets panel, add / rename / move / delete with the real dialogs, Escape with a dialog on top of the panel, 20 sheets with 31-character names, sideways overflow, dark mode; found two bugs jsdom could not: Escape closed both panels, and the "Open" marker was white on white), `formulas.cjs` (about 1,900 formulas: results, `#DIV/0!`, `#CIRC!`, running totals, the bar, an edit that recalculates, scroll cost, and that no number is cut short).
 
 Limits: desktop Chromium emulating a phone screen is not a phone (no soft keyboard, no real touch scrolling, a fast CPU).
 The stub server is the model, not the database. Update `stub-workbooks.js` if the data-layer exports change.

@@ -1,6 +1,7 @@
 // A small accessible dialog used by Workspace screens. It is appended to <body>, traps Tab inside itself, closes on Escape,
 // on a click outside, and when the address changes, and hands focus back to whatever had it before.
 let counter = 0;
+const openPanels = []; // panels that are open, the last one is on top: only it answers the keyboard
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -32,9 +33,12 @@ export function openPanel({ title, onClose = () => {}, wide = false } = {}) {
   document.body.append(backdrop);
 
   let open = true;
+  const mine = {};
+  openPanels.push(mine);
   const close = () => {
     if (!open) return;
     open = false;
+    openPanels.splice(openPanels.indexOf(mine), 1);
     removeEventListener('keydown', onKey, true);
     removeEventListener('hashchange', close);
     backdrop.remove();
@@ -42,6 +46,7 @@ export function openPanel({ title, onClose = () => {}, wide = false } = {}) {
     onClose();
   };
   function onKey(e) {
+    if (openPanels[openPanels.length - 1] !== mine) return; // a dialog opened on top of this one gets the key
     if (e.key === 'Escape') {
       e.stopPropagation();
       close();

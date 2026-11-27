@@ -1,0 +1,91 @@
+// Sheet management in a real Chromium on a phone-sized screen: tab row, Sheets panel, add / rename / move / delete with the
+// real dialogs, nested dialog + Escape, 20 sheets with long names, overflow, dark mode. Screenshots go to /tmp/shots.
+const { chromium } = require('playwright'); const { spawn } = require('node:child_process');
+(async () => {
+  const srv = spawn('node', [__dirname + '/server.mjs'], { stdio: 'ignore' }); await new Promise((r) => setTimeout(r, 800));
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || '/tmp/chromium', args: ['--no-sandbox', '--disable-gpu'] });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto('http://localhost:8765/'); await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
+  const out = {};
+  const server = () => page.evaluate(() => window.__stub.server.sheets.filter((s) => !s.deleted).sort((a, b) => a.position - b.position || a.serial - b.serial).map((s) => s.name));
+  const tabs = () => page.evaluate(() => [...document.querySelectorAll('.ws-tab')].map((b) => b.textContent));
+  const rows = () => page.evaluate(() => [...document.querySelectorAll('.ws-panel .ws-sheet-name')].map((n) => n.firstChild.textContent));
+  const panels = () => page.evaluate(() => document.querySelectorAll('.ws-panel').length);
+  const tap = async (sel) => { const b = await page.locator(sel).first().boundingBox(); await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); };
+  const topInput = () => page.locator('.ws-backdrop:last-of-type .ws-panel input[type=text]');
+
+  // 1. the tab row on a phone
+  out.pageOverflowX = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+  out.tabRow = await page.evaluate(() => { const r = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; }; return { tabs: r('#ws-tabs'), plus: r('#ws-add-sheet'), sheets: r('[data-act="manage-sheets"]'), vh: innerHeight, vw: innerWidth }; });
+  await page.screenshot({ path: '/tmp/shots/10-tabs.png' });
+
+  // 2. open the panel
+  await tap('[data-act="manage-sheets"]');
+  out.rowsAtOpen = await rows();
+  out.panelBox = await page.evaluate(() => { const b = document.querySelector('.ws-panel').getBoundingClientRect(); return { x: Math.round(b.x), y: Math.round(b.y), w: Math.round(b.width), h: Math.round(b.height) }; });
+  out.rowButtonSizes = await page.evaluate(() => [...document.querySelectorAll('.ws-sheet-row')][0] && [...document.querySelectorAll('.ws-sheet-row')[0].querySelectorAll('button')].map((b) => { const r = b.getBoundingClientRect(); return b.textContent + ':' + Math.round(r.width) + 'x' + Math.round(r.height); }));
+  await page.screenshot({ path: '/tmp/shots/11-panel.png' });
+
+  // 3. add with the real name dialog
+  await tap('.ws-panel [data-act="add"]');
+  out.askOpen = await panels();
+  out.askValue = await topInput().inputValue();
+  await topInput().fill('Totals'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  out.afterAdd = { server: await server(), tabs: await tabs(), rows: await rows(), panels: await panels() };
+
+  // 4. Escape with a dialog on top of the Sheets panel: how many close?
+  await tap('.ws-panel [data-act="add"]');
+  out.panelsBeforeEscape = await panels();
+  await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+  out.panelsAfterEscape = await panels();
+  if (out.panelsAfterEscape === 0) { await tap('[data-act="manage-sheets"]'); }
+
+  // 5. rename
+  const idOf = (name) => page.evaluate((n) => [...document.querySelectorAll('.ws-sheet-row')].find((r) => r.querySelector('.ws-sheet-name').firstChild.textContent === n).querySelector('[data-act="rename"]').dataset.sheet, name);
+  await tap(`.ws-panel [data-act="rename"][data-sheet="${await idOf('Prices')}"]`);
+  out.renameDialogValue = await topInput().inputValue();
+  await topInput().fill('Prices 2026'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  out.afterRename = { server: await server(), tabs: await tabs() };
+
+  // 6. move earlier, focus stays on the button
+  const totalsId = await idOf('Totals');
+  await tap(`.ws-panel [data-act="earlier"][data-sheet="${totalsId}"]`);
+  out.afterMove = { server: await server(), tabs: await tabs(), focus: await page.evaluate(() => document.activeElement.dataset.act + ':' + (document.activeElement.dataset.sheet || '').slice(-2)) };
+
+  // 7. delete, said no and then yes
+  await tap(`.ws-panel [data-act="delete"][data-sheet="${totalsId}"]`);
+  out.confirmText = await page.evaluate(() => document.querySelector('.ws-backdrop:last-of-type .ws-panel').innerText.replace(/\s+/g, ' '));
+  await page.screenshot({ path: '/tmp/shots/12-confirm.png' });
+  await page.locator('.ws-backdrop:last-of-type .ws-panel button', { hasText: 'Cancel' }).tap(); await page.waitForTimeout(250);
+  out.afterNo = await server();
+  await tap(`.ws-panel [data-act="delete"][data-sheet="${totalsId}"]`);
+  await page.locator('.ws-backdrop:last-of-type .ws-panel button', { hasText: 'Delete sheet' }).tap(); await page.waitForTimeout(500);
+  out.afterDelete = { server: await server(), tabs: await tabs() };
+
+  // 8. 20 sheets with 31-character names: the panel must not overflow sideways and must scroll
+  await page.evaluate(() => { const { server, applyOps, buildOp } = window.__stub; const live = server.sheets.filter((s) => !s.deleted).length; for (let i = live; i < 20; i += 1) applyOps(server, [buildOp('add_sheet', { sheet_id: '0a000000-0000-4000-8000-00000000a0' + String(i).padStart(2, '0'), name: ('Long sheet name number ' + i + ' xxxxxxxxxxxxxxxxxxxx').slice(0, 31) })]); });
+  await tap('.ws-panel-head button'); // close
+  await tap('[data-act="refresh"]'); await page.waitForTimeout(400);
+  out.tabsAt20 = await tabs().then((t) => t.length);
+  out.tabStripScrolls = await page.evaluate(() => { const s = document.querySelector('#ws-tabs'); return { scrollW: s.scrollWidth, clientW: s.clientWidth, plusVisible: document.querySelector('#ws-add-sheet').getBoundingClientRect().right <= innerWidth, sheetsVisible: document.querySelector('[data-act="manage-sheets"]').getBoundingClientRect().right <= innerWidth }; });
+  out.pageOverflowAt20 = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
+  await tap('[data-act="manage-sheets"]');
+  out.panel20 = await page.evaluate(() => { const p = document.querySelector('.ws-panel'); const body = p.querySelector('.ws-panel-body'); const b = p.getBoundingClientRect(); const rs = [...p.querySelectorAll('.ws-sheet-row button')].filter((x) => { const r = x.getBoundingClientRect(); return r.right > b.right + 1 || r.left < b.left - 1; }).length; return { count: p.querySelectorAll('.ws-sheet-row').length, bodyScrollH: body.scrollHeight, bodyClientH: body.clientHeight, bodyOverflowY: getComputedStyle(body).overflowY, sidewaysScroll: body.scrollWidth > body.clientWidth, buttonsOutsidePanel: rs, panelH: Math.round(b.height), vh: innerHeight, addDisabled: p.querySelector('[data-act="add"]').disabled, count20: p.textContent.includes('20 of 20') }; });
+  await page.screenshot({ path: '/tmp/shots/13-panel20.png' });
+  await page.evaluate(() => { document.querySelector('.ws-panel-body').scrollTop = 99999; });
+  await page.screenshot({ path: '/tmp/shots/14-panel20-bottom.png' });
+  await tap('.ws-panel-head button');
+  // the + button at 20: says why, no dialog
+  await tap('#ws-add-sheet');
+  out.plusAt20 = { panels: await panels(), banner: await page.evaluate(() => document.querySelector('#ws-banner').innerText.replace(/\s+/g, ' ').trim()) };
+
+  // 9. dark mode: the Sheets panel and its delete buttons are readable
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await tap('[data-act="manage-sheets"]');
+  out.dark = await page.evaluate(() => { const b = document.querySelector('.ws-panel [data-act="delete"]'); const p = document.querySelector('.ws-panel'); return { deleteColor: getComputedStyle(b).color, deleteBg: getComputedStyle(b).backgroundColor, panelBg: getComputedStyle(p).backgroundColor, panelText: getComputedStyle(p).color }; });
+  await page.screenshot({ path: '/tmp/shots/15-panel-dark.png' });
+  out.errors = await page.evaluate(() => window.__errors);
+  console.log(JSON.stringify(out, null, 1));
+  await browser.close(); srv.kill();
+})().catch((e) => { console.error('FAIL', e.message); process.exit(1); });

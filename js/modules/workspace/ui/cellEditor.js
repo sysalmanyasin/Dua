@@ -25,8 +25,9 @@ const shownOf = (info) => (info.formula !== null && info.formula !== undefined ?
 const shorten = (t) => ([...t].length > 80 ? `${[...t].slice(0, 80).join('')}…` : t);
 
 // deps: getSheet() -> the sheet shown; getHeadSeq() -> how far the local copy is current; sender -> createOperationSender;
-// canEdit() -> boolean; refresh() -> pulls and redraws (async); notify(text) -> a message for the screen.
-export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, refresh, notify = () => {} }) {
+// canEdit() -> boolean; refresh() -> pulls and redraws (async); notify(text) -> a message for the screen;
+// blocked() -> a reason a NEW save cannot start now (a sheet change is still waiting in the shared sender), or ''.
+export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, refresh, notify = () => {}, blocked = () => '' }) {
   bar.classList.add('ws-formula');
   const label = make('span', 'ws-formula-label', bar, '—');
   const box = make('textarea', 'ws-edit-input', bar);
@@ -154,6 +155,11 @@ export function createCellEditor(bar, { getSheet, getHeadSeq, sender, canEdit, r
   async function doSave() {
     if (!ed || ed.busy) return;
     if (!ed.locked) {
+      const why = blocked();
+      if (why) {
+        ed.message = why;
+        return paint();
+      }
       const parsed = parseCellInput(ed.draft);
       if (parsed.kind === 'invalid') {
         ed.message = parsed.reason;

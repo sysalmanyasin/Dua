@@ -63,6 +63,7 @@ export function createOperationSender() {
       const answer = applyOps(SERVER, batch);
       return { status: 'answered', head_seq: answer.head_seq, results: batch.map((o) => ({ operation: o, result: answer.results.find((r) => r.operation_id === o.operation_id) })) };
     },
+    pendingCount() { return queue.length; },
     takeRefused() { return null; }, discardAll() { const q = queue; queue = []; return q; },
   };
 }
