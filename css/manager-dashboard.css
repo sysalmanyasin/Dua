@@ -140,6 +140,135 @@
   color: var(--text-muted);
   font-size: 0.68rem;
 }
+/* Patty / Expenses card: date range, quick ranges, and categories that open to show their entries */
+.md-exp-filter {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.md-exp-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.md-exp-dates span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+.md-exp-dates input {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 6px;
+  background: #fff;
+  color: #1f2933;
+  font-size: 0.68rem;
+}
+.md-exp-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.md-chip {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fff;
+  color: #1f2933;
+  font: inherit;
+  font-size: 0.66rem;
+  cursor: pointer;
+}
+.md-chip.is-on {
+  border-color: var(--ledger-accent);
+  background: var(--ledger-accent);
+  color: #fff;
+}
+.md-chip-reset {
+  color: #b42318;
+}
+.md-chip-reset:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.md-cat {
+  border-bottom: 1px solid var(--border);
+}
+.md-cat:last-child {
+  border-bottom: 0;
+}
+.md-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.68rem;
+  text-align: left;
+  cursor: pointer;
+}
+.md-chev {
+  flex: 0 0 12px;
+  color: var(--text-muted);
+}
+.md-cat-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.md-cat-name small {
+  color: var(--text-muted);
+}
+.md-cat-head strong {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.md-pos {
+  color: #0f7b53;
+}
+.md-neg {
+  color: #c62828;
+}
+.md-entries {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 6px 18px;
+}
+.md-entry {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2933;
+  font-size: 0.64rem;
+}
+.md-entry small {
+  display: block;
+  color: #5b6770;
+}
+.md-entry b {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+.md-entry.is-struck > span,
+.md-entry.is-struck > b {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+.md-busy {
+  opacity: 0.55;
+  pointer-events: none;
+}
 .md-section-title {
   display: flex;
   align-items: baseline;
