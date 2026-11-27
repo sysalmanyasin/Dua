@@ -76,7 +76,7 @@ Print uses a print layout and the browser's Save as PDF, with a small local prin
 
 **Consumed from Inventory**
 - `inventory_latest_sync()`: exists.
-- **D1 `inventory_product_meta(p_codes text[])`: MISSING.** Returns `code, supplier, conversion_factor, found` (max 500 codes, `inventory.search`, inactive products ignored). `inventory_search` is text-based and capped at 50 rows; `inventory_balances` has no supplier or factor.
+- **D1 `inventory_product_meta(p_codes text[])`: `0505_inventory_product_meta.sql`, applied live 27 Nov 2026 and registered as `0505`.** Returns `code, supplier, conversion_factor, found` (max 500 codes, `inventory.search`, inactive products ignored). `inventory_search` is text-based and capped at 50 rows; `inventory_balances` has no supplier or factor.
 
 **Published by STR (`0504`)**
 - `str_stage()`: the single lifecycle definition.

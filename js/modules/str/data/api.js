@@ -26,6 +26,14 @@ export const feedHeaders = () =>
       .limit(1000),
   );
 
+/** STRs dated inside a range (either end may be blank), from the feed AND the one-month history, newest first. */
+export const rangeHeaders = ({ from = '', to = '' } = {}) => {
+  let q = db().from('str_v_headers').select(HEADER_COLS);
+  if (from) q = q.gte('str_date', from);
+  if (to) q = q.lte('str_date', to);
+  return one(q.order('str_date', { ascending: false, nullsFirst: false }).order('str_id', { ascending: false }).limit(1000));
+};
+
 /** Search the feed and the one-month history on the server: 50 rows a call. Words may match the header or a product. */
 export const searchHeaders = ({ text = '', from = null, to = null, stage = null, direction = null, limit = 50, offset = 0 } = {}) =>
   one(
