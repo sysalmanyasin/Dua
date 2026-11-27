@@ -1,6 +1,6 @@
 # Android app: architecture, setup and limits
 
-> Written 25 Nov 2026 with the first version of `android-app/`. **Read §0 before trusting anything here:** the native code has been written and syntax-checked but **not yet compiled or run on a phone**. The first GitHub Actions build is the first real compile.
+> Written 25 Nov 2026 with the first version of `android-app/`. **Update, Audit 0 (27 Nov 2026):** the sentence below that the native code was "never compiled" is out of date: `.github/workflows/android-build.yml` exists and the GitHub Actions API shows an "Android APK" run on commit `07e87e4` with conclusion `success` (logs not read by the audit). The Gradle unit test (`AttendanceLogicTest`) and APK build were **not** run in the audit sandbox; `node android-app/scripts/check-shell.mjs` passes. Migrations `1401`, `1402`, `1403` and `0110`-`0112` are on `main`; the project's own notes say `1403` was applied live on 27 Nov, which the audit did not re-check. No real-device test is recorded in this audit. Read section 0 as the state at writing, not today.
 
 ## 0. What is proven and what is not
 

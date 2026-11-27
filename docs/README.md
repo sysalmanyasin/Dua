@@ -1,14 +1,17 @@
 # Dua documentation index
 
-> Current verified source/live backend snapshot: [22 Nov 2026 code and Supabase audit](PROJECT_AUDIT_2026-11-22.md). Historical session notes remain useful but are not the source of truth for current state.
+> Current verified snapshot: [Audit 0 baseline, 27 Nov 2026](AUDIT_0_BASELINE.md). The 21/22 Nov audits are historical. Historical session notes remain useful but are not the source of truth for current state.
 
 Start with these documents; dated history is not a substitute for current status.
 
 ## Project status and planning
 
-- [Canonical project status](PROJECT_STATUS.md) — concise current operational snapshot.
+- [Canonical project status](PROJECT_STATUS.md) — current verified snapshot (rewritten in Audit 0).
+- [Known issues and remaining work](KNOWN_ISSUES.md) — defects, risks, test gaps, what was not verified.
+- [Test acceptance matrix](TEST_ACCEPTANCE_MATRIX.md) — per module: tests, results, missing coverage, acceptance criteria.
+- [Audit 0 baseline](AUDIT_0_BASELINE.md) — commands run and results.
 - [Master module progress register](MODULE_PROGRESS_REGISTER.md) — all registered modules, non-registered work, branches, evidence and outstanding work.
-- [22 Nov 2026 code and live Supabase audit](PROJECT_AUDIT_2026-11-22.md) — current source baseline, live schema, migration drift, deployed functions, advisor findings and verification limits.
+- [22 Nov 2026 code and live Supabase audit](PROJECT_AUDIT_2026-11-22.md) — historical; live findings not re-checked.
 - [21 Nov 2026 repository and live-system audit](PROJECT_AUDIT_2026-11-21.md) — historical snapshot, superseded for current state.
 - [Roadmap](ROADMAP.md) — remaining work ordered by risk and dependency.
 - [Changelog](CHANGELOG.md) and [project progress history](../PROJECT_PROGRESS.md) — historical milestones; older entries are not current status.

@@ -1,6 +1,6 @@
 # Security Model (as built)
 
-> **Verified 22 Nov 2026 against live DuaPharmaPlus:** 124/124 public tables have RLS; 14 have no policies but none is directly granted to `anon` or `authenticated`. The advisor flags 220 authenticated-callable SECURITY DEFINER functions for review; the catalog has 283 SECURITY DEFINER routines and none lacks a configured `search_path`. Migration `0015_core_trigger_search_path` is already applied live and its exact source is on `ops-redesign-stage1`, not main; live catalog verification confirms both non-definer trigger functions (`set_updated_at`, `activity_log_immutable`) now have `search_path=public` and no direct EXECUTE grants to `PUBLIC`, `anon` or `authenticated`. The current advisor no longer reports mutable-search-path findings. It does report leaked-password protection disabled (one warning); decide on enablement after checking compatibility with the custom staff PIN model. Performance advisor: 124 unindexed foreign keys, 5 RLS initplan findings, 23 unused-index notices and one duplicate permissive SELECT policy. See [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md). Earlier 21 Nov counts below are historical and superseded where they conflict.
+> **Re-verified on 27 Nov 2026 (Audit 0).** Checked on a locally migrated PostgreSQL 16 database built from all 131 migrations: 140 public tables, all with RLS (30 have no policy, so they are closed to browsers); 365 SECURITY DEFINER functions, none without a pinned `search_path`; 8 views, all `security_invoker`; no grant to `anon` on any table, view or sequence; **five non-definer functions are executable by `anon` (KI-1, low severity)**. These are guarded by `supabase/tests/0999_global_exposure_test.sql`. **Statements about the live project below (counts, advisor findings, applied migrations) are recorded from earlier sessions and were not re-checked.** The 22 Nov live figures (124 tables, 283 definer functions) pre-date later migrations and are not comparable with the local count.
 
 
 
@@ -20,7 +20,7 @@ Roles are **templates**; real access is a set of named permissions with per-pers
 What a **basic staff member** can reach, by design: their own sign-in, the Last Day total (one function that returns only the latest *closed* day), and whatever the owner explicitly grants. They cannot read sales history, targets, credit, salaries or other people's data; the tests prove each of those is refused.
 
 ## Database rules
-1. RLS on every table; `anon` has no table or function grants; browsers have no direct write access to business tables.
+1. RLS on every table; `anon` has no table grants and, with five low-risk exceptions (KI-1: two pure helpers and three trigger functions that keep the built-in PUBLIC execute right), no function grants; browsers have no direct write access to business tables.
 2. Writes go through functions that check the permission, validate, and log. Corrections keep the old version and a reason. The activity log is append-only (a trigger refuses changes, even for the owner of the database).
 3. `security definer` functions have a fixed `search_path` and execute only for the roles that need them.
 4. Idempotency keys make retried saves safe.
@@ -28,7 +28,7 @@ What a **basic staff member** can reach, by design: their own sign-in, the Last 
 6. Internal functions that only other `security definer` functions call have every execute grant revoked (`public`, `anon`, `authenticated`). Example: `audit_compile_round_core` (0412) lets an Individual Audit compile itself on submit without giving staff the `audit.compile` permission; a test proves a counter gets "permission denied" on it and still cannot compile by hand.
 
 ## Browser
-Strict Content Security Policy (see `index.html`), vendored libraries with recorded hashes, escaped templates, no inline handlers or styles, only the public publishable key in the code, the service-role key only inside Edge Function secrets. Sign-out removes unsent drafts and page hand-offs from the phone.
+Strict Content Security Policy (see `index.html`; it allows `'wasm-unsafe-eval'` for the barcode scanner's WebAssembly reader, Google's sign-in script and frame, and connections to Supabase, Gmail and Google sign-in only), vendored libraries with recorded hashes, escaped templates, no inline handlers or styles, only the public publishable key in the code, the service-role key only inside Edge Function secrets. Sign-out removes unsent drafts and page hand-offs from the phone.
 
 ## Gmail
 Google sign-in is used **only to send mail from the owner's own Gmail** (scope `gmail.send`: it cannot read mail). The access token is kept in memory only and never stored. Message headers cannot be injected (line breaks in subjects/addresses are removed; addresses are validated; up to 10 recipients).
@@ -37,7 +37,7 @@ Google sign-in is used **only to send mail from the owner's own Gmail** (scope `
 The owner can disable any person at once. Check-list drafts on a phone are cleared at sign-out. No sales totals, credit or salary data are cached on a staff phone.
 
 ## What is tested to fail
-Anonymous reads nothing · a basic staff member cannot read sales history, salaries, credit, targets, monthly or client summaries, or another person's preferences · cannot enter, correct or set targets without the permission · cannot forge the activity log · cannot promote themselves · an owner without MFA has no permissions · disabled and expired logins stop · second use of an idempotency key by another person is refused · the check-list and field functions refuse people without the matching permission. (195 database checks; see `docs/TESTING.md`.)
+Anonymous reads nothing · a basic staff member cannot read sales history, salaries, credit, targets, monthly or client summaries, or another person's preferences · cannot enter, correct or set targets without the permission · cannot forge the activity log · cannot promote themselves · an owner without MFA has no permissions · disabled and expired logins stop · second use of an idempotency key by another person is refused · the check-list and field functions refuse people without the matching permission. (Database suite: 3,000+ checks across 119 files; see `docs/TESTING.md`. The PIN lockout, the owner-only login management and the device-secret endpoints are also covered at handler level in `tests/unit/edge-*.test.js`.)
 
 ## Known gaps and accepted risks
 | Item | Status |
@@ -47,7 +47,10 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 | Public ntfy topic | Anyone who learns the topic can read the pushes (generic text only, except the closing push, which carries the closing's figures, D-62, the closing-correction push, D-63, and the audit-round push, D-64) or post fake ones. Rotate by changing `NTFY_TOPIC` and re-subscribing. |
 | `public.rls_auto_enable()` | **Hardened 13 Nov 2026** (execute revoked from `PUBLIC` and `anon`) **and 23 Nov 2026** (migration `0017` also revokes `authenticated`). The earlier note that `authenticated` had to keep execute because of an event-trigger constraint was re-tested: on PostgreSQL 16 an event trigger does not need the DDL-running role to hold execute, and on the live project a probe table created after the change still received row level security (probe table dropped). The owner and `service_role` keep execute. Rollback: `grant execute on function public.rls_auto_enable() to authenticated;`. |
 | Leaked-password protection | Off in Supabase Auth (advisor). Dashboard toggle; staff sign in with PINs so exposure is low. |
-| Separate production project | Not yet; staging and live share one project. |
+| Separate production project | Not yet; staging and live share one project (`js/core/config.js:3-7`, KI-3). |
+| Deployment is not gated by CI | GitHub Pages publishes from `main` on its own, in parallel with CI (KI-4). Branch protection not verified. |
+| Functions callable by the visitor role | Five low-risk functions (KI-1); allow-listed and guarded by `0999`. |
+| Edge Function auth surface | `supabase/config.toml` sets `verify_jwt = false` for six functions; each checks its own credential (PIN lockout, `users.manage`, shared secret or per-device secret). `notify-ntfy` is not listed there. Handler tests cover five of the seven. |
 | Error monitoring (Sentry) | Not yet. |
 | End-to-end browser tests (Playwright) | Not yet; checked in a simulated browser and by the owner by hand. |
 | Real-device and real-Google verification of the newest pages | Owner try-out pending. |

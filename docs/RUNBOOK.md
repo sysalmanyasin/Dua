@@ -1,6 +1,6 @@
 # Runbook (how to operate, fix and change things)
 
-> **22 Nov 2026 live-state warning:** before applying any migration, compare local `supabase/migrations/*.sql` with live `supabase_migrations.schema_migrations`. Main has 92 migration files; the live registry has 93 four-digit rows. Live-applied `0015_core_trigger_search_path` is missing from main but its exact source is on `ops-redesign-stage1`. Bring the file into main through review; do not reapply it or alter the registry. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md).
+> **Re-checked against the repository on 27 Nov 2026 (Audit 0).** `main` has 131 migration files (`0001` to `1403`; `0015` and `0017` are on `main`). Statements about the live project's registry, secrets and jobs are recorded, not re-verified. **Before applying any migration, compare `supabase/migrations/*.sql` with the live `supabase_migrations.schema_migrations` and never re-apply one that is already registered.**
 
 
 
@@ -14,7 +14,11 @@
 | Old apps | `BT-Sale-Data2`, `Closing`, `Random` repos: untouched, still running |
 
 ## 2. Deploying
-Push to `main`. GitHub Actions runs the checks; if they pass, Pages publishes the site in about a minute. The Supabase GitHub integration is meant to apply new migrations and deploy functions on the same push **but is currently blocked for migrations (see §4)**. Never push a red build: run `npm run verify` and `bash supabase/tests/run.sh` first.
+Pushing to `main` does two independent things: GitHub Actions runs the checks (`.github/workflows/ci.yml`), and GitHub Pages publishes the site from `main` through its built-in branch deployment. **Pages does not wait for CI**, so a failing check does not stop a publish (KI-4). Look at the CI result for the exact commit after every push, and fix or revert at once if it is red. There is no deploy workflow in the repository.
+
+Database migrations and Edge Functions are **not** deployed by the push. Apply a migration by hand (see section 4) and deploy functions with the Supabase CLI or dashboard. The Android app is built only by `.github/workflows/android-build.yml` (tag `android-v*` or manual run); web changes never need a new APK.
+
+If the repository is renamed or transferred, update `.github/workflows/backup.yml` (line 21 hard-codes `sysalmanyasin/Dua`), or the daily backup will silently stop running (KI-6).
 
 ## 3. Secrets and keys
 | Secret | Lives in | Never in |
@@ -61,7 +65,7 @@ Copy the pattern of `js/modules/sales/`: `manifest.js`, `domain/`, `data/`, `ui/
 5. Record a good drill so the Tools tab shows it: `curl -X POST "$OPS_FUNCTION_URL/notify-push" -H "x-ops-secret: $OPS_REPORT_SECRET" -H 'Content-Type: application/json' -d '{"action":"backup_report","kind":"restore_drill","status":"ok","day":"YYYY-MM-DD"}'` (the secret from your own terminal, never pasted into chat).
 6. Local result: a restore round trip passed 39 of 39 items. The first Drive upload is now verified by checksum. **Still pending:** restore a real Drive backup into a separate, empty Supabase project using `MODE=supabase`.
 
-**Emergency restore:** same steps into a fresh Supabase project, then point `js/core/config.js` at it, re-create Vault and Edge secrets from the offline secrets list, and re-create the cron jobs by running migrations `0011`, `0012`, `0013` (they skip anything that exists). Vault values are not in a dump.
+**Emergency restore:** same steps into a fresh Supabase project, then point `js/core/config.js` at it, re-create Vault and Edge secrets from the offline secrets list, and re-create the cron jobs. The migrations create nine: `0011` inventory-hourly-sync, `0012` notify-drain and ops-check-inventory-feed, `0013` ops-check-backups, `0501` str-archive-hourly, `0503` str-overdue-check, `1202` task-generate-daily, `1204` task-overdue-reminders, `1300` ntf-prune-daily (they skip anything that exists, so re-running them on the new project is safe; check `select jobname, schedule from cron.job` afterwards and compare with this list). Vault values are not in a dump.
 
 **Why a backup failed:** the Tools tab and the push now carry the real reason (for example "uses port 6543", "Direct connection (IPv6 only)", "must be percent-encoded", or a database/Drive error line). Fixes: `SUPABASE_DB_URL` must be the **Session pooler** string (port 5432, host ends `pooler.supabase.com`), with any special character in the password percent-encoded (`@` becomes `%40`). The Transaction pooler (6543) cannot give a consistent dump.
 

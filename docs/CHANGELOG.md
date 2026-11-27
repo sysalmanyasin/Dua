@@ -1,6 +1,11 @@
 # Changelog (everything built so far)
 
 Dates are 2026. Counts are as of the end of each step.
+## 27 Nov — Audit 0: code and documentation reconciliation, test baseline
+- Documentation rewritten to match the code: `README.md`, `docs/PROJECT_STATUS.md` (replaced), `ARCHITECTURE`, `SECURITY_MODEL`, `DATABASE_DESIGN`, `TESTING`, `SETUP`, `RUNBOOK`, `ANDROID_ARCHITECTURE`, `ROADMAP` (header). New: `docs/KNOWN_ISSUES.md`, `docs/TEST_ACCEPTANCE_MATRIX.md`, `docs/AUDIT_0_BASELINE.md`. Older status documents carry a historical banner. `README.tmp` removed.
+- New tests (nothing existing changed or weakened): database `0999` (whole-schema exposure), `0014`, `0226`, `0505`, `1002`; handler tests for `staff-login`, `admin-users`, `attendance-event`, `widget-today` and the `notify-push` secret gate; `docs-consistency`; a known-defect marker for KI-2. New `npm run test:coverage` (measured, not enforced).
+- Findings recorded, not fixed: KI-1 (five functions callable by the visitor role), KI-2 (amount in words below one rupee). No migration was applied and nothing was deployed.
+
 
 ## 27 Nov — Home: Owner-only Latest closing summary (migrations `0227` and `0704`)
 - New card on Home, above the Action Centre, for the Owner only (`ops.view` with the second factor): the latest submitted closing named like "2026-11-22 — Closing 1 — Night", with **Carried CC**, **Total Deposits**, **Book Bills**, **Manual Returns** and **MEDIQ Collected**. Book Bills, Manual Returns and MEDIQ are totals since the last Final Closing (the Final's own figures included, the same rule as the Final page; if the latest closing is a Final it shows only its own). Deposits are the latest closing's cumulative Total Cash Deposits; Carried CC is what that closing carried in. MEDIQ is the extra MEDIQ collected, as the Final page adds it up.

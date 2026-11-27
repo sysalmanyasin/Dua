@@ -1,22 +1,18 @@
 # Database design and schema reference
 
-> **Fresh live snapshot — 22 Nov 2026 (read-only):** 124 public base tables, all 124 with RLS enabled; 14 have no policies and zero of those are directly exposed to `anon`/`authenticated` by table grants. Public schema: 341 routines, 283 SECURITY DEFINER; zero SECURITY DEFINER routines without configured `search_path`. Live migration registry: 93 four-digit rows. Main contains 92 migration SQL files; live-only `0015_core_trigger_search_path` has its exact source on `ops-redesign-stage1` and is already applied live. Advisor findings: 220 authenticated-callable SECURITY DEFINER functions, 124 unindexed foreign keys, 5 RLS initplan warnings, 23 unused-index notices, one duplicate permissive SELECT policy. See [22 Nov audit](PROJECT_AUDIT_2026-11-22.md). Historical counts below are dated snapshots and superseded where they conflict.
-
-
-
-> **Live schema snapshot (21 Nov 2026):** the legacy catalogue below is historical and not a full current schema inventory. A fresh read-only check of DuaPharmaPlus found 124 public base tables (all 124 have RLS enabled), 337 public routines, 279 SECURITY DEFINER routines and zero SECURITY DEFINER routines missing a configured `search_path`. Fourteen RLS tables have no policies and also have no `anon` or `authenticated` table grants (internal/service-role-only tables). See `docs/PROJECT_AUDIT_2026-11-21.md` for the audit boundary and advisor findings. Do not use the old table totals as current totals.
+> **Re-measured on 27 Nov 2026 (Audit 0)** from a database built by applying all 131 migrations to an empty PostgreSQL 16: 140 public tables (all with RLS), 430 routines (365 SECURITY DEFINER, all with a pinned `search_path`), 8 views (all `security_invoker`), 80 permission keys. Migration files use ranges per module (see `docs/MODULES.md` section 5.1, enforced by `tests/unit/migration-ranges.test.js`); `0015` and `0017` are on `main`. **Live-project figures in older text below (124 tables, 341 routines, 93 registry rows, PostgreSQL 17.11) are recorded from earlier sessions, pre-date later migrations and were not re-checked.** The table catalogue further down is the original core/sales schema, not the full schema; regenerate a full catalogue from a migrated database when needed.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
 
 ## Rules that hold everywhere
-1. **Every table has row-level security on, and the browser has no direct write access** to business tables. Reads follow permission checks (`has_perm`); writes go through functions that check the permission, validate, and log. `anon` has no table or function access at all.
+1. **Every table has row-level security on, and the browser has no direct write access** to business tables. Reads follow permission checks (`has_perm`); writes go through functions that check the permission, validate, and log. `anon` has no table access and, apart from five low-risk exceptions (KI-1), no function access.
 2. **Money is `numeric(14,2)`.** A day's TOTAL is rounded to a whole rupee exactly like JavaScript `Math.round` so the screen and database agree.
 3. **Nothing posted is overwritten.** A corrected day keeps its old version (`daily_sales_revisions`) with the reason and who. The activity log cannot be updated or deleted.
 4. **Dates:** business dates are Pakistan dates (`Asia/Karachi`); the day changes at 00:00. Timestamps are UTC.
 5. **Retried saves are safe:** a client-made idempotency key means a day is saved once.
 6. **Admins must be at MFA level 2** for any permission to count (enforced in `has_perm`).
 
-## Tables (33; all with RLS, 31 policies)
+## Original core and sales tables (33 at the time; the schema now has 140 public tables, all with RLS)
 | Table | Columns | Purpose |
 |---|---|---|
 | `access_requests` | 8 | Old sign-up requests (history only; self sign-up removed, D-49) |
