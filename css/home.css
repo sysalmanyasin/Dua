@@ -994,3 +994,49 @@
   align-items: center;
   cursor: pointer;
 }
+/* Owner: Latest closing summary (js/modules/home/ui/closing-summary.js) */
+.cs-title {
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+.cs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border, rgb(127 127 127 / 25%));
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.cs-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  min-width: 0;
+  border-right: 1px solid var(--border, rgb(127 127 127 / 25%));
+  border-bottom: 1px solid var(--border, rgb(127 127 127 / 25%));
+}
+.cs-cell:nth-child(2n) {
+  border-right: 0;
+}
+.cs-cell:last-child {
+  border-bottom: 0;
+}
+.cs-cell:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  border-right: 0;
+}
+.cs-cell:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0;
+}
+.cs-label {
+  font-size: 0.85rem;
+  color: var(--text-muted, inherit);
+  opacity: 0.9;
+}
+.cs-value {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}

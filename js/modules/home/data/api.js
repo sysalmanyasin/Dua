@@ -52,6 +52,14 @@ export async function opsBiSummary(days = 30) {
   return data;
 }
 
+// Owner "Latest closing summary": the latest submitted closing, with book bills, manual returns, deposits and MEDIQ added up since the
+// last Final Closing, and the carried CC. Worked out by Closing (closing_ops_summary) behind ops_closing_summary; null without ops.view.
+export async function opsClosingSummary() {
+  const { data, error } = await db().rpc('ops_closing_summary');
+  if (error) throw error;
+  return data;
+}
+
 // The caller's OWN closed payslips (Manager's saved values). null unless the owner granted payroll.view_own.
 export async function myPayslips(months = 3) {
   const { data, error } = await db().rpc('mgmt_my_payslips', { p_months: months });
@@ -68,11 +76,11 @@ export async function myRecentClosings(limit = 10) {
 
 // Important events arrive immediately: tell `onChange` whenever any closing is saved or submitted. Returns a function that
 // stops listening. A realtime failure is silent by design; the periodic refresh still keeps the page up to date.
-export function watchClosings(onChange) {
+export function watchClosings(onChange, name = 'home-closings') {
   try {
     const client = db();
     const channel = client
-      .channel('home-closings')
+      .channel(name)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'closings' }, () => onChange())
       .subscribe();
     return () => client.removeChannel(channel);
