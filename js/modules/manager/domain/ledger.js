@@ -54,6 +54,30 @@ export function groupByCategory(entries) {
   }));
 }
 
+// ── Quick date ranges for the Manager dashboard's Patty / Expenses card (same buttons as the old app) ──
+export const daysInMonth = (iso) => new Date(Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)), 0)).getUTCDate();
+
+export const RANGE_PRESETS = [
+  ['month', 'This Month'],
+  ['wk1', 'Wk1 (01-07)'],
+  ['wk2', 'Wk2 (08-14)'],
+  ['wk3', 'Wk3 (15-22)'],
+  ['wk4', 'Wk4 (23-End)'],
+];
+
+// "This Month" is the current calendar month up to today. A week button is that week of the month chosen on the dashboard
+// (selectedMonth, any date in it). No end date is ever after today, because a ledger has no future entries.
+export function presetRange(kind, selectedMonth, today) {
+  if (kind === 'month') return { from: `${today.slice(0, 7)}-01`, to: today };
+  const spans = { wk1: [1, 7], wk2: [8, 14], wk3: [15, 22], wk4: [23, daysInMonth(selectedMonth)] };
+  const span = spans[kind];
+  if (!span) return null;
+  const ym = selectedMonth.slice(0, 7);
+  const from = `${ym}-${String(span[0]).padStart(2, '0')}`;
+  const to = `${ym}-${String(span[1]).padStart(2, '0')}`;
+  return { from, to: to > today && from <= today ? today : to };
+}
+
 // Early feedback only; the database repeats every one of these checks.
 export function validateLedgerEntry({ date, amount, today, categoryId, shift, needsShift }) {
   if (!categoryId) return 'Pick a category.';
