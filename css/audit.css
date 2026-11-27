@@ -1698,3 +1698,84 @@
   justify-content: space-between;
   gap: 0.5rem;
 }
+
+/* Live progress popup: it sits outside the .aud page, so its bars, badges and forms carry their own styles */
+.aud-pop .aud-progress span {
+  background: var(--aud-ok, #0f9d74);
+}
+.aud-pop .aud-pop-badge {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-2, #edf2f8);
+  color: var(--text-muted, #586a82);
+  white-space: nowrap;
+}
+.aud-pop .aud-pop-badge.is-submitted {
+  background: rgba(15, 157, 116, 0.14);
+  color: #0b7a58;
+}
+.aud-pop .aud-pop-people li .aud-pop-force,
+.aud-pop .aud-pop-people li .aud-pop-form {
+  grid-column: 1 / -1;
+}
+.aud-pop .aud-pop-force {
+  justify-self: start;
+}
+.aud-pop .aud-pop-form {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.3));
+  border-radius: 0.9rem;
+}
+.aud-pop .aud-pop-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+}
+.aud-pop .aud-pop-field {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+.aud-pop .aud-pop-field input {
+  min-height: 2.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.4));
+  border-radius: 0.6rem;
+  font: inherit;
+}
+.aud-pop .aud-pop-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.aud-pop .aud-pop-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.aud-pop .aud-pop-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.aud-pop .aud-pop-items li {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--line, rgba(127, 127, 127, 0.25));
+}
+.aud-pop .aud-pop-items li:first-child {
+  border-top: 0;
+}
+.aud-pop .aud-pop-diff {
+  color: #b42318;
+  font-weight: 700;
+}
+.aud-pop .aud-pop-left strong {
+  opacity: 0.85;
+}
