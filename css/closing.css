@@ -1127,3 +1127,127 @@
 .cls .cls-done p {
   margin: 0;
 }
+
+/* ── Bill Number Sheet: A4 page (owner, 26 Nov 2026). Preview on screen, same markup copied into #cls-a4-root to print ── */
+.cls .cls-a4-wrap {
+  overflow-x: auto;
+}
+.cls-a4 {
+  box-sizing: border-box;
+  width: 190mm;
+  margin: 0 auto;
+  padding: 0;
+  background: #fff;
+  color: #000;
+  font:
+    11px/1.2 Arial,
+    Helvetica,
+    sans-serif;
+}
+.cls-a4-head {
+  text-align: center;
+  padding-bottom: 2mm;
+  border-bottom: 0.5mm solid #000;
+}
+.cls-a4-shop {
+  font-size: 20px;
+  font-weight: 700;
+}
+.cls-a4-branch {
+  font-size: 13px;
+}
+.cls-a4-title {
+  margin-top: 1mm;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.cls-a4-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5mm;
+  font-size: 11px;
+}
+.cls-a4-nums {
+  display: grid;
+  margin-top: 3mm;
+  border: 0.3mm solid #000;
+}
+.cls-a4-col + .cls-a4-col {
+  border-left: 0.3mm solid #000;
+}
+.cls-a4-num {
+  height: 5.3mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 0.2mm solid #777;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.cls-a4-col .cls-a4-num:last-child {
+  border-bottom: 0;
+}
+.cls-a4-boxes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3mm;
+  margin-top: 4mm;
+}
+.cls-a4-box {
+  border: 0.3mm solid #000;
+}
+.cls-a4-box h3 {
+  margin: 0;
+  padding: 1mm 2mm;
+  font-size: 12px;
+  text-align: center;
+  border-bottom: 0.3mm solid #000;
+  background: #eee;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.cls-a4-bh,
+.cls-a4-line,
+.cls-a4-tot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.cls-a4-bh {
+  font-size: 9px;
+  text-align: center;
+  border-bottom: 0.2mm solid #777;
+}
+.cls-a4-line {
+  height: 5.8mm;
+  border-bottom: 0.2mm solid #777;
+}
+.cls-a4-line span + span,
+.cls-a4-bh span + span,
+.cls-a4-tot span + span {
+  border-left: 0.2mm solid #777;
+}
+.cls-a4-tot {
+  height: 5.8mm;
+  font-weight: 700;
+  align-items: center;
+  padding-left: 2mm;
+}
+#cls-a4-root {
+  display: none;
+}
+@page cls-a4 {
+  size: A4 portrait;
+  margin: 10mm 10mm;
+}
+@media print {
+  body.cls-printing-a4 > *:not(#cls-a4-root) {
+    display: none !important;
+  }
+  body.cls-printing-a4 #cls-a4-root {
+    display: block;
+    page: cls-a4;
+    background: #fff;
+  }
+}

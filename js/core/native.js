@@ -83,21 +83,42 @@ async function setupWidget(ctx, dev, deviceId, version) {
   await dev.saveWidgetConfig({ userId, deviceId, secret: res.widget_secret, endpoint: `${getConfig().functionsUrl}/widget-today` });
 }
 
-// Automatic attendance: the phone watches the pharmacy's geofence by itself (DuaDevicePlugin, AttendanceGeofence.java). The server only
-// tells a phone about the places if the person holds attendance.check_in; a phone whose person lost that right forgets them.
-async function setupAttendance(ctx, dev) {
-  if (!dev.startAutoAttendance) return; // an older APK without the geofence code
-  if (!has(ctx, 'attendance.check_in')) {
-    await dev.stopAutoAttendance();
-    return;
-  }
+// True when the phone already watches exactly what the server says, so nothing needs registering again
+// (registering restarts the stability timer, so it is skipped when nothing changed).
+export function sameWatch(st, data) {
+  if (!st?.enrolled) return false;
+  const want = data.sites ?? [];
+  const have = st.sites ?? [];
+  if (Number(st.stableSeconds) !== Number(data.stable_seconds) || have.length !== want.length) return false;
+  if (want.length && !st.registered) return false;
+  return want.every((w) =>
+    have.some(
+      (h) =>
+        h.id === w.id &&
+        Number(h.latitude) === Number(w.latitude) &&
+        Number(h.longitude) === Number(w.longitude) &&
+        Number(h.radius) === Number(w.radius_m),
+    ),
+  );
+}
+
+// Reads the places from the server and gives them to the phone. Used at start-up and by the Attendance page ("Check again", and after the
+// owner changes a place), so a place added after Dua was opened reaches the phone without closing the app. Returns the phone's status.
+export async function syncAttendance(g = globalThis) {
+  const dev = plugin('DuaDevice', g);
+  if (!inApp(g) || !dev?.startAutoAttendance) return null;
   const { data: session } = await db().auth.getSession();
   const userId = session?.session?.user?.id;
-  if (!userId) return;
+  if (!userId) return null;
   const { data, error } = await db().rpc('mgmt_attendance_my_site');
   // A network or server problem is not a reason to stop watching: keep what the phone already has.
-  if (error || !data) return log.warn('attendance place not read', { code: error?.code });
-  await dev.startAutoAttendance({
+  if (error || !data) {
+    log.warn('attendance place not read', { code: error?.code });
+    return null;
+  }
+  const st = await dev.getAutoAttendanceStatus();
+  if (sameWatch(st, data)) return st;
+  return dev.startAutoAttendance({
     userId,
     stableSeconds: Number(data.stable_seconds),
     sites: (data.sites ?? []).map((s) => ({
@@ -110,6 +131,17 @@ async function setupAttendance(ctx, dev) {
   });
 }
 
+// Automatic attendance: the phone watches the pharmacy's geofence by itself (DuaDevicePlugin, AttendanceGeofence.java). The server only
+// tells a phone about the places if the person holds attendance.check_in; a phone whose person lost that right forgets them.
+async function setupAttendance(ctx, dev, g) {
+  if (!dev.startAutoAttendance) return; // an older APK without the geofence code
+  if (!has(ctx, 'attendance.check_in')) {
+    await dev.stopAutoAttendance();
+    return;
+  }
+  await syncAttendance(g);
+}
+
 // Called once the person is signed in and the shell has started. Never throws.
 export async function startNative(ctx, g = globalThis) {
   if (!inApp(g)) return false;
@@ -119,7 +151,7 @@ export async function startNative(ctx, g = globalThis) {
     const { deviceId, version } = await dev.getDeviceInfo();
     await setupWidget(ctx, dev, deviceId, version);
     try {
-      await setupAttendance(ctx, dev); // its own try: a problem here must not stop push registration
+      await setupAttendance(ctx, dev, g); // its own try: a problem here must not stop push registration
     } catch (e) {
       log.error('automatic attendance setup failed', { message: String(e?.message ?? e).slice(0, 120) });
     }
