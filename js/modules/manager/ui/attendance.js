@@ -115,15 +115,15 @@ export async function mount(el, { ctx } = {}) {
       return paint();
     }
     state.key = null;
-    state.message = resultMessage(data);
+    state.message = resultMessage(data, kind);
     await load();
   }
 
-  // A time with its day when it is not today (the phone's journal can hold yesterday).
+  // The time of a journal line, with its day underneath when it is not today (the journal can hold yesterday).
   const when = (ms) => {
     const iso = new Date(ms).toISOString();
     const day = new Date(ms + 5 * 3600 * 1000).toISOString().slice(0, 10);
-    return day === todayPkt() ? timeLabel(iso) : `${shortDate(day)} ${timeLabel(iso)}`;
+    return html`<span class="at-when"><b>${timeLabel(iso)}</b>${day === todayPkt() ? '' : html`<small>${shortDate(day)}</small>`}</span>`;
   };
 
   // ── the person's own check-in card ──
@@ -150,7 +150,7 @@ export async function mount(el, { ctx } = {}) {
                   html`<li class="at-row ${e.status === 'accepted' ? '' : 'at-row-warn'}">
                     <span class="at-main">
                       <span><span class="at-kind">${e.kind === 'in' ? 'In' : 'Out'}</span> <strong>${timeLabel(e.at)}</strong></span>
-                      ${e.status === 'accepted' ? '' : html`<small>${reasonText(e.reason)}</small>`}
+                      ${e.status === 'accepted' ? '' : html`<small>${reasonText(e.reason, e.kind)}</small>`}
                     </span>
                     <span class="at-side">
                       ${e.status === 'accepted' ? html`<span class="chip chip-ok">Recorded</span>` : html`<span class="chip chip-warn">Refused</span>`}
@@ -237,7 +237,7 @@ export async function mount(el, { ctx } = {}) {
                   <span class="at-main"
                     ><strong>${journalLabel(j, st.stableSeconds)}</strong>${detail ? html`<small>${detail}</small>` : ''}</span
                   >
-                  <span class="at-side"><b>${when(j.at)}</b></span>
+                  <span class="at-side">${when(j.at)}</span>
                 </li>`;
               })}
             </ul>`
@@ -360,7 +360,7 @@ export async function mount(el, { ctx } = {}) {
                     html`<li class="at-row at-row-warn">
                       <span class="at-main">
                         <span><strong>${r.name}</strong> ${r.kind === 'in' ? 'in' : 'out'} at ${timeLabel(r.at)}</span>
-                        <small>${reasonText(r.reason)}${refusedDetail(r)}</small>
+                        <small>${reasonText(r.reason, r.kind)}${refusedDetail(r)}</small>
                       </span>
                       <span class="at-side">${r.source === 'auto' ? html`<span class="chip">Automatic</span>` : ''}</span>
                     </li>`,

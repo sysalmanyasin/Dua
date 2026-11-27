@@ -303,6 +303,16 @@ describe("automatic recording: the phone's story", () => {
     for (const type of ['refused', 'dropped', 'no_fix', 'key_rejected', 'error:1000']) expect(journalTone({ type })).toBe('warn');
     for (const type of ['dwell', 'exit', 'ignored', 'cancelled', 'off']) expect(journalTone({ type })).toBe('plain');
   });
+  it('does not tell a refused check-out to "check in when you arrive"', () => {
+    expect(reasonText('outside')).toMatch(/Check in when you arrive/);
+    expect(reasonText('outside', 'in')).toMatch(/Check in when you arrive/);
+    expect(reasonText('outside', 'out')).toBe('You are not at the pharmacy, so this check-out was not recorded.');
+    expect(reasonText('weak_signal', 'out')).toBe(reasonText('weak_signal'));
+    expect(resultMessage({ ok: false, reason: 'outside', distance_m: 15055 }, 'out').text).toBe(
+      'You are not at the pharmacy, so this check-out was not recorded. You are about 15055 m away.',
+    );
+    expect(resultMessage({ ok: false, reason: 'outside', distance_m: 90 }, 'in').text).toMatch(/Check in when you arrive/);
+  });
   it('words a refused check-out while still inside', () => {
     expect(reasonText('still_inside')).toMatch(/still at the pharmacy/);
   });
@@ -622,6 +632,15 @@ describe('attendance page', () => {
       document.dispatchEvent(new Event('visibilitychange'));
       await tick();
       expect(el.textContent).toContain('Watching the pharmacy');
+    });
+
+    it('puts the day under the time of an older journal line, not in front of it', async () => {
+      const yesterday = Date.now() - 24 * 3600 * 1000;
+      api.autoStatus.mockResolvedValue({ ...phone(), journal: [{ type: 'exit', at: yesterday, accuracy: 13 }] });
+      await open(['attendance.check_in']);
+      const when = el.querySelector('.at-when');
+      expect(when.querySelector('b').textContent).toMatch(/^\d\d:\d\d$/);
+      expect(when.querySelector('small').textContent).toMatch(/\d{4}/);
     });
 
     it('shows what happened to each event, and what is waiting to be sent', async () => {
