@@ -7,6 +7,9 @@ const m = vi.hoisted(() => ({
   pullAndApply: vi.fn(),
   flush: vi.fn(),
   enqueue: vi.fn(),
+  pendingCount: vi.fn(() => 0),
+  discardAll: vi.fn(),
+  takeRefused: vi.fn(),
   listDocuments: vi.fn(),
   createDocument: vi.fn(),
   listFolders: vi.fn(),
@@ -15,7 +18,13 @@ const m = vi.hoisted(() => ({
 vi.mock('../../js/modules/workspace/data/workbooks.js', () => ({
   openWorkbookFull: m.openWorkbookFull,
   pullAndApply: m.pullAndApply,
-  createOperationSender: () => ({ enqueue: m.enqueue, flush: m.flush }),
+  createOperationSender: () => ({
+    enqueue: m.enqueue,
+    flush: m.flush,
+    pendingCount: m.pendingCount,
+    discardAll: m.discardAll,
+    takeRefused: m.takeRefused,
+  }),
 }));
 vi.mock('../../js/modules/workspace/data/documents.js', () => ({
   listDocuments: m.listDocuments,
@@ -28,6 +37,10 @@ vi.mock('../../js/modules/workspace/data/documents.js', () => ({
 vi.mock('../../js/modules/workspace/data/notes.js', () => ({ searchNotes: vi.fn().mockResolvedValue([]) }));
 
 import { OPEN_KEY } from '../../js/modules/workspace/domain/documents.js';
+
+// An answer shaped like the real sender's, for the operation enqueued last.
+const answered = (result) => () =>
+  Promise.resolve({ status: 'answered', results: [{ operation: m.enqueue.mock.calls.at(-1)[0], result }] });
 import { applyOps, buildOp, createWorkbook, findSheet } from '../../js/modules/workspace/domain/spreadsheet.js';
 import { createGridView } from '../../js/modules/workspace/ui/gridView.js';
 import { mount as mountHome } from '../../js/modules/workspace/ui/home.js';
@@ -498,7 +511,7 @@ describe('the workbook screen', () => {
     await go();
     expect(host.textContent).toContain('no sheet yet');
     expect(host.querySelector('#ws-grid').hidden).toBe(true);
-    m.flush.mockResolvedValue({ status: 'answered', results: [{ result: { status: 'applied' } }] });
+    m.flush.mockImplementation(answered({ status: 'applied' }));
     m.pullAndApply.mockImplementation(async () => {
       applyOps(wb, [buildOp('add_sheet', { sheet_id: S1, name: 'Sheet1' })]);
       return { status: 'ok', applied: 1 };
@@ -513,7 +526,7 @@ describe('the workbook screen', () => {
     expect(host.querySelector('#ws-grid').hidden).toBe(false);
   });
 
-  it('says why a sheet could not be added', async () => {
+  it('says why a sheet could not be added, keeps an unsent one, and sends it again with the same id', async () => {
     open(createWorkbook());
     await go();
     m.flush.mockResolvedValue({ status: 'offline', error: new Error('x') });
@@ -521,13 +534,16 @@ describe('the workbook screen', () => {
     click('[data-act="add-sheet"]');
     await settle();
     expect(host.querySelector('.ws-banner-warn').textContent).toContain('offline');
-    m.flush.mockResolvedValue({
-      status: 'answered',
-      results: [{ result: { status: 'rejected', reason: 'a workbook can have at most 20 sheets' } }],
-    });
+    // the change is still waiting in the sender: a second tap does not enqueue another one
     click('[data-act="add-sheet"]');
     await settle();
+    expect(m.enqueue).toHaveBeenCalledTimes(1);
+    m.flush.mockImplementation(answered({ status: 'rejected', reason: 'a workbook can have at most 20 sheets' }));
+    click('[data-act="retry-sheet"]');
+    await settle();
+    expect(m.enqueue).toHaveBeenCalledTimes(1);
     expect(host.querySelector('.ws-banner-warn').textContent).toContain('at most 20 sheets');
+    expect(host.querySelector('[data-act="retry-sheet"]')).toBeNull();
   });
 
   it('shows no write button to someone who can only view, or on an archived workbook', async () => {

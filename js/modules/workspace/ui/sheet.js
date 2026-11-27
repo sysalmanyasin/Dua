@@ -1,16 +1,18 @@
 // One open workbook: sheet tabs, the grid, the edit bar for the selected cell, refresh.
 // Which workbook is open comes from session storage (the router carries no ids); home.js sets it.
-// Cell text and formulas can be edited (ui/cellEditor.js); formulas are calculated by domain/formulas. Formatting and structure
-// changes arrive in later increments.
+// Cell text and formulas can be edited (ui/cellEditor.js); formulas are calculated by domain/formulas. Sheets can be added,
+// renamed, reordered and deleted (ui/sheetManager.js). Formatting and row/column structure arrive in later increments.
 import { html, render } from '../../../shared/html.js';
-import { newId, OPEN_KEY, relativeWhen } from '../domain/documents.js';
+import { OPEN_KEY, relativeWhen } from '../domain/documents.js';
 import { can, roleLabel } from '../domain/permissions.js';
-import { buildOp, findLiveSheet, liveSheets } from '../domain/spreadsheet.js';
+import { findLiveSheet, liveSheets } from '../domain/spreadsheet.js';
+import { addSheetOp, readAnswer } from '../domain/sheetManage.js';
 import { createOperationSender, openWorkbookFull, pullAndApply } from '../data/workbooks.js';
 import { createCellEditor } from './cellEditor.js';
 import { createSheetCalc } from '../domain/formulas/sheetCalc.js';
 import { createGridView } from './gridView.js';
 import { confirmAction } from './panel.js';
+import { createSheetManager } from './sheetManager.js';
 
 const STALE_MS = 60000; // coming back to the page after this long refreshes it quietly
 
@@ -41,7 +43,16 @@ export async function mount(el, { measure = null } = {}) {
     return message(el, 'This workbook could not be opened', e.message);
   }
 
-  const s = { wb: opened.wb, info: opened.info, sheetId: null, error: '', notice: '', busy: false, syncedAt: Date.now() };
+  const s = {
+    wb: opened.wb,
+    info: opened.info,
+    sheetId: null,
+    error: '',
+    notice: '',
+    busy: false,
+    syncedAt: Date.now(),
+    pendingSheet: null,
+  };
   const canEdit = () => can(s.info.role, 'edit', { archived: !!s.info.archived });
 
   render(
@@ -56,7 +67,11 @@ export async function mount(el, { measure = null } = {}) {
       <div id="ws-banner" role="status" aria-live="polite"></div>
       <div class="ws-formula" id="ws-formula"></div>
       <div class="ws-grid-host" id="ws-grid"></div>
-      <div class="ws-sheet-tabs" id="ws-tabs" role="tablist" aria-label="Sheets"></div>
+      <div class="ws-tabs-row">
+        <div class="ws-sheet-tabs ws-grow" id="ws-tabs" role="tablist" aria-label="Sheets"></div>
+        <button class="btn btn-sm" type="button" data-act="add-sheet-quick" aria-label="Add a sheet" id="ws-add-sheet">+</button>
+        <button class="btn btn-sm" type="button" data-act="manage-sheets">Sheets</button>
+      </div>
       <p class="muted ws-sheet-foot" id="ws-foot"></p>
     </div>`,
   );
@@ -86,6 +101,7 @@ export async function mount(el, { measure = null } = {}) {
     getHeadSeq: () => s.wb.head_seq,
     sender,
     canEdit,
+    blocked: () => (s.pendingSheet ? 'A sheet change is waiting to be sent. Try it again or discard it first.' : ''),
     refresh: () => sync(),
     notify(text) {
       s.notice = text;
@@ -115,6 +131,7 @@ export async function mount(el, { measure = null } = {}) {
       : canEdit()
         ? `Tap a cell, type, then Save. Start with = to enter a formula. Formatting arrives in a later update. ${when}`
         : `You can view this workbook but not change it. ${when}`;
+    $('#ws-add-sheet').hidden = !canEdit();
     const refresh = $('[data-act="refresh"]');
     refresh.disabled = s.busy;
     refresh.textContent = s.busy ? 'Refreshing…' : 'Refresh';
@@ -126,6 +143,17 @@ export async function mount(el, { measure = null } = {}) {
     if (s.info.archived) parts.push(html`<p class="ws-banner">This workbook is archived. It cannot be changed.</p>`);
     if (s.error) parts.push(html`<p class="ws-banner ws-banner-warn">${s.error}</p>`);
     else if (s.notice) parts.push(html`<p class="ws-banner">${s.notice}</p>`);
+    if (s.pendingSheet) {
+      parts.push(
+        html`<div class="ws-banner ws-banner-warn">
+          <p>
+            A sheet change has not been sent yet, because you seem to be offline. Nothing else can be saved until it is sent or discarded.
+          </p>
+          <button class="btn btn-sm btn-primary" type="button" data-act="retry-sheet" ${s.busy ? 'disabled' : ''}>Try again</button>
+          <button class="btn btn-sm" type="button" data-act="discard-sheet" ${s.busy ? 'disabled' : ''}>Discard</button>
+        </div>`,
+      );
+    }
     if (!activeSheet()) {
       parts.push(
         canEdit()
@@ -164,6 +192,7 @@ export async function mount(el, { measure = null } = {}) {
     drawTabs();
     grid.setSheet(activeSheet(), calcFor(activeSheet()));
     $('#ws-grid').hidden = !activeSheet();
+    manager.redraw();
   }
 
   async function runSync({ silent = false } = {}) {
@@ -198,30 +227,84 @@ export async function mount(el, { measure = null } = {}) {
     return chain;
   };
 
-  async function addFirstSheet() {
-    if (s.busy || !canEdit()) return;
+  // Sends ONE sheet change through the same sender as cell edits. Never while another change is unanswered, because an
+  // answer to a resent batch would otherwise be read as the answer to this one.
+  async function runSheetOp(op) {
+    if (!canEdit()) return { kind: 'blocked', message: 'You can view this workbook but not change it.' };
+    if (s.busy) return { kind: 'blocked', message: 'Wait for the refresh to finish, then try again.' };
+    if (s.pendingSheet) return { kind: 'blocked', message: 'A sheet change is waiting to be sent. Try it again or discard it first.' };
+    if (sender.pendingCount() > 0) return { kind: 'blocked', message: 'Save or cancel your cell change first.' };
+    try {
+      sender.enqueue(op);
+    } catch (e) {
+      return { kind: 'failed', message: e.message };
+    }
+    return sendSheetOp(op);
+  }
+
+  async function sendSheetOp(op) {
     s.busy = true;
     s.error = '';
+    s.notice = '';
+    drawHead();
     drawBanner();
-    let added = false;
+    let flushed;
     try {
-      const sender = createOperationSender({ docId: id });
-      sender.enqueue(buildOp('add_sheet', { sheet_id: newId(), name: 'Sheet1' }));
-      const r = await sender.flush();
-      if (r.status !== 'answered') {
-        s.error = r.status === 'refused' ? r.error.message : 'You seem to be offline. Try again when you are back online.';
-      } else if (r.results[0].result.status !== 'applied') {
-        s.error = r.results[0].result.reason ?? 'The sheet could not be added.';
-      } else {
-        added = true;
-      }
+      flushed = await sender.flush();
     } catch (e) {
-      s.error = e.message;
+      flushed = { status: 'refused', error: e };
     }
+    let out = readAnswer(flushed, op.operation_id);
     s.busy = false;
-    if (added) await sync();
-    else drawAll(); // keep the message on screen
+    if (out.kind === 'offline') {
+      s.pendingSheet = { op }; // kept in the sender and resent with the same id
+      drawAll();
+      return out;
+    }
+    s.pendingSheet = null;
+    if (out.kind === 'refused') sender.takeRefused();
+    if (out.kind === 'other') out = { kind: 'failed', message: 'The change could not be confirmed. Refresh to see where it stands.' };
+    if (out.kind === 'refused') drawAll();
+    else await sync(); // applied or not, bring in what the server has now
+    return out;
   }
+
+  async function retrySheetOp() {
+    if (!s.pendingSheet || s.busy) return;
+    const out = await sendSheetOp(s.pendingSheet.op);
+    if (out.kind === 'applied') s.notice = 'The sheet change was sent.';
+    else if (out.kind !== 'offline') s.error = out.message;
+    drawBanner();
+  }
+
+  function discardSheetOp() {
+    sender.discardAll();
+    s.pendingSheet = null;
+    s.notice = 'Discarded. If that change had already reached the server, Refresh will show it.';
+    drawAll();
+  }
+
+  async function addFirstSheet() {
+    if (s.busy || !canEdit()) return;
+    const out = await runSheetOp(addSheetOp('Sheet1'));
+    if (out.kind !== 'applied' && out.kind !== 'offline') {
+      s.error = out.message || 'The sheet could not be added.';
+      drawAll();
+    }
+  }
+
+  const manager = createSheetManager({
+    getSheets: () => liveSheets(s.wb),
+    getActiveId: () => activeSheet()?.id ?? null,
+    canEdit,
+    run: runSheetOp,
+    guardDelete: (sheet) =>
+      editor.hasUnsaved() && sheet.id === s.sheetId ? `Save or cancel your change to ${editor.where()} before deleting this sheet.` : '',
+    notify(text) {
+      s.notice = text;
+      drawBanner();
+    },
+  });
 
   el.addEventListener('click', async (e) => {
     const link = e.target.closest('a[href="#/workspace"]');
@@ -240,6 +323,10 @@ export async function mount(el, { measure = null } = {}) {
     if (!b || !el.contains(b)) return;
     if (b.dataset.act === 'refresh') sync();
     else if (b.dataset.act === 'add-sheet') addFirstSheet();
+    else if (b.dataset.act === 'add-sheet-quick') manager.addSheet();
+    else if (b.dataset.act === 'manage-sheets') manager.open();
+    else if (b.dataset.act === 'retry-sheet') retrySheetOp();
+    else if (b.dataset.act === 'discard-sheet') discardSheetOp();
     else if (b.dataset.sheet) {
       if (editor.hasUnsaved()) {
         s.notice = `Save or cancel your change to ${editor.where()} before switching sheets.`;
