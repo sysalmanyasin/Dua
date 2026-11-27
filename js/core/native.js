@@ -91,6 +91,9 @@ export function sameWatch(st, data) {
   const have = st.sites ?? [];
   if (Number(st.stableSeconds) !== Number(data.stable_seconds) || have.length !== want.length) return false;
   if (want.length && !st.registered) return false;
+  // the owner's switch, the accuracy limit, and (when the switch is on) the phone's own key
+  if (Boolean(st.auto) !== Boolean(data.auto_enabled)) return false;
+  if (data.auto_enabled && (!st.hasKey || Number(st.maxAccuracy) !== Number(data.max_accuracy_m))) return false;
   return want.every((w) =>
     have.some(
       (h) =>
@@ -118,9 +121,11 @@ export async function syncAttendance(g = globalThis) {
   }
   const st = await dev.getAutoAttendanceStatus();
   if (sameWatch(st, data)) return st;
-  return dev.startAutoAttendance({
+  const settings = {
     userId,
     stableSeconds: Number(data.stable_seconds),
+    maxAccuracy: Number(data.max_accuracy_m),
+    auto: data.auto_enabled === true,
     sites: (data.sites ?? []).map((s) => ({
       id: s.id,
       name: s.name,
@@ -128,7 +133,22 @@ export async function syncAttendance(g = globalThis) {
       longitude: Number(s.longitude),
       radius: Number(s.radius_m),
     })),
-  });
+  };
+  if (settings.auto) {
+    // The owner switched automatic recording on: this phone reports arrivals and departures with a key of its own, because the web
+    // login is not available while Dua is closed. The key works for that one purpose only; the server checks it on every event.
+    const { deviceId, version } = await dev.getDeviceInfo();
+    settings.deviceId = deviceId;
+    settings.endpoint = `${getConfig().functionsUrl}/attendance-event`;
+    if (!st?.hasKey) {
+      // a phone that refused notifications has no device row yet
+      await db().rpc('app_device_register', { p_device_id: deviceId, p_fcm_token: null, p_app_version: version, p_want_widget: false });
+      const { data: key, error: keyError } = await db().rpc('app_device_attendance_enroll', { p_device_id: deviceId });
+      if (keyError || !key?.secret) log.warn('attendance key not issued', { code: keyError?.code });
+      else settings.secret = key.secret;
+    }
+  }
+  return dev.startAutoAttendance(settings);
 }
 
 // Automatic attendance: the phone watches the pharmacy's geofence by itself (DuaDevicePlugin, AttendanceGeofence.java). The server only

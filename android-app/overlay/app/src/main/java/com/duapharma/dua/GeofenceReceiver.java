@@ -10,7 +10,8 @@ import java.util.List;
 
 /**
  * Receives the geofence transitions from Google Play services, also while Dua is closed and the screen is locked.
- * Phase 3: it only writes what it saw into the local journal. Turning detections into attendance (with the server's checks) is Phase 4.
+ * It writes what it saw into the local journal and, when the owner has switched automatic recording on, hands the detection to
+ * AttendanceEvents (a fresh location check, then the event goes to the server, which decides). It does no network work itself.
  * Not exported: only Google Play services, through the PendingIntent that Dua gave it, can reach it.
  */
 public class GeofenceReceiver extends BroadcastReceiver {
@@ -45,6 +46,7 @@ public class GeofenceReceiver extends BroadcastReceiver {
                 where != null && where.hasAccuracy() ? where.getAccuracy() : 0f,
                 siteId
             );
+            AttendanceEvents.onTransition(context, name, siteId, now);
         }
     }
 }

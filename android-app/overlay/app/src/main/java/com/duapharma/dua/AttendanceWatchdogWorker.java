@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
  * Every 15 minutes (Android's shortest period) on a phone set up for automatic attendance:
  *  - notices when location, precise or "all the time" permission, or background use was taken away, and tells the person once;
  *  - registers the geofence again when the problem is gone (switching location off and on drops geofences), and once a day regardless.
+ * It also sends events that are still waiting (a phone that had no network when the person arrived or left).
  * It does NOT re-register on every run: that would restart the stability timer each time.
  */
 public class AttendanceWatchdogWorker extends Worker {
@@ -28,6 +29,8 @@ public class AttendanceWatchdogWorker extends Worker {
         Context context = getApplicationContext();
         AttendanceStore store = new AttendanceStore(context);
         if (!store.enrolled()) return Result.success();
+
+        if (store.autoOn() && store.hasKey() && store.queueSize() > 0) AttendanceSender.flush(context);
 
         String before = store.lastProblem();
         String now = AttendanceGeofence.problem(context);

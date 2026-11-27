@@ -29,7 +29,10 @@ do $t$ declare bad text; n int;
     'mgmt_attendance_my_history','mgmt_attendance_summary',
     -- 0112: the stability period (owner, attendance.manage) and the narrow read a staff phone uses to watch the pharmacy
     -- (attendance.check_in), see 0112_mgmt_attendance_auto_setup_test.
-    'mgmt_attendance_stable_set','mgmt_attendance_my_site'];
+    'mgmt_attendance_stable_set','mgmt_attendance_my_site',
+    -- 1403: the owner's switch for automatic recording (attendance.manage), see 1403_app_attendance_auto_events_test. The phone's event
+    -- function (app_attendance_event) is app_*, service role only, and is NOT listed.
+    'mgmt_attendance_auto_set'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

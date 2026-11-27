@@ -8,7 +8,12 @@ import {
   coordinateText,
   dayRows,
   dayState,
+  groupByDay,
+  journalDetail,
   journalLabel,
+  journalTone,
+  pendingText,
+  spanText,
   parseCoordinates,
   problemText,
   reasonText,
@@ -205,6 +210,7 @@ const api = {
   saveSite: vi.fn(),
   setConfig: vi.fn(),
   setStable: vi.fn(),
+  setAuto: vi.fn(),
   autoSupported: vi.fn(),
   autoStatus: vi.fn(),
   syncPlaces: vi.fn(),
@@ -249,6 +255,79 @@ beforeEach(() => {
 afterEach(() => {
   el.remove();
   document.querySelectorAll('dialog').forEach((d) => d.remove());
+});
+
+describe("automatic recording: the phone's story", () => {
+  const base = {
+    available: true,
+    enrolled: true,
+    problem: null,
+    registered: true,
+    stableSeconds: 120,
+    sites: [{ id: 'a', name: 'Test Shop', radius: 100 }],
+  };
+  it("says what the owner's switch means for this phone", () => {
+    expect(autoSummary({ ...base, auto: false }).text).toMatch(/notices when you arrive/);
+    expect(autoSummary({ ...base, auto: true, hasKey: true })).toMatchObject({ tone: 'ok' });
+    expect(autoSummary({ ...base, auto: true, hasKey: true }).text).toMatch(/recorded automatically/);
+    expect(autoSummary({ ...base, auto: true, hasKey: false })).toMatchObject({ tone: 'warn' });
+    expect(autoSummary({ ...base, auto: true, hasKey: false }).text).toMatch(/no key yet/);
+    // a problem on the phone still comes first
+    expect(autoSummary({ ...base, auto: true, hasKey: true, problem: 'location_off' }).tone).toBe('bad');
+  });
+  it('counts events waiting to be sent', () => {
+    expect(pendingText({ pending: 0 })).toBe('');
+    expect(pendingText(null)).toBe('');
+    expect(pendingText({ pending: 1 })).toBe('1 event is waiting to be sent.');
+    expect(pendingText({ pending: 3 })).toBe('3 events are waiting to be sent.');
+  });
+  it('words what happened to each event', () => {
+    expect(journalLabel({ type: 'recorded', kind: 'in' })).toBe('Check-in recorded');
+    expect(journalLabel({ type: 'recorded', kind: 'out' })).toBe('Check-out recorded');
+    expect(journalLabel({ type: 'refused', kind: 'in', reason: 'weak_signal' })).toBe('Check-in refused');
+    expect(journalLabel({ type: 'ignored', kind: 'in', reason: 'already_in' })).toBe('Check-in not needed');
+    expect(journalLabel({ type: 'cancelled', kind: 'out', reason: 'back_inside' })).toBe('Leaving cancelled');
+    expect(journalLabel({ type: 'no_fix', kind: 'in' })).toMatch(/No GPS position/);
+    expect(journalLabel({ type: 'off' })).toBe('Automatic recording is off');
+    expect(journalLabel({ type: 'key_rejected' })).toBe('This phone was not accepted');
+    expect(journalLabel({ type: 'dropped', kind: 'out' })).toBe('Check-out not accepted');
+  });
+  it('gives the reason in a few words and colours the line', () => {
+    expect(journalDetail({ type: 'refused', reason: 'weak_signal' })).toBe('GPS signal too weak');
+    expect(journalDetail({ type: 'cancelled', reason: 'back_inside' })).toBe('you came back');
+    expect(journalDetail({ type: 'ignored', reason: 'already_in' })).toBe('already checked in');
+    expect(journalDetail({ type: 'key_rejected' })).toMatch(/open Dua/);
+    expect(journalDetail({ type: 'off' })).toBe('test mode: listed only');
+    expect(journalDetail({ type: 'dwell' })).toBe('');
+    expect(journalTone({ type: 'recorded' })).toBe('ok');
+    for (const type of ['refused', 'dropped', 'no_fix', 'key_rejected', 'error:1000']) expect(journalTone({ type })).toBe('warn');
+    for (const type of ['dwell', 'exit', 'ignored', 'cancelled', 'off']) expect(journalTone({ type })).toBe('plain');
+  });
+  it('words a refused check-out while still inside', () => {
+    expect(reasonText('still_inside')).toMatch(/still at the pharmacy/);
+  });
+});
+
+describe('attendance: one line per person', () => {
+  it('writes the span of a day', () => {
+    expect(spanText({ first_in: '2026-11-26T12:01:00Z', open: true })).toBe('17:01 → Still in');
+    expect(spanText({ first_in: '2026-11-26T03:00:00Z', last_out: '2026-11-26T12:30:00Z', open: false })).toBe('08:00 → 17:30');
+    expect(spanText({ firstIn: '2026-11-26T03:00:00Z', lastOut: null, open: false })).toBe('08:00 → —');
+    expect(spanText({ first_in: null })).toBe('—');
+    expect(spanText(null)).toBe('—');
+  });
+  it("groups the owner's week by day, newest first, keeping the order inside a day", () => {
+    const rows = [
+      { date: '2026-11-25', name: 'B' },
+      { date: '2026-11-26', name: 'A' },
+      { date: '2026-11-25', name: 'C' },
+    ];
+    expect(groupByDay(rows)).toEqual([
+      { date: '2026-11-26', rows: [rows[1]] },
+      { date: '2026-11-25', rows: [rows[0], rows[2]] },
+    ]);
+    expect(groupByDay(null)).toEqual([]);
+  });
 });
 
 describe('attendance page', () => {
@@ -545,11 +624,125 @@ describe('attendance page', () => {
       expect(el.textContent).toContain('Watching the pharmacy');
     });
 
+    it('shows what happened to each event, and what is waiting to be sent', async () => {
+      api.autoStatus.mockResolvedValue({
+        ...phone(),
+        auto: true,
+        hasKey: true,
+        pending: 2,
+        journal: [
+          { type: 'recorded', kind: 'in', at: Date.now() },
+          { type: 'refused', kind: 'out', reason: 'weak_signal', at: Date.now() - 60000 },
+          { type: 'dwell', at: Date.now() - 120000, accuracy: 100 },
+        ],
+      });
+      await open(['attendance.check_in']);
+      const text = el.textContent.replace(/\s+/g, ' ');
+      expect(text).toContain('recorded automatically');
+      expect(text).toContain('2 events are waiting to be sent.');
+      expect(text).toContain('Check-in recorded');
+      expect(text).toContain('Check-out refused');
+      expect(text).toContain('GPS signal too weak');
+      expect(text).toContain('Automatic recording is on');
+      expect(text).not.toContain('Test mode');
+      expect(el.querySelectorAll('.at-row-ok').length).toBe(1);
+    });
+
     it('never breaks the rest of the page when the phone cannot answer', async () => {
       api.autoStatus.mockRejectedValue(new Error('boom'));
       await open(['attendance.check_in']);
       expect(el.textContent).toContain('My attendance');
       expect(el.textContent).not.toContain('Automatic attendance');
+    });
+  });
+
+  describe('automatic recording (owner)', () => {
+    const ask = async (reason) => {
+      await tick();
+      const dlg = [...document.querySelectorAll('dialog')].pop();
+      const box = dlg.querySelector('input, textarea');
+      box.value = reason;
+      box.dispatchEvent(new Event('input', { bubbles: true }));
+      dlg.querySelector('.btn-primary, [data-ok]').click();
+      await tick();
+    };
+    it('starts in test mode and the switch is a normal-sized checkbox', async () => {
+      await open(['attendance.view_all', 'attendance.manage']);
+      const box = el.querySelector('#at-auto');
+      expect(box.checked).toBe(false);
+      expect(el.textContent).toContain('Test mode');
+      expect(box.closest('.at-check')).not.toBeNull();
+    });
+    it('switches it on with a reason, through its own function', async () => {
+      api.setConfig.mockResolvedValue({ error: null });
+      api.setAuto.mockResolvedValue({ error: null });
+      await open(['attendance.view_all', 'attendance.manage']);
+      el.querySelector('#at-auto').checked = true;
+      el.querySelector('[data-act="save-config"]').click();
+      await ask('phone test passed');
+      expect(api.setAuto).toHaveBeenCalledTimes(1);
+      const [enabled, reason, key] = api.setAuto.mock.calls[0];
+      expect([enabled, reason]).toEqual([true, 'phone test passed']);
+      expect(key).toMatch(/^[0-9a-f-]{36}$/);
+    });
+    it('does not call the switch when it did not change', async () => {
+      api.setConfig.mockResolvedValue({ error: null });
+      await open(['attendance.view_all', 'attendance.manage']);
+      el.querySelector('[data-act="save-config"]').click();
+      await ask('just checking');
+      expect(api.setAuto).not.toHaveBeenCalled();
+    });
+    it('shows it is on, and switches it off again when unticked', async () => {
+      api.setup.mockResolvedValue({
+        config: { max_accuracy_m: 100, require_app: true, stable_seconds: 120, auto_enabled: true },
+        sites: [],
+      });
+      api.setConfig.mockResolvedValue({ error: null });
+      api.setAuto.mockResolvedValue({ error: null });
+      await open(['attendance.view_all', 'attendance.manage']);
+      expect(el.querySelector('#at-auto').checked).toBe(true);
+      el.querySelector('#at-auto').checked = false;
+      el.querySelector('[data-act="save-config"]').click();
+      await ask('pausing');
+      expect(api.setAuto.mock.calls[0][0]).toBe(false);
+    });
+    it('tells the owner when the switch could not be saved', async () => {
+      api.setConfig.mockResolvedValue({ error: null });
+      api.setAuto.mockResolvedValue({ error: { message: 'not allowed' } });
+      await open(['attendance.view_all', 'attendance.manage']);
+      el.querySelector('#at-auto').checked = true;
+      el.querySelector('[data-act="save-config"]').click();
+      await ask('try');
+      expect(document.body.textContent).toContain('not allowed');
+    });
+    it('marks refused attempts that came from a phone', async () => {
+      api.list.mockResolvedValue([
+        {
+          staff_id: 's1',
+          name: 'Test A',
+          business_date: todayPkt(),
+          at: `${todayPkt()}T05:00:00Z`,
+          kind: 'in',
+          status: 'rejected',
+          reason: 'weak_signal',
+          distance_m: 40,
+          source: 'auto',
+        },
+        {
+          staff_id: 's1',
+          name: 'Test A',
+          business_date: todayPkt(),
+          at: `${todayPkt()}T06:00:00Z`,
+          kind: 'in',
+          status: 'rejected',
+          reason: 'outside',
+          distance_m: 900,
+          source: 'app',
+        },
+      ]);
+      await open(['attendance.view_all']);
+      expect(el.querySelectorAll('.at-row-warn .chip').length).toBe(1);
+      expect(el.textContent).toContain('Automatic');
     });
   });
 
