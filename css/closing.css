@@ -1170,6 +1170,7 @@
 }
 .cls-a4-nums {
   display: grid;
+  grid-template-columns: repeat(10, 1fr);
   margin-top: 3mm;
   border: 0.3mm solid #000;
 }
@@ -1233,6 +1234,13 @@
   font-weight: 700;
   align-items: center;
   padding-left: 2mm;
+}
+/* phone preview: shrink the whole A4 page so it is visible without sideways scrolling (printing uses #cls-a4-root, never this) */
+@media screen and (max-width: 820px) {
+  .cls .cls-a4-wrap .cls-a4 {
+    zoom: 0.46;
+    margin: 0;
+  }
 }
 #cls-a4-root {
   display: none;

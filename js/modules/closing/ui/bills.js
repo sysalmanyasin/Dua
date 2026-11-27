@@ -55,7 +55,7 @@ export function sheetMarkup(m) {
         <span>Responsible: ______________</span>
       </div>
     </header>
-    <div class="cls-a4-nums" style="grid-template-columns: repeat(${cols.length}, 1fr)">
+    <div class="cls-a4-nums">
       ${cols.map((c) => html`<div class="cls-a4-col">${c.map((n) => html`<div class="cls-a4-num"><span>${n}</span></div>`)}</div>`)}
     </div>
     <div class="cls-a4-boxes">
