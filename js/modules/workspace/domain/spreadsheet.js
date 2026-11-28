@@ -223,6 +223,7 @@ function newSheet(wb, { id, name, position, row_order, col_order, row_sizes, col
     col_sizes: { ...(col_sizes ?? {}) },
     frozen_rows: frozen_rows ?? 0,
     frozen_cols: frozen_cols ?? 0,
+    structure_seq: 0, // seq of the last insert/delete of rows or columns (or restore); see guardsFormula
     deleted: false,
     styles: new Map(),
     cells: new Map(),
@@ -460,6 +461,20 @@ function setCells(wb, sh, sid, seq, payload, trusted) {
       conflicts.push(summary);
       continue;
     }
+    // Structure guard (1112): a formula written from a copy older than the last change of rows or columns would point at the
+    // wrong cells. A change made earlier in THIS batch does not count (head_seq only moves at the end of the batch).
+    if (!trusted && nf !== null && staleForStructure(wb, sh, base)) {
+      const summary = { conflict_id: null, r, c, kind: 'structure' };
+      newConflicts.push({
+        summary,
+        kind: 'structure',
+        target: { sheet_id: sid, r, c },
+        server_state: { structure_seq: sh.structure_seq },
+        local_state: { value: nv, formula: nf, style_id: ns },
+      });
+      conflicts.push(summary);
+      continue;
+    }
     const key = keyOf(r, c);
     const ex = pending.get(key) ?? sh.cells.get(key);
     if (!trusted && ex && ex.last_seq > base && (ex.value !== nv || ex.formula !== nf || ex.style_id !== ns)) {
@@ -507,11 +522,29 @@ function setCells(wb, sh, sid, seq, payload, trusted) {
   };
 }
 
+// True when `base` (the seq a copy last saw) is older than the sheet's last change of rows or columns that was made in an EARLIER
+// batch. wb.head_seq is the committed head: a change made earlier in the batch being applied has structure_seq > head_seq.
+const staleForStructure = (wb, sh, base) => base < sh.structure_seq && sh.structure_seq <= wb.head_seq;
+
 function structure(wb, sh, sid, seq, type, payload, trusted) {
   const byCols = type === 'insert_cols' || type === 'delete_cols';
   const max = byCols ? LIMITS.cols : LIMITS.rows;
   const unit = byCols ? 'columns' : 'rows';
   const order = byCols ? sh.col_order : sh.row_order;
+  const sb = jsonInt(payload.base_seq);
+  if (!trusted && sb !== null && staleForStructure(wb, sh, sb)) {
+    // the sender worked out its formula rewrite from positions that are no longer true
+    wb._conflictSerial += 1;
+    const id = `conflict-${wb._conflictSerial}`;
+    wb.conflicts.push({
+      id,
+      kind: 'structure',
+      target: { sheet_id: sid, op: type },
+      server_state: { structure_seq: sh.structure_seq },
+      local_state: { ids: payload.ids ?? null },
+    });
+    return { status: 'conflict', conflicts: [{ conflict_id: id, kind: 'structure' }], effective: payload };
+  }
   if (!Array.isArray(payload.ids) || !between(payload.ids.length, 1, LIMITS.idsPerOperation)) reject('ids must be a list of 1 to 1000 ids');
   const ids = payload.ids.map(jsonInt);
   if (ids.some((x) => x !== null && (x > INT_MAX || x < INT_MIN))) throw new CallRefused('integer out of range'); // the database errors outright
@@ -566,6 +599,7 @@ function structure(wb, sh, sid, seq, type, payload, trusted) {
   }
   if (byCols) sh.col_order = nextOrder;
   else sh.row_order = nextOrder;
+  sh.structure_seq = seq;
   return { status: 'applied', effective: payload };
 }
 
@@ -650,6 +684,7 @@ export function restoreSnapshot(wb, snapshotId) {
       col_sizes: { ...sh.col_sizes },
       frozen_rows: sh.frozen_rows,
       frozen_cols: sh.frozen_cols,
+      structure_seq: seq, // a restore counts as a change of structure (1112)
       deleted: false,
       styles: new Map(sh.styles.map(([id, st]) => [id, structuredClone(st)])),
       cells: new Map(),

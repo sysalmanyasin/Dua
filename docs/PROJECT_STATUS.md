@@ -5,8 +5,8 @@
 **Repository:** https://github.com/sysalmanyasin/Dua. **Live site:** https://sysalmanyasin.github.io/Dua/.
 
 <!-- repo-facts -->
-- Migration files: 137
-- Database test files: 127
+- Migration files: 141
+- Database test files: 128
 - Registered modules: 15
 - Edge Functions: 8
 <!-- /repo-facts -->
@@ -21,7 +21,7 @@ The block above is checked by `tests/unit/docs-consistency.test.js`. Update it w
 
 ## 1. Implemented and verified (automated only)
 
-Fifteen modules are registered in `js/modules/index.js` and their automated tests pass: **home, sales, manager** (including attendance), **access, tools, closing, inventory, str, candela-sales, ebill** (Emergency Billing), **audit** (counting, compile, expiry, barcode, outbox), **invoice-desk, workspace** (notes and sheets), **tasks, inbox**. Behind them: 137 migrations that apply cleanly to an empty PostgreSQL 16, 8 Edge Functions that type-check and have handler tests, a service worker whose precache list is current, and an Android shell that passes its consistency check. See `docs/TEST_ACCEPTANCE_MATRIX.md` for each module's tests and what is still missing.
+Fifteen modules are registered in `js/modules/index.js` and their automated tests pass: **home, sales, manager** (including attendance), **access, tools, closing, inventory, str, candela-sales, ebill** (Emergency Billing), **audit** (counting, compile, expiry, barcode, outbox), **invoice-desk, workspace** (notes and sheets), **tasks, inbox**. Behind them: 141 migrations that apply cleanly to an empty PostgreSQL 16, 8 Edge Functions that type-check and have handler tests, a service worker whose precache list is current, and an Android shell that passes its consistency check. See `docs/TEST_ACCEPTANCE_MATRIX.md` for each module's tests and what is still missing.
 
 ## 2. Implemented but not fully tested
 
@@ -43,7 +43,7 @@ Fifteen modules are registered in `js/modules/index.js` and their automated test
 
 ## 4. Known defects
 
-See `docs/KNOWN_ISSUES.md`: KI-1 (five functions callable by the visitor role, low severity), KI-2 (malformed amount in words below one rupee), and the release-path risks KI-3 to KI-8.
+See `docs/KNOWN_ISSUES.md`: KI-2 (malformed amount in words below one rupee), KI-9 (two retired Edge Functions still deployed live), and the release-path risks KI-3 to KI-8 and KI-10. KI-1 (five functions callable by the visitor role) was closed on 28 Nov by migrations `1004` and `1405`.
 
 ## 5. Future roadmap
 
@@ -56,10 +56,10 @@ Run on this branch at the merged tip of `main` (see `docs/AUDIT_0_BASELINE.md` f
 | Check | Result |
 |---|---|
 | `npm run lint`, `format:check`, `check:secrets`, `check:vendor` | pass |
-| `npm test` | pass: 208 files, 3,735 tests (197 files and 3,514 tests at the first baseline) |
-| `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 137 migrations, 127 test files, 3,426 `pass:` lines and 1,228 refusal checks (`pass (...)`), 0 FAIL/ERROR (3,209 `pass:` lines at the first baseline) |
+| `npm test` | pass: 208 files, 3,751 tests (197 files and 3,514 tests at the first baseline) |
+| `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 141 migrations, 128 test files, 3,480 `pass:` lines and 1,229 refusal checks (`pass (...)`), 0 FAIL/ERROR (3,209 `pass:` lines at the first baseline) |
 | `deno check` (8 functions), `actionlint`, `build:sw` (no drift) | pass |
-| `npm run test:coverage` | 88.0% statements, 86.7% branches, 88.1% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) |
+| `npm run test:coverage` | 88.0% statements, 86.7% branches, 88.2% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) |
 
 Not run or not verifiable here: Gradle unit tests and APK build, live Supabase state, real devices, Gmail, Drive restore, owner acceptance.
 

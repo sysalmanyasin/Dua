@@ -1,6 +1,6 @@
 # Runbook (how to operate, fix and change things)
 
-> **Re-checked against the repository on 27-28 Nov 2026 (Audit 0).** `main` has 137 migration files (`0001` to `1404`; `0015` and `0017` are on `main`; re-counted 28 Nov). Statements about the live project's registry, secrets and jobs are recorded, not re-verified. **Before applying any migration, compare `supabase/migrations/*.sql` with the live `supabase_migrations.schema_migrations` and never re-apply one that is already registered.**
+> **Re-checked against the repository on 27-28 Nov 2026 (Audit 0).** `main` has 141 migration files (`0001` to `1405`; `0015` and `0017` are on `main`; re-counted 28 Nov). Statements about the live project's registry, secrets and jobs are recorded, not re-verified. **Before applying any migration, compare `supabase/migrations/*.sql` with the live `supabase_migrations.schema_migrations` and never re-apply one that is already registered.**
 
 
 

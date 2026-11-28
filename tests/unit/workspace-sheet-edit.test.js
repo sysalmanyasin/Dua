@@ -329,6 +329,30 @@ describe('who may edit', () => {
 });
 
 describe('unsaved text is never dropped silently', () => {
+  it('a formula typed from a copy older than a row insert is refused, kept, and can be saved again after checking', async () => {
+    await open();
+    select(1, 0);
+    type('=B1+1');
+    applyOps(server, [buildOp('insert_rows', { sheet_id: SHEET, after: 1, ids: [1000], base_seq: server.head_seq })]); // someone else inserts a row
+    btn('save').click();
+    await vi.waitFor(() => expect(msg()).toContain('Rows or columns'));
+    expect(box().value).toBe('=B1+1'); // what was typed is kept
+    expect(serverCell(2, 1).formula ?? null).toBeNull(); // and nothing was written
+    expect(btn('save').closest('.ws-edit-actions').hidden).toBe(false); // it can be saved again
+    btn('save').click(); // now from the refreshed copy
+    await vi.waitFor(() => expect(serverCell(2, 1).formula).toBe('=B1+1'));
+    expect(applyCalls()).toHaveLength(2);
+  });
+
+  it('a plain value typed from a copy older than a row insert is still saved', async () => {
+    await open();
+    select(1, 0);
+    type('Brufen');
+    applyOps(server, [buildOp('insert_rows', { sheet_id: SHEET, after: 1, ids: [1000], base_seq: server.head_seq })]);
+    btn('save').click();
+    await vi.waitFor(() => expect(serverCell(2, 1).value).toBe('Brufen'));
+  });
+
   it('moving to another cell saves the typed text first, then moves (as in a spreadsheet)', async () => {
     await open();
     select(1, 0);

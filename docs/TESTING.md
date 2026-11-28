@@ -8,14 +8,14 @@
 |---|---|---|
 | Lint | `npm run lint` | pass |
 | Formatting | `npm run format:check` | pass (`.md`, `.ts`, `.sql`, `android-app/` are excluded by `.prettierignore`) |
-| Unit and page tests | `npm test` | pass: 208 files, 3,735 tests (197 files and 3,514 tests at the first baseline); no `.skip`, `.only` or `.todo` |
-| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 137 migrations applied to an empty database, 127 test files, 3,426 `pass:` lines and 1,228 refusal checks (`pass (...)`), 0 FAIL/ERROR |
+| Unit and page tests | `npm test` | pass: 208 files, 3,751 tests (197 files and 3,514 tests at the first baseline); no `.skip`, `.only` or `.todo` |
+| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 141 migrations applied to an empty database, 128 test files, 3,480 `pass:` lines and 1,229 refusal checks (`pass (...)`), 0 FAIL/ERROR |
 | Edge Function types | `deno check --no-lock <fn>/index.ts` for all 8 | pass |
 | Edge Function handlers | `tests/unit/edge-*.test.js` | All 8 handlers, against fake Supabase, Dropbox and ntfy clients. Not covered: real Auth, real Dropbox/ntfy, Firebase delivery in `notify-push` |
 | Workflow lint | `actionlint` | pass |
 | Secrets and vendor | `npm run check:secrets`, `npm run check:vendor` | pass |
 | Service-worker precache | `npm run build:sw` | no drift |
-| Coverage | `npm run test:coverage` | 88.0% statements, 86.7% branches, 88.1% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) (measured, not enforced) |
+| Coverage | `npm run test:coverage` | 88.0% statements, 86.7% branches, 88.2% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) (measured, not enforced) |
 | Android | `node android-app/scripts/check-shell.mjs` | pass. Gradle unit test and APK build run only in GitHub Actions |
 
 A passing jsdom or local PostgreSQL test proves only its own scope. It does not prove real-device behaviour, Google integration, a production restore, the live database's state, or any owner workflow.
@@ -28,9 +28,9 @@ A passing jsdom or local PostgreSQL test proves only its own scope. It does not 
 | Front-end unit and page tests | `npm test`; `tests/unit/` | Domain calculations, parsing, permission registry, page interactions in jsdom, save/retry/conflict, view-only states, print/copy and Gmail dialogs |
 | Repository checks | `npm run lint`, `npm run format:check`, `npm run check:secrets`, `npm run check:vendor` | Style, unsafe DOM patterns, secret leakage and vendored-file hashes |
 | Combined repository verification | `npm run verify` | Runs the repository's configured app checks |
-| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 137 migrations applied to an empty database, 127 test files, 3,426 `pass:` lines and 1,228 refusal checks (`pass (...)`), 0 FAIL/ERROR |
+| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 141 migrations applied to an empty database, 128 test files, 3,480 `pass:` lines and 1,229 refusal checks (`pass (...)`), 0 FAIL/ERROR |
 | Edge Function checks | CI Deno checks in `.github/workflows/ci.yml` (all 8 functions) and handler tests `tests/unit/edge-*.test.js` | Types; for every function the handler's real code path against fake clients (`tests/helpers/edgeHarness.js`) |
-| Whole-database invariants | `supabase/tests/0999_global_exposure_test.sql` | Every public table has RLS; every SECURITY DEFINER function pins `search_path`; the visitor role runs no function outside a documented list (KI-1) |
+| Whole-database invariants | `supabase/tests/0999_global_exposure_test.sql` | Every public table has RLS; every SECURITY DEFINER function pins `search_path`; the visitor role runs no function at all (strict since KI-1 was closed) |
 | Workflow lint | CI actionlint step | Checks GitHub Actions workflow syntax |
 
 ## How to run
