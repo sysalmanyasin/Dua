@@ -1,4 +1,4 @@
-/* Invoice Desk forms, original-style business receipts and 80mm printer output. */
+/* Invoice Desk forms, plus the three worksheet-faithful slips (screen preview and 80 mm thermal print). */
 .id-fields {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
@@ -46,116 +46,285 @@
 .id-history-row {
   align-items: center;
 }
+/* ── The slips ──────────────────────────────────────────────────────────────────────────────────────────────
+   Each template is its source worksheet rebuilt cell by cell (see ui/renderers.js). One unit rules everything:
+   --p is one worksheet pixel and --pt one worksheet point, both derived from the slip width (--paper) divided by the
+   worksheet's total column width (--w), so the slip keeps the sheet's proportions whether it is a 100 mm preview or a
+   72 mm thermal print. Everything is pure black and bold: a thermal head cannot print the sheet's light blue, it
+   dithers it into a grey haze, which is what made the old print look blurred. */
 .id-paper {
-  width: min(100%, 720px);
+  --paper: min(100mm, 94vw);
+  --p: calc(var(--paper) / var(--w));
+  --pt: calc(var(--p) * 4 / 3);
+  --thin: max(1px, var(--p));
+  --med: max(2px, calc(2 * var(--p)));
+  box-sizing: border-box;
+  width: var(--paper);
   margin: 12px auto;
-  padding: 22px;
   background: #fff;
-  color: #111;
-  border: 1px solid #aaa;
-  font-family: Cambria, Georgia, serif;
-}
-.id-copy {
-  text-align: center;
+  color: #000;
+  box-shadow: 0 0 0 1px #bbb;
+  font-family: Cambria, Caladea, 'Noto Serif', Georgia, serif;
   font-weight: 700;
-  letter-spacing: 0.12em;
-  font-size: 0.75rem;
-  margin-bottom: 6px;
+  line-height: 1.12;
+  text-rendering: geometricPrecision;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
 }
-.id-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.78rem;
-  margin: 5px 0;
+.id-bs {
+  --w: 274;
 }
-.id-policy {
-  font-size: 0.68rem;
-  text-align: center;
-  line-height: 1.25;
-  margin: 8px 0;
+.id-safari {
+  --w: 350;
 }
-.id-thanks {
-  text-align: center;
-  font-weight: 700;
-  margin: 8px 0;
-}
-.id-summary {
-  margin-top: 8px;
-}
-.id-summary > div {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-}
-.id-paper header {
-  text-align: center;
-  border-bottom: 1px solid #333;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-}
-.id-paper header h2 {
-  font-size: 1.3rem;
-  letter-spacing: 0.04em;
-  margin: 0;
-}
-.id-paper header p {
-  margin: 3px 0;
-  font-weight: 700;
+.id-best {
+  --w: 301;
+  font-family: 'Courier New', 'Liberation Mono', Cousine, monospace;
 }
 .id-paper table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  border-spacing: 0;
 }
-.id-paper th,
 .id-paper td {
-  padding: 6px 4px;
-  border-bottom: 1px solid #bbb;
+  padding: 0 calc(1 * var(--p));
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+/* column widths = the worksheet's column widths in pixels */
+.id-bs col:nth-child(1) {
+  width: calc(104 * var(--p));
+}
+.id-bs col:nth-child(2) {
+  width: calc(60 * var(--p));
+}
+.id-bs col:nth-child(3) {
+  width: calc(36 * var(--p));
+}
+.id-bs col:nth-child(4) {
+  width: calc(74 * var(--p));
+}
+.id-safari col:nth-child(1) {
+  width: calc(119 * var(--p));
+}
+.id-safari col:nth-child(2) {
+  width: calc(42 * var(--p));
+}
+.id-safari col:nth-child(3) {
+  width: calc(82 * var(--p));
+}
+.id-safari col:nth-child(4) {
+  width: calc(107 * var(--p));
+}
+.id-best col:nth-child(1) {
+  width: calc(83 * var(--p));
+}
+.id-best col:nth-child(2) {
+  width: calc(60 * var(--p));
+}
+.id-best col:nth-child(3) {
+  width: calc(47 * var(--p));
+}
+.id-best col:nth-child(4) {
+  width: calc(56 * var(--p));
+}
+.id-best col:nth-child(5) {
+  width: calc(55 * var(--p));
+}
+/* row heights (worksheet points) and font sizes (worksheet points) */
+.id-paper tr.h3 {
+  height: calc(3 * var(--pt));
+}
+.id-paper tr.h4 {
+  height: calc(4 * var(--pt));
+}
+.id-paper tr.h6 {
+  height: calc(6 * var(--pt));
+}
+.id-paper tr.h8 {
+  height: calc(8 * var(--pt));
+}
+.id-paper tr.h13 {
+  height: calc(13 * var(--pt));
+}
+.id-paper tr.h15 {
+  height: calc(15 * var(--pt));
+}
+.id-paper tr.h15-75 {
+  height: calc(15.75 * var(--pt));
+}
+.id-paper tr.h16-5 {
+  height: calc(16.5 * var(--pt));
+}
+.id-paper tr.h18 {
+  height: calc(18 * var(--pt));
+}
+.id-paper tr.h21 {
+  height: calc(21 * var(--pt));
+}
+.id-paper tr.h22 {
+  height: calc(22 * var(--pt));
+}
+.id-paper tr.h25-5 {
+  height: calc(25.5 * var(--pt));
+}
+.id-paper tr.h27 {
+  height: calc(27 * var(--pt));
+}
+.id-paper tr.h28 {
+  height: calc(28 * var(--pt));
+}
+.id-paper tr.h30 {
+  height: calc(30 * var(--pt));
+}
+.id-paper tr.h36 {
+  height: calc(36 * var(--pt));
+}
+.id-paper tr.h39 {
+  height: calc(39 * var(--pt));
+}
+.id-paper tr.h42 {
+  height: calc(42 * var(--pt));
+}
+.id-paper tr.h45 {
+  height: calc(45 * var(--pt));
+}
+.id-paper tr.h60 {
+  height: calc(60 * var(--pt));
+}
+.id-paper .s8 {
+  font-size: calc(8 * var(--pt));
+}
+.id-paper .s9 {
+  font-size: calc(9 * var(--pt));
+}
+.id-paper .s10 {
+  font-size: calc(10 * var(--pt));
+}
+.id-paper .s11 {
+  font-size: calc(11 * var(--pt));
+}
+.id-paper .s12 {
+  font-size: calc(12 * var(--pt));
+}
+.id-paper .s13 {
+  font-size: calc(13 * var(--pt));
+}
+.id-paper .s18 {
+  font-size: calc(18 * var(--pt));
+}
+.id-paper .s20 {
+  font-size: calc(20 * var(--pt));
+}
+.id-paper .s24 {
+  font-size: calc(24 * var(--pt));
+}
+/* alignment, decoration, fonts */
+.id-paper .lft {
   text-align: left;
+}
+.id-paper .ctr {
+  text-align: center;
+}
+.id-paper .rgt {
+  text-align: right;
+}
+.id-paper .top {
   vertical-align: top;
 }
-.id-paper .id-num {
-  text-align: right;
+.id-paper .ul {
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+.id-paper .nw {
   white-space: nowrap;
+  overflow-wrap: normal;
 }
-.id-paper .id-total {
-  padding: 10px 0;
-  border-top: 2px solid #111;
-  border-bottom: 2px solid #111;
-  margin-top: 8px;
-}
-.id-paper .id-words {
-  color: #111;
-  font-weight: 600;
-}
-.id-receipt-pay {
+.id-paper .dist > div {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-  font-weight: 700;
+  gap: calc(4 * var(--p));
 }
-.id-small {
-  text-align: center;
-  font-size: 0.78rem;
-  margin: 8px 0;
+.id-paper .calibri {
+  font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif;
 }
-.id-best {
-  font-family: 'Courier New', monospace;
+.id-paper .cambria {
+  font-family: Cambria, Caladea, 'Noto Serif', Georgia, serif;
 }
-.id-best header h2 {
-  font-family: 'Comic Sans MS', cursive;
+.id-paper .comic {
+  font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', 'Comic Sans', cursive;
 }
-.id-safari header {
-  font-family: Cambria, Georgia, serif;
+.id-paper .urdu {
+  font-family: Arial, 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  direction: rtl;
+}
+.id-paper .thanks {
+  padding: 0;
+}
+/* borders: thin = worksheet thin, medium = worksheet medium, dashed = Safari's dashed box */
+.id-paper .bt-l {
+  border-left: var(--thin) solid #000;
+}
+.id-paper .bt-r {
+  border-right: var(--thin) solid #000;
+}
+.id-paper .bt-t {
+  border-top: var(--thin) solid #000;
+}
+.id-paper .bt-b {
+  border-bottom: var(--thin) solid #000;
+}
+.id-paper .bm-l {
+  border-left: var(--med) solid #000;
+}
+.id-paper .bm-r {
+  border-right: var(--med) solid #000;
+}
+.id-paper .bm-t {
+  border-top: var(--med) solid #000;
+}
+.id-paper .bm-b {
+  border-bottom: var(--med) solid #000;
+}
+.id-paper .ds-l {
+  border-left: var(--thin) dashed #000;
+}
+.id-paper .ds-r {
+  border-right: var(--thin) dashed #000;
+}
+.id-paper .ds-t {
+  border-top: var(--thin) dashed #000;
+}
+.id-paper .ds-b {
+  border-bottom: var(--thin) dashed #000;
+}
+.id-paper .bs-desc {
+  font-size: calc(10.5 * var(--pt));
+}
+.id-paper .best-name {
+  vertical-align: top;
+  padding-top: calc(10 * var(--p));
+}
+/* Safari's picture: workbook crop and stretch (317 x 92 px, 21 px in from the left edge), pre-converted to 1-bit black */
+.id-paper .logo-cell {
+  padding: 0 0 0 calc(21 * var(--p));
+  height: calc(92 * var(--p));
+  vertical-align: top;
+}
+.id-logo {
+  width: calc(317 * var(--p));
+  height: calc(92 * var(--p));
+  background: url('../assets/invoice-desk/bookland-logo.png') center / 100% 100% no-repeat;
 }
 #print-root {
   display: none;
 }
+/* Chrome and Edge ignore "80mm auto" and fall back to Letter, so the height is a fixed fallback here and ui/print.js
+   measures the slip and rewrites it to the exact length just before window.print(). */
 @page invoice-thermal {
-  size: 80mm auto;
-  margin: 2mm;
+  size: 80mm 200mm;
+  margin: 0;
 }
 @media (max-width: 640px) {
   .id-line {
@@ -168,41 +337,40 @@
     grid-column: 1/-1;
   }
 }
+/* off-screen, at the real print width, only while ui/print.js measures the slip's height */
+#print-root.id-measuring {
+  display: block;
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 72mm;
+  padding: 2mm 0 6mm;
+}
+#print-root.id-measuring .id-paper {
+  --paper: 72mm;
+  margin: 0;
+  box-shadow: none;
+}
 @media print {
+  html:has(body.printing-invoice),
+  body.printing-invoice {
+    background: #fff !important;
+  }
   body.printing-invoice > *:not(#print-root) {
     display: none !important;
   }
   body.printing-invoice #print-root {
     display: block !important;
     page: invoice-thermal;
-    width: 76mm;
-    margin: 0;
-    padding: 0;
+    width: 72mm;
+    margin: 0 auto;
+    padding: 2mm 0 6mm;
     background: #fff;
     color: #000;
-    font:
-      10px/1.25 'Courier New',
-      monospace;
   }
   body.printing-invoice .id-paper {
-    width: 100%;
-    max-width: none;
+    --paper: 72mm;
     margin: 0;
-    padding: 0;
-    border: 0;
-    font: inherit;
-  }
-  body.printing-invoice .id-paper header h2 {
-    font-size: 13px;
-  }
-  body.printing-invoice .id-paper table {
-    font-size: 9px;
-  }
-  body.printing-invoice .id-paper th,
-  body.printing-invoice .id-paper td {
-    padding: 3px 1px;
-  }
-  body.printing-invoice .id-paper .id-small {
-    font-size: 8px;
+    box-shadow: none;
   }
 }
