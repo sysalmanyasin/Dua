@@ -110,9 +110,11 @@ export function tickSummary(entries, ticked) {
   return { count, total, added: fromPaisa(added), reduced: fromPaisa(reduced) };
 }
 
-// Balance Tally: the Jazz Cash ledger balance (money held) plus the counted accounts, against what the "expense app" says.
-export function tallyTotal(ledgerBalance, amounts) {
-  return fromPaisa(toPaisa(ledgerBalance) + amounts.reduce((s, a) => s + toPaisa(a), 0));
+// Balance Tally: the counted accounts plus the Jazz Cash ledger figure, against what the "expense app" says. The ledger figure is the
+// Jazz Cash ledger balance with the opposite sign (a ledger at -28,260 adds 28,260). The database applies the same rule when it saves.
+export const tallyLedgerFigure = (ledgerBalance) => fromPaisa(0 - toPaisa(ledgerBalance)); // "0 -" so an empty ledger gives 0, never -0
+export function tallyTotal(ledgerFigure, amounts) {
+  return fromPaisa(toPaisa(ledgerFigure) + amounts.reduce((s, a) => s + toPaisa(a), 0));
 }
 export function tallyDifference(total, appTotal) {
   const d = toPaisa(total) - toPaisa(appTotal);

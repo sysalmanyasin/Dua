@@ -8,6 +8,7 @@ import {
   isTickable,
   runningBalances,
   tallyDifference,
+  tallyLedgerFigure,
   tickSummary,
   tallyTotal,
   validateLedgerEntry,
@@ -86,8 +87,13 @@ describe('ledger words and maths', () => {
     expect(tickSummary(rows, new Set())).toEqual({ count: 0, total: 3, added: 0, reduced: 0 });
     expect(tickSummary([], new Set(['a']))).toEqual({ count: 0, total: 0, added: 0, reduced: 0 });
   });
-  it('the tally: ledger balance plus accounts, against the app total, in exact paisa', () => {
-    expect(tallyTotal(-25146, [20000, 5146.5])).toBe(0.5);
+  it('the tally takes the ledger balance with the opposite sign, and adds it to the accounts in exact paisa', () => {
+    expect(tallyLedgerFigure(-28260)).toBe(28260);
+    expect(tallyLedgerFigure(78260)).toBe(-78260);
+    expect(tallyLedgerFigure(-0.1)).toBe(0.1);
+    expect(tallyLedgerFigure(0)).toBe(0); // never -0
+    expect(tallyTotal(tallyLedgerFigure(-25146), [20000, 5146.5])).toBe(50292.5);
+    expect(tallyTotal(tallyLedgerFigure(-28260), [35359, 25000, 100075, 0, 26350, 40000])).toBe(255044);
     expect(tallyTotal(0.1, [0.2])).toBe(0.3);
     expect(tallyDifference(0.5, 100)).toEqual({ amount: -99.5, label: 'Short' });
     expect(tallyDifference(120, 100)).toEqual({ amount: 20, label: 'Extra cash' });
@@ -505,18 +511,73 @@ describe('Balance Tally', () => {
     await tick();
   }
 
-  it('counts the ledger balance automatically and updates the total and the difference label as you type', async () => {
+  it('adds the ledger figure (the ledger balance with the opposite sign) and updates the total and the difference label as you type', async () => {
     await openTally();
-    expect(el.textContent).toContain('Jazz Cash ledger (money held)');
+    expect(el.textContent).toContain('Jazz Cash ledger (latest)');
+    expect(el.querySelector('[data-ledger]').textContent).toContain('25,146'); // the ledger is -25,146
+    expect(el.querySelector('[data-ledger]').textContent).not.toContain('-');
     type(el.querySelector('[data-acc="a1"]'), '20,000');
     type(el.querySelector('[data-acc="a2"]'), '5146.5');
-    expect(el.querySelector('[data-total]').textContent).toContain('0.50');
-    type(el.querySelector('[data-app]'), '100');
+    expect(el.querySelector('[data-total]').textContent).toContain('50,292.50');
+    type(el.querySelector('[data-app]'), '100000');
     expect(el.querySelector('[data-label]').textContent).toBe('Short');
-    type(el.querySelector('[data-app]'), '0.5');
+    type(el.querySelector('[data-app]'), '50292.5');
     expect(el.querySelector('[data-label]').textContent).toBe('Balanced');
     type(el.querySelector('[data-app]'), '0');
     expect(el.querySelector('[data-label]').textContent).toBe('Extra cash');
+  });
+
+  describe('a saved count whose ledger has moved on', () => {
+    const moved = () =>
+      api.tallyGet.mockResolvedValue({
+        has_snapshot: true,
+        revision: 1,
+        ledger_balance: -28260,
+        accounts: [{ account_id: 'a1', name: 'ABL', amount: 20000 }],
+        app_total: 100000,
+        total: 48260,
+        difference: -51740,
+        live_ledger_balance: -78260,
+      });
+
+    it('uses the latest ledger for the total, and says what the saved count used', async () => {
+      moved();
+      await openTally();
+      expect(el.querySelector('[data-ledger]').textContent).toContain('78,260');
+      expect(el.querySelector('[data-total]').textContent).toContain('98,260'); // 20,000 + 78,260, not the saved 28,260
+      expect(el.textContent).toContain('The saved count used 28,260; the ledger now gives 78,260.');
+    });
+
+    it('saving again needs a reason even when no number was typed, and records the new revision', async () => {
+      moved();
+      await openTally();
+      el.querySelector('[data-act="save"]').click();
+      await tick();
+      expect(dlg().textContent).toContain('Change this count');
+      type(dlg().querySelector('#reason'), 'ledger moved after the count');
+      dlg().querySelector('[data-ok]').click();
+      await tick();
+      expect(api.tallySave).toHaveBeenCalledTimes(1);
+      expect(api.tallySave.mock.calls[0][3]).toBe('ledger moved after the count');
+    });
+
+    it('says nothing, and asks for no reason, when the saved count still matches the ledger', async () => {
+      api.tallyGet.mockResolvedValue({
+        has_snapshot: true,
+        revision: 0,
+        ledger_balance: -25146,
+        accounts: [],
+        app_total: 0,
+        total: 25146,
+        difference: 25146,
+        live_ledger_balance: -25146,
+      });
+      await openTally();
+      expect(el.textContent).not.toContain('The saved count used');
+      el.querySelector('[data-act="save"]').click();
+      await tick();
+      expect(document.querySelectorAll('dialog')).toHaveLength(0);
+    });
   });
 
   it('saves every account with a key, and retries with the same key until something is edited', async () => {

@@ -1,9 +1,10 @@
-// Balance Tally: a daily count of the accounts, against what the "expense app" says. The Jazz Cash ledger balance (money held) is
-// counted automatically. Counting a date again adds a revision and needs a reason; the old count stays.
+// Balance Tally: a daily count of the accounts, against what the "expense app" says. The Jazz Cash ledger figure (the ledger balance
+// with the opposite sign) is added automatically, always from the latest ledger for the date. Counting a date again adds a revision
+// and needs a reason; the old count stays.
 import { html, render } from '../../../shared/html.js';
 import { money, parseAmount, shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
-import { tallyDifference, tallyTotal } from '../domain/ledger.js';
+import { tallyDifference, tallyLedgerFigure, tallyTotal } from '../domain/ledger.js';
 import { askReason, askText, confirmDialog, errorCard, isBadNumber, loadingCard, newKey, toast, typedNumber } from './parts.js';
 
 const m = (v) => money(v, { decimals: Math.round(Number(v) * 100) % 100 !== 0 });
@@ -43,9 +44,13 @@ export async function mountTally(host) {
     paint();
   }
 
+  // The ledger row always follows the latest ledger for the date, so today's count is right even if the ledger moved after it was saved.
+  const ledgerFigure = () => tallyLedgerFigure(state.snap.live_ledger_balance);
+  // A saved count made with another ledger balance than the ledger gives now: saving again records the latest one (a new revision).
+  const ledgerMoved = () => state.snap.has_snapshot && Number(state.snap.ledger_balance) !== Number(state.snap.live_ledger_balance);
   const calc = () => {
     const total = tallyTotal(
-      state.snap.ledger_balance,
+      ledgerFigure(),
       state.accounts.map((a) => typedNumber(parseAmount, state.amounts[a.account_id])),
     );
     return { total, diff: tallyDifference(total, typedNumber(parseAmount, state.app)) };
@@ -72,12 +77,12 @@ export async function mountTally(host) {
           <table class="table">
             <tbody>
               <tr>
-                <td>Jazz Cash ledger (money held)</td>
-                <td class="num">${m(s.ledger_balance)}</td>
+                <td>Jazz Cash ledger (latest)</td>
+                <td class="num" data-ledger>${m(ledgerFigure())}</td>
               </tr>
             </tbody>
           </table>
-          ${s.has_snapshot && Number(s.ledger_balance) !== Number(s.live_ledger_balance) ? html`<p class="small muted">The ledger now says ${m(s.live_ledger_balance)} for this date; the count keeps what it was.</p>` : ''}
+          ${ledgerMoved() ? html`<p class="small muted">The saved count used ${m(tallyLedgerFigure(s.ledger_balance))}; the ledger now gives ${m(ledgerFigure())}. Save the count again to record it.</p>` : ''}
           <div class="fields">
             ${state.accounts.map(
               (a) =>
@@ -172,7 +177,7 @@ export async function mountTally(host) {
       if (bad || isBadNumber(parseAmount, state.app))
         return toast(`Check the number${bad ? ` for ${bad.name}` : ' for the app total'}.`, 'error');
       let reason = '';
-      if (state.snap.has_snapshot && isDirty()) {
+      if (state.snap.has_snapshot && (isDirty() || ledgerMoved())) {
         reason = await askReason({ title: 'Change this count', hint: 'The earlier count stays in the record.', confirm: 'Save revision' });
         if (reason === null) return;
       }

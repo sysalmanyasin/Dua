@@ -178,26 +178,26 @@ begin
   -- 8. Balance Tally
   select account_id into acc from public.mgmt_tally_accounts_list() where name = 'ABL';
   select account_id into acc2 from public.mgmt_tally_accounts_list() where name = 'Cash in Hand';
-  perform pg_temp.ok(not (select has_snapshot from public.mgmt_tally_get(today - 1)) and (select total from public.mgmt_tally_get(today - 1)) = -25146, 'a date with no count shows the Jazz Cash balance live');
+  perform pg_temp.ok(not (select has_snapshot from public.mgmt_tally_get(today - 1)) and (select total from public.mgmt_tally_get(today - 1)) = 25146 and (select difference from public.mgmt_tally_get(today - 1)) = 25146, 'a date with no count shows the Jazz Cash figure live (the ledger balance with the opposite sign, so -25,146 adds 25,146)');
   accs := jsonb_build_array(jsonb_build_object('account_id', acc, 'amount', 20000), jsonb_build_object('account_id', acc2, 'amount', 5146.5));
   k := gen_random_uuid();
   r := public.mgmt_tally_save(today - 1, accs, 100, null, k);
   perform pg_temp.ok(public.mgmt_tally_save(today - 1, accs, 100, null, k) = r, 'the same key twice saves one count');
   select * into got from public.mgmt_tally_get(today - 1);
-  perform pg_temp.ok(got.has_snapshot and got.revision = 0 and got.ledger_balance = -25146 and got.total = 0.5 and got.difference = -99.5 and got.app_total = 100, 'tally: ledger -25,146 + 20,000 + 5,146.50 = 0.50; against the app total 100 it is 99.50 short');
+  perform pg_temp.ok(got.has_snapshot and got.revision = 0 and got.ledger_balance = -25146 and got.total = 50292.5 and got.difference = 50192.5 and got.app_total = 100, 'tally: 20,000 + 5,146.50 minus the ledger -25,146 = 50,292.50; against the app total 100 it is 50,192.50 extra');
   perform pg_temp.ok((got.accounts -> 0 ->> 'name') = 'ABL', 'the account names are stored with the count');
   r2 := public.mgmt_tally_save(today - 1, accs, 100, null, gen_random_uuid());
   perform pg_temp.ok((r2 ->> 'unchanged') = 'true', 'saving the same count adds nothing');
   perform pg_temp.fails(format($q$select public.mgmt_tally_save(%L, %L::jsonb, 150, null, gen_random_uuid())$q$, today - 1, accs::text), 'changing a date that already has a count needs a reason', 'reason is required');
   perform public.mgmt_tally_save(today - 1, accs, 150, 'the app figure was read wrongly', gen_random_uuid());
   select * into got from public.mgmt_tally_get(today - 1);
-  perform pg_temp.ok(got.revision = 1 and got.difference = -149.5, 'a revision is added and the old count stays');
+  perform pg_temp.ok(got.revision = 1 and got.difference = 50142.5, 'a revision is added and the old count stays');
   perform pg_temp.ok((select count(*) from public.mgmt_tally_snapshots where snap_date = today - 1) = 2, 'both revisions are kept');
   -- a backdated ledger entry moves the live balance but never the saved count
   perform public.mgmt_ledger_add(jz, c_recv, today - 1, 'Night', 'Test late received', 1000, gen_random_uuid());
   select * into got from public.mgmt_tally_get(today - 1);
   perform pg_temp.ok(got.ledger_balance = -25146 and got.live_ledger_balance = -24146, 'a later entry does not change a saved count; the live balance moves on');
-  perform pg_temp.ok((select count(*) from public.mgmt_tally_list(10)) = 1 and (select revision from public.mgmt_tally_list(10)) = 1, 'the history lists the latest count of each date');
+  perform pg_temp.ok((select count(*) from public.mgmt_tally_list(10)) = 1 and (select revision from public.mgmt_tally_list(10)) = 1 and (select total from public.mgmt_tally_list(10)) = 50292.5 and (select difference from public.mgmt_tally_list(10)) = 50142.5, 'the history lists the latest count of each date, worked out with the same sign rule');
   perform pg_temp.fails(format($q$select public.mgmt_tally_save(%L, '[]'::jsonb, 0, null, gen_random_uuid())$q$, today + 1), 'a future date is refused', 'future');
   perform pg_temp.fails(format($q$select public.mgmt_tally_save(%L, '[{"account_id":"%s","amount":1}]'::jsonb, 0, null, gen_random_uuid())$q$, today, gen_random_uuid()), 'an unknown account is refused', 'unknown or retired');
   perform pg_temp.fails(format($q$select public.mgmt_tally_save(%L, '[{"account_id":"%s","amount":"abc"}]'::jsonb, 0, null, gen_random_uuid())$q$, today, acc), 'a non-number is refused', 'numbers');
