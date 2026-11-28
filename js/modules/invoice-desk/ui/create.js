@@ -7,6 +7,7 @@ import { validateInvoiceHeader, validateLine } from '../domain/validation.js';
 import { templateForBusiness } from '../domain/templates.js';
 import * as api from '../data/api.js';
 import { renderInvoice } from './renderers.js';
+import { printInvoice } from './print.js';
 
 const BUSINESSES = [
   ['bs-mart', 'B.S Mart'],
@@ -250,18 +251,7 @@ export async function mount(el) {
     if (b.dataset.act === 'save') await save();
   });
   function printSaved() {
-    const root = document.getElementById('print-root') || document.createElement('div');
-    root.id = 'print-root';
-    render(root, renderInvoice(state.saved));
-    document.body.append(root);
-    document.body.classList.add('printing-invoice');
-    const done = () => {
-      document.body.classList.remove('printing-invoice');
-      root.replaceChildren();
-      window.removeEventListener('afterprint', done);
-    };
-    window.addEventListener('afterprint', done, { once: true });
-    window.print();
+    printInvoice(state.saved);
   }
   async function save() {
     const errors = validateInvoiceHeader(header());

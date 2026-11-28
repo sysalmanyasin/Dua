@@ -3,6 +3,7 @@ import { hero } from '../../../shared/ui.js';
 import { shortDate, money } from '../../../shared/format.js';
 import * as api from '../data/api.js';
 import { renderInvoice } from './renderers.js';
+import { printInvoice } from './print.js';
 
 const names = { 'bs-mart': 'B.S Mart', 'safari-book-land': 'Safari Book Land', 'best-choice-store': 'Best Choice Store' };
 export async function mount(el) {
@@ -121,20 +122,7 @@ export async function mount(el) {
       }
     }
     if (b.dataset.act === 'print' && state.selected) {
-      const root = document.getElementById('print-root') || document.createElement('div');
-      root.id = 'print-root';
-      render(root, renderInvoice(state.selected));
-      document.body.append(root);
-      document.body.classList.add('printing-invoice');
-      window.addEventListener(
-        'afterprint',
-        () => {
-          document.body.classList.remove('printing-invoice');
-          root.replaceChildren();
-        },
-        { once: true },
-      );
-      window.print();
+      printInvoice(state.selected);
     }
   });
   await load();
