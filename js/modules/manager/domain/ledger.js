@@ -89,6 +89,27 @@ export function validateLedgerEntry({ date, amount, today, categoryId, shift, ne
   return null;
 }
 
+// Checking aid: a tick on an entry means "I matched this against my other record". Only a live entry can be ticked (a reversed entry
+// and its reversal line already cancel out). Ticks never touch the ledger; they are remembered on the device by the ledger panel.
+export const isTickable = (e) => !e.reverses_id && !e.reversed_by;
+
+// How many of the entries are ticked, and what the ticked ones add and reduce (exact, in paisa).
+export function tickSummary(entries, ticked) {
+  let count = 0;
+  let total = 0;
+  let added = 0;
+  let reduced = 0;
+  for (const e of entries) {
+    if (!isTickable(e)) continue;
+    total += 1;
+    if (!ticked.has(e.entry_id)) continue;
+    count += 1;
+    if (e.effect > 0) added += toPaisa(e.amount);
+    else reduced += toPaisa(e.amount);
+  }
+  return { count, total, added: fromPaisa(added), reduced: fromPaisa(reduced) };
+}
+
 // Balance Tally: the Jazz Cash ledger balance (money held) plus the counted accounts, against what the "expense app" says.
 export function tallyTotal(ledgerBalance, amounts) {
   return fromPaisa(toPaisa(ledgerBalance) + amounts.reduce((s, a) => s + toPaisa(a), 0));
