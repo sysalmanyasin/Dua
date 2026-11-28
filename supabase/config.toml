@@ -24,3 +24,9 @@ verify_jwt = false
 # widget-today is called by the Android widget with a per-device secret (no user JWT); the database checks it.
 [functions.widget-today]
 verify_jwt = false
+# attendance-event is called by the Android app with a per-device secret (no user JWT, even while Dua is closed); the database checks it.
+[functions.attendance-event]
+verify_jwt = false
+# attendance-health is the same kind of call: the phone's own tracking report (no location), secret-checked by the database.
+[functions.attendance-health]
+verify_jwt = false

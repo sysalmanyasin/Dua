@@ -1,5 +1,8 @@
 # Repository and live-system audit — 21 November 2026
 
+> **Historical audit.** Superseded by Audit 0 (`docs/AUDIT_0_BASELINE.md`, 27 Nov 2026). Its counts and live-state findings describe 21/22 Nov and were not re-checked.
+
+
 > **Superseded for current state by [the 22 Nov 2026 audit](PROJECT_AUDIT_2026-11-22.md).** This file is retained as historical evidence; do not use its counts or migration/security status as current where they conflict.
 
 ## Scope and method

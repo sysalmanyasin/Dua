@@ -47,5 +47,12 @@ export default {
       permission: 'tasks.manage',
       load: () => import('./ui/team.js'),
     },
+    {
+      path: '/tasks/guide',
+      title: 'Owner guide',
+      desc: 'How to run Task Master',
+      permission: 'tasks.manage',
+      load: () => import('./ui/guide.js'),
+    },
   ],
 };

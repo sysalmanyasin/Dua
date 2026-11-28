@@ -65,6 +65,11 @@ for (const m of javaMethods) need(jsMethods.includes(m), `DuaDevicePlugin.${m}()
 need(plugin.includes('functions/v1/widget-today'), 'the plugin must pin the widget endpoint to .../functions/v1/widget-today');
 need(nativeJs.includes('/widget-today'), 'native.js must use the widget-today endpoint');
 
+need(javaAll.includes('functions/v1/attendance-event'), 'the shell must pin the automatic-attendance endpoint to .../functions/v1/attendance-event');
+need(nativeJs.includes('/attendance-event'), 'native.js must use the attendance-event endpoint');
+need(javaAll.includes('attendance-health') && !/"https:\/\/[^"]*attendance-health/.test(javaAll), 'the health report address is derived from the pinned events address, never typed in');
+need(/AttendanceStore[\s\S]*"secret"/.test(javaAll) && !/Log\.[a-z]\([^;]*secret/i.test(javaAll), 'the attendance secret is kept in the encrypted store and never logged');
+
 // 5. resources the Java uses exist
 const res = join(shell, `${OV}/res`);
 const resText = (dir) => readdirSync(join(res, dir)).map((f) => readFileSync(join(res, dir, f), 'utf8')).join('\n');

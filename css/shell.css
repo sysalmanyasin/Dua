@@ -162,6 +162,27 @@
   display: flex;
   flex-direction: column;
 }
+.tracking-banner {
+  margin: 12px clamp(18px, 3vw, 42px) 0;
+  border-radius: var(--radius, 10px);
+  background: var(--danger);
+  color: #fff;
+}
+.tracking-banner[hidden] {
+  display: none;
+}
+.tracking-banner-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+.tracking-banner-link strong {
+  font-weight: 650;
+}
 .workspace-crumb {
   display: flex;
   align-items: center;

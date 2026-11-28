@@ -7,6 +7,7 @@ import { isUsable, routesFor, resolveModules, navLinks } from './registry.js';
 import { startBell } from './bell.js';
 import { startRouter } from './router.js';
 import { startStatusBar } from './statusbar.js';
+import { startTrackingBanner } from './trackingBanner.js';
 import { signOut } from './auth.js';
 const ROLE_LABEL = { admin: 'Owner / Manager', senior: 'Senior staff', junior: 'Junior staff' };
 const titled = (m) => m.routes.filter((r) => r.title);
@@ -64,6 +65,7 @@ export function startShell(root, ctx, manifests) {
           <nav class="global-nav" id="global-nav">${navigation(modules, '')}</nav>
         </aside>
         <section class="workspace-main">
+          <div class="tracking-banner" id="tracking-banner" role="status" hidden></div>
           <div class="workspace-crumb" id="workspace-crumb"><span>Workspace</span><span>/</span><strong>Home</strong></div>
           <nav class="tabs sub" id="subtabs" aria-label="Pages" hidden></nav>
           <main class="content" id="content" tabindex="-1"></main>
@@ -94,6 +96,7 @@ export function startShell(root, ctx, manifests) {
   const bellOwner = modules.find((m) => m.bell);
   const bell = startBell(root.querySelector('#bell-slot'), bellOwner);
   const stopStatus = startStatusBar(root.querySelector('#status-bar'), ctx, pillOwners);
+  const stopTracking = startTrackingBanner(root.querySelector('#tracking-banner'), ctx);
   let token = 0;
   const stopRouter = startRouter(
     () => routes,
@@ -162,6 +165,7 @@ export function startShell(root, ctx, manifests) {
   return () => {
     stopRouter();
     stopStatus();
+    stopTracking();
     bell.stop();
   };
 }

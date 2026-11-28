@@ -1,6 +1,6 @@
 # Architecture (as built)
 
-> **Verified against `main` at `18283f17600be54d562a5eb3c40bf89906416b29` on 22 Nov 2026.** The live project is DuaPharmaPlus (`sdsynzsflubdxnelgthh`), PostgreSQL 17.11. The current module registry is `js/modules/index.js` (13 IDs); each module's `manifest.js` defines routes. `js/core/config.js` maps both staging and production to the same Supabase project, so those labels are not environment isolation. See [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md).
+> **Re-verified against the code on 27 Nov 2026 (Audit 0, commit `07e87e4`).** The module registry `js/modules/index.js` lists 15 module ids; each module's `manifest.js` defines its routes. `js/core/config.js` maps both staging and production to the same Supabase project (`sdsynzsflubdxnelgthh`), so those labels are not environment isolation (KI-3). Statements about the live project in this file are recorded, not re-checked. See `docs/AUDIT_0_BASELINE.md`.
 
 
 
@@ -14,9 +14,9 @@ Phone / shop PC (browser)
 Supabase project "DuaPharmaPlus"
   Postgres: tables + views + functions, row-level security on everything
   Auth:     owner (email + password + MFA), staff (hidden email + 4-digit PIN)
-  Edge Functions: staff-login · admin-users · inventory sync · owner notifications / backup reporting
+  Edge Functions (7): staff-login · admin-users · sync-inventory-from-dropbox · notify-ntfy · notify-push · widget-today · attendance-event
       ▲
-GitHub: repository → Actions (lint, tests, database tests, function type-checks) → Pages (the site)
+GitHub: repository → Actions (lint, tests, database tests, function type-checks); Pages publishes the site from `main` separately (not gated by Actions)
 Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
 ```
 
@@ -29,10 +29,11 @@ Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
 | `js/modules/home/` | The Cover |
 | `js/modules/access/` | Users & Access |
 | `js/modules/sales/` | Dashboard, Index, Add Entry, Daily Data, Sale Report, Daily Check List, Diff Report, Cash to Deposit, Reports, Targets, Fields, Last Day |
-| `js/modules/manager/` | Staff Registry and Staff Credit (further Manager slices remain planned) |
-| `js/modules/closing/` | Partial guided closing ledger; remaining sections and submit/ledger flows are in progress |
+| `js/modules/manager/` | Staff Registry, Credit, Salary, Incentive, Petty, Ledgers, Credit Inbox, Attendance and reports (14 routes) |
+| `js/modules/closing/` | 14-section closing ledger, shared drafts, ledgers, Book/PDF, history, review and settings (12 routes) |
+| `js/modules/inventory/`, `str/`, `candela-sales/`, `ebill/`, `audit/`, `invoice-desk/`, `workspace/`, `tasks/`, `inbox/`, `tools/` | The other registered modules; routes are in each `manifest.js` |
 | `css/` | `tokens.css` (the original brand colours, light and dark), `fonts.css`, `base.css`, `components.css`, `sales.css`, `checklist.css` |
-| `vendor/` | Third-party code copied into the repo and hash-checked: Supabase client 2.45.4, Chart.js 4.4.7, Inter and IBM Plex Mono fonts, and `vendor/workspace/prosemirror-bundle-1.0.0.mjs` (nine ProseMirror packages bundled once for Workspace Notes; recipe and licences beside it). Nothing third-party is fetched at run time except Google's sign-in script when Gmail is used. |
+| `vendor/` | Third-party code copied into the repo and hash-checked: Supabase client 2.45.4, Chart.js 4.4.7, zxing-wasm 3.1.7 with its `.wasm` (barcode scanning; needs `'wasm-unsafe-eval'` in the CSP), Inter and IBM Plex Mono fonts, and `vendor/workspace/prosemirror-bundle-1.0.0.mjs` (nine ProseMirror packages bundled once for Workspace Notes; recipe and licences beside it). Nothing third-party is fetched at run time except Google's sign-in script when Gmail is used. |
 | `supabase/` | `migrations/`, `functions/`, `tests/`, `seed/` (templates only) |
 | `tools/` | `check-secrets.mjs`, `check-vendor.mjs`, `import/` (the check-only history importer), `backup/` (encrypted backup and restore verification) |
 | `tests/unit/` | front-end tests |
@@ -58,10 +59,10 @@ Add Entry page → `domain/entry.js` parses what was typed → `data/api.js` cal
 The Candela → Dropbox → Edge Function feed is live and integrated. Every hour the function checks Dropbox's content hash and, only when the file changed, sends it to the database in one request body (`inventory_apply_sync_body`, migration 0307), which compares row hashes and writes only changed rows (migrations 0301–0307, Edge Function v23). Phones read a changed-rows feed into a local copy, never the products table. All six Inventory screens and the Stock row on Home are integrated. See `docs/PROJECT_STATUS.md`, `docs/modules/inventory.md` and `docs/modules/inventory-sync-design.md`.
 
 ## Offline behaviour
-Only the Daily Check List keeps working through a dropped connection: it saves a copy on the phone and retries. Everything else needs a connection and says so. The copy is removed at sign-out. A general offline queue for closing and audit counting is planned (see the roadmap).
+Several features keep working through a dropped connection by saving to the phone and retrying: the Daily Check List, Emergency Billing (`ebill/data/localDb.js`), Audit counting and barcode (`audit/data/outboxStore.js`, `barcodeStore.js`), the shared outbox (`js/shared/outbox.js`) and the Inventory local copy (`inventory/data/idbStore.js`). The service worker (`sw.js`) serves the app shell offline; it never caches Supabase or Google traffic. Other screens need a connection and say so. Drafts are removed at sign-out. Workspace offline editing is not built.
 
 ## Environments
 There is **one** Supabase project today, used as staging and as the live site (`production` in `js/core/config.js` points at the same project, marked TEMPORARY). A separate production project is planned before launch.
 
 ## Continuous checks (GitHub Actions)
-`app` (lint, formatting, unit tests, secret scan, vendor hashes, workflow lint) · `database` (all migrations on an empty Postgres, then the security tests) · `functions` (Edge Functions type-checked with Deno). A push to `main` also publishes the site to GitHub Pages.
+`app` (lint, formatting, unit tests, secret scan, vendor hashes, workflow lint) · `database` (all migrations on an empty PostgreSQL 16, then the security tests) · `functions` (all 7 Edge Functions type-checked with Deno). Also `backup.yml` (daily encrypted backup) and `android-build.yml` (Android shell). **There is no deploy workflow:** GitHub Pages publishes from `main` through its built-in branch deployment, which starts in parallel with CI and is not gated by it (KI-4).

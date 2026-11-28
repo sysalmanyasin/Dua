@@ -280,7 +280,13 @@ export async function mount(el, { ctx, screen = 'rounds' } = {}) {
   };
   el.onclick = (e) => {
     const live = e.target.closest('button[data-live-progress]');
-    if (live) return void openRoundProgress({ roundId: live.dataset.r, title: live.dataset.title });
+    if (live)
+      return void openRoundProgress({
+        roundId: live.dataset.r,
+        title: live.dataset.title,
+        canForce: perms.has('audit.compile'),
+        onChange: () => void load(),
+      });
     const b = e.target.closest('button[data-open]');
     if (!b) return;
     setView({ engagement: b.dataset.e, round: b.dataset.r });

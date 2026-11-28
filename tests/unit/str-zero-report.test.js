@@ -23,7 +23,7 @@ describe('zero dispatch rule (STR-5)', () => {
     const groups = groupBySupplier([{ productCode: 'P1', productName: 'T', strQty: 50, dispatchQty: 5, receiveQty: null }], {
       P1: { supplier: 'S', factor: 10 },
     });
-    expect(groups[0].rows[0].packDispatchQty).toBe(0);
+    expect(groups[0].rows[0].packDispatchQty).toBe(0.5);
     expect(zeroDispatchGroups('dispatched', groups)).toEqual([]);
   });
 });

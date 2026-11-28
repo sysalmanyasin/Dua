@@ -32,7 +32,28 @@ body {
   max-width: none;
   min-width: 0;
 }
+/* Section sub-menu (Manager: Overview, Staff Registry, Attendance, Credit Inbox, Reports, ...): it stays in view under the header while
+   the page scrolls, and on a wide screen it wraps onto a second row instead of hiding the last tabs behind an invisible scroll. */
+.workspace-main .tabs.sub {
+  position: sticky;
+  top: 70px;
+  z-index: 40;
+  flex-wrap: wrap;
+  overflow: visible;
+  box-shadow: 0 6px 12px -8px rgb(15 35 65 / 25%);
+}
+.workspace-main .tabs.sub .nav-sub {
+  min-height: 38px;
+  padding-inline: 10px;
+  font-size: 0.82rem;
+}
 @media (max-width: 850px) {
+  .workspace-main .tabs.sub {
+    top: 62px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
   .app-workspace {
     display: block;
     width: 100%;

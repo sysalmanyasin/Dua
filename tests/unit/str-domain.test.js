@@ -27,11 +27,18 @@ describe('difference', () => {
     expect(diffQty({ packDispatchQty: null, packReceiveQty: 3 })).toBeNull();
     expect(diffQty({ packDispatchQty: 3, packReceiveQty: null })).toBeNull();
   });
-  it('hides a sub-pack difference, because each side is floored on its own', () => {
+  it('shows a part-pack difference as a fraction (no rounding down)', () => {
     const l = enrichLine({ productCode: 'P1', strQty: 20, dispatchQty: 19, receiveQty: 10 }, { P1: { supplier: 'S', factor: 10 } });
-    expect(l.packDispatchQty).toBe(1);
+    expect(l.packDispatchQty).toBe(1.9);
     expect(l.packReceiveQty).toBe(1);
-    expect(diffQty(l)).toBe(0);
+    expect(diffQty(l)).toBe(0.9);
+  });
+  it('keeps fractions to 2 decimals and totals without float noise', () => {
+    const f = { P1: { supplier: 'S', factor: 14 } };
+    const rows = [38, 37, 68].map((q, i) => ({ productCode: `P${i ? 1 : 1}`, strQty: q, dispatchQty: q, receiveQty: q }));
+    const g = groupBySupplier(rows, f);
+    expect(g[0].rows.map((r) => r.packStrQty)).toEqual([2.71, 2.64, 4.86]);
+    expect(groupTotals(g[0]).str).toBe(10.21);
   });
   it('shows words as well as colour', () => {
     expect(diffTone(-2)).toBe('short');

@@ -1,6 +1,6 @@
 # Roadmap — remaining work
 
-**Status snapshot:** 22 November 2026. This file lists unfinished work only. Current verified state and evidence: [22 Nov code/live audit](PROJECT_AUDIT_2026-11-22.md). This file lists unfinished work only; it is not a list of all implemented features. See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the concise snapshot and [MODULE_PROGRESS_REGISTER.md](MODULE_PROGRESS_REGISTER.md) for module-by-module evidence and branch status.
+**Status snapshot:** 27 November 2026 (Audit 0 updated the header; item text below is from 22 Nov unless marked). This file lists unfinished work only. Current verified state: `docs/PROJECT_STATUS.md`; defects and gaps: `docs/KNOWN_ISSUES.md`. **Corrections to items below:** main now has 131 migration files (not 92) and `0015`/`0017` are on `main`; the CI run numbers quoted are from 22 Nov. **New P0 items from Audit 0:** KI-1 (revoke PUBLIC execute on five functions, then empty the allow-list in `0999`), KI-2 (amount in words under one rupee, browser and database together), KI-4 (confirm branch protection and CI gating of Pages), KI-7 (run the database suite on PostgreSQL 17), handler tests for `sync-inventory-from-dropbox` and `notify-ntfy`, and the migration-test gaps listed in `docs/KNOWN_ISSUES.md`.
 
 ## P0 — Deployment, migration and security confidence
 

@@ -85,3 +85,13 @@ describe('Bill Number Sheet page', () => {
     void el;
   });
 });
+
+describe('Bill Number Sheet under the app security policy', () => {
+  it('uses no inline style (style-src self blocks it), so the page layout lives in CSS', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync('js/modules/closing/ui/bills.js', 'utf8')).not.toMatch(/style=/);
+    expect(readFileSync('css/closing.css', 'utf8')).toMatch(
+      /\.cls-a4-nums \{\s*display: grid;\s*grid-template-columns: repeat\(10, 1fr\);/,
+    );
+  });
+});

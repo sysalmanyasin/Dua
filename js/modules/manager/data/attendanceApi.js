@@ -27,6 +27,10 @@ export const checkIn = (kind, fix, key) =>
 // ── the owner ──
 export const list = (from, to) => one(db().rpc('mgmt_attendance_list', { p_from: from, p_to: to }));
 export const summary = (from, to) => one(db().rpc('mgmt_attendance_summary', { p_from: from, p_to: to })); // one line per person per day (0111)
+// Who is at work now and how each phone's tracking is doing; and the periods a phone was not tracking (migration 1404).
+export const health = () => one(db().rpc('mgmt_attendance_health'));
+export const gaps = (from, to) => one(db().rpc('mgmt_attendance_gaps', { p_staff: null, p_from: from, p_to: to }));
+export const setAuto = (enabled, reason, key) => db().rpc('mgmt_attendance_auto_set', { p_enabled: enabled, p_reason: reason, p_key: key });
 export const setup = () => one(db().rpc('mgmt_attendance_setup'));
 export const saveSite = (s, reason, key) =>
   db().rpc('mgmt_attendance_site_save', {

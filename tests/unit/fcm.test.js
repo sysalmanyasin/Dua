@@ -16,6 +16,7 @@ import {
 } from '../../supabase/functions/_shared/fcm.ts';
 import { messageFor } from '../../supabase/functions/_shared/ntfy.ts';
 import { parseWidgetRequest, sha256Hex } from '../../supabase/functions/_shared/widget.ts';
+import { parseAttendanceEvent, parseAttendanceHealth } from '../../supabase/functions/_shared/attendance.ts';
 
 let publicKey;
 let sa;
@@ -115,6 +116,8 @@ describe('message', () => {
     expect(hrefFor('restore_drill.failed')).toBe('#/tools');
     expect(hrefFor('inventory.sync_stale')).toBe('#/tools');
     expect(hrefFor('attendance.rejected')).toBe('#/manager/attendance');
+    expect(hrefFor('attendance.tracking_off')).toBe('#/manager/attendance');
+    expect(hrefFor('attendance.checkout_missed')).toBe('#/manager/attendance');
     expect(hrefFor('closing.submitted')).toBe('#/home');
     expect(hrefFor('anything.else')).toBe('#/home');
   });
@@ -138,6 +141,15 @@ describe('message', () => {
     expect(m.title).toContain('attendance');
     expect(JSON.stringify(m)).not.toMatch(/Ali|outside/);
     expect(m.message).toContain('2026-11-25');
+  });
+  it('words the tracking and missing check-out alerts with no names', () => {
+    for (const kind of ['attendance.tracking_off', 'attendance.checkout_missed']) {
+      const m = messageFor(kind, { date: '2026-11-27', staff: 'Ali', state: 'location_off' });
+      expect(m.title).not.toBe('Dua: alert');
+      expect(JSON.stringify(m)).not.toMatch(/Ali|location_off/);
+      expect(m.message).toContain('2026-11-27');
+      expect(m.priority).toBe(4);
+    }
   });
 });
 
@@ -204,5 +216,100 @@ describe('saved alert text', () => {
     const saved = notificationText({ title: 'T'.repeat(500), message: 'm'.repeat(9000), priority: 3, tags: [] });
     expect(new TextEncoder().encode(saved.title).length).toBeLessThanOrEqual(120);
     expect(new TextEncoder().encode(saved.body).length).toBeLessThanOrEqual(3200);
+  });
+});
+
+describe('attendance event request', () => {
+  const ok = {
+    device_id: '20000000-0000-4000-8000-000000000004',
+    secret: 'a'.repeat(64),
+    event_id: '30000000-0000-4000-8000-000000000005',
+    kind: 'in',
+    at: 1_790_000_000_000,
+    latitude: 31.387139,
+    longitude: 74.189924,
+    accuracy: 12.5,
+    mock: false,
+  };
+  it('accepts a complete event and turns the time into ISO text', () => {
+    expect(parseAttendanceEvent(ok)).toEqual({
+      deviceId: ok.device_id,
+      secret: ok.secret,
+      eventId: ok.event_id,
+      kind: 'in',
+      at: new Date(1_790_000_000_000).toISOString(),
+      latitude: 31.387139,
+      longitude: 74.189924,
+      accuracy: 12.5,
+      mock: false,
+    });
+    expect(parseAttendanceEvent({ ...ok, kind: 'out', mock: true })).toMatchObject({ kind: 'out', mock: true });
+  });
+  it('treats anything but mock === true as not mock', () => {
+    expect(parseAttendanceEvent({ ...ok, mock: 'yes' }).mock).toBe(false);
+    const { mock, ...without } = ok;
+    expect(mock).toBe(false);
+    expect(parseAttendanceEvent(without).mock).toBe(false);
+  });
+  it('refuses a malformed event', () => {
+    for (const bad of [
+      null,
+      {},
+      { ...ok, device_id: 'x' },
+      { ...ok, secret: 'short' },
+      { ...ok, event_id: 'x' },
+      { ...ok, kind: 'sideways' },
+      { ...ok, kind: undefined },
+      { ...ok, at: 'now' },
+      { ...ok, at: 5 },
+      { ...ok, at: 9_000_000_000_000 },
+      { ...ok, latitude: 91 },
+      { ...ok, longitude: -181 },
+      { ...ok, latitude: '31.3' },
+      { ...ok, accuracy: -1 },
+      { ...ok, accuracy: Number.NaN },
+      { ...ok, accuracy: 1e9 },
+    ]) {
+      expect(parseAttendanceEvent(bad)).toBeNull();
+    }
+  });
+});
+
+describe("attendance health report (the phone's own tracking state)", () => {
+  const ok = {
+    device_id: '20000000-0000-4000-8000-0000000000D1',
+    secret: 'a'.repeat(64),
+    state: null,
+    pending: 0,
+  };
+  it('accepts a good report and a report with a problem', () => {
+    expect(parseAttendanceHealth(ok)).toEqual({ deviceId: ok.device_id.toLowerCase(), secret: ok.secret, state: null, pending: 0 });
+    expect(parseAttendanceHealth({ ...ok, state: 'location_off', pending: 3 })).toMatchObject({ state: 'location_off', pending: 3 });
+    const { state, ...without } = ok;
+    expect(state).toBeNull();
+    expect(parseAttendanceHealth(without).state).toBeNull();
+  });
+  it('knows every problem the phone can find', () => {
+    for (const state of ['no_precise_location', 'location_off', 'no_background_location', 'background_restricted', 'not_registered']) {
+      expect(parseAttendanceHealth({ ...ok, state }).state).toBe(state);
+    }
+  });
+  it('refuses anything else, including a state the server sets itself', () => {
+    for (const bad of [
+      null,
+      {},
+      { ...ok, device_id: 'x' },
+      { ...ok, secret: 'short' },
+      { ...ok, state: 'silent' },
+      { ...ok, state: 'ok' },
+      { ...ok, state: 5 },
+      { ...ok, pending: -1 },
+      { ...ok, pending: 1.5 },
+      { ...ok, pending: 5000 },
+      { ...ok, pending: '1' },
+      { ...ok, pending: undefined },
+    ]) {
+      expect(parseAttendanceHealth(bad)).toBeNull();
+    }
   });
 });

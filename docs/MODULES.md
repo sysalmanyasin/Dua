@@ -1,5 +1,8 @@
 # MODULES.md — The Shared Contract
 
+> **Audit 0 note (27 Nov 2026):** this is the module contract; its rules are unchanged. Facts in it that were stale: the registry has **15** module ids (`tasks` and `inbox` are registered), `main` has **131** migration files, and current status lives in `docs/PROJECT_STATUS.md`, not in the "Last updated" line below. Before adding a module, extend `docs/TEST_ACCEPTANCE_MATRIX.md` and the repo-facts block in `docs/PROJECT_STATUS.md` (a test fails if they drift).
+
+
 **Every Claude session (and every human) must read this file completely before writing any code.**
 It is the one document that keeps several modules, built in different sessions at the same time, from colliding.
 
@@ -328,6 +331,8 @@ Android apps (attendance, widgets, mail routine, audit scanner) are **after** th
 | Inventory (feed F3) | `inventory_products_for_scope(p_scope jsonb)` | audit | Frozen product list for a round |
 | Closing | `closing_credit_feed(p_after timestamptz)` | manager | Read-only list of credit lines from **submitted** closings (date, shift, kind, label, amount, line id). Needs `credit.view`. See §8.2 |
 | Closing | `closing_day_feed(p_date date)` | sales | The saved **evening** closing of one business day as `{ sys_cash, alfalah, keenu, revision, … }`, or null (none, or still a draft). Same read gate as `closing_saved_list`. Feeds Sales' Add Entry auto-pull (migration 0222) |
+| Closing | `closing_ops_summary()` | home (through `ops_closing_summary()`) | Internal only (not browser-callable). The latest **submitted** closing with book bills, manual returns, MEDIQ collected and deposits added up since the last Final, plus the carried CC, as `{ has_closing, business_date, kind, seq, day_no, mode, period_start, period_closings, book_bills, manual_returns, mediq_collected, deposits, carried_cc, … }`. The door `ops_closing_summary()` (migration 0704) returns null without `ops.view`. Feeds Home's Owner-only Latest closing summary (migration 0227) |
+| Audit | `audit_round_live(p_round uuid)` | audit (Live progress popup) | Read only. One round as `{ round: { state }, assignments: [{ id, name, status, items, counted, differences, forced }], items: [{ code, name, company, person, system_qty, counted, qty, difference, difference_value, auto_matched, note }] }`, items A to Z. Same gate as `audit_compile_overview`; a counter is refused. Migration 0420 |
 | Candela Sales | `candela_day_feed(p_date date)` | sales | One day of Candela figures as `{ payments: { cash_sale, card_sale, credit_sale, total_sale }, credit: [{ name, amount, receipts }] }`, or null. Needs `candela.view` (owner). Feeds Sales' Add Entry auto-pull (migration 0901) |
 | Core | `staff` table, `my_context()` | all | Who is the person, what may they do |
 

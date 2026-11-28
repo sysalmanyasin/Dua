@@ -22,7 +22,7 @@ It does **not** create, edit or approve transfers (STR-1). Products, supplier an
 |---|---|---|
 | R1 | Stage: `received` if `receive_status='Received'`; else `dispatched` if `dispatch_status='Dispatched'`; else `awaited`. `str_status` (Open/Close) is not used. Defined once in SQL (`str_stage`) | KEEP |
 | R2 | Direction `out` = Bahria Town (BT) dispatches; `in` = BT receives | KEEP |
-| R3 | Pack qty = `floor(loose / factor)`; factor missing, ≤ 0 or non-finite → 1; null stays null | KEEP |
+| R3 | Pack qty = `loose / factor` to 2 decimals, never rounded down (owner, 27 Nov 2026; was `floor`); factor missing, ≤ 0 or non-finite → 1; null stays null | CHANGED |
 | R4 | Supplier group from the product; unknown code → "Unassigned Supplier", factor 1; groups by name, rows by code (numeric-aware) | KEEP |
 | R5 | Difference = dispatch pack − receive pack; blank if either is null; red negative, green positive | KEEP |
 | R6 | List filters: stage, branch chip (dispatched from BT / received at BT), date range on `str_date`; newest first (date, then id) | KEEP |
@@ -76,7 +76,7 @@ Print uses a print layout and the browser's Save as PDF, with a small local prin
 
 **Consumed from Inventory**
 - `inventory_latest_sync()`: exists.
-- **D1 `inventory_product_meta(p_codes text[])`: MISSING.** Returns `code, supplier, conversion_factor, found` (max 500 codes, `inventory.search`, inactive products ignored). `inventory_search` is text-based and capped at 50 rows; `inventory_balances` has no supplier or factor.
+- **D1 `inventory_product_meta(p_codes text[])`: `0505_inventory_product_meta.sql`, applied live 27 Nov 2026 and registered as `0505`.** Returns `code, supplier, conversion_factor, found` (max 500 codes, `inventory.search`, inactive products ignored). `inventory_search` is text-based and capped at 50 rows; `inventory_balances` has no supplier or factor.
 
 **Published by STR (`0504`)**
 - `str_stage()`: the single lifecycle definition.
@@ -109,7 +109,7 @@ Print uses a print layout and the browser's Save as PDF, with a small local prin
 - A cost is "the newest nonzero cost by STR date"; a zero cost means unknown.
 - `Closed` is recognised as `str_status` starting with "close" (any capitalisation).
 - Notification wording for kind `str.overdue` is generic until Foundation adds it (`supabase/functions/_shared/ntfy.ts`, `js/shared/alerts.js`).
-- Pack maths floors in JS; the shared fixture uses whole-number factors only (SQL numeric is exact, JS floats are not).
+- Pack maths keeps 2 decimals in JS (no floor); the shared fixture uses whole-number factors only (SQL numeric is exact, JS floats are not).
 - `inventory_product_meta(p_codes)` (D1) is still a request to Inventory. Screens will be built against a stand-in inside the module's own tests.
 
 ## 10. Slices (nothing started)

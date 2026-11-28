@@ -9,9 +9,14 @@ export const REASON_TEXT = {
   outside: 'You are not at the pharmacy. Check in when you arrive.',
   already_in: 'You are already checked in.',
   not_in: 'You are not checked in, so there is nothing to check out of.',
+  still_inside: 'You were still at the pharmacy, so the check-out was not recorded.',
 };
 
-export const reasonText = (reason) => REASON_TEXT[reason] ?? 'That could not be recorded. Try again.';
+// kind ('in' / 'out') only changes "outside": a check-out refused from far away must not say "check in when you arrive".
+export function reasonText(reason, kind) {
+  if (reason === 'outside' && kind === 'out') return 'You are not at the pharmacy, so this check-out was not recorded.';
+  return REASON_TEXT[reason] ?? 'That could not be recorded. Try again.';
+}
 
 // The bracket after a refused attempt: how far from the nearest place (only when the server measured it) and the mock-location flag.
 export function refusedDetail(r) {
@@ -28,7 +33,7 @@ export const timeLabel = (iso) => (iso ? TIME.format(new Date(iso)) : '—');
 export const metres = (m) => (m === null || m === undefined || !Number.isFinite(Number(m)) ? '—' : `${Math.round(Number(m))} m`);
 
 // The sentence shown after pressing the button. `res` is what mgmt_attendance_check_in returned.
-export function resultMessage(res) {
+export function resultMessage(res, kind) {
   if (!res) return { ok: false, text: 'No answer. Check your connection and try again.' };
   if (res.ok) {
     const where = res.place ? ` at ${res.place}` : '';
@@ -38,7 +43,7 @@ export function resultMessage(res) {
     res.reason === 'outside' && res.distance_m !== null && res.distance_m !== undefined
       ? ` You are about ${metres(res.distance_m)} away.`
       : '';
-  return { ok: false, text: `${reasonText(res.reason)}${away}` };
+  return { ok: false, text: `${reasonText(res.reason, res.kind ?? kind)}${away}` };
 }
 
 // "10.5, 20.25" or "10.5 20.25" or two separate numbers. Returns { lat, lng } or null. Map apps paste "lat, lng".
@@ -132,8 +137,19 @@ export function autoSummary(st) {
   if (st.problem) return { tone: 'bad', text: problemText(st.problem) };
   if (!st.registered)
     return { tone: 'warn', text: `Starting up${st.lastError ? ` (${String(st.lastError).slice(0, 60)})` : ''}. Check again in a minute.` };
+  if (st.auto && !st.hasKey)
+    return { tone: 'warn', text: 'Automatic recording is on, but this phone has no key yet. Press "Check again" while you are online.' };
+  if (st.auto)
+    return {
+      tone: 'ok',
+      text: 'Watching the pharmacy. Your arrival and your leaving are recorded automatically, even when the app is closed.',
+    };
   return { tone: 'ok', text: 'Watching the pharmacy. Dua notices when you arrive and when you leave, even when the app is closed.' };
 }
+
+// "3 waiting to send" when the phone had no network and still holds events (they are sent as soon as it can).
+export const pendingText = (st) =>
+  st?.pending > 0 ? `${st.pending} ${st.pending === 1 ? 'event is' : 'events are'} waiting to be sent.` : '';
 
 // The checklist under the summary. fix says which button repairs the line; advisory lines never block.
 export function autoChecklist(st) {
@@ -148,12 +164,125 @@ export function autoChecklist(st) {
   ];
 }
 
-// One line of the local journal: { type, at (ms), lat, lng, accuracy }.
+// Short reasons for the phone's journal (the long, sentence-style ones are REASON_TEXT, shown after a manual check-in).
+const SHORT_REASON = {
+  mock_location: 'fake location flagged',
+  weak_signal: 'GPS signal too weak',
+  no_place_set: 'no place set up',
+  outside: 'not at the place',
+  still_inside: 'still at the place',
+  already_in: 'already checked in',
+  not_in: 'was not checked in',
+  older: 'a later record exists',
+  stale: 'too old to use',
+  back_inside: 'you came back',
+  bad_event: 'could not be sent',
+};
+
+const kindWord = (kind) => (kind === 'out' ? 'Check-out' : 'Check-in');
+
+// One line of the local journal: { type, at (ms), lat, lng, accuracy, kind, reason }.
+// Detections (dwell, exit) come from Android; the others say what happened to the event afterwards.
 export function journalLabel(entry, stableSeconds = 120) {
-  if (entry?.type === 'dwell')
+  const type = entry?.type;
+  if (type === 'dwell')
     return `Arrived (stayed inside ${stableSeconds >= 60 ? `${Math.round(stableSeconds / 60)} min` : `${stableSeconds} s`})`;
-  if (entry?.type === 'exit') return 'Left';
-  if (entry?.type === 'enter') return 'Entered';
-  if (String(entry?.type ?? '').startsWith('error:')) return 'Location service problem';
+  if (type === 'exit') return 'Left';
+  if (type === 'enter') return 'Entered';
+  if (type === 'recorded') return `${kindWord(entry.kind)} recorded`;
+  if (type === 'refused') return `${kindWord(entry.kind)} refused`;
+  if (type === 'ignored') return `${kindWord(entry.kind)} not needed`;
+  if (type === 'cancelled') return 'Leaving cancelled';
+  if (type === 'dropped') return `${kindWord(entry.kind)} not accepted`;
+  if (type === 'no_fix') return 'No GPS position, nothing sent';
+  if (type === 'off') return 'Automatic recording is off';
+  if (type === 'key_rejected') return 'This phone was not accepted';
+  if (String(type ?? '').startsWith('error:')) return 'Location service problem';
   return 'Unknown';
+}
+
+// The grey words after a journal line: why, in a few words.
+export function journalDetail(entry) {
+  if (entry?.type === 'key_rejected') return 'open Dua again to fix it';
+  if (entry?.type === 'off') return 'test mode: listed only';
+  return SHORT_REASON[entry?.reason] ?? '';
+}
+
+// How the journal line is coloured: ok = recorded, warn = something to look at, plain = everything else.
+export function journalTone(entry) {
+  if (entry?.type === 'recorded') return 'ok';
+  if (['refused', 'dropped', 'no_fix', 'key_rejected'].includes(entry?.type) || String(entry?.type ?? '').startsWith('error:'))
+    return 'warn';
+  return 'plain';
+}
+
+// "17:01 → 18:30", "17:01 → still in", "—": one person's day on one line.
+export function spanText(day) {
+  if (!day?.first_in && !day?.firstIn) return '—';
+  const from = timeLabel(day.first_in ?? day.firstIn);
+  const out = day.open ? 'Still in' : timeLabel(day.last_out ?? day.lastOut);
+  return `${from} → ${out}`;
+}
+
+// The owner's week as days, newest first, each with its people: [{ date, rows }]. Rows keep the order they came in.
+export function groupByDay(rows) {
+  const days = new Map();
+  for (const r of rows ?? []) {
+    if (!days.has(r.date)) days.set(r.date, []);
+    days.get(r.date).push(r);
+  }
+  return [...days.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([date, list]) => ({ date, rows: list }));
+}
+
+// ── the owner's view of every phone (Phase 6, migration 1404) ──
+const PHONE_STATE = {
+  ok: 'Tracking works',
+  no_precise_location: 'Precise location not allowed',
+  location_off: 'Location is switched off',
+  no_background_location: 'Location is not "all the time"',
+  background_restricted: 'Dua is restricted in the background',
+  not_registered: 'Could not start watching the place',
+  silent: 'Phone has gone quiet',
+};
+export const phoneStateText = (code) => PHONE_STATE[code] ?? 'Tracking is not working';
+
+// "just now", "12 min ago", "3 h ago", "2 d ago"
+export function agoText(iso, nowMs = Date.now()) {
+  const t = Date.parse(iso ?? '');
+  if (!Number.isFinite(t)) return '';
+  const min = Math.max(0, Math.floor((nowMs - t) / 60000));
+  if (min < 2) return 'just now';
+  if (min < 60) return `${min} min ago`;
+  if (min < 48 * 60) return `${Math.floor(min / 60)} h ago`;
+  return `${Math.floor(min / 1440)} d ago`;
+}
+
+// One person's phone in the "who is at work" list. tone: ok / warn / bad.
+export function phoneSummary(phone, nowMs = Date.now()) {
+  if (!phone) return { tone: 'warn', text: 'No phone set up', note: 'Their phone is set up when they open the new Dua app.' };
+  if (!phone.state)
+    return { tone: 'warn', text: 'No report from this phone yet', note: 'It reports after the new Dua app has been installed and opened.' };
+  const when = phone.reported_at ? `Last report ${agoText(phone.reported_at, nowMs)}` : '';
+  const queued = Number(phone.pending) > 0 ? ` · ${phone.pending} waiting to send` : '';
+  if (phone.state === 'ok') return { tone: 'ok', text: phoneStateText('ok'), note: `${when}${queued}` };
+  return { tone: 'bad', text: phoneStateText(phone.state), note: `${when}${queued}` };
+}
+
+// The people list for the owner: at work first, then by name; a phone that needs attention is flagged.
+export function peopleRows(health, nowMs = Date.now()) {
+  return (health?.people ?? [])
+    .map((p) => ({ ...p, phoneInfo: phoneSummary(p.phone, nowMs) }))
+    .sort((a, b) => Number(b.at_work) - Number(a.at_work) || String(a.name).localeCompare(String(b.name)));
+}
+
+export const attentionCount = (health) => (health?.people ?? []).filter((p) => p.phone?.state && p.phone.state !== 'ok').length;
+
+// Periods when a phone was not tracking, for one day: "Location is switched off, 10:20 to 11:05" or "since 10:20 (still)".
+export function gapRows(gaps) {
+  return (gaps ?? []).map((g) => ({
+    name: g.name,
+    text: phoneStateText(g.state),
+    from: timeLabel(g.from_at),
+    to: g.to_at ? timeLabel(g.to_at) : null,
+  }));
 }

@@ -2,7 +2,9 @@ package com.duapharma.dua;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -64,5 +66,113 @@ public class AttendanceLogicTest {
         assertEquals("location_off", AttendanceLogic.problem(true, false, false, true));
         assertEquals("no_background_location", AttendanceLogic.problem(true, false, true, true));
         assertEquals("background_restricted", AttendanceLogic.problem(true, true, true, true));
+    }
+
+    // ───── Phase 4: events ─────
+
+    private static final String IN = "in";
+    private static final String OUT = "out";
+
+    @Test
+    public void onlyOurOwnFunctionMayReceiveTheSecret() {
+        assertTrue(AttendanceLogic.validEndpoint("https://sdsynzsflubdxnelgthh.supabase.co/functions/v1/attendance-event"));
+        assertFalse(AttendanceLogic.validEndpoint("http://sdsynzsflubdxnelgthh.supabase.co/functions/v1/attendance-event"));
+        assertFalse(AttendanceLogic.validEndpoint("https://evil.example.com/functions/v1/attendance-event"));
+        assertFalse(AttendanceLogic.validEndpoint("https://sdsynzsflubdxnelgthh.supabase.co.evil.com/functions/v1/attendance-event"));
+        assertFalse(AttendanceLogic.validEndpoint("https://sdsynzsflubdxnelgthh.supabase.co/functions/v1/widget-today"));
+        assertFalse(AttendanceLogic.validEndpoint("https://sdsynzsflubdxnelgthh.supabase.co/functions/v1/attendance-event?x=1"));
+        assertFalse(AttendanceLogic.validEndpoint(null));
+    }
+
+    @Test
+    public void theSecretAndTheDeviceIdHaveTheirOwnShapes() {
+        assertTrue(AttendanceLogic.validSecret("a".repeat(64)));
+        assertFalse(AttendanceLogic.validSecret("A".repeat(64)));
+        assertFalse(AttendanceLogic.validSecret("a".repeat(63)));
+        assertFalse(AttendanceLogic.validSecret(null));
+        assertTrue(AttendanceLogic.validDeviceId(ID));
+        assertFalse(AttendanceLogic.validDeviceId("not-a-uuid"));
+        assertFalse(AttendanceLogic.validDeviceId(null));
+    }
+
+    @Test
+    public void distanceIsInMetres() {
+        assertEquals(0.0, AttendanceLogic.distanceMetres(31.387139, 74.189924, 31.387139, 74.189924), 0.001);
+        // 0.001 degree of latitude is about 111 m
+        assertEquals(111.2, AttendanceLogic.distanceMetres(31.0, 74.0, 31.001, 74.0), 0.5);
+        // one degree of longitude at 31 degrees north is about 95 km
+        assertEquals(95300, AttendanceLogic.distanceMetres(31.0, 74.0, 31.0, 75.0), 300);
+    }
+
+    @Test
+    public void anArrivalIsSentOnlyWithAGoodFixInsideThePlace() {
+        assertEquals(AttendanceLogic.SEND, AttendanceLogic.decide(IN, 40, 12, 200, 100, false));
+        assertEquals(AttendanceLogic.SEND, AttendanceLogic.decide(IN, 200, 100, 200, 100, false)); // exactly on the limits
+        assertEquals(AttendanceLogic.RETRY, AttendanceLogic.decide(IN, 40, 250, 200, 100, false)); // weak fix: look again
+        assertEquals(AttendanceLogic.RETRY, AttendanceLogic.decide(IN, 400, 12, 200, 100, false)); // outside: look again
+        // on the last attempt it is sent anyway so the server records a refusal the owner can see
+        assertEquals(AttendanceLogic.SEND, AttendanceLogic.decide(IN, 40, 250, 200, 100, true));
+        assertEquals(AttendanceLogic.SEND, AttendanceLogic.decide(IN, 400, 12, 200, 100, true));
+    }
+
+    @Test
+    public void aDepartureNeedsTheSameClearFixOutsideAfterTheStayPeriod() {
+        assertEquals(AttendanceLogic.SEND, AttendanceLogic.decide(OUT, 350, 12, 200, 100, false));
+        assertEquals(AttendanceLogic.CANCEL, AttendanceLogic.decide(OUT, 120, 12, 200, 100, false)); // came back: a flicker, nothing is sent
+        assertEquals(AttendanceLogic.RETRY, AttendanceLogic.decide(OUT, 350, 250, 200, 100, false)); // outside but too weak: look again
+        assertEquals(AttendanceLogic.RETRY, AttendanceLogic.decide(OUT, 120, 250, 200, 100, false)); // inside but too weak: look again
+        assertEquals(AttendanceLogic.SEND, AttendanceLogic.decide(OUT, 350, 250, 200, 100, true)); // last try: the server records weak signal
+        assertEquals(AttendanceLogic.CANCEL, AttendanceLogic.decide(OUT, 120, 250, 200, 100, true)); // last try, looks inside: never check out
+    }
+
+    @Test
+    public void serverAnswersBecomeJournalLines() {
+        assertEquals("recorded", AttendanceLogic.journalType("accepted"));
+        assertEquals("refused", AttendanceLogic.journalType("rejected"));
+        assertEquals("ignored", AttendanceLogic.journalType("ignored"));
+        assertEquals("off", AttendanceLogic.journalType("off"));
+        assertEquals("unknown", AttendanceLogic.journalType("something else"));
+        assertEquals("unknown", AttendanceLogic.journalType(null));
+    }
+
+    @Test
+    public void onlyADepartureWaitsForTheStayPeriod() {
+        assertEquals(120, AttendanceLogic.confirmDelaySeconds(OUT, 120));
+        assertEquals(30, AttendanceLogic.confirmDelaySeconds(OUT, 30));
+        assertEquals(0, AttendanceLogic.confirmDelaySeconds(IN, 120));
+        assertTrue(AttendanceLogic.validKind(IN) && AttendanceLogic.validKind(OUT));
+        assertFalse(AttendanceLogic.validKind("sideways") || AttendanceLogic.validKind(null));
+    }
+
+    @Test
+    public void theHealthReportGoesOnlyToOurOwnSiblingFunction() {
+        String events = "https://abcdefghijkl.supabase.co/functions/v1/attendance-event";
+        assertEquals("https://abcdefghijkl.supabase.co/functions/v1/attendance-health", AttendanceLogic.healthEndpoint(events));
+        assertNull(AttendanceLogic.healthEndpoint(null));
+        assertNull(AttendanceLogic.healthEndpoint("https://evil.example.com/functions/v1/attendance-event"));
+        assertNull(AttendanceLogic.healthEndpoint("http://abcdefghijkl.supabase.co/functions/v1/attendance-event"));
+        assertNull(AttendanceLogic.healthEndpoint("https://abcdefghijkl.supabase.co/functions/v1/attendance-health"));
+    }
+
+    @Test
+    public void theHealthStateIsNullWhenAllIsWellOtherwiseTheProblem() {
+        assertNull(AttendanceLogic.healthState(null, true, true));
+        assertEquals("location_off", AttendanceLogic.healthState("location_off", true, true));
+        assertEquals("no_background_location", AttendanceLogic.healthState("no_background_location", false, false));
+        assertEquals("not_registered", AttendanceLogic.healthState(null, true, false));
+        assertNull(AttendanceLogic.healthState(null, false, false)); // no place to watch: nothing to report
+    }
+
+    @Test
+    public void everyProblemThePhoneCanFindIsOneTheServerKnows() {
+        String[] server = {"no_precise_location", "location_off", "no_background_location", "background_restricted", "not_registered"};
+        boolean[][] cases = {{false, true, true, false}, {true, false, true, false}, {true, true, false, false}, {true, true, true, true}};
+        for (boolean[] c : cases) {
+            String state = AttendanceLogic.healthState(AttendanceLogic.problem(c[0], c[1], c[2], c[3]), true, true);
+            assertNotNull(state);
+            boolean known = false;
+            for (String s : server) known |= s.equals(state);
+            assertTrue(state, known);
+        }
     }
 }
