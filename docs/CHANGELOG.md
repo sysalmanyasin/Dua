@@ -1,6 +1,12 @@
 # Changelog (everything built so far)
 
 Dates are 2026. Counts are as of the end of each step.
+## 28 Nov — Manager Balance Tally: the ledger figure has the opposite sign and always follows the latest ledger (migration `0113`)
+- The **Jazz Cash ledger** row of the Balance Tally now adds the ledger balance **with the opposite sign** (a ledger at -28,260 adds 28,260), so **Total counted** = the counted accounts minus the ledger balance. The row is named "Jazz Cash ledger (latest)".
+- The row always uses the **latest ledger for the date being viewed**, not the figure frozen when the count was saved. If a saved count used another figure, the screen says "The saved count used X; the ledger now gives Y. Save the count again to record it." Saving again then adds a revision and asks for a reason, even if no number was typed (before, that save was refused by the database with no prompt).
+- Saved counts are not edited. The older counts in **Recent counts** are re-read with the same rule (worked out from the stored accounts, ledger balance and app total), so the history uses one convention. Owner's earlier rule ("counted as it is", MGR-22 and MGR-28) is replaced by MGR-29 in `docs/modules/manager.md`.
+- **Database:** `0113_mgmt_tally_ledger_sign` replaces `mgmt_tally_get`, `mgmt_tally_list` and `mgmt_tally_save` only (grants unchanged). The `0107` database test now expects the new numbers (same checks, new figures); the whole database suite passes on PostgreSQL 16 with `0113` applied. **Web:** `manager/domain/ledger.js` (`tallyLedgerFigure`), `manager/ui/tally.js`. Tests: 3 new and 2 reworded in `manager-ledgers`.
+
 ## 28 Nov — Manager ledgers: verify ticks for checking entries against another record
 - Every live entry in a ledger (Jazz Cash, Expenses, Misc Sections) has a round **✓** button, to tick it off as you match it against your own record (for example the Jazz Cash app). A ticked entry turns green and dims, so what is still unchecked stands out. Strike-through is not used, because in a ledger it already means "reversed". A reversed entry and its reversal line have no tick (they cancel out).
 - A summary above the list reads "12 of 40 verified" with what the ticked entries add and reduce, to set against the other record's total. **Show unverified only** hides what is ticked (each entry leaves the list as it is ticked); **Clear ticks** removes the ticks on the entries shown, after asking.
