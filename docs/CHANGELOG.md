@@ -1,6 +1,18 @@
 # Changelog (everything built so far)
 
 Dates are 2026. Counts are as of the end of each step.
+## 28 Nov — Manager Balance Tally: the ledger figure has the opposite sign and always follows the latest ledger (migration `0113`)
+- The **Jazz Cash ledger** row of the Balance Tally now adds the ledger balance **with the opposite sign** (a ledger at -28,260 adds 28,260), so **Total counted** = the counted accounts minus the ledger balance. The row is named "Jazz Cash ledger (latest)".
+- The row always uses the **latest ledger for the date being viewed**, not the figure frozen when the count was saved. If a saved count used another figure, the screen says "The saved count used X; the ledger now gives Y. Save the count again to record it." Saving again then adds a revision and asks for a reason, even if no number was typed (before, that save was refused by the database with no prompt).
+- Saved counts are not edited. The older counts in **Recent counts** are re-read with the same rule (worked out from the stored accounts, ledger balance and app total), so the history uses one convention. Owner's earlier rule ("counted as it is", MGR-22 and MGR-28) is replaced by MGR-29 in `docs/modules/manager.md`.
+- **Database:** `0113_mgmt_tally_ledger_sign` replaces `mgmt_tally_get`, `mgmt_tally_list` and `mgmt_tally_save` only (grants unchanged). The `0107` database test now expects the new numbers (same checks, new figures); the whole database suite passes on PostgreSQL 16 with `0113` applied. **Web:** `manager/domain/ledger.js` (`tallyLedgerFigure`), `manager/ui/tally.js`. Tests: 3 new and 2 reworded in `manager-ledgers`.
+
+## 28 Nov — Manager ledgers: verify ticks for checking entries against another record
+- Every live entry in a ledger (Jazz Cash, Expenses, Misc Sections) has a round **✓** button, to tick it off as you match it against your own record (for example the Jazz Cash app). A ticked entry turns green and dims, so what is still unchecked stands out. Strike-through is not used, because in a ledger it already means "reversed". A reversed entry and its reversal line have no tick (they cancel out).
+- A summary above the list reads "12 of 40 verified" with what the ticked entries add and reduce, to set against the other record's total. **Show unverified only** hides what is ticked (each entry leaves the list as it is ticked); **Clear ticks** removes the ticks on the entries shown, after asking.
+- Ticks are a checking aid kept **on this device only** (browser storage, per ledger). Nothing is written to the database and no ledger entry, balance or report changes. Another phone or computer starts with no ticks.
+- **Web:** `manager/domain/ledger.js` (`isTickable`, `tickSummary`), `manager/ui/ledgerPanel.js`, CSS in `css/manager.css`. Tests: 7 new in `manager-ledgers`. Not yet seen on the owner's screen.
+
 ## 28 Nov — Audit: Live progress popup shows the products, differences and Force Submit (migration `0420`)
 - The **Live progress** popup on Monthly Overview and Rounds & Progress now lists every product of the round **A to Z**, with what was counted, the system quantity, the difference and its value. Filters: **All**, **Differences**, **Counted**, **Not counted** (each with its count). Totals at the top add the number and value of differences.
 - **Force submit** is in the popup for each counter who has not submitted, for people with `audit.compile`: leave the rest uncounted, or mark them as matching the system (kept flagged as assumed), with a reason. The list behind it reloads afterwards.
@@ -22,6 +34,11 @@ Dates are 2026. Counts are as of the end of each step.
 
 ## 26 Nov — Audit tab chips about 60% of their old size
 - The two rows of tabs on the Audit pages (Overview / Team Audit / Individual Audit / Tools, and the screens under them such as Monthly Overview, Rounds & Progress, Review) were tall and wide. Height, side padding and text are now about 60% of before (tabs 44 px to 26 px, screens 40 px to 24 px). CSS only (`css/audit.css`). Not yet seen on the owner's phone.
+
+## 28 Nov — Phase 6 is live; two registry rows renamed
+- Migration `1404` was applied by hand on the live database (the Supabase integration could not run: the registry held `1205` and `1206` under timestamp versions `20261127122600` and `20261127122609` while `main` had no such files yet). Registered as `1404`; the 15-minute schedule `attendance-health-check` is running (37 successful runs by the time of checking).
+- Edge Function `attendance-health` deployed (v1, `verify_jwt` off, same code as `main`). Not called from outside (the sandbox cannot reach supabase.co); the database side was checked with a refused unknown-device call.
+- Registry: after PRs #112 and #114 put `1205` and `1206` into `main`, the two rows were renamed to `1205` and `1206` (version only; names and SQL untouched, procedure as in `docs/ops/f7-registry-reconciliation.md`). Backup first: `supabase_migrations.schema_migrations_backup_20261128` (137 rows). Result: 137 rows, every file has a row, no timestamp versions.
 
 ## 27 Nov — Automatic attendance, Phase 6: tracking can't be switched off silently (staff are not blocked)
 - Decision: staff keep using Dua as normal; no block screen. There is no opt-out tick (the owner's switch applies to everyone with the check-in right). Phase 6 makes sure the owner always knows when tracking is off.

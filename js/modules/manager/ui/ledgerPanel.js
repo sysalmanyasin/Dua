@@ -4,10 +4,35 @@
 import { html, render } from '../../../shared/html.js';
 import { money, parseAmount, shortDate, todayPkt } from '../../../shared/format.js';
 import * as api from '../data/api.js';
-import { SHIFTS, balanceMessage, directionWord, groupByCategory, validateLedgerEntry } from '../domain/ledger.js';
+import { SHIFTS, balanceMessage, directionWord, groupByCategory, isTickable, tickSummary, validateLedgerEntry } from '../domain/ledger.js';
 import { askReason, confirmDialog, errorCard, loadingCard, newKey, toast } from './parts.js';
 
 const m = (v) => money(v, { decimals: Math.round(Number(v) * 100) % 100 !== 0 });
+
+// Verify ticks: the owner's own checking aid, remembered on this device only (nothing is saved to the database or the ledger).
+const TICKS_KEY = 'dua.manager.ticks.v1';
+const readTicks = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(TICKS_KEY) ?? '{}');
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+};
+const loadTicks = (ledgerId) => {
+  const ids = readTicks()[ledgerId];
+  return new Set(Array.isArray(ids) ? ids : []);
+};
+const saveTicks = (ledgerId, ticked) => {
+  try {
+    const all = readTicks();
+    if (ticked.size) all[ledgerId] = [...ticked];
+    else delete all[ledgerId];
+    localStorage.setItem(TICKS_KEY, JSON.stringify(all));
+  } catch {
+    /* private window or full storage: the ticks still work for this visit, they just are not remembered */
+  }
+};
 
 export async function mountLedgerPanel(host, { code = null, id = null, onLoaded = null }) {
   const today = todayPkt();
@@ -18,6 +43,8 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
     from: '',
     to: '',
     group: false,
+    ticked: new Set(),
+    unverified: false,
     manage: false,
     key: null,
     errors: {},
@@ -29,6 +56,7 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
       const list = await api.ledgersList();
       state.ledger = list.find((l) => (id ? l.ledger_id === id : l.code === code));
       if (!state.ledger) throw new Error('unknown ledger');
+      state.ticked = loadTicks(state.ledger.ledger_id);
       state.rows = await api.ledgerView(state.ledger.ledger_id, state.from || null, state.to || null);
       if (!state.form.category || !state.ledger.categories.some((c) => c.id === state.form.category))
         state.form.category = state.ledger.categories[0]?.id ?? '';
@@ -43,9 +71,14 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
   function entryRow(e) {
     const isRev = Boolean(e.reverses_id);
     const struck = isRev || e.reversed_by;
-    return html`<div class="mg-entry ${struck ? 'mg-struck' : ''}">
+    const canTick = isTickable(e);
+    const on = canTick && state.ticked.has(e.entry_id);
+    return html`<div class="mg-entry ${struck ? 'mg-struck' : ''} ${on ? 'mg-ticked' : ''}">
       <div class="mg-entry-top">
-        <span>${shortDate(e.entry_date)}${e.shift ? ` · ${e.shift}` : ''}</span>
+        <span class="mg-entry-lead">
+          ${canTick ? html`<button type="button" class="mg-tick" data-act="tick" data-id="${e.entry_id}" aria-pressed="${on}" aria-label="Verified">✓</button>` : ''}
+          <span>${shortDate(e.entry_date)}${e.shift ? ` · ${e.shift}` : ''}</span>
+        </span>
         <strong>${m(e.amount)} <small class="muted">${directionWord(e.effect)}</small></strong>
       </div>
       <div class="small">
@@ -60,6 +93,26 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
     </div>`;
   }
 
+  // "12 of 40 verified" with what the ticked entries add and reduce, so it can be set against the other record's total.
+  function verifyBlock() {
+    const s = tickSummary(state.rows, state.ticked);
+    if (!s.total) return '';
+    const sums = [s.added ? `adds ${m(s.added)}` : '', s.reduced ? `reduces ${m(s.reduced)}` : ''].filter(Boolean).join(' · ');
+    return html`<div class="card mg-verify">
+      <div class="mg-verify-line">
+        <strong data-verify-count>${s.count} of ${s.total} verified</strong>
+        <span class="small muted" data-verify-sums>${sums || 'Tap the ✓ on an entry once you have matched it.'}</span>
+      </div>
+      <div class="mg-verify-actions">
+        <label class="small"
+          ><input type="checkbox" data-act="unverified" ${state.unverified ? 'checked' : ''} /> Show unverified only</label
+        >
+        ${s.count ? html`<button type="button" class="link small" data-act="clearticks">Clear ticks</button>` : ''}
+      </div>
+      <p class="small muted">Ticks are your own checking aid, kept on this device. They never change the ledger.</p>
+    </div>`;
+  }
+
   function paint() {
     if (state.error) return render(host, errorCard('this ledger'));
     if (!state.ledger || !state.rows) return render(host, loadingCard());
@@ -67,6 +120,11 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
     const bm = balanceMessage(l, l.balance);
     const f = state.form;
     const groups = state.group ? groupByCategory(state.rows) : [];
+    const shown = state.unverified ? state.rows.filter((e) => isTickable(e) && !state.ticked.has(e.entry_id)) : state.rows;
+    const empty =
+      state.unverified && state.rows.length
+        ? 'Every entry here is verified.'
+        : `No entries${state.from || state.to ? ' in this range' : ' yet'}.`;
     render(
       host,
       html`<div class="card total-card">
@@ -142,7 +200,8 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
               </div>`
             : ''
         }
-        ${state.rows.length ? [...state.rows].reverse().map((e) => html`<div class="card">${entryRow(e)}</div>`) : html`<div class="card"><p class="muted">No entries${state.from || state.to ? ' in this range' : ' yet'}.</p></div>`}
+        <div data-verify>${verifyBlock()}</div>
+        ${shown.length ? [...shown].reverse().map((e) => html`<div class="card">${entryRow(e)}</div>`) : html`<div class="card"><p class="muted">${empty}</p></div>`}
         <div class="card">
           <p class="small">
             <button type="button" class="link" data-act="manage">${state.manage ? 'Hide categories' : 'Manage categories'}</button>
@@ -193,6 +252,10 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
       state.group = t.checked;
       paint();
     }
+    if (t.dataset.act === 'unverified') {
+      state.unverified = t.checked;
+      paint();
+    }
   });
   host.addEventListener('click', async (e) => {
     const t = e.target.closest('[data-act]');
@@ -200,6 +263,34 @@ export async function mountLedgerPanel(host, { code = null, id = null, onLoaded 
     const act = t.dataset.act;
     if (act === 'manage') {
       state.manage = !state.manage;
+      return paint();
+    }
+    if (act === 'tick') {
+      // Only this one row and the summary are touched, so a long list keeps its place while you work down it.
+      const id = t.dataset.id;
+      if (state.ticked.has(id)) state.ticked.delete(id);
+      else state.ticked.add(id);
+      saveTicks(state.ledger.ledger_id, state.ticked);
+      const on = state.ticked.has(id);
+      if (state.unverified && on) {
+        t.closest('.card').remove(); // it is verified now, so it leaves the "unverified only" list
+        if (!host.querySelector('.mg-entry')) return paint();
+      } else {
+        t.setAttribute('aria-pressed', String(on));
+        t.closest('.mg-entry').classList.toggle('mg-ticked', on);
+      }
+      return render(host.querySelector('[data-verify]'), html`${verifyBlock()}`);
+    }
+    if (act === 'clearticks') {
+      const ids = state.rows.filter((e) => isTickable(e) && state.ticked.has(e.entry_id)).map((e) => e.entry_id);
+      const ok = await confirmDialog({
+        title: 'Clear ticks?',
+        body: `${ids.length} tick${ids.length === 1 ? '' : 's'} on the entries shown will be removed. The ledger itself is not changed.`,
+        confirm: 'Clear ticks',
+      });
+      if (!ok) return;
+      ids.forEach((id) => state.ticked.delete(id));
+      saveTicks(state.ledger.ledger_id, state.ticked);
       return paint();
     }
     if (act === 'add') {

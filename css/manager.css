@@ -135,6 +135,72 @@
 .mg-entry-top strong {
   font-variant-numeric: tabular-nums;
 }
+/* Verify ticks: an owner's checking aid on each live entry. A ticked entry dims so what is still unchecked stands out.
+   (Strike-through is not used: in a ledger it already means "reversed".) */
+.mg-entry-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.mg-tick {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: transparent;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.mg-tick::before {
+  content: '';
+  position: absolute;
+  inset: -4px; /* a 44px touch target around the 36px circle */
+}
+.mg-tick:hover {
+  border-color: var(--ok);
+}
+.mg-tick:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.mg-tick[aria-pressed='true'] {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--surface);
+}
+.mg-ticked .mg-entry-top strong,
+.mg-ticked .mg-entry-top .mg-entry-lead > span,
+.mg-ticked > .small,
+.mg-ticked .mg-entry-bottom > span {
+  opacity: 0.6;
+}
+.mg-verify-line,
+.mg-verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+}
+.mg-verify-line strong {
+  font-variant-numeric: tabular-nums;
+}
+.mg-verify-actions {
+  align-items: center;
+  margin-top: var(--space-2);
+}
+.mg-verify p {
+  margin: var(--space-2) 0 0;
+}
 .mg-inbox-line {
   display: grid;
   gap: var(--space-2);

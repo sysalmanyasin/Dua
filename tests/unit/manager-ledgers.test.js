@@ -5,8 +5,11 @@ import {
   balanceMessage,
   directionWord,
   groupByCategory,
+  isTickable,
   runningBalances,
   tallyDifference,
+  tallyLedgerFigure,
+  tickSummary,
   tallyTotal,
   validateLedgerEntry,
 } from '../../js/modules/manager/domain/ledger.js';
@@ -70,8 +73,27 @@ describe('ledger words and maths', () => {
     expect(validateLedgerEntry({ ...ok, shift: '' })).toMatch(/shift/);
     expect(validateLedgerEntry({ ...ok, shift: '', needsShift: false })).toBeNull();
   });
-  it('the tally: ledger balance plus accounts, against the app total, in exact paisa', () => {
-    expect(tallyTotal(-25146, [20000, 5146.5])).toBe(0.5);
+  it('only a live entry can be ticked, and the ticked ones add up exactly by direction', () => {
+    const rows = [
+      { entry_id: 'a', effect: 1, amount: 0.1 },
+      { entry_id: 'b', effect: 1, amount: 0.2 },
+      { entry_id: 'c', effect: -1, amount: 500 },
+      { entry_id: 'd', effect: 1, amount: 70, reversed_by: 'e' },
+      { entry_id: 'e', effect: -1, amount: 70, reverses_id: 'd' },
+    ];
+    expect(rows.map(isTickable)).toEqual([true, true, true, false, false]);
+    expect(tickSummary(rows, new Set(['a', 'b', 'c', 'd', 'e', 'gone']))).toEqual({ count: 3, total: 3, added: 0.3, reduced: 500 });
+    expect(tickSummary(rows, new Set(['b']))).toEqual({ count: 1, total: 3, added: 0.2, reduced: 0 });
+    expect(tickSummary(rows, new Set())).toEqual({ count: 0, total: 3, added: 0, reduced: 0 });
+    expect(tickSummary([], new Set(['a']))).toEqual({ count: 0, total: 0, added: 0, reduced: 0 });
+  });
+  it('the tally takes the ledger balance with the opposite sign, and adds it to the accounts in exact paisa', () => {
+    expect(tallyLedgerFigure(-28260)).toBe(28260);
+    expect(tallyLedgerFigure(78260)).toBe(-78260);
+    expect(tallyLedgerFigure(-0.1)).toBe(0.1);
+    expect(tallyLedgerFigure(0)).toBe(0); // never -0
+    expect(tallyTotal(tallyLedgerFigure(-25146), [20000, 5146.5])).toBe(50292.5);
+    expect(tallyTotal(tallyLedgerFigure(-28260), [35359, 25000, 100075, 0, 26350, 40000])).toBe(255044);
     expect(tallyTotal(0.1, [0.2])).toBe(0.3);
     expect(tallyDifference(0.5, 100)).toEqual({ amount: -99.5, label: 'Short' });
     expect(tallyDifference(120, 100)).toEqual({ amount: 20, label: 'Extra cash' });
@@ -167,6 +189,7 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-11-12T08:00:00Z'));
   document.body.innerHTML = '<div id="page"></div>';
   el = document.getElementById('page');
+  localStorage.clear();
   Object.values(api).forEach((f) => f.mockReset());
   api.ledgersList.mockResolvedValue([EXP, JZ, SEC]);
   api.ledgerView.mockResolvedValue([
@@ -375,6 +398,107 @@ describe('ledger panel (Expenses)', () => {
     await openExpenses();
     expect(el.textContent).toContain('Could not load this ledger');
   });
+
+  describe('verify ticks', () => {
+    const ticks = () => [...el.querySelectorAll('[data-act="tick"]')];
+    const tickFor = (id) => el.querySelector(`[data-act="tick"][data-id="${id}"]`);
+    const count = () => el.querySelector('[data-verify-count]').textContent;
+
+    it('starts unverified, ticks an entry in place, and sums what is ticked by direction', async () => {
+      await openExpenses();
+      expect(ticks()).toHaveLength(3);
+      expect(count()).toBe('0 of 3 verified');
+      const card = tickFor('e2').closest('.mg-entry');
+      tickFor('e2').click();
+      expect(tickFor('e2').getAttribute('aria-pressed')).toBe('true');
+      expect(card.classList.contains('mg-ticked')).toBe(true);
+      expect(tickFor('e2').closest('.mg-entry')).toBe(card); // the row was updated, not rebuilt
+      tickFor('e1').click();
+      expect(count()).toBe('2 of 3 verified');
+      expect(el.querySelector('[data-verify-sums]').textContent).toBe('adds 50 · reduces 24,500');
+      tickFor('e2').click(); // a second tap undoes it
+      expect(tickFor('e2').getAttribute('aria-pressed')).toBe('false');
+      expect(count()).toBe('1 of 3 verified');
+      expect(api.ledgerAdd).not.toHaveBeenCalled();
+      expect(api.ledgerReverse).not.toHaveBeenCalled();
+    });
+
+    it('remembers the ticks on this device, for that ledger only', async () => {
+      await openExpenses();
+      tickFor('e1').click();
+      tickFor('e3').click();
+      document.body.innerHTML = '<div id="page"></div>';
+      el = document.getElementById('page');
+      await openExpenses();
+      expect(tickFor('e1').getAttribute('aria-pressed')).toBe('true');
+      expect(tickFor('e2').getAttribute('aria-pressed')).toBe('false');
+      expect(count()).toBe('2 of 3 verified');
+      // the same entry ids in another ledger are not ticked
+      document.body.innerHTML = '<div id="page"></div>';
+      el = document.getElementById('page');
+      const { mount } = await import('../../js/modules/manager/ui/jazzcash.js');
+      await mount(el, { ctx: { permissions: ['mgmt.ledgers'] } });
+      await tick();
+      expect(count()).toBe('0 of 3 verified');
+    });
+
+    it('has no tick on a reversed entry or its reversal line', async () => {
+      api.ledgerView.mockResolvedValue([
+        E({ entry_id: 'a', reversed_by: 'b' }),
+        E({ entry_id: 'b', reverses_id: 'a', effect: -1, description: 'Reversal: Tea', reason: 'typed twice' }),
+        E({ entry_id: 'c', description: 'Live one' }),
+      ]);
+      await openExpenses();
+      expect(ticks().map((b) => b.dataset.id)).toEqual(['c']);
+      expect(count()).toBe('0 of 1 verified');
+    });
+
+    it('shows unverified entries only, dropping each one as it is ticked', async () => {
+      await openExpenses();
+      tickFor('e2').click();
+      const box = el.querySelector('[data-act="unverified"]');
+      box.checked = true;
+      box.dispatchEvent(new Event('change', { bubbles: true }));
+      expect(el.querySelectorAll('.mg-entry')).toHaveLength(2);
+      expect(tickFor('e2')).toBeNull();
+      tickFor('e1').click();
+      expect(el.querySelectorAll('.mg-entry')).toHaveLength(1);
+      expect(count()).toBe('2 of 3 verified');
+      tickFor('e3').click();
+      expect(el.textContent).toContain('Every entry here is verified.');
+      expect(count()).toBe('3 of 3 verified');
+    });
+
+    it('clears the ticks only after asking, leaving the ledger alone', async () => {
+      await openExpenses();
+      tickFor('e1').click();
+      tickFor('e2').click();
+      el.querySelector('[data-act="clearticks"]').click();
+      await tick();
+      expect(dlg().textContent).toContain('2 ticks');
+      dlg().querySelector('[data-close]').click();
+      await tick();
+      expect(count()).toBe('2 of 3 verified');
+      el.querySelector('[data-act="clearticks"]').click();
+      await tick();
+      dlg().querySelector('[data-ok]').click();
+      await tick();
+      expect(count()).toBe('0 of 3 verified');
+      expect(el.querySelector('[data-act="clearticks"]')).toBeNull();
+      expect(localStorage.getItem('dua.manager.ticks.v1')).toBe('{}');
+      expect(api.ledgerReverse).not.toHaveBeenCalled();
+    });
+
+    it('still works when the browser will not store anything', async () => {
+      const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('full');
+      });
+      await openExpenses();
+      tickFor('e1').click();
+      expect(count()).toBe('1 of 3 verified');
+      spy.mockRestore();
+    });
+  });
 });
 
 describe('Balance Tally', () => {
@@ -387,18 +511,73 @@ describe('Balance Tally', () => {
     await tick();
   }
 
-  it('counts the ledger balance automatically and updates the total and the difference label as you type', async () => {
+  it('adds the ledger figure (the ledger balance with the opposite sign) and updates the total and the difference label as you type', async () => {
     await openTally();
-    expect(el.textContent).toContain('Jazz Cash ledger (money held)');
+    expect(el.textContent).toContain('Jazz Cash ledger (latest)');
+    expect(el.querySelector('[data-ledger]').textContent).toContain('25,146'); // the ledger is -25,146
+    expect(el.querySelector('[data-ledger]').textContent).not.toContain('-');
     type(el.querySelector('[data-acc="a1"]'), '20,000');
     type(el.querySelector('[data-acc="a2"]'), '5146.5');
-    expect(el.querySelector('[data-total]').textContent).toContain('0.50');
-    type(el.querySelector('[data-app]'), '100');
+    expect(el.querySelector('[data-total]').textContent).toContain('50,292.50');
+    type(el.querySelector('[data-app]'), '100000');
     expect(el.querySelector('[data-label]').textContent).toBe('Short');
-    type(el.querySelector('[data-app]'), '0.5');
+    type(el.querySelector('[data-app]'), '50292.5');
     expect(el.querySelector('[data-label]').textContent).toBe('Balanced');
     type(el.querySelector('[data-app]'), '0');
     expect(el.querySelector('[data-label]').textContent).toBe('Extra cash');
+  });
+
+  describe('a saved count whose ledger has moved on', () => {
+    const moved = () =>
+      api.tallyGet.mockResolvedValue({
+        has_snapshot: true,
+        revision: 1,
+        ledger_balance: -28260,
+        accounts: [{ account_id: 'a1', name: 'ABL', amount: 20000 }],
+        app_total: 100000,
+        total: 48260,
+        difference: -51740,
+        live_ledger_balance: -78260,
+      });
+
+    it('uses the latest ledger for the total, and says what the saved count used', async () => {
+      moved();
+      await openTally();
+      expect(el.querySelector('[data-ledger]').textContent).toContain('78,260');
+      expect(el.querySelector('[data-total]').textContent).toContain('98,260'); // 20,000 + 78,260, not the saved 28,260
+      expect(el.textContent).toContain('The saved count used 28,260; the ledger now gives 78,260.');
+    });
+
+    it('saving again needs a reason even when no number was typed, and records the new revision', async () => {
+      moved();
+      await openTally();
+      el.querySelector('[data-act="save"]').click();
+      await tick();
+      expect(dlg().textContent).toContain('Change this count');
+      type(dlg().querySelector('#reason'), 'ledger moved after the count');
+      dlg().querySelector('[data-ok]').click();
+      await tick();
+      expect(api.tallySave).toHaveBeenCalledTimes(1);
+      expect(api.tallySave.mock.calls[0][3]).toBe('ledger moved after the count');
+    });
+
+    it('says nothing, and asks for no reason, when the saved count still matches the ledger', async () => {
+      api.tallyGet.mockResolvedValue({
+        has_snapshot: true,
+        revision: 0,
+        ledger_balance: -25146,
+        accounts: [],
+        app_total: 0,
+        total: 25146,
+        difference: 25146,
+        live_ledger_balance: -25146,
+      });
+      await openTally();
+      expect(el.textContent).not.toContain('The saved count used');
+      el.querySelector('[data-act="save"]').click();
+      await tick();
+      expect(document.querySelectorAll('dialog')).toHaveLength(0);
+    });
   });
 
   it('saves every account with a key, and retries with the same key until something is edited', async () => {
