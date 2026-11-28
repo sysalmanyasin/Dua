@@ -210,6 +210,16 @@ export function createCellEditor(
         const kind = res.conflicts?.[0]?.kind ?? 'cell';
         await refresh(); // brings in what the other person did
         if (!ed) return false; // the cell is gone: select() already told the person and kept their text in the message
+        if (kind === 'structure') {
+          // Rows or columns changed since this copy was current, so a formula typed here may point at the wrong cells. The copy was
+          // just refreshed: keep what was typed, rebase on the new version, and let the person check it and save again.
+          ed.baseSeq = getHeadSeq();
+          ed.conflict = null;
+          ed.message =
+            'Rows or columns of this sheet changed while you were typing, so your formula was not saved: it could point at the wrong cells. The sheet was refreshed. Check the formula against it, then save again.';
+          paint();
+          return false;
+        }
         if (kind === 'cell') {
           const their = shorten(editState(stored()).text) || 'nothing (the cell is empty)';
           ed.conflict = { kind };
