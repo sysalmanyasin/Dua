@@ -271,7 +271,7 @@ describe('Cover page', () => {
     expect(t).toContain('₨ 98,765,432');
     expect(t).toContain('412 products');
     expect(t).toMatch(/1 product(?!s)/);
-    expect(el.querySelector('a.kpi[href="#/inventory/reorder"]')).not.toBeNull();
+    expect(el.querySelector('a.home-stock-chip[href="#/inventory/reorder"]')).not.toBeNull();
   });
   it('does not ask for or show stock numbers without inventory.view', async () => {
     const { mount } = await import('../../js/modules/home/ui/page.js');
