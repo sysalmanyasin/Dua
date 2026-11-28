@@ -64,7 +64,7 @@
   background: #fff;
   color: #000;
   box-shadow: 0 0 0 1px #bbb;
-  font-family: Cambria, Caladea, 'Noto Serif', Georgia, serif;
+  font-family: 'Caladea', Cambria, 'Noto Serif', Georgia, serif;
   font-weight: 700;
   line-height: 1.12;
   text-rendering: geometricPrecision;
@@ -79,7 +79,7 @@
 }
 .id-best {
   --w: 301;
-  font-family: 'Courier New', 'Liberation Mono', Cousine, monospace;
+  font-family: 'Cousine', 'Courier New', 'Liberation Mono', monospace;
 }
 .id-paper table {
   width: 100%;
@@ -247,16 +247,16 @@
   gap: calc(4 * var(--p));
 }
 .id-paper .calibri {
-  font-family: Calibri, Carlito, 'Segoe UI', Arial, sans-serif;
+  font-family: 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif;
 }
 .id-paper .cambria {
-  font-family: Cambria, Caladea, 'Noto Serif', Georgia, serif;
+  font-family: 'Caladea', Cambria, 'Noto Serif', Georgia, serif;
 }
 .id-paper .comic {
-  font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', 'Comic Sans', cursive;
+  font-family: 'Comic Neue', 'Comic Sans MS', 'Chalkboard SE', cursive;
 }
 .id-paper .urdu {
-  font-family: Arial, 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  font-family: 'Noto Naskh Arabic', Arial, 'Segoe UI', Tahoma, sans-serif;
   direction: rtl;
 }
 .id-paper .thanks {

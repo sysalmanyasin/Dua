@@ -55,3 +55,77 @@
   font-display: swap;
   src: url('../vendor/fonts/inter-latin-800-normal.woff2') format('woff2');
 }
+
+/* Shared font library (Caladea, Carlito, Cousine, Comic Neue, Noto Naskh Arabic; all SIL OFL 1.1, see vendor/fonts/LICENSES.txt).
+   Metric-compatible stand-ins for Cambria, Calibri and Courier New, so a slip or a Workspace document looks the same on
+   every device. Registry for pickers: js/shared/fonts.js. */
+@font-face {
+  font-family: 'Caladea';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../vendor/fonts/caladea-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Caladea';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../vendor/fonts/caladea-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Carlito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../vendor/fonts/carlito-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Carlito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../vendor/fonts/carlito-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../vendor/fonts/cousine-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Cousine';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../vendor/fonts/cousine-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Comic Neue';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../vendor/fonts/comic-neue-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Comic Neue';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../vendor/fonts/comic-neue-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../vendor/fonts/noto-naskh-arabic-arabic-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Noto Naskh Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../vendor/fonts/noto-naskh-arabic-arabic-700-normal.woff2') format('woff2');
+}
