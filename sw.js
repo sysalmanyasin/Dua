@@ -393,6 +393,14 @@ const PRECACHE = [
   "js/shared/refresh.js",
   "js/shared/ui.js",
   "manifest.webmanifest",
+  "vendor/fonts/caladea-latin-400-normal.woff2",
+  "vendor/fonts/caladea-latin-700-normal.woff2",
+  "vendor/fonts/carlito-latin-400-normal.woff2",
+  "vendor/fonts/carlito-latin-700-normal.woff2",
+  "vendor/fonts/comic-neue-latin-400-normal.woff2",
+  "vendor/fonts/comic-neue-latin-700-normal.woff2",
+  "vendor/fonts/cousine-latin-400-normal.woff2",
+  "vendor/fonts/cousine-latin-700-normal.woff2",
   "vendor/fonts/ibm-plex-mono-latin-400-normal.woff2",
   "vendor/fonts/ibm-plex-mono-latin-500-normal.woff2",
   "vendor/fonts/ibm-plex-mono-latin-600-normal.woff2",
@@ -401,6 +409,8 @@ const PRECACHE = [
   "vendor/fonts/inter-latin-600-normal.woff2",
   "vendor/fonts/inter-latin-700-normal.woff2",
   "vendor/fonts/inter-latin-800-normal.woff2",
+  "vendor/fonts/noto-naskh-arabic-arabic-400-normal.woff2",
+  "vendor/fonts/noto-naskh-arabic-arabic-700-normal.woff2",
   "vendor/supabase-js-2.45.4.umd.js",
   "vendor/workspace/prosemirror-bundle-1.0.0.mjs"
 ];

@@ -23,12 +23,25 @@ function thermalPageRule(doc) {
   return null;
 }
 
+// The slip's bundled faces (css/fonts.css) load lazily; measuring before they arrive would size the page for the fallback fonts.
+const SLIP_FACES = ['Caladea', 'Carlito', 'Cousine', 'Comic Neue', 'Noto Naskh Arabic'];
+async function fontsReady(doc) {
+  if (!doc.fonts?.load) return;
+  try {
+    await Promise.all(SLIP_FACES.map((f) => doc.fonts.load(`700 16px "${f}"`, f === 'Noto Naskh Arabic' ? 'ابج' : 'Ab')));
+    await doc.fonts.ready;
+  } catch {
+    /* a font that cannot load falls back to the system one, so measure anyway */
+  }
+}
+
 /** Puts the slip into #print-root and sizes the print page to it. Returns the page height in mm and a function that undoes it all. */
-export function prepareThermalPrint(invoice, doc = document) {
+export async function prepareThermalPrint(invoice, doc = document) {
   const root = doc.getElementById('print-root') || doc.createElement('div');
   root.id = 'print-root';
   render(root, renderInvoice(invoice));
   if (!root.isConnected) doc.body.append(root);
+  await fontsReady(doc);
   root.classList.add('id-measuring');
   const heightMm = pageHeightMm(root.getBoundingClientRect().height);
   root.classList.remove('id-measuring');
@@ -41,8 +54,8 @@ export function prepareThermalPrint(invoice, doc = document) {
   return { heightMm, cleanup };
 }
 
-export function printInvoice(invoice, win = window) {
-  const { cleanup } = prepareThermalPrint(invoice, win.document);
+export async function printInvoice(invoice, win = window) {
+  const { cleanup } = await prepareThermalPrint(invoice, win.document);
   const done = () => {
     cleanup();
     win.removeEventListener('afterprint', done);
