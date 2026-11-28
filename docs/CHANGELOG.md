@@ -1,6 +1,12 @@
 # Changelog (everything built so far)
 
 Dates are 2026. Counts are as of the end of each step.
+## 28 Nov — Manager ledgers: verify ticks for checking entries against another record
+- Every live entry in a ledger (Jazz Cash, Expenses, Misc Sections) has a round **✓** button, to tick it off as you match it against your own record (for example the Jazz Cash app). A ticked entry turns green and dims, so what is still unchecked stands out. Strike-through is not used, because in a ledger it already means "reversed". A reversed entry and its reversal line have no tick (they cancel out).
+- A summary above the list reads "12 of 40 verified" with what the ticked entries add and reduce, to set against the other record's total. **Show unverified only** hides what is ticked (each entry leaves the list as it is ticked); **Clear ticks** removes the ticks on the entries shown, after asking.
+- Ticks are a checking aid kept **on this device only** (browser storage, per ledger). Nothing is written to the database and no ledger entry, balance or report changes. Another phone or computer starts with no ticks.
+- **Web:** `manager/domain/ledger.js` (`isTickable`, `tickSummary`), `manager/ui/ledgerPanel.js`, CSS in `css/manager.css`. Tests: 7 new in `manager-ledgers`. Not yet seen on the owner's screen.
+
 ## 28 Nov — Audit: Live progress popup shows the products, differences and Force Submit (migration `0420`)
 - The **Live progress** popup on Monthly Overview and Rounds & Progress now lists every product of the round **A to Z**, with what was counted, the system quantity, the difference and its value. Filters: **All**, **Differences**, **Counted**, **Not counted** (each with its count). Totals at the top add the number and value of differences.
 - **Force submit** is in the popup for each counter who has not submitted, for people with `audit.compile`: leave the rest uncounted, or mark them as matching the system (kept flagged as assumed), with a reason. The list behind it reloads afterwards.
