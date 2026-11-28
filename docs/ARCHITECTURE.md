@@ -14,7 +14,7 @@ Phone / shop PC (browser)
 Supabase project "DuaPharmaPlus"
   Postgres: tables + views + functions, row-level security on everything
   Auth:     owner (email + password + MFA), staff (hidden email + 4-digit PIN)
-  Edge Functions (7): staff-login · admin-users · sync-inventory-from-dropbox · notify-ntfy · notify-push · widget-today · attendance-event
+  Edge Functions (8): staff-login · admin-users · sync-inventory-from-dropbox · notify-ntfy · notify-push · widget-today · attendance-event · attendance-health
       ▲
 GitHub: repository → Actions (lint, tests, database tests, function type-checks); Pages publishes the site from `main` separately (not gated by Actions)
 Google: only when someone presses "Send via Gmail" (sign-in window + Gmail send)
@@ -65,4 +65,4 @@ Several features keep working through a dropped connection by saving to the phon
 There is **one** Supabase project today, used as staging and as the live site (`production` in `js/core/config.js` points at the same project, marked TEMPORARY). A separate production project is planned before launch.
 
 ## Continuous checks (GitHub Actions)
-`app` (lint, formatting, unit tests, secret scan, vendor hashes, workflow lint) · `database` (all migrations on an empty PostgreSQL 16, then the security tests) · `functions` (all 7 Edge Functions type-checked with Deno). Also `backup.yml` (daily encrypted backup) and `android-build.yml` (Android shell). **There is no deploy workflow:** GitHub Pages publishes from `main` through its built-in branch deployment, which starts in parallel with CI and is not gated by it (KI-4).
+`app` (lint, formatting, unit tests, secret scan, vendor hashes, workflow lint) · `database` (all migrations on an empty PostgreSQL 16, then the security tests) · `functions` (all 8 Edge Functions type-checked with Deno). Also `backup.yml` (daily encrypted backup) and `android-build.yml` (Android shell). **There is no deploy workflow:** GitHub Pages publishes from `main` through its built-in branch deployment, which starts in parallel with CI and is not gated by it (KI-4).

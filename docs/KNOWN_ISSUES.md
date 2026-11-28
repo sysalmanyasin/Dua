@@ -25,9 +25,9 @@ Each item says how it was established. "Reproduced" means I ran it; "Read" means
 
 - No browser end-to-end tests (Playwright) and no error monitoring (Sentry). Needs a non-production project.
 - No coverage measurement before this audit; `npm run test:coverage` now reports it without enforcing a threshold.
-- Edge Functions `sync-inventory-from-dropbox` and `notify-ntfy` have no handler tests; `notify-push` has only its secret gate tested, not delivery.
-- Database tests do not exist for these migrations (some may be exercised indirectly by later tests; this has not been traced): 0003, 0004, 0005, 0011, 0016, 0207, 0212, 0213, 0214, 0215, 0216, 0221, 0223, 0224, 0310, 0405, 0413, 0419, 0634, 1000. (0014, 0226, 0505, 1002 were added in Audit 0.)
-- Invoice Desk has domain tests only, no page tests and no end-to-end save/history/RLS test.
+- All 8 Edge Function handlers now have tests against fake clients. Not covered: a real Supabase Auth round trip, real Dropbox and ntfy, and Firebase delivery inside `notify-push` (only its secret gate is tested).
+- Migrations with no same-numbered database test, after Audit 0 follow-up: `0003` (replaced by `0004`, which is tested), `0005`, `0011`, `0016`, `0207`, `0213`, `0214`, `0215`, `0216`, `0221`, `0223`, `0224`, `0405`, `0413`, `0419`, `0634`, `0704`, `1206`. A trace of the objects each defines shows most are covered by name in later tests or only change data, cron or `search_path`. **Objects no test touches at all:** `closing_refresh_draft` (`0215`), `audit_alert_compiled` and `audit_alert_submitted` (`0413`), `audit_live_balances` (`0419`). Added by Audit 0: `0004`, `0014`, `0212` (also covers `0214` and `0216` book behaviour), `0226`, `0310`, `0505`, `1000`, `1002`.
+- Invoice Desk has domain tests and database tests (`1000`-`1003`) but no page tests and no browser end-to-end save/history test.
 - Tasks has 3 unit-test files for 7 routes.
 - Page tests mock the data layer, so they do not prove the RPC contracts.
 - Android: `AttendanceLogicTest` and the APK build run only in GitHub Actions; not run in the audit sandbox.

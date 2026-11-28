@@ -31,8 +31,26 @@ New tests: `supabase/tests/0999_global_exposure_test.sql`, `0014_...`, `0226_...
 | Check | Result |
 |---|---|
 | `npm run lint`, `format:check`, `check:secrets`, `check:vendor` | pass |
-| `npm run test:coverage` | pass: 202 files, 3,601 tests (197 files and 3,514 tests before Audit 0). Coverage: 87.6% statements, 86.6% branches, 88.1% functions, 87.6% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) |
+| `npm run test:coverage` | pass: 202 files, 3,601 tests (197 files and 3,514 tests before Audit 0). Coverage: 88.0% statements, 86.7% branches, 88.1% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) |
 | `bash supabase/tests/run.sh` | pass: 131 migrations, 119 test files, 3,268 `pass:` lines plus 843 `pass (refused)` lines, 0 FAIL/ERROR (3,209 `pass:` lines before Audit 0) |
 | `deno check` (7 functions), `actionlint`, `build:sw` | pass; `sw.js` unchanged |
 
 Per-module matrix: `docs/TEST_ACCEPTANCE_MATRIX.md`. Current totals are also in the Evidence section of `docs/PROJECT_STATUS.md`.
+
+## Follow-up (28 Nov 2026, `main` at `fb462f8`)
+
+The first Audit 0 branch was merged as PR #111. Other work then reached `main` (attendance health, closing summary, workspace entry, audit live progress, database-CI fixes), so the baseline was re-measured on the merged tip before more tests were added.
+
+**Re-measured on `main`:** 137 migrations, 8 Edge Functions (`attendance-health` is new), 15 modules. Local PostgreSQL 16: 141 public tables (0 without RLS, 31 with RLS and no policy), 437 routines, 372 SECURITY DEFINER (0 without a pinned `search_path`), 8 views, 80 permission keys. The same five functions remain executable by `anon` (KI-1); `0999` passes against all 137 migrations, so the three newest migrations introduced no new exposure.
+
+**What the first PR run taught:** CI failed on the PR because `main` had moved and `tests/unit/docs-consistency.test.js` compared my facts block with the merged repository. That is the guard working as designed; the facts block must be updated in any change that adds a migration, database test file, module or function.
+
+**Added in this follow-up (all mutation-checked; no application code, migration, workflow or existing test changed):**
+
+| Area | New |
+|---|---|
+| Edge handlers | `edge-attendance-health` (19), `edge-notify-ntfy` (19), `edge-sync-inventory` (23). All 8 handlers now have tests |
+| Database | `0004` (removed import helper stays gone), `0310` (deactivated products), `0212` (Closing book: `closing_book_own`, page JSON, previous page, saved list, grants), `1000` (Invoice Desk save and product save: idempotency, validation, totals, RLS) |
+| Docs | Facts, counts, cron list (10 jobs, `attendance-health-check` added), function count (8), test gaps and acceptance matrix updated |
+
+**Still open from the list:** database tests for `closing_refresh_draft` (`0215`), `audit_alert_compiled`/`audit_alert_submitted` (`0413`), `audit_live_balances` (`0419`); Invoice Desk page tests; browser end-to-end tests; live verification.

@@ -8,6 +8,10 @@ Dates are 2026. Counts are as of the end of each step.
 - **Database:** `0420_audit_round_live` adds `audit_round_live(p_round)` (read only; same gate as the compile overview, so a counter cannot see system quantities) and re-creates `audit_force_submit` with one addition: an Individual Audit compiles itself after a forced submit, like a normal submit (`0412`), so the round is not left open. Other rounds behave exactly as before. Test: `supabase/tests/0420_audit_round_live_test.sql` (27 checks).
 - **Web:** `audit/domain/roundLive.js`, `audit/ui/roundProgress.js` (rewritten), `audit/data/api.js` (`roundLive`), CSS in `css/audit.css`. Tests: `audit-round-progress` (rewritten) and `audit-round-live`.
 
+## 28 Nov — Audit 0 follow-up: handler tests for all 8 Edge Functions, more database tests, facts re-measured
+- New handler tests for `attendance-health`, `notify-ntfy`, `sync-inventory-from-dropbox` (all 8 Edge Functions now covered against fake clients). New database tests `0004`, `0310`, `0212` (Closing book), `1000` (Invoice Desk save). Each was mutation-checked.
+- Facts re-measured on `main` at `fb462f8` (137 migrations, 8 functions, 141 tables, 127 database test files); docs, runbook cron list and acceptance matrix updated. No application code, migration, workflow or existing test changed.
+
 ## 27 Nov — Audit 0: code and documentation reconciliation, test baseline
 - Documentation rewritten to match the code: `README.md`, `docs/PROJECT_STATUS.md` (replaced), `ARCHITECTURE`, `SECURITY_MODEL`, `DATABASE_DESIGN`, `TESTING`, `SETUP`, `RUNBOOK`, `ANDROID_ARCHITECTURE`, `ROADMAP` (header). New: `docs/KNOWN_ISSUES.md`, `docs/TEST_ACCEPTANCE_MATRIX.md`, `docs/AUDIT_0_BASELINE.md`. Older status documents carry a historical banner. `README.tmp` removed.
 - New tests (nothing existing changed or weakened): database `0999` (whole-schema exposure), `0014`, `0226`, `0505`, `1002`; handler tests for `staff-login`, `admin-users`, `attendance-event`, `widget-today` and the `notify-push` secret gate; `docs-consistency`; a known-defect marker for KI-2. New `npm run test:coverage` (measured, not enforced).

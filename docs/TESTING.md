@@ -1,6 +1,6 @@
 # Testing and verification
 
-**Baseline:** 27 Nov 2026, commit `07e87e4` plus the Audit 0 branch. Commands, results and limits: `docs/AUDIT_0_BASELINE.md`. Per-module matrix: `docs/TEST_ACCEPTANCE_MATRIX.md`. Older module-session counts (1,267, 1,562, 1,891, 1,933, 2,434 and so on) are history and must not be added together or compared with today's totals.
+**Baseline:** 28 Nov 2026, `main` at `fb462f8` plus the Audit 0 follow-up branch (first baseline 27 Nov, commit `07e87e4`). Commands, results and limits: `docs/AUDIT_0_BASELINE.md`. Per-module matrix: `docs/TEST_ACCEPTANCE_MATRIX.md`. Older module-session counts (1,267, 1,562, 1,891, 1,933, 2,434 and so on) are history and must not be added together or compared with today's totals.
 
 ## Current baseline (reproducible)
 
@@ -8,14 +8,14 @@
 |---|---|---|
 | Lint | `npm run lint` | pass |
 | Formatting | `npm run format:check` | pass (`.md`, `.ts`, `.sql`, `android-app/` are excluded by `.prettierignore`) |
-| Unit and page tests | `npm test` | pass: 202 files, 3,601 tests (197 files and 3,514 tests before Audit 0); no `.skip`, `.only` or `.todo` |
-| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 131 migrations applied to an empty database, 119 test files, 3,268 `pass:` lines plus 843 `pass (refused)` lines, 0 FAIL/ERROR (3,209 `pass:` lines before Audit 0) |
-| Edge Function types | `deno check --no-lock <fn>/index.ts` for all 7 | pass |
-| Edge Function handlers | `tests/unit/edge-*.test.js` | `staff-login`, `admin-users`, `attendance-event`, `widget-today`, `notify-push` secret gate. Not covered: `sync-inventory-from-dropbox`, `notify-ntfy`, `notify-push` delivery |
+| Unit and page tests | `npm test` | pass: 208 files, 3,735 tests (197 files and 3,514 tests at the first baseline); no `.skip`, `.only` or `.todo` |
+| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 137 migrations applied to an empty database, 127 test files, 3,426 `pass:` lines and 1,228 refusal checks (`pass (...)`), 0 FAIL/ERROR |
+| Edge Function types | `deno check --no-lock <fn>/index.ts` for all 8 | pass |
+| Edge Function handlers | `tests/unit/edge-*.test.js` | All 8 handlers, against fake Supabase, Dropbox and ntfy clients. Not covered: real Auth, real Dropbox/ntfy, Firebase delivery in `notify-push` |
 | Workflow lint | `actionlint` | pass |
 | Secrets and vendor | `npm run check:secrets`, `npm run check:vendor` | pass |
 | Service-worker precache | `npm run build:sw` | no drift |
-| Coverage | `npm run test:coverage` | 87.6% statements, 86.6% branches, 88.1% functions, 87.6% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) (measured, not enforced) |
+| Coverage | `npm run test:coverage` | 88.0% statements, 86.7% branches, 88.1% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) (measured, not enforced) |
 | Android | `node android-app/scripts/check-shell.mjs` | pass. Gradle unit test and APK build run only in GitHub Actions |
 
 A passing jsdom or local PostgreSQL test proves only its own scope. It does not prove real-device behaviour, Google integration, a production restore, the live database's state, or any owner workflow.
@@ -28,8 +28,8 @@ A passing jsdom or local PostgreSQL test proves only its own scope. It does not 
 | Front-end unit and page tests | `npm test`; `tests/unit/` | Domain calculations, parsing, permission registry, page interactions in jsdom, save/retry/conflict, view-only states, print/copy and Gmail dialogs |
 | Repository checks | `npm run lint`, `npm run format:check`, `npm run check:secrets`, `npm run check:vendor` | Style, unsafe DOM patterns, secret leakage and vendored-file hashes |
 | Combined repository verification | `npm run verify` | Runs the repository's configured app checks |
-| Database tests | `bash supabase/tests/run.sh` | Rebuilds a clean local PostgreSQL database from repository migrations, then checks RLS, grants, permissions, validation, idempotency, immutable records and module-specific rules |
-| Edge Function checks | CI Deno checks in `.github/workflows/ci.yml` (all 7 functions) and handler tests `tests/unit/edge-*.test.js` | Types; for five functions the handler's real code path against fake Supabase clients (`tests/helpers/edgeHarness.js`) |
+| Database tests | `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 137 migrations applied to an empty database, 127 test files, 3,426 `pass:` lines and 1,228 refusal checks (`pass (...)`), 0 FAIL/ERROR |
+| Edge Function checks | CI Deno checks in `.github/workflows/ci.yml` (all 8 functions) and handler tests `tests/unit/edge-*.test.js` | Types; for every function the handler's real code path against fake clients (`tests/helpers/edgeHarness.js`) |
 | Whole-database invariants | `supabase/tests/0999_global_exposure_test.sql` | Every public table has RLS; every SECURITY DEFINER function pins `search_path`; the visitor role runs no function outside a documented list (KI-1) |
 | Workflow lint | CI actionlint step | Checks GitHub Actions workflow syntax |
 
@@ -82,7 +82,7 @@ These statements come from module progress records. Before production changes, q
 - Emergency Billing real-device and real-printer acceptance (owner checklist in `docs/modules/ebill-phase6.md` section 3) and live granting of `ebill.*` rights.
 - Workspace Notes real-phone and two-account acceptance: accepted by the owner after live testing (21 Nov 2026, reported in chat). Automated tests remain jsdom only.
 - Playwright browser end-to-end automation and Sentry production monitoring.
-- Handler tests for `sync-inventory-from-dropbox` and `notify-ntfy`; database tests for the migrations listed in `docs/KNOWN_ISSUES.md`; Invoice Desk page tests.
+- Database tests for the migrations listed in `docs/KNOWN_ISSUES.md` (`0215`, `0413`, `0419` have objects no test touches); Invoice Desk page tests; real-service handler tests.
 - PostgreSQL 17 (the live version per older documents); the suite runs on 16 (KI-7).
 
 A passing jsdom or local PostgreSQL test proves only its test scope. It does not prove real-device usability, Google integration, production restore, or every live permission path.

@@ -1,6 +1,6 @@
 # Database design and schema reference
 
-> **Re-measured on 27 Nov 2026 (Audit 0)** from a database built by applying all 131 migrations to an empty PostgreSQL 16: 140 public tables (all with RLS), 430 routines (365 SECURITY DEFINER, all with a pinned `search_path`), 8 views (all `security_invoker`), 80 permission keys. Migration files use ranges per module (see `docs/MODULES.md` section 5.1, enforced by `tests/unit/migration-ranges.test.js`); `0015` and `0017` are on `main`. **Live-project figures in older text below (124 tables, 341 routines, 93 registry rows, PostgreSQL 17.11) are recorded from earlier sessions, pre-date later migrations and were not re-checked.** The table catalogue further down is the original core/sales schema, not the full schema; regenerate a full catalogue from a migrated database when needed.
+> **Re-measured on 28 Nov 2026 (Audit 0 follow-up)** from a database built by applying all 137 migrations to an empty PostgreSQL 16: 141 public tables (all with RLS), 437 routines (372 SECURITY DEFINER, all with a pinned `search_path`), 8 views (all `security_invoker`), 80 permission keys. Migration files use ranges per module (see `docs/MODULES.md` section 5.1, enforced by `tests/unit/migration-ranges.test.js`); `0015` and `0017` are on `main`. **Live-project figures in older text below (124 tables, 341 routines, 93 registry rows, PostgreSQL 17.11) are recorded from earlier sessions, pre-date later migrations and were not re-checked.** The table catalogue further down is the original core/sales schema, not the full schema; regenerate a full catalogue from a migrated database when needed.
 
 PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). This document is generated from the real schema at the time of writing and replaces the Phase 1 plan; the original plan is kept at the end for reference.
 
@@ -12,7 +12,7 @@ PostgreSQL on Supabase, project **DuaPharmaPlus** (Mumbai region, free plan). Th
 5. **Retried saves are safe:** a client-made idempotency key means a day is saved once.
 6. **Admins must be at MFA level 2** for any permission to count (enforced in `has_perm`).
 
-## Original core and sales tables (33 at the time; the schema now has 140 public tables, all with RLS)
+## Original core and sales tables (33 at the time; the schema now has 141 public tables, all with RLS)
 | Table | Columns | Purpose |
 |---|---|---|
 | `access_requests` | 8 | Old sign-up requests (history only; self sign-up removed, D-49) |

@@ -1,6 +1,6 @@
 # Security Model (as built)
 
-> **Re-verified on 27 Nov 2026 (Audit 0).** Checked on a locally migrated PostgreSQL 16 database built from all 131 migrations: 140 public tables, all with RLS (30 have no policy, so they are closed to browsers); 365 SECURITY DEFINER functions, none without a pinned `search_path`; 8 views, all `security_invoker`; no grant to `anon` on any table, view or sequence; **five non-definer functions are executable by `anon` (KI-1, low severity)**. These are guarded by `supabase/tests/0999_global_exposure_test.sql`. **Statements about the live project below (counts, advisor findings, applied migrations) are recorded from earlier sessions and were not re-checked.** The 22 Nov live figures (124 tables, 283 definer functions) pre-date later migrations and are not comparable with the local count.
+> **Re-verified on 28 Nov 2026 (Audit 0 follow-up, `main` at `fb462f8`).** Checked on a locally migrated PostgreSQL 16 database built from all 137 migrations: 141 public tables, all with RLS (31 have no policy, so they are closed to browsers); 372 SECURITY DEFINER functions, none without a pinned `search_path`; 8 views, all `security_invoker`; no grant to `anon` on any table, view or sequence; **five non-definer functions are executable by `anon` (KI-1, low severity)**. These are guarded by `supabase/tests/0999_global_exposure_test.sql`. **Statements about the live project below (counts, advisor findings, applied migrations) are recorded from earlier sessions and were not re-checked.** The 22 Nov live figures (124 tables, 283 definer functions) pre-date later migrations and are not comparable with the local count. The handler tests for all 8 Edge Functions are in `tests/unit/edge-*.test.js`.
 
 
 
@@ -50,7 +50,7 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 | Separate production project | Not yet; staging and live share one project (`js/core/config.js:3-7`, KI-3). |
 | Deployment is not gated by CI | GitHub Pages publishes from `main` on its own, in parallel with CI (KI-4). Branch protection not verified. |
 | Functions callable by the visitor role | Five low-risk functions (KI-1); allow-listed and guarded by `0999`. |
-| Edge Function auth surface | `supabase/config.toml` sets `verify_jwt = false` for six functions; each checks its own credential (PIN lockout, `users.manage`, shared secret or per-device secret). `notify-ntfy` is not listed there. Handler tests cover five of the seven. |
+| Edge Function auth surface | `supabase/config.toml` sets `verify_jwt = false` for the functions listed there; each checks its own credential (PIN lockout, `users.manage`, shared secret or per-device secret). `notify-ntfy` is not listed there. Handler tests cover all eight. |
 | Error monitoring (Sentry) | Not yet. |
 | End-to-end browser tests (Playwright) | Not yet; checked in a simulated browser and by the owner by hand. |
 | Real-device and real-Google verification of the newest pages | Owner try-out pending. |
