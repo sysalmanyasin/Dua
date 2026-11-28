@@ -23,6 +23,11 @@ Dates are 2026. Counts are as of the end of each step.
 ## 26 Nov — Audit tab chips about 60% of their old size
 - The two rows of tabs on the Audit pages (Overview / Team Audit / Individual Audit / Tools, and the screens under them such as Monthly Overview, Rounds & Progress, Review) were tall and wide. Height, side padding and text are now about 60% of before (tabs 44 px to 26 px, screens 40 px to 24 px). CSS only (`css/audit.css`). Not yet seen on the owner's phone.
 
+## 28 Nov — Phase 6 is live; two registry rows renamed
+- Migration `1404` was applied by hand on the live database (the Supabase integration could not run: the registry held `1205` and `1206` under timestamp versions `20261127122600` and `20261127122609` while `main` had no such files yet). Registered as `1404`; the 15-minute schedule `attendance-health-check` is running (37 successful runs by the time of checking).
+- Edge Function `attendance-health` deployed (v1, `verify_jwt` off, same code as `main`). Not called from outside (the sandbox cannot reach supabase.co); the database side was checked with a refused unknown-device call.
+- Registry: after PRs #112 and #114 put `1205` and `1206` into `main`, the two rows were renamed to `1205` and `1206` (version only; names and SQL untouched, procedure as in `docs/ops/f7-registry-reconciliation.md`). Backup first: `supabase_migrations.schema_migrations_backup_20261128` (137 rows). Result: 137 rows, every file has a row, no timestamp versions.
+
 ## 27 Nov — Automatic attendance, Phase 6: tracking can't be switched off silently (staff are not blocked)
 - Decision: staff keep using Dua as normal; no block screen. There is no opt-out tick (the owner's switch applies to everyone with the check-in right). Phase 6 makes sure the owner always knows when tracking is off.
 - **Phone (needs a new APK).** Every 15 minutes the phone reports its own tracking state (which problem, how many events are waiting; no location) to a new Edge Function `attendance-health` with its device key.

@@ -92,3 +92,6 @@ Only registry metadata is changed, so there is no business data to restore.
 
 ## After it is done
 Update `docs/RUNBOOK.md` §4, `docs/ROADMAP.md` item 1 and `docs/PROJECT_STATUS.md` to say the registry is in step, and keep running `tools/check-registry.mjs` before each migration batch.
+
+## Addendum, 28 Nov 2026: `1205` and `1206`
+Two more rows had timestamp versions (`20261127122600` `1205_owner_only_permissions_guard`, `20261127122609` `1206_task_notice_owner_only_and_cleanup`), because they were registered by a tool while their files were still on an unmerged branch. This blocked the Supabase integration ("Remote migration versions not found in local migrations directory"), so `1404` could not be applied automatically. Once PRs #112 and #114 had put the files into `main`, the same procedure was run for just these two rows: backup table `supabase_migrations.schema_migrations_backup_20261128` (137 rows), then `update ... set version = '1205'` / `'1206'` (names unchanged). Lesson: never register a migration whose file is not yet in `main`; merge the file first, then apply by hand and register it under its four-digit number.
