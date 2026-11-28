@@ -6,18 +6,18 @@ Goal: iPhone employees get automatic check-in and check-out through ready-made A
 
 Everything said about Apple Shortcuts below comes from knowledge of iOS, not from a test. Section 11 is the on-phone test (the "spike") that must pass before anything is built on those assumptions.
 
-## 0. Decisions needed before Phase 2 (defaults are what this design assumes)
+## 0. Decisions (answered by the owner on 28 Nov 2026)
 
-| # | Decision | Default used in this design |
+| # | Decision | Answer |
 |---|---|---|
-| D1 | **Accept the weaker iPhone security tier** (section 3): the employee's own phone holds the secret and the location comes from their own shortcut, so a determined employee can fake it. Mitigated by a rolling secret, one-time enrolment, revocation and alerts. | Needs your explicit yes. Without it, Phase 2 does not start. |
-| D2 | iPhone geometry (section 5): "arrived" accepted within site radius + 100 m; "left" accepted when at least 50 m from the place. | 100 m and 50 m, owner-adjustable. Confirmed or changed by the spike. |
-| D3 | One active personal attendance device per employee **across platforms**. Enrolling an iPhone retires the person's Android attendance key (and the reverse is refused until the iPhone is revoked). | Yes, across platforms. |
-| D4 | Who may enrol: `attendance.manage` plus the owner's authenticator code (the existing rule for every Manager owner function). | Yes. |
-| D5 | Vendor a small QR generator (about 14 KB, MIT). The repo has a QR reader but no generator. | Yes (`qrcode-generator`, exact version pinned, listed in `vendor/README.md`). |
-| D6 | Accuracy: if a shortcut cannot report accuracy, accept an "arrived" only when inside the plain site radius (no margin). | Yes. Decided by the spike. |
+| D1 | **Accept the weaker iPhone security tier** (section 3): the employee's own phone holds the secret and the location comes from their own shortcut, so a determined employee can fake it. Mitigated by a rolling secret, one-time enrolment, revocation and alerts. | **Yes**, accepted for iPhone. |
+| D2 | iPhone geometry (section 5): "arrived" accepted within site radius + 100 m; "left" accepted when at least 50 m from the place. | **Yes**: 100 m and 50 m, owner-adjustable (confirmed or changed by the spike). |
+| D3 | One active personal attendance device per employee **across platforms**. Enrolling an iPhone retires the person's Android attendance key (and the reverse is refused until the iPhone is revoked). | **Yes**, across platforms. |
+| D4 | Who may enrol: `attendance.manage` plus the owner's authenticator code (the existing rule for every Manager owner function). | **Yes**; the owner and the manager are the same person. |
+| D5 | Vendor a small QR generator (about 14 KB, MIT). The repo has a QR reader but no generator. | **Yes** (`qrcode-generator`, exact version pinned, listed in `vendor/README.md`), added in Phase 3. |
+| D6 | Accuracy: if a shortcut cannot report accuracy, accept an "arrived" only when inside the plain site radius (no margin). | Yes. Confirmed by the spike. |
 
-Also needed from you: **how many iPhone employees, which iOS versions, and a person with an iPhone and (for Phase 4) an Apple device that can build and share the shortcuts**. A shortcut file must be created and signed on an Apple device. I can write the exact action list; I cannot produce an importable file from here.
+Answered: **5 to 6 employees, iPhone 11 or newer** (so a current iOS version). Still needed: **a person with an iPhone for the spike, and (for Phase 4) an Apple device that can build and share the shortcuts**. A shortcut file must be created and signed on an Apple device. I can write the exact action list; I cannot produce an importable file from here.
 
 ## 1. Principles
 
@@ -33,12 +33,12 @@ Also needed from you: **how many iPhone employees, which iOS versions, and a per
 
 `staff` (20 rows) → `profiles` (`staff_id`, `user_id`) → `app_devices` (`user_id`, `platform`, `attendance_secret_hash`). The event function finds the device by id and secret hash, takes `user_id`, then `profiles.staff_id`, and checks `attendance.check_in` on every event. `app_devices.user_id` is `NOT NULL` and references `auth.users`, so **every iPhone employee needs a Dua login first** (10 of 20 staff have none today; the owner creates them in Users & Access with the existing `create_login`). No role preset carries `attendance.check_in`; it is granted per person.
 
-### 2.2 Migration `1405_app_ios_attendance` (app range, after 1404)
+### 2.2 Migration `1406_app_ios_attendance` (app range, after 1405)
 
 Changes to `app_devices`:
 
 - `platform` check becomes `('android', 'ios_shortcuts')`.
-- New columns: `device_name`, `enrolled_by`, `enrolled_at`, `revoked_at`, `revoked_by`, `revoked_reason`, `attendance_next_hash` (rolling secret, 3.2), `test_ok_at`, `test_result`, `confirmed_at`, `first_event_at`, `last_event_at`, `stale_secret_count`, `stale_secret_at`.
+- New columns: `device_name`, `enrolled_by`, `enrolled_at`, `revoked_at`, `revoked_by`, `revoked_reason`, `attendance_next_hashes` (rolling secrets not yet used, 3.2), `test_ok_at`, `test_result`, `confirmed_at`, `first_event_at`, `last_event_at`, `stale_secret_count`, `stale_secret_at`.
 - Partial unique index: at most one **active** `ios_shortcuts` device per user (`attendance_secret_hash is not null`).
 
 New table `app_device_enrolments` (no client grants, row-level security on):
@@ -46,7 +46,7 @@ New table `app_device_enrolments` (no client grants, row-level security on):
 | Column | Meaning |
 |---|---|
 | `id`, `staff_id`, `user_id` | who the token is for (chosen by the administrator) |
-| `token_hash` | SHA-256 of a 256-bit random token; the token itself is never stored |
+| `token_hash` | SHA-256 of a random token (about 240 bits, made by the database); the token itself is never stored |
 | `created_by`, `created_at`, `expires_at` | the administrator; lifetime **15 minutes** |
 | `used_at`, `device_id` | set once, atomically, when exchanged |
 | `cancelled_at`, `cancel_reason` | set when cancelled, replaced by a newer token, or the person loses the right |
@@ -59,11 +59,11 @@ Creating a new token for a person cancels their earlier open one. A used, expire
 
 | Function | Who | Purpose |
 |---|---|---|
-| `app_ios_enrol_create(p_staff, p_reason, p_key)` | `attendance.manage`, MFA | Makes a token (returned once). Refuses a person with no login, a disabled login, or no `attendance.check_in`. Idempotent by key; logged. |
-| `app_ios_enrol_cancel(p_enrolment, p_reason, p_key)` | `attendance.manage` | Cancels an open token. |
+| `mgmt_attendance_ios_enrol_create(p_staff, p_replace, p_reason, p_key)` | `attendance.manage`, MFA | Makes a token (returned once, never stored; a repeat of the same request returns no token). Refuses a person with no login, a disabled login, no `attendance.check_in`, or an active iPhone already (unless `p_replace`, which revokes it first). Idempotent by key; logged. |
+| `mgmt_attendance_ios_enrol_cancel(p_enrolment, p_reason, p_key)` | `attendance.manage` | Cancels an open token. |
 | `app_ios_enrol_peek(p_token_hash)` | service role | Returns the first name only, so the shortcut can ask "Set up for Ayesha? Yes/No" before anything is consumed (prevents scanning the wrong QR on the wrong phone). |
 | `app_ios_enrol_consume(p_token_hash, p_device_name)` | service role | Atomically marks the token used, creates the device (server-made id), retires the person's previous attendance key (any platform), returns `{device_id, secret}` once. |
-| `app_attendance_device_revoke(p_device, p_reason, p_key)` | `attendance.manage` | Clears both hashes, sets `revoked_*`. The next event gets 401 and the shortcut stops. |
+| `mgmt_attendance_device_revoke(p_device, p_reason, p_key)` | `attendance.manage` | Clears both hashes, sets `revoked_*`. The next event gets 401 and the shortcut stops. |
 | `app_attendance_ios_signal(...)` | service role | Handles `test` and `confirm` (4.4). Records nothing in attendance. |
 | `mgmt_attendance_phones()` / `mgmt_attendance_device_journal(p_device, p_limit)` | `attendance.view_all` | Admin lists (section 6). |
 
@@ -81,12 +81,12 @@ Shortcuts has no Keychain access. In an unattended run it can read data stored i
 
 ### 3.2 Chosen scheme (needs D1): one-time token, device secret, rolling
 
-1. **Enrolment token** (256-bit, 15 minutes, single use): exists only in the QR/link and on the administrator's screen. Exchanged for the device secret by the setup shortcut. It is carried in the URL **fragment** (`#t=…`), which browsers never send to a server, so it is not in any server log.
-2. **Device secret** (256-bit, hash only on the server): saved by the setup shortcut to a file in the Shortcuts folder on the phone (local storage if the spike shows that works; iCloud Drive only if it does not, which also copies it to the person's other Apple devices).
-3. **Rolling:** the server keeps `attendance_secret_hash` (current) and `attendance_next_hash`.
-   - A request that uses the **current** secret is answered normally and the server mints a **new** next secret (overwriting any unused one), returned as `next_secret` in the response.
-   - A request that uses the **next** secret promotes it to current (the old one stops working).
-   - The shortcut saves `next_secret` before doing anything else. If a response is lost, the device still holds the current secret, which still works, and the server simply mints another next. A legitimate phone therefore never gets locked out by a failed save.
+1. **Enrolment token** (about 240-bit, 15 minutes, single use): exists only in the QR/link and on the administrator's screen. Exchanged for the device secret by the setup shortcut. It is carried in the URL **fragment** (`#t=…`), which browsers never send to a server, so it is not in any server log.
+2. **Device secret** (about 240-bit, hash only on the server): saved by the setup shortcut to a file in the Shortcuts folder on the phone (local storage if the spike shows that works; iCloud Drive only if it does not, which also copies it to the person's other Apple devices).
+3. **Rolling:** the server keeps `attendance_secret_hash` (current) and `attendance_next_hashes` (up to three secrets issued to the phone and not used yet).
+   - A request that uses the **current** secret is answered normally and the server mints a **new** next secret, added to the unused ones (the three newest are kept), returned as `next_secret` in the response.
+   - A request that uses **any unused** secret promotes it to current (the old one and the other unused ones stop working).
+   - The shortcut saves `next_secret` before doing anything else. If a response is lost, the device still holds the current secret, which still works, and the server simply mints another next. Keeping up to three unused secrets also means two runs at the same moment (Arrive and Leave close together) can save their answers in either order without locking the phone out. A legitimate phone therefore never gets locked out by a failed or reordered save.
    - A request with a secret that is **neither** is the sign of a copy (or a restored old backup): it gets the same 401 as any wrong secret, is counted (`stale_secret_count`), and the owner gets one alert per day ("a phone's key was refused"). The administrator re-enrols or revokes.
 4. The secret works for one purpose only, and the person's right to check in is checked on every request (a revoked person gets nothing).
 
@@ -152,7 +152,7 @@ Differences for `ios_shortcuts` (parameters in `mgmt_attendance_config`, owner-a
 | accuracy | required | optional (D6); unknown accuracy: "in" only inside the plain radius | the shortcut may not provide it |
 | fresh-fix retries, 2-minute stability | phone does it | not possible | iOS runs the shortcut once |
 
-Request fields: as Android (`device_id`, `secret`, `event_id`, `kind`, `at` epoch ms, `latitude`, `longitude`, `accuracy`) plus `kind` may also be `test` or `confirm`. The parser accepts a null accuracy; the database still rejects it for an Android device, so Android behaviour is unchanged. The response adds `next_secret` when the secret rolled.
+Request fields: as Android (`device_id`, `secret`, `event_id`, `kind`, `at` epoch ms, `latitude`, `longitude`, `accuracy`) plus `kind` may also be `test` or `confirm`. An Android event is read exactly as before. For everything else the reader is forgiving about HOW a value is written, never about WHAT is allowed (same ranges; the database checks again): numbers may arrive as text, `at` may be epoch milliseconds, epoch seconds or an ISO-8601 time that names its zone (a time with no zone is refused), accuracy may be missing (the database still rejects a missing accuracy for an Android device, so Android behaviour is unchanged), and `mock` is never read from it. No employee id is read from any request. The response adds `next_secret` when the secret rolled.
 
 Event id: must be a UUID. If the shortcut cannot generate one (spike S3), the parser will accept 32 hex characters and normalise it; the unique index is unchanged.
 
@@ -230,21 +230,31 @@ One person, one iPhone, about 30 minutes, using a throwaway shortcut and a publi
 | S7 | Run time after crossing the region boundary: seconds or minutes? Distance from the place when it fires (walk out and in at 100 m, 200 m, 300 m automation sizes) | D2 |
 | S8 | `shortcuts://run-shortcut?...&text=` hand-off from Safari: does the shortcut receive the text? | enrolment |
 | S9 | Notifications from an unattended run: shown? silent? | messages |
+| S10 | What can the shortcut produce for the time: epoch seconds, epoch milliseconds or an ISO date with the time zone? (Any one works.) And does *Get Contents of URL* send a number as a number or as text? (Either works.) | event time |
 
 Decision after the spike: all pass → build as designed. S4 fails → ask for a decision on the fallback (3.4). S1 or S2 fail → the shortcut route is not reliable enough; present the native-app alternative.
+
+## 11a. Phase 2 as built (28 Nov 2026, pull request, not applied, not deployed)
+
+- Migration `1406_app_ios_attendance.sql` and its test `1406_app_ios_attendance_test.sql`; the Android tests for `1403` and `1404` pass unchanged, and `0199` lists the six new owner functions.
+- Owner functions are named `mgmt_attendance_*` (same family as `mgmt_attendance_auto_set`): `ios_enrol_create`, `ios_enrol_cancel`, `device_revoke`, `ios_set`, `phones`, `device_journal`. The phone-side functions stay `app_*` and service-role only: `app_ios_enrol_peek`, `app_ios_enrol_consume`, `app_attendance_ios_signal`, plus the internal `app_attendance_device_auth` (shared by Android and iPhone; callable by nobody).
+- Edge Functions: new `attendance-enrol` (peek / consume); `attendance-event` also carries `test` and `confirm` and the rolling `next_secret`.
+- Deviations from sections 2 to 5: up to three unused rolling secrets instead of one (so two runs at the same moment cannot lock a phone out); codes and secrets are about 240 bits (two random UUIDs, the same method as the existing widget and Android secrets); a code that is made again with the same request key returns no code, so nothing that can be read back ever holds one.
+- Two more alert kinds: `attendance.key_refused` (a secret that is neither the current nor an issued one; once a day per phone) and `attendance.ios_rejects` (three or more refused iPhone events for one person in a day). Both carry a date only.
+- Applying it is a separate step that needs the owner's word (see `docs/ops/f7-registry-reconciliation.md`: apply by hand, then register `1406`).
 
 ## 12. Implementation plan
 
 | Phase | Work | Files (new unless marked "changed") |
 |---|---|---|
-| **2 Supabase** (needs D1–D4, spike) | migration 1405, `attendance-enrol` function, extend `attendance-event` and `_shared/attendance.ts` (kinds, optional accuracy, 32-hex event id if needed), config and CI lists, new alert wording | `supabase/migrations/1405_app_ios_attendance.sql`, `supabase/functions/attendance-enrol/index.ts`, `supabase/functions/attendance-event/index.ts` (changed), `supabase/functions/_shared/attendance.ts` (changed), `supabase/config.toml` (changed), `.github/workflows/ci.yml` (changed), `supabase/functions/_shared/ntfy.ts`, `fcm.ts` (changed), `js/shared/alerts.js` (changed), tests `supabase/tests/1405_app_ios_attendance_test.sql`, `0199_mgmt_exposure_test.sql` (changed), `tests/unit/fcm.test.js` (changed) |
+| **2 Supabase** (needs D1–D4, spike) | migration 1406, `attendance-enrol` function, extend `attendance-event` and `_shared/attendance.ts` (kinds, optional accuracy, 32-hex event id if needed), config and CI lists, new alert wording | `supabase/migrations/1406_app_ios_attendance.sql`, `supabase/functions/attendance-enrol/index.ts`, `supabase/functions/attendance-event/index.ts` (changed), `supabase/functions/_shared/attendance.ts` (changed), `supabase/config.toml` (changed), `.github/workflows/ci.yml` (changed), `supabase/functions/_shared/ntfy.ts`, `fcm.ts` (changed), `js/shared/alerts.js` (changed), tests `supabase/tests/1406_app_ios_attendance_test.sql`, `0199_mgmt_exposure_test.sql` (changed), `tests/unit/fcm.test.js` (changed) |
 | **3 Admin UI** | iPhone card, QR (vendored generator), device list, revoke/replace, journal, incomplete list, platform-aware owner health | `js/modules/manager/ui/attendance.js`, `data/attendanceApi.js`, `domain/attendance.js` (all changed), `css/manager.css` (changed), `vendor/qrcode-generator-<version>.js` + `vendor/README.md` (changed), tests |
 | **4 Shortcuts and setup page** (needs an Apple device) | `enrol.html` + script + styles, three shortcut specs and iCloud links, screenshots, employee guide | `enrol.html`, `js/enrol.js` (or inline-free script), `css/enrol.css`, `sw.js` list (via `tools/sw-precache.mjs`), `docs/ios/*` |
 | **5 Android compatibility** | regression tests only; code changes only if a test finds one | tests |
 | **6 Tests on real devices** | iPhone test script and Android regression on the same events table | `docs/IPHONE_ATTENDANCE_TESTS.md` |
 | **7 Documentation** | administrator guide, employee iPhone guide, Android guide, troubleshooting, limitations, final diagram | `docs/` |
 
-Each phase is a separate pull request with its own tests. Migration `1405` is applied by hand and registered (as for `1403` and `1404`) only after the pull request is merged and the owner says so. Nothing is deployed without approval.
+Each phase is a separate pull request with its own tests. Migration `1406` is applied by hand and registered (as for `1403` and `1404`) only after the pull request is merged and the owner says so. Nothing is deployed without approval.
 
 ## 13. Limitations to document for administrators and employees
 

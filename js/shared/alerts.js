@@ -8,6 +8,8 @@ const TEXT = {
   'attendance.rejected': 'A check-in attempt was refused',
   'attendance.tracking_off': 'A staff phone stopped tracking',
   'attendance.checkout_missed': 'A check-out is missing',
+  'attendance.key_refused': 'An iPhone attendance key was refused',
+  'attendance.ios_rejects': "An iPhone's check-ins were refused several times",
   'inventory.sync_stale': 'The inventory feed is late',
   'inventory.sync_failed': 'The inventory sync failed',
   'backup.failed': 'The daily backup failed',

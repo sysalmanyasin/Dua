@@ -80,7 +80,8 @@ describe('attendance-event handler', () => {
     ['a latitude beyond 90', { latitude: 91 }],
     ['a longitude beyond 180', { longitude: -181 }],
     ['a negative accuracy', { accuracy: -1 }],
-    ['a string coordinate', { latitude: '33.5' }],
+    ['a coordinate that is not a number', { latitude: 'north' }],
+    ['a coordinate with a comma', { latitude: '33,5' }],
     ['a non-hex secret', { secret: 'z'.repeat(64) }],
     ['a bad event id', { event_id: '123' }],
   ])('refuses %s with 400 and never calls the database', async (_n, patch) => {
@@ -112,6 +113,61 @@ describe('attendance-event handler', () => {
     expect(args.p_at).toBe(new Date(1_800_000_000_000).toISOString());
     expect(JSON.stringify(rpc.mock.calls)).not.toContain(SECRET);
   });
+  it('accepts numbers written as text, which an Apple Shortcut often sends, and a missing accuracy (iPhone)', async () => {
+    const { handler, rpc } = await setup();
+    const { accuracy, ...without } = body;
+    expect(accuracy).toBe(12);
+    const res = await handler(post({ ...without, latitude: '33.5', longitude: ' 73.1', at: '1800000000' }));
+    expect(res.status).toBe(200);
+    expect(rpc.mock.calls[0][0]).toBe('app_attendance_event');
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_lat: 33.5, p_lng: 73.1, p_accuracy: null, p_mock: false });
+    expect(rpc.mock.calls[0][1].p_at).toBe(new Date(1_800_000_000_000).toISOString());
+  });
+  it("sends the setup shortcut's test and confirmation to the iPhone signal function, never to the event function", async () => {
+    const { handler, rpc } = await setup();
+    await handler(post({ device_id: DEVICE, secret: SECRET, kind: 'test', latitude: 33.5, longitude: 73.1, accuracy: 20 }));
+    await handler(post({ device_id: DEVICE, secret: SECRET, kind: 'confirm' }));
+    expect(rpc.mock.calls.map((c) => c[0])).toEqual(['app_attendance_ios_signal', 'app_attendance_ios_signal']);
+    expect(rpc.mock.calls[0][1]).toEqual({
+      p_device_id: DEVICE,
+      p_secret_hash: sha(SECRET),
+      p_kind: 'test',
+      p_lat: 33.5,
+      p_lng: 73.1,
+      p_accuracy: 20,
+    });
+    expect(rpc.mock.calls[1][1]).toEqual({
+      p_device_id: DEVICE,
+      p_secret_hash: sha(SECRET),
+      p_kind: 'confirm',
+      p_lat: null,
+      p_lng: null,
+      p_accuracy: null,
+    });
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain(SECRET);
+  });
+  it('never forwards an employee, user or platform from the request', async () => {
+    const { handler, rpc } = await setup();
+    await handler(post({ ...body, staff_id: 'x', user_id: 'y', employee_id: 'z', platform: 'android' }));
+    expect(Object.keys(rpc.mock.calls[0][1]).sort()).toEqual([
+      'p_accuracy',
+      'p_at',
+      'p_device_id',
+      'p_event_id',
+      'p_kind',
+      'p_lat',
+      'p_lng',
+      'p_mock',
+      'p_secret_hash',
+    ]);
+  });
+  it('passes the rolling secret back to the phone and never logs it', async () => {
+    const next = 'cd'.repeat(32);
+    const { handler } = await setup(async () => ({ data: { status: 'accepted', next_secret: next }, error: null }));
+    const res = await handler(post(body));
+    expect((await res.json()).next_secret).toBe(next);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+  });
   it('mock defaults to false unless the phone says exactly true', async () => {
     const { handler, rpc } = await setup();
     await handler(post({ ...body, mock: 'true' }));
@@ -126,6 +182,58 @@ describe('attendance-event handler', () => {
     const res = await r.handler(post(body));
     expect(res.status).toBe(500);
     expect(JSON.stringify(await res.json())).not.toContain('internal detail');
+  });
+});
+
+describe('attendance-enrol handler (iPhone setup shortcut)', () => {
+  const TOKEN = 'ef'.repeat(32);
+  const setup = async (impl = async () => ({ data: { name: 'Ayesha' }, error: null })) => {
+    const { rpc, client } = rpcClient(impl);
+    return { rpc, handler: await loadHandler('attendance-enrol', { env: ENV, clients: { serviceClient: client } }) };
+  };
+  it('refuses GET and malformed requests without touching the database', async () => {
+    const { handler, rpc } = await setup();
+    expect((await handler(new Request('https://x/fn', { method: 'GET' }))).status).toBe(405);
+    for (const bad of [{}, { action: 'peek' }, { action: 'peek', token: 'short' }, { action: 'wipe', token: TOKEN }, { token: TOKEN }]) {
+      expect((await handler(post(bad))).status).toBe(400);
+    }
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it('looks at a code by its hash and never sends the code itself to the database', async () => {
+    const { handler, rpc } = await setup();
+    const res = await handler(post({ action: 'peek', token: TOKEN }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ name: 'Ayesha' });
+    expect(rpc.mock.calls[0]).toEqual(['app_ios_enrol_peek', { p_token_hash: sha(TOKEN) }]);
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain(TOKEN);
+  });
+  it('uses a code by its hash, passes the phone name, and returns the device and secret once', async () => {
+    const answer = { device_id: DEVICE, secret: SECRET, name: 'Ayesha' };
+    const { handler, rpc } = await setup(async () => ({ data: answer, error: null }));
+    const res = await handler(post({ action: 'consume', token: TOKEN, device_name: "Ayesha's iPhone" }));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(answer);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(rpc.mock.calls[0]).toEqual(['app_ios_enrol_consume', { p_token_hash: sha(TOKEN), p_device_name: "Ayesha's iPhone" }]);
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain(TOKEN);
+  });
+  it('never forwards an employee or user from the request', async () => {
+    const { handler, rpc } = await setup();
+    await handler(post({ action: 'consume', token: TOKEN, staff_id: 'x', user_id: 'y', employee_id: 'z' }));
+    expect(Object.keys(rpc.mock.calls[0][1]).sort()).toEqual(['p_device_name', 'p_token_hash']);
+  });
+  it('answers every bad code the same way (401) and hides database errors', async () => {
+    let r = await setup(async () => ({ data: null, error: null }));
+    expect((await r.handler(post({ action: 'peek', token: TOKEN }))).status).toBe(401);
+    expect((await r.handler(post({ action: 'consume', token: TOKEN }))).status).toBe(401);
+    r = await setup(async () => ({ data: null, error: { code: 'XX000', message: 'internal detail' } }));
+    const res = await r.handler(post({ action: 'consume', token: TOKEN }));
+    expect(res.status).toBe(500);
+    expect(JSON.stringify(await res.json())).not.toContain('internal detail');
+    r = await setup(async () => {
+      throw new Error('boom');
+    });
+    expect((await r.handler(post({ action: 'peek', token: TOKEN }))).status).toBe(500);
   });
 });
 
