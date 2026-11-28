@@ -1,5 +1,6 @@
-/* Home 2.0 — styles are scoped to the Home module. */
+/* Home 3.0 — styles are scoped to the Home module. */
 
+/* Shared lifetime-sales hero banner, displayed on the Sales Dashboard. */
 /* Shared lifetime-sales hero banner, now displayed on the Sales Dashboard. */
 .home-lifetime-hero {
   position: relative;
@@ -162,527 +163,354 @@
   height: 220px;
   border-color: rgb(255 255 255 / 6%);
 }
+/* Shared lifetime hero: mobile sizing (the hero itself is shown on the Sales Dashboard). */
+@media (max-width: 600px) {
+  .home-lifetime-hero {
+    gap: 18px;
+    padding: 20px 18px;
+    border-radius: 16px;
+  }
+  .home-lifetime-pill {
+    padding: 6px 8px;
+    font-size: 0.58rem;
+  }
+  .home-lifetime-foot {
+    font-size: 0.68rem;
+  }
+}
 
-.home-welcome {
-  position: relative;
-  overflow: hidden;
+/* ───────── Home 3.0: quiet header, one colour per area, one Refresh ───────── */
+:root {
+  --h-sales: #2563eb;
+  --h-month: #0d9488;
+  --h-cust: #7c3aed;
+  --h-stock: #d97706;
+  --h-bad: #dc2626;
+  --h-msg: #0284c7;
+  --h-pay: #059669;
+}
+
+.home-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 176px;
-  padding: clamp(22px, 4vw, 38px);
-  margin-bottom: 24px;
-  border-radius: 20px;
-  color: #fff;
-  background:
-    radial-gradient(circle at 85% 15%, rgb(59 130 246 / 32%), transparent 34%),
-    linear-gradient(120deg, #142b4a 0%, #1b3b63 54%, #2563eb 100%);
-  box-shadow: 0 12px 30px rgb(16 27 45 / 16%);
+  gap: 12px;
+  margin: 0 0 12px;
 }
-
-.home-welcome::after {
-  content: '';
-  position: absolute;
-  width: 270px;
-  height: 270px;
-  right: -80px;
-  bottom: -150px;
-  border: 1px solid rgb(255 255 255 / 13%);
-  border-radius: 50%;
-  box-shadow:
-    0 0 0 28px rgb(255 255 255 / 4%),
-    0 0 0 58px rgb(255 255 255 / 3%);
-}
-
-.home-welcome-copy {
-  position: relative;
-  z-index: 1;
-}
-
-.home-eyebrow,
-.home-kicker {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.home-eyebrow {
-  color: #bfdbfe;
-  margin-bottom: 10px;
-}
-
-.home-welcome h1 {
-  color: #fff;
-  font-size: clamp(1.55rem, 4vw, 2.15rem);
-  letter-spacing: -0.035em;
-  margin: 0 0 8px;
-}
-
-.home-welcome p {
+.home-top h1 {
   margin: 0;
-  color: rgb(255 255 255 / 78%);
-  font-size: 0.9rem;
+  font-size: clamp(1.3rem, 3.6vw, 1.75rem);
+  letter-spacing: -0.03em;
+}
+.home-top p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+.home-refresh {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  color: var(--primary);
+  background: var(--surface);
+  font-weight: 700;
+  cursor: pointer;
+}
+.home-refresh:hover {
+  background: var(--surface-2);
 }
 
-.home-dot {
-  padding: 0 7px;
-  color: #bfdbfe;
+.home-favs[hidden] {
+  display: none;
 }
-
-.home-welcome-mark {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 76px;
-  margin-right: 4%;
-  border: 1px solid rgb(255 255 255 / 24%);
-  border-radius: 24px;
-  color: #dbeafe;
-  background: rgb(255 255 255 / 8%);
+.home-chips {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 2px 0 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-
-.home-welcome-mark svg {
+.home-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--surface);
+}
+.home-chip a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 4px 0 14px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+.home-unpin {
   width: 36px;
-  height: 36px;
+  height: 40px;
+  border: 0;
+  border-radius: 99px;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.home-unpin:hover {
+  color: var(--danger);
 }
 
 .home-section {
-  margin: 26px 0 30px;
+  margin: 18px 0;
 }
-
 .home-section-head {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 13px;
+  margin-bottom: 10px;
 }
-
 .home-section-head h2 {
-  font-size: 1.15rem;
+  margin: 0;
+  font-size: 1.05rem;
   letter-spacing: -0.02em;
-  margin: 3px 0 0;
 }
-
-.home-kicker {
-  color: var(--primary);
-}
-
-.home-live-label,
-.home-count {
-  color: var(--text-muted);
-  font-size: 0.76rem;
-  font-weight: 650;
-}
-
+/* Small caps labels above every heading were noise: the heading says it already. */
+.home-kicker,
 .home-live-label {
-  padding: 5px 9px;
-  border-radius: 99px;
-  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
-}
-
-.home-kpis {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr));
-  gap: 12px;
-}
-
-.home-kpis .kpi {
-  min-height: 126px;
-  padding: 17px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  transition:
-    transform 0.16s ease,
-    border-color 0.16s ease;
-}
-
-.home-kpis a.kpi:hover {
-  transform: translateY(-2px);
-  border-color: var(--primary);
-}
-
-.home-search-box {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 58px;
-  padding: 0 15px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
-
-.home-search-box:focus-within {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
-}
-
-.home-search-box input {
-  min-height: 54px;
-  padding: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.home-search-icon {
-  color: var(--primary);
-  display: flex;
-  font-size: 1.4rem;
-}
-
-.home-search-box kbd {
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px 7px;
-  font-size: 0.75rem;
-}
-
-.home-search-hint,
-.home-empty {
-  color: var(--text-muted);
-  font-size: 0.84rem;
-  margin: 10px 2px 0;
-}
-
-.home-search-list,
-.home-module-pages {
-  display: grid;
-  gap: 2px;
-  margin-top: 8px;
-}
-
-.home-page-link {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: 9px;
-  text-decoration: none;
-  color: var(--text);
-}
-
-.home-page-link:hover {
-  background: var(--surface-2);
-}
-
-.home-page-link span:first-child {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.home-page-link strong {
-  font-size: 0.88rem;
-}
-
-.home-page-link small {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-page-link > span:last-child {
-  color: var(--primary);
-  font-size: 1rem;
-}
-
-.home-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 175px), 1fr));
-  gap: 11px;
-}
-
-.home-quick {
-  display: grid;
-  align-content: start;
-  gap: 7px;
-  min-height: 112px;
-  padding: 15px;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  color: var(--text);
-  background: var(--surface);
-  text-decoration: none;
-  box-shadow: var(--shadow);
-}
-
-.home-quick:hover {
-  border-color: var(--primary);
-  transform: translateY(-2px);
-}
-
-.home-quick-icon {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-}
-
-.home-quick-icon svg {
-  width: 17px;
-  height: 17px;
-}
-
-.home-quick strong {
-  font-size: 0.88rem;
-}
-
-.home-quick small {
-  color: var(--text-muted);
-  font-size: 0.74rem;
-}
-
-.home-module-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 265px), 1fr));
-  gap: 11px;
-}
-
-.home-module {
-  align-self: start;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.home-module summary {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 76px;
-  padding: 13px;
-  cursor: pointer;
-  list-style: none;
-}
-
-.home-module summary::-webkit-details-marker {
   display: none;
 }
-
-.home-module[open] summary {
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-2);
-}
-
-.home-module-icon {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-}
-
-.home-module-icon svg {
-  width: 21px;
-  height: 21px;
-}
-
-.home-module-copy {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-  flex: 1;
-}
-
-.home-module-copy strong {
-  font-size: 0.92rem;
-}
-
-.home-module-copy small {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.home-module-chevron {
-  color: var(--text-muted);
-  font-size: 1.25rem;
-  transition: transform 0.16s ease;
-}
-
-.home-module[open] .home-module-chevron {
-  transform: rotate(180deg);
-}
-
-.home-module-pages {
-  padding: 6px;
-  margin: 0;
-}
-
-.home-progress-list,
-.home-attention-list {
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--surface);
-  overflow: hidden;
-}
-
-.home-progress-row,
-.home-attention-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 58px;
-  padding: 11px 14px;
-  border-top: 1px solid var(--border);
-}
-
-.home-progress-row:first-child,
-.home-attention-row:first-child {
-  border-top: 0;
-}
-
-.home-progress-mark {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
+.home-count {
+  padding: 3px 10px;
+  border-radius: 99px;
   color: var(--text-muted);
   background: var(--surface-2);
-}
-
-.home-progress-mark.is-started {
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-}
-
-.home-progress-copy {
-  display: grid;
-  gap: 2px;
-  flex: 1;
-}
-
-.home-progress-copy strong {
-  font-size: 0.86rem;
-}
-
-.home-progress-copy small {
-  color: var(--text-muted);
   font-size: 0.76rem;
+  font-weight: 700;
 }
-
+.home-count.is-warn {
+  color: var(--text);
+  background: color-mix(in srgb, var(--amber) 28%, var(--surface));
+}
+.home-count.is-ok {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+}
 .home-text-link {
   color: var(--primary);
   font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
 }
-
-.home-attention-row {
-  align-items: center;
+.home-empty {
+  margin: 10px 2px 0;
+  color: var(--text-muted);
   font-size: 0.84rem;
 }
+.home-clear {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface));
+  font-size: 0.86rem;
+  font-weight: 650;
+}
 
+/* Number tiles: one accent each, tinted, with the target bar inside "This month". */
+.home-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 12px;
+}
+.home-kpis .kpi {
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  min-height: 0;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent, var(--primary));
+  border-radius: 14px;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent, var(--primary)) 6%, var(--surface));
+  box-shadow: var(--shadow);
+  text-decoration: none;
+}
+.home-kpis a.kpi:hover {
+  border-color: var(--accent, var(--primary));
+}
+.home-kpis .kpi-latest {
+  --accent: var(--h-sales);
+}
+.home-kpis .kpi-mtd {
+  --accent: var(--h-month);
+}
+.home-kpis .kpi-customers {
+  --accent: var(--h-cust);
+}
+
+/* Stock: one slim row, shown once (the same four figures used to appear twice). */
+.home-stock {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .home-stock {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.home-stock-chip {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent, var(--primary));
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--surface);
+  text-decoration: none;
+}
+.home-stock-chip:hover {
+  background: var(--surface-2);
+}
+.home-stock-chip .kl {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+.home-stock-chip strong {
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 0.98rem;
+}
+.home-stock-chip small {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+.s-stock {
+  --accent: var(--h-sales);
+}
+.s-reorder {
+  --accent: var(--h-stock);
+}
+.s-notsold {
+  --accent: var(--h-bad);
+}
+.s-excess {
+  --accent: var(--h-cust);
+}
+
+/* Needs attention */
+.home-attention-list {
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.home-attention-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 0.86rem;
+}
+.home-attention-row:first-child {
+  border-top: 0;
+}
 .home-attention-row > span:nth-child(2) {
   flex: 1;
 }
-
 .home-attention-dot {
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--amber);
 }
-
-.home-clear {
-  padding: 15px;
+/* The owner's Action Centre sits inside this block, so its own heading is not repeated. */
+.home-priority .ops-section {
   margin: 0;
-  color: var(--ok);
-  font-size: 0.86rem;
+}
+.home-priority .ops-section .home-section-head h2 {
+  display: none;
+}
+.home-priority .ops-section .home-section-head {
+  justify-content: flex-end;
+  margin: 0 0 6px;
 }
 
-.home-favourite-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-  gap: 9px;
-}
-
-.home-favourite-item {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  min-width: 0;
-  padding: 4px;
+/* Things read now and then fold away. A fold with nothing inside it is not shown. */
+.home-fold {
+  margin: 14px 0;
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: 14px;
   background: var(--surface);
+  overflow: hidden;
 }
-
-.home-favourite-item .home-page-link {
-  flex: 1;
-  min-width: 0;
-}
-
-.home-unpin {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 8px;
-  color: var(--amber);
-  background: transparent;
-  cursor: pointer;
-  font-size: 1.15rem;
-}
-
-.home-unpin:hover {
-  background: var(--surface-2);
-}
-
-.home-footer {
-  margin: 38px 0 10px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 0.74rem;
-}
-
-.home-loading {
+.home-fold > summary {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 22px 4px;
+  justify-content: space-between;
+  min-height: 50px;
+  padding: 0 16px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.home-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.home-fold > summary::after {
+  content: '›';
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 1.4rem;
+  transition: transform 0.15s ease;
+}
+.home-fold[open] > summary::after {
+  transform: rotate(90deg);
+}
+.home-fold .home-section {
+  margin: 0;
+  padding: 0 16px 12px;
+}
+.home-fold .home-section-head {
+  display: none;
+}
+.home-fold:not(:has(.home-section)) {
+  display: none;
 }
 
-.home-spinner {
-  width: 17px;
-  height: 17px;
-  border: 2px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: home-spin 0.8s linear infinite;
+/* Loading placeholders instead of a spinner and a sentence */
+.home-skeletons {
+  display: grid;
+  gap: 12px;
 }
-
-@keyframes home-spin {
+.home-skel {
+  height: 92px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--surface-2), var(--surface), var(--surface-2));
+  background-size: 200% 100%;
+  animation: home-shimmer 1.2s linear infinite;
+}
+@keyframes home-shimmer {
   to {
-    transform: rotate(360deg);
+    background-position: -200% 0;
   }
 }
-
+@media (prefers-reduced-motion: reduce) {
+  .home-skel {
+    animation: none;
+  }
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -694,113 +522,6 @@
   white-space: nowrap;
   border: 0;
 }
-
-.home-page-row {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  min-width: 0;
-  border-radius: 9px;
-}
-
-.home-page-row:hover {
-  background: var(--surface-2);
-}
-
-.home-page-row .home-page-link {
-  flex: 1;
-  min-width: 0;
-}
-
-.home-page-row .home-page-link:hover {
-  background: transparent;
-}
-
-.home-pin {
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 9px;
-  color: var(--amber);
-  background: transparent;
-  cursor: pointer;
-  font-size: 1.2rem;
-}
-
-.home-pin:hover {
-  background: var(--surface-2);
-}
-
-@media (max-width: 600px) {
-  .home-lifetime-hero {
-    gap: 18px;
-    padding: 20px 18px;
-    border-radius: 16px;
-  }
-
-  .home-lifetime-pill {
-    padding: 6px 8px;
-    font-size: 0.58rem;
-  }
-
-  .home-lifetime-foot {
-    font-size: 0.68rem;
-  }
-
-  .home-welcome {
-    min-height: 150px;
-    padding: 22px 18px;
-    border-radius: 15px;
-  }
-
-  .home-welcome-mark {
-    width: 52px;
-    height: 52px;
-    margin-right: 0;
-    border-radius: 16px;
-  }
-
-  .home-welcome-mark svg {
-    width: 25px;
-    height: 25px;
-  }
-
-  .home-welcome p {
-    font-size: 0.8rem;
-  }
-
-  .home-section {
-    margin: 22px 0 25px;
-  }
-
-  .home-attention-row {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .home-attention-row .btn {
-    margin-left: 20px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-spinner {
-    animation: none;
-  }
-
-  .home-quick,
-  .home-kpis .kpi {
-    transition: none;
-  }
-}
-
-/* Navigation is global; Home stays focused on business intelligence. */
-.home-module-grid,
-.home-search-section {
-  display: none;
-}
-
 /* ───────── Operations: Action Centre and Recent Activity (Owner only) ───────── */
 .ops-status {
   display: flex;
@@ -1039,4 +760,96 @@
   font-size: 1.05rem;
   font-weight: 700;
   overflow-wrap: anywhere;
+}
+
+/* ───────── Home 3.0 overrides for the section modules (ops, staff, tasks, messages) ───────── */
+/* Every section had its own "Updated … Refresh" bar. Now it only shows when something is wrong; the header Refresh does the rest. */
+.ops-status:not(.ops-warn):not(.ops-bad) {
+  display: none;
+}
+/* Priority filters were two dropdowns on Home; the coloured counts are the summary and the list is short. */
+.ops-filters {
+  display: none;
+}
+.ops-counts span {
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  font-size: 0.78rem;
+}
+.ops-counts span:nth-child(1) {
+  background: color-mix(in srgb, var(--h-bad) 14%, var(--surface));
+}
+.ops-counts span:nth-child(2) {
+  background: color-mix(in srgb, var(--h-stock) 18%, var(--surface));
+}
+.ops-counts span:nth-child(3) {
+  background: color-mix(in srgb, var(--h-sales) 14%, var(--surface));
+}
+.ops-issue {
+  background: var(--surface);
+}
+.ops-issue-body p {
+  display: -webkit-box;
+  margin: 2px 0;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ops-sev-critical .ops-badge {
+  color: #fff;
+  background: var(--h-bad);
+}
+.ops-sev-warning .ops-badge {
+  background: color-mix(in srgb, var(--h-stock) 30%, var(--surface));
+}
+.ops-sev-info .ops-badge {
+  background: color-mix(in srgb, var(--h-sales) 22%, var(--surface));
+}
+/* Inventory health repeated the stock row above (card 3 of 4 in this grid). */
+.bi-grid .bi-card:nth-child(3) {
+  display: none;
+}
+.bi-card {
+  border-top: 4px solid var(--h-sales);
+  background: var(--surface);
+}
+.bi-card:nth-child(2) {
+  border-top-color: var(--h-cust);
+}
+.bi-card:nth-child(4) {
+  border-top-color: var(--slate);
+}
+.bi-trend rect {
+  fill: var(--h-sales);
+  opacity: 0.85;
+}
+.bi-periods {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 99px;
+  background: var(--surface-2);
+}
+.bi-periods .btn {
+  min-width: 64px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  box-shadow: none;
+}
+.bi-periods .btn[aria-pressed='true'] {
+  color: var(--primary-text);
+  background: var(--primary);
+  outline: 0;
+}
+.cs-grid {
+  background: var(--surface);
+}
+.cs-value {
+  color: var(--h-sales);
+}
+.staff-slip-net td {
+  color: var(--h-pay);
 }

@@ -56,16 +56,17 @@ describe('Home: Operations sections are for ops.view only', () => {
     expect(api.opsRecentActivity).not.toHaveBeenCalled();
   });
 
-  it('renders them in the agreed order for the Owner: snapshot, Action Centre, then Recent Activity', async () => {
+  it('renders them in the agreed order for the Owner: Needs attention (Action Centre), the numbers, then Recent Activity', async () => {
     await open(['ops.view', 'sales.view_last_day', 'sales.view_history']);
     expect(api.opsActionItems).toHaveBeenCalledTimes(1);
     expect(el.querySelector('#home-ops-actions .ops-section')).not.toBeNull();
     expect(el.querySelector('#home-ops-activity .ops-section')).not.toBeNull();
     const order = [...el.querySelectorAll('h2')].map((h) => h.textContent.trim());
-    expect(order.indexOf('Business snapshot')).toBeGreaterThanOrEqual(0);
-    expect(order.indexOf('Action Centre')).toBeGreaterThan(order.indexOf('Business snapshot'));
+    expect(order.indexOf('Needs attention')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('Action Centre')).toBeGreaterThan(order.indexOf('Needs attention')); // the Action Centre lives inside Needs attention
     expect(order.indexOf('Recent activity')).toBeGreaterThan(order.indexOf('Action Centre'));
-    expect(order.indexOf('Favourites')).toBeGreaterThan(order.indexOf('Recent activity'));
+    expect(el.querySelector('.home-priority #home-ops-actions')).not.toBeNull();
+    expect(el.querySelector('.home-fold #home-ops-activity')).not.toBeNull(); // Recent activity is folded away
   });
 
   it('shows the Latest closing summary to the Owner only, above the Action Centre, and never asks for it otherwise', async () => {
@@ -89,7 +90,7 @@ describe('Home: Operations sections are for ops.view only', () => {
     expect(api.opsClosingSummary).toHaveBeenCalledTimes(1);
     const order = [...el.querySelectorAll('h2')].map((h) => h.textContent.trim());
     expect(order.indexOf('Latest closing summary')).toBeGreaterThanOrEqual(0);
-    expect(order.indexOf('Action Centre')).toBeGreaterThan(order.indexOf('Latest closing summary'));
+    expect(order.indexOf('Latest closing summary')).toBeGreaterThan(order.indexOf('Action Centre')); // attention first, then the closing
     expect(el.querySelector('#home-closing-summary').textContent).toContain('Rs. 455,000');
     document.body.innerHTML = '<div id="home"></div>';
     el = document.getElementById('home');

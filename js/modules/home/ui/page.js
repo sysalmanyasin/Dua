@@ -1,15 +1,14 @@
-// Dua Home 2.0 — executive business overview; navigation lives in the application shell.
+// Dua Home 3.0 — a quiet, scannable overview. Navigation lives in the application shell.
+// Order: what needs doing first (attention / my day), then the numbers, then things to read later (folded).
 import { html, render } from '../../../shared/html.js';
-import { icon } from '../../../shared/icons.js';
 import { longDate, money, monthLabel, signed, todayPkt } from '../../../shared/format.js';
-import { BRAND } from '../../../core/config.js';
 import { coverSummary, inventoryCover, notificationsAttention } from '../data/api.js';
 import { startOpsSections } from './ops.js';
 import { startClosingSummary } from './closing-summary.js';
 import { startStaffSections } from './staff.js';
 import { startMessages } from './messages.js';
 import { startTaskSections } from './tasks.js';
-import { buildAttention, buildDailyProgress, buildKpis, buildStockCards, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
+import { buildAttention, buildKpis, buildStockCards, buildTiles, greeting, hourInPkt } from '../domain/cover.js';
 
 const arrow = (value) => (value === null ? '' : `${value >= 0 ? '▲' : '▼'} ${Math.abs(value).toFixed(1)}%`);
 const tone = (value) => (value > 0 ? 'pos' : value < 0 ? 'neg' : '');
@@ -23,11 +22,15 @@ function kpiBody(kpi) {
     case 'mtd':
       return html`<strong class="kv">₨ ${money(kpi.value)}</strong
         ><span class="ks">${monthLabel(kpi.month)} · ${kpi.days} day${kpi.days === 1 ? '' : 's'}</span>
-        ${kpi.vsLastYear === null ? '' : html`<span class="kchip ${tone(kpi.vsLastYear)}">${arrow(kpi.vsLastYear)} vs same days last year</span>`}`;
-    case 'target':
-      return html`<strong class="kv">${kpi.pct}%</strong><span class="ks">of ₨ ${money(kpi.target)}</span>
-        <div class="kpbar"><div class="kpfill ${kpi.pct >= 100 ? 'g' : kpi.pct >= 75 ? 'a' : 'r'}" data-w="${kpi.pct}"></div></div>
-        <span class="ks">₨ ${money(kpi.remaining)} to go</span>`;
+        ${kpi.vsLastYear === null ? '' : html`<span class="kchip ${tone(kpi.vsLastYear)}">${arrow(kpi.vsLastYear)} vs same days last year</span>`}
+        ${
+          kpi.goal
+            ? html`<div class="kpbar">
+                  <div class="kpfill ${kpi.goal.pct >= 100 ? 'g' : kpi.goal.pct >= 75 ? 'a' : 'r'}" data-w="${kpi.goal.pct}"></div>
+                </div>
+                <span class="ks">${kpi.goal.pct}% of ₨ ${money(kpi.goal.target)} target · ₨ ${money(kpi.goal.remaining)} to go</span>`
+            : ''
+        }`;
     default:
       return html`<strong class="kv">${money(kpi.value)}</strong><span class="ks">${longDate(kpi.date)}</span>`;
   }
@@ -35,25 +38,24 @@ function kpiBody(kpi) {
 
 function kpiCard(kpi) {
   const inner = html`<span class="kl">${kpi.label}</span>${kpiBody(kpi)}`;
-  return kpi.href ? html`<a class="kpi" href="${kpi.href}">${inner}</a>` : html`<div class="kpi">${inner}</div>`;
+  return kpi.href
+    ? html`<a class="kpi kpi-${kpi.id}" href="${kpi.href}">${inner}</a>`
+    : html`<div class="kpi kpi-${kpi.id}">${inner}</div>`;
 }
 
-function stockCard(card) {
-  const count = card.count === undefined ? '' : html`<span class="ks">${money(card.count)} product${card.count === 1 ? '' : 's'}</span>`;
-
-  return html`<a class="kpi" href="${card.href}">
+const stockChip = (card) =>
+  html`<a class="home-stock-chip s-${card.id}" href="${card.href}">
     <span class="kl">${card.label}</span>
-    <strong class="kv">₨ ${money(card.value)}</strong>
-    ${count}
-    <span class="ks">${card.sub}</span>
+    <strong>₨ ${money(card.value)}</strong>
+    <small>${card.count === undefined ? '' : `${money(card.count)} product${card.count === 1 ? '' : 's'} · `}${card.sub}</small>
   </a>`;
-}
 
-const pageLink = (page) =>
-  html`<a class="home-page-link" href="${page.href}">
-    <span><strong>${page.title}</strong><small>${page.module}${page.desc ? ` · ${page.desc}` : ''}</small></span>
-    <span aria-hidden="true">↗</span>
-  </a>`;
+// A collapsed section for things people read now and then (the section inside draws itself and hides itself when it has nothing).
+const fold = (title, id) =>
+  html`<details class="home-fold">
+    <summary>${title}</summary>
+    <div id="${id}"></div>
+  </details>`;
 
 const safeRead = (key) => {
   try {
@@ -84,203 +86,120 @@ export async function mount(el, { ctx, modules = [] }) {
   const prefKey = `dua.home.favourites.${String(ctx.username ?? 'user')}`;
   let favourites = safeRead(prefKey).filter((href) => validHrefs.has(href));
 
-  const head = html`<section class="home-welcome">
-    <div class="home-welcome-copy">
-      <div class="home-eyebrow">${BRAND.title} · ${BRAND.branch}</div>
-      <h1>${greeting(hour)}, ${first}</h1>
-      <p>${longDate(todayPkt())} <span class="home-dot">•</span> Executive business overview</p>
-    </div>
-    <div class="home-welcome-mark" aria-hidden="true">${icon('home')}</div>
-  </section>`;
+  const head = html`<header class="home-top">
+      <div>
+        <h1>${greeting(hour)}, ${first}</h1>
+        <p>${longDate(todayPkt())}</p>
+      </div>
+      <button class="home-refresh" type="button" data-home-refresh title="Refresh everything">↻ Refresh</button>
+    </header>
+    <nav id="home-favourites" class="home-favs" aria-label="Favourites" hidden></nav>`;
 
   render(
     el,
     html`${head}
-      <section class="home-loading" aria-live="polite"><span class="home-spinner"></span> Loading your business overview…</section>`,
+      <section class="home-loading" aria-live="polite">
+        <span class="sr-only">Loading your overview…</span>
+        <div class="home-skeletons" aria-hidden="true">
+          <span class="home-skel"></span><span class="home-skel"></span><span class="home-skel"></span>
+        </div>
+      </section>`,
   );
 
-  const stockPromise = perms.includes('inventory.view') ? inventoryCover().catch(() => null) : Promise.resolve(null);
-
-  let summary = null;
+  // Everything the page needs up front loads at the same time; one slow part no longer delays the rest.
   let failed = false;
-  try {
-    summary = await coverSummary();
-  } catch {
-    failed = true;
-  }
+  const [summary, alerts, stockData] = await Promise.all([
+    coverSummary().catch(() => {
+      failed = true;
+      return null;
+    }),
+    perms.includes('notifications.view') ? notificationsAttention().catch(() => null) : null,
+    perms.includes('inventory.view') ? inventoryCover().catch(() => null) : null,
+  ]);
 
-  let alerts = null;
-  if (perms.includes('notifications.view')) {
-    try {
-      alerts = await notificationsAttention();
-    } catch {
-      alerts = null;
-    }
-  }
-
-  const stock = buildStockCards(await stockPromise);
+  const stock = buildStockCards(stockData);
   const showOps = perms.includes('ops.view'); // Owner only: Action Centre, Business Intelligence and Recent Activity
   const showStaff = !showOps && (perms.includes('payroll.view_own') || perms.includes('closing.enter_own')); // own payroll and own work, read only
   const showMyTasks = !showOps && perms.includes('tasks.view_own'); // My Work Snapshot and My Tasks (Task Master)
   const showMessages = perms.includes('ntf.view_own'); // Inbox (Stage 4)
   const showTeam = showOps && perms.includes('tasks.manage'); // Owner: Staff & Team
-  const kpis = buildKpis(summary, perms);
+  const allKpis = buildKpis(summary, perms);
+  const goal = allKpis.find((k) => k.id === 'target');
+  const kpis = allKpis.filter((k) => k.id !== 'target').map((k) => (k.id === 'mtd' && goal ? { ...k, goal } : k));
   const attention = buildAttention(summary, perms, hour, alerts);
-  const progress = buildDailyProgress(summary, perms);
   const hasAttentionContext = Boolean(summary?.sales || summary?.checklist || alerts);
+  const n = attention.length;
 
-  const renderFavourites = () => {
-    const saved = allPages.filter((page) => favourites.includes(page.href));
-    const host = el.querySelector('#home-favourites');
-    if (!host) return;
+  // One "Needs attention" block. For the owner the Action Centre is drawn inside it, so there is a single list of things to do.
+  const priority =
+    showOps || hasAttentionContext
+      ? html`<section class="home-section home-priority" aria-label="Needs attention">
+          <div class="home-section-head">
+            <h2>Needs attention</h2>
+            ${
+              showOps
+                ? n
+                  ? html`<span class="home-count is-warn">${n} item${n === 1 ? '' : 's'}</span>`
+                  : ''
+                : html`<span class="home-count ${n ? 'is-warn' : 'is-ok'}">${n ? `${n} item${n === 1 ? '' : 's'}` : 'All clear'}</span>`
+            }
+          </div>
+          ${
+            n
+              ? html`<div class="home-attention-list">
+                  ${attention.map(
+                    (item) =>
+                      html`<div class="home-attention-row">
+                        <span class="home-attention-dot"></span>
+                        <span>${item.text}</span>
+                        ${
+                          item.action
+                            ? html`<a
+                                class="btn btn-sm"
+                                href="${item.action.href}"
+                                ${item.action.handoff ? html`data-handoff="${item.action.handoff}"` : ''}
+                                >${item.action.label}</a
+                              >`
+                            : ''
+                        }
+                      </div>`,
+                  )}
+                </div>`
+              : showOps
+                ? ''
+                : html`<p class="home-clear">✓ No outstanding items were reported.</p>`
+          }
+          ${showOps ? html`<div id="home-ops-actions"></div>` : ''}
+        </section>`
+      : '';
 
-    render(
-      host,
-      saved.length
-        ? html`<div class="home-favourite-grid">
-            ${saved.map(
-              (page) =>
-                html`<div class="home-favourite-item">
-                  ${pageLink(page)}
-                  <button
-                    class="home-unpin"
-                    type="button"
-                    data-unpin="${page.href}"
-                    aria-label="Remove ${page.title} from favourites"
-                    title="Remove favourite"
-                  >
-                    ★
-                  </button>
-                </div>`,
-            )}
-          </div>`
-        : html`<p class="home-empty">Pin the pages you use most. Your favourites stay on this device.</p>`,
-    );
-  };
+  const numbers = kpis.length
+    ? html`<section class="home-section" aria-label="Business snapshot">
+        <div class="kpis home-kpis">${kpis.map(kpiCard)}</div>
+      </section>`
+    : '';
+
+  const stockRow = stock.length
+    ? html`<section class="home-section" aria-label="Stock">
+        <div class="home-stock">${stock.map(stockChip)}</div>
+      </section>`
+    : '';
+
+  const messages = showMessages ? html`<div id="home-messages"></div>` : '';
+
+  const ownerBody = html`${priority}${numbers}${stockRow}
+    <div id="home-closing-summary"></div>
+    <div id="home-ops-bi"></div>
+    ${messages}${showTeam ? html`<div id="home-team"></div>` : ''}${fold('Recent activity', 'home-ops-activity')}`;
+
+  const staffBody = html`${showMyTasks ? html`<div id="home-staff-work"></div>` : ''}${priority}${numbers}${stockRow}${messages}
+  ${showStaff ? html`${fold('My recent activity', 'home-staff-activity')}${fold('My payroll (private)', 'home-staff-pay')}` : ''}`;
 
   render(
     el,
     html`${head}
-      ${
-        failed
-          ? html`<p class="note note-error" role="status">Business figures could not be loaded. Your navigation is still available.</p>`
-          : ''
-      }
-      ${
-        kpis.length
-          ? html`<section class="home-section" aria-label="Business snapshot">
-              <div class="home-section-head">
-                <div>
-                  <span class="home-kicker">THE NUMBERS</span>
-                  <h2>Business snapshot</h2>
-                </div>
-                <span class="home-live-label">Live data</span>
-              </div>
-              <div class="kpis home-kpis">${kpis.map(kpiCard)}</div>
-            </section>`
-          : ''
-      }
-      ${
-        stock.length
-          ? html`<section class="home-section">
-              <div class="home-section-head">
-                <div>
-                  <span class="home-kicker">INVENTORY</span>
-                  <h2>Stock snapshot</h2>
-                </div>
-              </div>
-              <div class="kpis home-kpis">${stock.map(stockCard)}</div>
-            </section>`
-          : ''
-      }
-      ${
-        progress.length
-          ? html`<section class="home-section">
-              <div class="home-section-head">
-                <div>
-                  <span class="home-kicker">TODAY</span>
-                  <h2>Daily progress</h2>
-                </div>
-              </div>
-              <div class="home-progress-list">
-                ${progress.map(
-                  (item) =>
-                    html`<div class="home-progress-row">
-                      <span class="home-progress-mark ${item.started ? 'is-started' : ''}">${item.started ? '◷' : '•'}</span>
-                      <span class="home-progress-copy">
-                        <strong>${item.label}</strong>
-                        <small>${item.status}</small>
-                      </span>
-                      ${item.href ? html`<a class="home-text-link" href="${item.href}">Open</a>` : ''}
-                    </div>`,
-                )}
-              </div>
-            </section>`
-          : ''
-      }
-      ${
-        showOps
-          ? html`<div id="home-closing-summary"></div>
-              <div id="home-ops-actions"></div>
-              <div id="home-ops-bi"></div>`
-          : ''
-      }
-      ${
-        hasAttentionContext
-          ? html`<section class="home-section home-attention">
-              <div class="home-section-head">
-                <div>
-                  <span class="home-kicker">PRIORITY</span>
-                  <h2>Needs attention</h2>
-                </div>
-                <span class="home-count"
-                  >${attention.length ? `${attention.length} item${attention.length === 1 ? '' : 's'}` : 'All clear'}</span
-                >
-              </div>
-              ${
-                attention.length
-                  ? html`<div class="home-attention-list">
-                      ${attention.map(
-                        (item) =>
-                          html`<div class="home-attention-row">
-                            <span class="home-attention-dot"></span>
-                            <span>${item.text}</span>
-                            ${
-                              item.action
-                                ? html`<a
-                                    class="btn btn-sm"
-                                    href="${item.action.href}"
-                                    ${item.action.handoff ? html`data-handoff="${item.action.handoff}"` : ''}
-                                    >${item.action.label}</a
-                                  >`
-                                : ''
-                            }
-                          </div>`,
-                      )}
-                    </div>`
-                  : html`<p class="home-clear">✓ No outstanding items were reported.</p>`
-              }
-            </section>`
-          : ''
-      }
-      ${showMessages ? html`<div id="home-messages"></div>` : ''} ${showTeam ? html`<div id="home-team"></div>` : ''}
-      ${showOps ? html`<div id="home-ops-activity"></div>` : ''} ${showMyTasks ? html`<div id="home-staff-work"></div>` : ''}
-      ${
-        showStaff
-          ? html`<div id="home-staff-pay"></div>
-              <div id="home-staff-activity"></div>`
-          : ''
-      }
-      <section class="home-section">
-        <div class="home-section-head">
-          <div>
-            <span class="home-kicker">PERSONAL SPACE</span>
-            <h2>Favourites</h2>
-          </div>
-        </div>
-        <div id="home-favourites"></div>
-      </section>
-      <p class="home-footer">Dua · Your access is tailored to your account</p>`,
+    ${failed ? html`<p class="note note-error" role="status">Business figures could not be loaded. Your navigation is still available.</p>` : ''}
+    ${showOps ? ownerBody : staffBody}`,
   );
 
   renderFavourites();
@@ -301,35 +220,52 @@ export async function mount(el, { ctx, modules = [] }) {
     startStaffSections({ payrollHost: el.querySelector('#home-staff-pay'), activityHost: el.querySelector('#home-staff-activity'), perms });
   }
 
-  const syncPins = () => {
-    el.querySelectorAll('[data-pin]').forEach((button) => {
-      const pinned = favourites.includes(button.dataset.pin);
-      button.textContent = pinned ? '★' : '☆';
-      button.title = pinned ? 'Remove favourite' : 'Add to favourites';
-      button.setAttribute('aria-label', `${pinned ? 'Remove' : 'Add'} ${button.dataset.pinTitle} ${pinned ? 'from' : 'to'} favourites`);
-    });
-  };
+  function renderFavourites() {
+    const host = el.querySelector('#home-favourites');
+    if (!host) return;
+    const saved = allPages.filter((page) => favourites.includes(page.href));
+    host.hidden = saved.length === 0;
+    render(
+      host,
+      saved.length
+        ? html`<div class="home-chips">
+            ${saved.map(
+              (page) =>
+                html`<span class="home-chip"
+                  ><a href="${page.href}">${page.title}</a
+                  ><button
+                    class="home-unpin"
+                    type="button"
+                    data-unpin="${page.href}"
+                    aria-label="Remove ${page.title} from favourites"
+                    title="Remove favourite"
+                  >
+                    ×
+                  </button></span
+                >`,
+            )}
+          </div>`
+        : html`<p class="home-empty">Pin the pages you use most. Your favourites stay on this device.</p>`,
+    );
+  }
+
+  // One Refresh for the whole page: it presses each section's own (hidden) refresh button.
+  const refreshAll = () =>
+    el
+      .querySelectorAll('[data-ops-refresh], [data-task-refresh], [data-msg-refresh], [data-staff-refresh]')
+      .forEach((button) => button.click());
 
   el.addEventListener('click', (event) => {
-    const pin = event.target.closest('[data-pin]');
     const unpin = event.target.closest('[data-unpin]');
     const handoff = event.target.closest('a[data-handoff]');
 
     if (handoff) sessionStorage.setItem('sales.entry.date', handoff.dataset.handoff);
-
-    if (pin) {
-      const href = pin.dataset.pin;
-      favourites = favourites.includes(href) ? favourites.filter((item) => item !== href) : [...favourites, href].slice(-12);
-      safeWrite(prefKey, favourites);
-      renderFavourites();
-      syncPins();
-    }
+    if (event.target.closest('[data-home-refresh]')) refreshAll();
 
     if (unpin) {
       favourites = favourites.filter((item) => item !== unpin.dataset.unpin);
       safeWrite(prefKey, favourites);
       renderFavourites();
-      syncPins();
     }
   });
 
