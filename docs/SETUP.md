@@ -27,7 +27,7 @@ Apply **every** file in `supabase/migrations/` in number order (136 files today,
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` are provided to functions automatically. Never copy the service-role key anywhere else.
 
 ## 5. Deploy functions
-Deploy all seven functions: `staff-login`, `admin-users`, `sync-inventory-from-dropbox`, `notify-ntfy`, `notify-push`, `widget-today`, `attendance-event`. Six of them have "Verify JWT" off (listed in `supabase/config.toml`; each checks its own credential). `notify-ntfy` is not listed there, so confirm its setting in the dashboard. Extra secrets are needed for the notification, inventory and Android functions (`NOTIFY_DRAIN_SECRET`, `OPS_REPORT_SECRET`, `FCM_SERVICE_ACCOUNT`, Dropbox and sync secrets; see `docs/RUNBOOK.md` section 3). If the old `request-access` and `claim-account` functions exist on the project, delete them.
+Deploy all eight functions: `staff-login`, `admin-users`, `sync-inventory-from-dropbox`, `notify-ntfy`, `notify-push`, `widget-today`, `attendance-event`, `attendance-health`. Seven of them have "Verify JWT" off (listed in `supabase/config.toml`; each checks its own credential). `notify-ntfy` is not listed there, so confirm its setting in the dashboard. Extra secrets are needed for the notification, inventory and Android functions (`NOTIFY_DRAIN_SECRET`, `OPS_REPORT_SECRET`, `FCM_SERVICE_ACCOUNT`, Dropbox and sync secrets; see `docs/RUNBOOK.md` section 3). If the old `request-access` and `claim-account` functions exist on the project, delete them.
 
 ## 6. Create the first owner
 1. Authentication → Users → **Add user** → your email + strong password (tick auto-confirm).

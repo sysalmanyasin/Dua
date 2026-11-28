@@ -1,6 +1,6 @@
 # Security Model (as built)
 
-> **Re-verified on 27 Nov 2026 (Audit 0).** Checked on a locally migrated PostgreSQL 16 database built from all 131 migrations: 140 public tables, all with RLS (30 have no policy, so they are closed to browsers); 365 SECURITY DEFINER functions, none without a pinned `search_path`; 8 views, all `security_invoker`; no grant to `anon` on any table, view or sequence; **five non-definer functions are executable by `anon` (KI-1, low severity)**. These are guarded by `supabase/tests/0999_global_exposure_test.sql`. **Statements about the live project below (counts, advisor findings, applied migrations) are recorded from earlier sessions and were not re-checked.** The 22 Nov live figures (124 tables, 283 definer functions) pre-date later migrations and are not comparable with the local count.
+> **Re-verified on 28 Nov 2026 (Audit 0 follow-up, `main` at `10b18e8` plus migrations `1004` and `1405`).** Checked on a locally migrated PostgreSQL 16 database built from all 141 migrations: 141 public tables, all with RLS (31 have no policy, so they are closed to browsers); 372 SECURITY DEFINER functions, none without a pinned `search_path`; 8 views, all `security_invoker`; no grant to `anon` on any table, view or sequence; **five non-definer functions were executable by `anon` until `1004` and `1405` (KI-1, closed 28 Nov)**. These are guarded by `supabase/tests/0999_global_exposure_test.sql`. **Statements about the live project below (counts, advisor findings, applied migrations) are recorded from earlier sessions and were not re-checked.** The 22 Nov live figures (124 tables, 283 definer functions) pre-date later migrations and are not comparable with the local count. The handler tests for all 8 Edge Functions are in `tests/unit/edge-*.test.js`.
 
 
 
@@ -20,7 +20,7 @@ Roles are **templates**; real access is a set of named permissions with per-pers
 What a **basic staff member** can reach, by design: their own sign-in, the Last Day total (one function that returns only the latest *closed* day), and whatever the owner explicitly grants. They cannot read sales history, targets, credit, salaries or other people's data; the tests prove each of those is refused.
 
 ## Database rules
-1. RLS on every table; `anon` has no table grants and, with five low-risk exceptions (KI-1: two pure helpers and three trigger functions that keep the built-in PUBLIC execute right), no function grants; browsers have no direct write access to business tables.
+1. RLS on every table; `anon` has no table grants and no function grants (verified locally and on the live project on 28 Nov; five functions that kept the built-in PUBLIC execute right were revoked by `1004` and `1405`, KI-1); browsers have no direct write access to business tables.
 2. Writes go through functions that check the permission, validate, and log. Corrections keep the old version and a reason. The activity log is append-only (a trigger refuses changes, even for the owner of the database).
 3. `security definer` functions have a fixed `search_path` and execute only for the roles that need them.
 4. Idempotency keys make retried saves safe.
@@ -49,8 +49,9 @@ Anonymous reads nothing · a basic staff member cannot read sales history, salar
 | Leaked-password protection | Off in Supabase Auth (advisor). Dashboard toggle; staff sign in with PINs so exposure is low. |
 | Separate production project | Not yet; staging and live share one project (`js/core/config.js:3-7`, KI-3). |
 | Deployment is not gated by CI | GitHub Pages publishes from `main` on its own, in parallel with CI (KI-4). Branch protection not verified. |
-| Functions callable by the visitor role | Five low-risk functions (KI-1); allow-listed and guarded by `0999`. |
-| Edge Function auth surface | `supabase/config.toml` sets `verify_jwt = false` for six functions; each checks its own credential (PIN lockout, `users.manage`, shared secret or per-device secret). `notify-ntfy` is not listed there. Handler tests cover five of the seven. |
+| Functions callable by the visitor role | None (KI-1 closed 28 Nov by `1004` and `1405`; `0999` now fails if any function becomes callable by `anon`). New functions must revoke `execute` from `public, anon` themselves. |
+| Retired Edge Functions still deployed | `claim-account` and `request-access` are ACTIVE live with `verify_jwt = false` and no source in the repo (KI-9). |
+| Edge Function auth surface | `supabase/config.toml` sets `verify_jwt = false` for the functions listed there; each checks its own credential (PIN lockout, `users.manage`, shared secret or per-device secret). `notify-ntfy` is not listed there. Handler tests cover all eight. |
 | Error monitoring (Sentry) | Not yet. |
 | End-to-end browser tests (Playwright) | Not yet; checked in a simulated browser and by the owner by hand. |
 | Real-device and real-Google verification of the newest pages | Owner try-out pending. |

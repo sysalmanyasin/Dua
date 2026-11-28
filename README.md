@@ -10,7 +10,7 @@ A modular pharmacy operations web app: plain HTML and JavaScript ES modules (no 
 
 ## Status in one paragraph
 
-Fifteen modules are on `main` and registered (home, sales, manager, access, tools, closing, inventory, str, candela-sales, ebill, audit, invoice-desk, workspace, tasks, inbox). Their automated checks pass: lint, formatting, unit tests, 131 migrations applied to an empty PostgreSQL 16 with the database security tests, Deno type-checks of the 7 Edge Functions, secret and vendor scans. **That is not the same as accepted.** There are no browser end-to-end tests, no real restore of a Drive backup has been recorded, "production" and "staging" are the same Supabase project, and owner/device acceptance is outstanding for most modules. Statements about the live Supabase project in older documents were not re-checked. Do not infer that a feature is live because its code exists.
+Fifteen modules are on `main` and registered (home, sales, manager, access, tools, closing, inventory, str, candela-sales, ebill, audit, invoice-desk, workspace, tasks, inbox). Their automated checks pass: lint, formatting, unit tests, 141 migrations applied to an empty PostgreSQL 16 with the database security tests, Deno type-checks and handler tests of the 8 Edge Functions, secret and vendor scans. **That is not the same as accepted.** There are no browser end-to-end tests, no real restore of a Drive backup has been recorded, "production" and "staging" are the same Supabase project, and owner/device acceptance is outstanding for most modules. Statements about the live Supabase project in older documents were not re-checked. Do not infer that a feature is live because its code exists.
 
 ## Read this first
 

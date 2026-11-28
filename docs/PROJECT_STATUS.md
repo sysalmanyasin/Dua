@@ -1,12 +1,12 @@
 # Project status
 
-**Snapshot:** 27 Nov 2026, commit `07e87e4` on `main` plus the Audit 0 branch. **Method:** every statement below was checked against the source or by running the check; `docs/AUDIT_0_BASELINE.md` lists the commands. The previous status text (22 Nov) was replaced because it contradicted the code in many places; it remains in git history. Other dated documents (`PROJECT_PROGRESS.md`, `CHANGELOG.md`, `PROJECT_AUDIT_*`, `modules/*.progress.md`) are history, not current status.
+**Snapshot:** 28 Nov 2026, `main` at `fb462f8` plus the Audit 0 follow-up branch (first baseline: 27 Nov, commit `07e87e4`, merged as PR #111). **Method:** every statement below was checked against the source or by running the check; `docs/AUDIT_0_BASELINE.md` lists the commands. The previous status text (22 Nov) was replaced because it contradicted the code in many places; it remains in git history. Other dated documents (`PROJECT_PROGRESS.md`, `CHANGELOG.md`, `PROJECT_AUDIT_*`, `modules/*.progress.md`) are history, not current status.
 
 **Repository:** https://github.com/sysalmanyasin/Dua. **Live site:** https://sysalmanyasin.github.io/Dua/.
 
 <!-- repo-facts -->
-- Migration files: 139
-- Database test files: 124
+- Migration files: 141
+- Database test files: 128
 - Registered modules: 15
 - Edge Functions: 8
 <!-- /repo-facts -->
@@ -21,12 +21,12 @@ The block above is checked by `tests/unit/docs-consistency.test.js`. Update it w
 
 ## 1. Implemented and verified (automated only)
 
-Fifteen modules are registered in `js/modules/index.js` and their automated tests pass: **home, sales, manager** (including attendance), **access, tools, closing, inventory, str, candela-sales, ebill** (Emergency Billing), **audit** (counting, compile, expiry, barcode, outbox), **invoice-desk, workspace** (notes and sheets), **tasks, inbox**. Behind them: 131 migrations that apply cleanly to an empty PostgreSQL 16, 7 Edge Functions that type-check, a service worker whose precache list is current, and an Android shell that passes its consistency check. See `docs/TEST_ACCEPTANCE_MATRIX.md` for each module's tests and what is still missing.
+Fifteen modules are registered in `js/modules/index.js` and their automated tests pass: **home, sales, manager** (including attendance), **access, tools, closing, inventory, str, candela-sales, ebill** (Emergency Billing), **audit** (counting, compile, expiry, barcode, outbox), **invoice-desk, workspace** (notes and sheets), **tasks, inbox**. Behind them: 141 migrations that apply cleanly to an empty PostgreSQL 16, 8 Edge Functions that type-check and have handler tests, a service worker whose precache list is current, and an Android shell that passes its consistency check. See `docs/TEST_ACCEPTANCE_MATRIX.md` for each module's tests and what is still missing.
 
 ## 2. Implemented but not fully tested
 
-- **Every Edge Function handler except what Audit 0 added.** Handler tests now cover `staff-login`, `admin-users`, `attendance-event`, `widget-today` and the secret gate of `notify-push`. `sync-inventory-from-dropbox`, `notify-ntfy` and `notify-push` delivery have none.
-- **Invoice Desk:** domain and database integrity tests only; no page or end-to-end tests; no physical-printer check.
+- **Edge Function handlers** all have handler tests against fake Supabase, Dropbox and ntfy clients (`tests/unit/edge-*.test.js`). They prove each handler's own checks, not a real Supabase Auth round trip, real Dropbox, real ntfy or real Firebase delivery. `notify-push` delivery to Firebase itself is not covered (only its secret gate).
+- **Invoice Desk:** domain tests, database tests for the save and product functions (`1000`) and for integrity (`1001`, `1002`, `1003`); no page or end-to-end tests; no physical-printer check; KI-2 open.
 - **Tasks:** 7 routes, 3 unit-test files.
 - **Workspace:** editor and sheets are tested in jsdom only.
 - **Closing, Audit, Inventory, Emergency Billing, STR, Manager:** automated tests pass; owner/device acceptance remains, and some migrations have no test of their own (see `docs/KNOWN_ISSUES.md`).
@@ -43,7 +43,7 @@ Fifteen modules are registered in `js/modules/index.js` and their automated test
 
 ## 4. Known defects
 
-See `docs/KNOWN_ISSUES.md`: KI-1 (five functions callable by the visitor role, low severity), KI-2 (malformed amount in words below one rupee), and the release-path risks KI-3 to KI-8.
+See `docs/KNOWN_ISSUES.md`: KI-2 (malformed amount in words below one rupee), KI-9 (two retired Edge Functions still deployed live), and the release-path risks KI-3 to KI-8 and KI-10. KI-1 (five functions callable by the visitor role) was closed on 28 Nov by migrations `1004` and `1405`.
 
 ## 5. Future roadmap
 
@@ -51,15 +51,15 @@ See `docs/KNOWN_ISSUES.md`: KI-1 (five functions callable by the visitor role, l
 
 ## Evidence
 
-Run on this branch (see `docs/AUDIT_0_BASELINE.md` for the baseline before Audit 0 and for what could not be run):
+Run on this branch at the merged tip of `main` (see `docs/AUDIT_0_BASELINE.md` for the baseline before Audit 0 and for what could not be run):
 
 | Check | Result |
 |---|---|
 | `npm run lint`, `format:check`, `check:secrets`, `check:vendor` | pass |
-| `npm test` | pass: 202 files, 3,601 tests (197 files and 3,514 tests before Audit 0) |
-| `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 131 migrations, 119 test files, 3,268 `pass:` lines plus 843 `pass (refused)` lines, 0 FAIL/ERROR (3,209 `pass:` lines before Audit 0) |
-| `deno check` (7 functions), `actionlint`, `build:sw` (no drift) | pass |
-| `npm run test:coverage` | 87.6% statements, 86.6% branches, 88.1% functions, 87.6% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) |
+| `npm test` | pass: 208 files, 3,751 tests (197 files and 3,514 tests at the first baseline) |
+| `bash supabase/tests/run.sh` (PostgreSQL 16) | pass: 141 migrations, 128 test files, 3,480 `pass:` lines and 1,229 refusal checks (`pass (...)`), 0 FAIL/ERROR (3,209 `pass:` lines at the first baseline) |
+| `deno check` (8 functions), `actionlint`, `build:sw` (no drift) | pass |
+| `npm run test:coverage` | 88.0% statements, 86.7% branches, 88.2% functions, 88.0% lines over `js/**` and `supabase/functions/**/*.ts` (v8; not a quality gate) |
 
 Not run or not verifiable here: Gradle unit tests and APK build, live Supabase state, real devices, Gmail, Drive restore, owner acceptance.
 
