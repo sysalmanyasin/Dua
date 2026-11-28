@@ -5,10 +5,10 @@
 **Repository:** https://github.com/sysalmanyasin/Dua. **Live site:** https://sysalmanyasin.github.io/Dua/.
 
 <!-- repo-facts -->
-- Migration files: 141
-- Database test files: 128
+- Migration files: 142
+- Database test files: 129
 - Registered modules: 15
-- Edge Functions: 8
+- Edge Functions: 9
 <!-- /repo-facts -->
 
 The block above is checked by `tests/unit/docs-consistency.test.js`. Update it when you add a migration, a database test file, a module or a function. (Raised on 28 Nov 2026 after merging newer work into `main`; the pass/fail results quoted below were measured on 27 Nov at 131 migrations, 119 test files and 7 Edge Functions and have not been re-run at the new counts.)
@@ -21,7 +21,7 @@ The block above is checked by `tests/unit/docs-consistency.test.js`. Update it w
 
 ## 1. Implemented and verified (automated only)
 
-Fifteen modules are registered in `js/modules/index.js` and their automated tests pass: **home, sales, manager** (including attendance), **access, tools, closing, inventory, str, candela-sales, ebill** (Emergency Billing), **audit** (counting, compile, expiry, barcode, outbox), **invoice-desk, workspace** (notes and sheets), **tasks, inbox**. Behind them: 141 migrations that apply cleanly to an empty PostgreSQL 16, 8 Edge Functions that type-check and have handler tests, a service worker whose precache list is current, and an Android shell that passes its consistency check. See `docs/TEST_ACCEPTANCE_MATRIX.md` for each module's tests and what is still missing.
+Fifteen modules are registered in `js/modules/index.js` and their automated tests pass: **home, sales, manager** (including attendance), **access, tools, closing, inventory, str, candela-sales, ebill** (Emergency Billing), **audit** (counting, compile, expiry, barcode, outbox), **invoice-desk, workspace** (notes and sheets), **tasks, inbox**. Behind them: 142 migrations that apply cleanly to an empty PostgreSQL 16, 9 Edge Functions that type-check and have handler tests, a service worker whose precache list is current, and an Android shell that passes its consistency check. See `docs/TEST_ACCEPTANCE_MATRIX.md` for each module's tests and what is still missing.
 
 ## 2. Implemented but not fully tested
 

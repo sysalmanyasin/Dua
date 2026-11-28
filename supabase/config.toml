@@ -30,3 +30,6 @@ verify_jwt = false
 # attendance-health is the same kind of call: the phone's own tracking report (no location), secret-checked by the database.
 [functions.attendance-health]
 verify_jwt = false
+# attendance-enrol is the iPhone setup shortcut's call with a one-time code (no user JWT: the employee has no Dua login on that phone).
+[functions.attendance-enrol]
+verify_jwt = false

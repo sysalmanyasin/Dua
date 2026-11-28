@@ -36,7 +36,13 @@ do $t$ declare bad text; n int;
     -- 1404: the owner's list of who is at work with each phone's tracking state, and the periods a phone was not tracking
     -- (attendance.view_all), see 1404_app_attendance_health_test. The phone's report (app_attendance_health) is app_*, service role only,
     -- and the scheduled check (attendance_health_check) is service role only; neither is listed.
-    'mgmt_attendance_health','mgmt_attendance_gaps'];
+    'mgmt_attendance_health','mgmt_attendance_gaps',
+    -- 1406: iPhone attendance. The owner makes / cancels an enrolment code, revokes a phone, lists phones and one phone's journal, and sets
+    -- the two iPhone distances (attendance.manage; the two lists also attendance.view_all), see 1406_app_ios_attendance_test. The setup
+    -- shortcut's calls (app_ios_enrol_peek, app_ios_enrol_consume, app_attendance_ios_signal) and the shared device check
+    -- (app_attendance_device_auth) are app_*, service role only or internal, and are NOT listed.
+    'mgmt_attendance_ios_enrol_create','mgmt_attendance_ios_enrol_cancel','mgmt_attendance_device_revoke','mgmt_attendance_ios_set',
+    'mgmt_attendance_phones','mgmt_attendance_device_journal'];
 begin
   select string_agg(p.proname, ', ') into bad from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname like 'mgmt\_%' and has_function_privilege('anon', p.oid, 'execute');

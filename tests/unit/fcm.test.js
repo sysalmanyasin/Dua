@@ -16,7 +16,12 @@ import {
 } from '../../supabase/functions/_shared/fcm.ts';
 import { messageFor } from '../../supabase/functions/_shared/ntfy.ts';
 import { parseWidgetRequest, sha256Hex } from '../../supabase/functions/_shared/widget.ts';
-import { parseAttendanceEvent, parseAttendanceHealth } from '../../supabase/functions/_shared/attendance.ts';
+import {
+  parseAttendanceEvent,
+  parseAttendanceHealth,
+  parseAttendanceRequest,
+  parseEnrolRequest,
+} from '../../supabase/functions/_shared/attendance.ts';
 
 let publicKey;
 let sa;
@@ -118,6 +123,7 @@ describe('message', () => {
     expect(hrefFor('attendance.rejected')).toBe('#/manager/attendance');
     expect(hrefFor('attendance.tracking_off')).toBe('#/manager/attendance');
     expect(hrefFor('attendance.checkout_missed')).toBe('#/manager/attendance');
+    expect(hrefFor('attendance.key_refused')).toBe('#/manager/attendance');
     expect(hrefFor('closing.submitted')).toBe('#/home');
     expect(hrefFor('anything.else')).toBe('#/home');
   });
@@ -143,7 +149,7 @@ describe('message', () => {
     expect(m.message).toContain('2026-11-25');
   });
   it('words the tracking and missing check-out alerts with no names', () => {
-    for (const kind of ['attendance.tracking_off', 'attendance.checkout_missed']) {
+    for (const kind of ['attendance.tracking_off', 'attendance.checkout_missed', 'attendance.key_refused', 'attendance.ios_rejects']) {
       const m = messageFor(kind, { date: '2026-11-27', staff: 'Ali', state: 'location_off' });
       expect(m.title).not.toBe('Dua: alert');
       expect(JSON.stringify(m)).not.toMatch(/Ali|location_off/);
@@ -272,6 +278,155 @@ describe('attendance event request', () => {
     ]) {
       expect(parseAttendanceEvent(bad)).toBeNull();
     }
+  });
+});
+
+describe('iPhone attendance requests (Apple Shortcuts)', () => {
+  const base = {
+    device_id: '20000000-0000-4000-8000-0000000000D1',
+    secret: 'a'.repeat(64),
+    event_id: '30000000-0000-4000-8000-000000000005',
+    kind: 'in',
+    at: 1_790_000_000_000,
+    latitude: 31.387139,
+    longitude: 74.189924,
+    accuracy: 12.5,
+  };
+  it('reads an Android event exactly as before', () => {
+    expect(parseAttendanceRequest({ ...base, mock: true })).toEqual({ type: 'event', ...parseAttendanceEvent({ ...base, mock: true }) });
+  });
+  it('accepts a missing accuracy, which an iPhone may not be able to give', () => {
+    const { accuracy, ...without } = base;
+    expect(accuracy).toBe(12.5);
+    expect(parseAttendanceRequest(without)).toMatchObject({ type: 'event', accuracy: null, mock: false });
+    expect(parseAttendanceRequest({ ...base, accuracy: '' })).toMatchObject({ accuracy: null });
+    expect(parseAttendanceRequest({ ...base, accuracy: null })).toMatchObject({ accuracy: null });
+  });
+  it('accepts numbers written as text, as a shortcut often sends them', () => {
+    expect(
+      parseAttendanceRequest({ ...base, latitude: '31.387139', longitude: ' 74.189924 ', accuracy: '12.5', at: '1790000000000' }),
+    ).toMatchObject({
+      latitude: 31.387139,
+      longitude: 74.189924,
+      accuracy: 12.5,
+      at: new Date(1_790_000_000_000).toISOString(),
+    });
+  });
+  it('accepts the time in seconds, or as an ISO date that names its zone, and refuses one that does not', () => {
+    const iso = new Date(1_790_000_000_000).toISOString();
+    expect(parseAttendanceRequest({ ...base, at: 1_790_000_000 }).at).toBe(iso);
+    expect(parseAttendanceRequest({ ...base, at: iso }).at).toBe(iso);
+    expect(parseAttendanceRequest({ ...base, at: '2026-11-28T09:05:00+05:00' }).at).toBe('2026-11-28T04:05:00.000Z');
+    expect(parseAttendanceRequest({ ...base, at: '2026-11-28T09:05:00' })).toBeNull();
+    expect(parseAttendanceRequest({ ...base, at: 'now' })).toBeNull();
+    expect(parseAttendanceRequest({ ...base, at: 5 })).toBeNull();
+  });
+  it('accepts an event id written without dashes, in any case, and writes it as a UUID', () => {
+    expect(parseAttendanceRequest({ ...base, event_id: 'ABCDEF0123456789ABCDEF0123456789' }).eventId).toBe(
+      'abcdef01-2345-6789-abcd-ef0123456789',
+    );
+    expect(parseAttendanceRequest({ ...base, event_id: 'abc' })).toBeNull();
+  });
+  it('never lets the request choose who the employee is', () => {
+    const r = parseAttendanceRequest({
+      ...base,
+      staff_id: '10000000-0000-4000-8000-000000000001',
+      user_id: 'x',
+      employee_id: 'y',
+      platform: 'android',
+    });
+    expect(Object.keys(r).sort()).toEqual([
+      'accuracy',
+      'at',
+      'deviceId',
+      'eventId',
+      'kind',
+      'latitude',
+      'longitude',
+      'mock',
+      'secret',
+      'type',
+    ]);
+  });
+  it('never takes a mock flag from the loose path', () => {
+    expect(parseAttendanceRequest({ ...base, mock: true, latitude: '31.387139' }).mock).toBe(false);
+  });
+  it("reads the setup shortcut's test and confirmation", () => {
+    expect(
+      parseAttendanceRequest({ device_id: base.device_id, secret: base.secret, kind: 'test', latitude: '31.4', longitude: 74.2 }),
+    ).toEqual({
+      type: 'test',
+      deviceId: base.device_id.toLowerCase(),
+      secret: base.secret,
+      latitude: 31.4,
+      longitude: 74.2,
+      accuracy: null,
+    });
+    expect(parseAttendanceRequest({ device_id: base.device_id, secret: base.secret, kind: 'Confirm' })).toEqual({
+      type: 'confirm',
+      deviceId: base.device_id.toLowerCase(),
+      secret: base.secret,
+    });
+    expect(parseAttendanceRequest({ device_id: base.device_id, secret: base.secret, kind: 'test' })).toBeNull();
+    expect(parseAttendanceRequest({ device_id: base.device_id, secret: base.secret, kind: 'test', latitude: 95, longitude: 1 })).toBeNull();
+  });
+  it('still refuses anything malformed', () => {
+    for (const bad of [
+      null,
+      {},
+      { ...base, device_id: 'x' },
+      { ...base, secret: 'short' },
+      { ...base, kind: 'sideways' },
+      { ...base, kind: undefined },
+      { ...base, latitude: 91 },
+      { ...base, longitude: '-181' },
+      { ...base, latitude: '31,3' },
+      { ...base, latitude: 'north' },
+      { ...base, accuracy: -1 },
+      { ...base, accuracy: 'poor' },
+      { ...base, accuracy: 1e9 },
+      { ...base, at: undefined },
+      { ...base, event_id: undefined },
+    ]) {
+      expect(parseAttendanceRequest(bad)).toBeNull();
+    }
+  });
+});
+
+describe('iPhone enrolment requests', () => {
+  const token = 'b'.repeat(64);
+  it('reads a look at the code and a use of it', () => {
+    expect(parseEnrolRequest({ action: 'peek', token })).toEqual({ action: 'peek', token });
+    expect(parseEnrolRequest({ action: 'consume', token: token.toUpperCase(), device_name: " Ayesha's iPhone " })).toEqual({
+      action: 'consume',
+      token,
+      deviceName: "Ayesha's iPhone",
+    });
+  });
+  it('keeps the phone name short and clean, and it is optional', () => {
+    expect(parseEnrolRequest({ action: 'consume', token }).deviceName).toBeNull();
+    expect(parseEnrolRequest({ action: 'consume', token, device_name: '   ' }).deviceName).toBeNull();
+    expect(parseEnrolRequest({ action: 'consume', token, device_name: 'a\nb\u0000c' }).deviceName).toBe('a b c');
+    expect(parseEnrolRequest({ action: 'consume', token, device_name: 'x'.repeat(200) }).deviceName).toHaveLength(60);
+    expect(parseEnrolRequest({ action: 'consume', token, device_name: 5 })).toBeNull();
+  });
+  it('refuses a malformed code or action, and never reads an employee from the request', () => {
+    for (const bad of [
+      null,
+      {},
+      { action: 'peek' },
+      { action: 'peek', token: 'short' },
+      { action: 'peek', token: 'g'.repeat(64) },
+      { action: 'delete', token },
+      { token },
+    ]) {
+      expect(parseEnrolRequest(bad)).toBeNull();
+    }
+    expect(Object.keys(parseEnrolRequest({ action: 'consume', token, staff_id: 'x', user_id: 'y' })).sort()).toEqual([
+      'action',
+      'deviceName',
+      'token',
+    ]);
   });
 });
 
